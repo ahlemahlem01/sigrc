@@ -1,0 +1,179 @@
+{
+  "data_source": "fallback_seed",
+  "n_rows_raw": 120,
+  "n_rows_final": 937,
+  "exception_rate": 0.06,
+  "baseline_accuracy": 0.5638297872340425,
+  "cv_summary": [
+    {
+      "model": "LogisticRegression",
+      "cv_accuracy_mean": 0.6288769574944071,
+      "cv_accuracy_std": 0.045815546339572376
+    },
+    {
+      "model": "RandomForestClassifier",
+      "cv_accuracy_mean": 0.5714630872483222,
+      "cv_accuracy_std": 0.02521854230534721
+    },
+    {
+      "model": "GradientBoostingClassifier",
+      "cv_accuracy_mean": 0.5901565995525726,
+      "cv_accuracy_std": 0.03747006305535435
+    }
+  ],
+  "test_summary": [
+    {
+      "model": "LogisticRegression",
+      "accuracy": 0.648936170212766,
+      "precision": 0.5869565217391305,
+      "recall": 0.6585365853658537,
+      "f1": 0.6206896551724138,
+      "roc_auc": 0.6914404049700875
+    },
+    {
+      "model": "GradientBoostingClassifier",
+      "accuracy": 0.6063829787234043,
+      "precision": 0.5408163265306123,
+      "recall": 0.6463414634146342,
+      "f1": 0.5888888888888889,
+      "roc_auc": 0.6450759318913944
+    },
+    {
+      "model": "RandomForestClassifier",
+      "accuracy": 0.5797872340425532,
+      "precision": 0.5164835164835165,
+      "recall": 0.573170731707317,
+      "f1": 0.5433526011560693,
+      "roc_auc": 0.6301771744132536
+    }
+  ],
+  "best_model": "LogisticRegression",
+  "best_f1": 0.6206896551724138,
+  "best_params": {
+    "C": 0.01,
+    "class_weight": "balanced",
+    "max_iter": 2000,
+    "penalty": "l2",
+    "random_state": 42,
+    "solver": "lbfgs"
+  },
+  "grid_best_cv_f1": 0.6121489755383328,
+  "tuned_metrics": {
+    "model": "LogisticRegression+GridSearch",
+    "accuracy": 0.648936170212766,
+    "precision": 0.5869565217391305,
+    "recall": 0.6585365853658537,
+    "f1": 0.6206896551724138,
+    "roc_auc": 0.6914404049700875
+  },
+  "tuning_comparison": [
+    {
+      "variant": "Précédent (bruit 12%, LR défaut)",
+      "exception_rate": 0.12,
+      "accuracy": 0.6223404255319149,
+      "precision": 0.574468085106383,
+      "recall": 0.6352941176470588,
+      "f1": 0.6033519553072626,
+      "roc_auc": 0.681781838949172
+    },
+    {
+      "variant": "Actuel bruit 6% — LogisticRegression défaut",
+      "exception_rate": 0.06,
+      "accuracy": 0.648936170212766,
+      "precision": 0.5869565217391305,
+      "recall": 0.6585365853658537,
+      "f1": 0.6206896551724138,
+      "roc_auc": 0.6785549930971008
+    },
+    {
+      "variant": "Actuel bruit 6% — LogisticRegression GridSearch",
+      "exception_rate": 0.06,
+      "accuracy": 0.648936170212766,
+      "precision": 0.5869565217391305,
+      "recall": 0.6585365853658537,
+      "f1": 0.6206896551724138,
+      "roc_auc": 0.6914404049700875
+    }
+  ],
+  "artifacts": [
+    "cat_imputer.pkl",
+    "encoder.pkl",
+    "feature_meta.json",
+    "model.pkl",
+    "num_imputer.pkl",
+    "preprocessor.pkl",
+    "scaler.pkl"
+  ],
+  "cells": [
+    {
+      "cell": 0,
+      "type": "code",
+      "status": "ok",
+      "title": "import pandas as pd"
+    },
+    {
+      "cell": 1,
+      "type": "code",
+      "status": "ok",
+      "title": "import matplotlib.pyplot as plt"
+    },
+    {
+      "cell": 2,
+      "type": "markdown",
+      "status": "skipped"
+    },
+    {
+      "cell": 3,
+      "type": "code",
+      "status": "ok",
+      "title": "# ── Génération synthétique réaliste (voir markdown méthodologie) ───────────"
+    },
+    {
+      "cell": 4,
+      "type": "code",
+      "status": "ok",
+      "title": "from sklearn.compose import ColumnTransformer"
+    },
+    {
+      "cell": 5,
+      "type": "code",
+      "status": "ok",
+      "title": "from sklearn.dummy import DummyClassifier"
+    },
+    {
+      "cell": 6,
+      "type": "code",
+      "status": "ok",
+      "title": "from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier"
+    },
+    {
+      "cell": 7,
+      "type": "code",
+      "status": "ok",
+      "title": "from sklearn.metrics import ("
+    },
+    {
+      "cell": 8,
+      "type": "code",
+      "status": "ok",
+      "title": "# ── GridSearchCV 5-fold sur le meilleur modèle (params par défaut, cell précéde"
+    },
+    {
+      "cell": 9,
+      "type": "markdown",
+      "status": "skipped"
+    },
+    {
+      "cell": 10,
+      "type": "code",
+      "status": "ok",
+      "title": "# Meilleur modèle selon F1 sur le test set (tableau récapitulatif cell précédent"
+    },
+    {
+      "cell": 11,
+      "type": "code",
+      "status": "ok",
+      "title": "from pathlib import Path"
+    }
+  ]
+}

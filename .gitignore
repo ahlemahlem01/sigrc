@@ -1,0 +1,39 @@
+# Secrets and local env
+token.json
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
+
+
+# API configuration that holds SMTP, Gemini and database secrets
+**/appsettings.json
+**/appsettings.Development.json
+**/appsettings.*.json
+!**/appsettings.example.json
+
+# Local build copies that duplicate those settings
+**/_buildcheck/
+**/_buildcheck*/
+
+# Python
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+**/.pytest_cache/
+*.pyc
+
+# Local restore dumps (not part of the app)
+_ai_restore_backup_*/
+_restore_extract/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Uploaded employee documents (served only through the API)
+**/App_Data/
+logs/

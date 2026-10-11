@@ -1,0 +1,6 @@
+@Coficab.Auth.API_HostAddress = http://localhost:5019
+
+GET {{Coficab.Auth.API_HostAddress}}/.well-known/openid-configuration
+Accept: application/json
+
+###

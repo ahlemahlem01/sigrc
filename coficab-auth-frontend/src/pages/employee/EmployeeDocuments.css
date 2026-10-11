@@ -1,0 +1,393 @@
+/* "Mes documents" — same tokens as the badges page (EmployeeBadgesPage.css). */
+.edc-page {
+  --navy: #000168;
+  --navy-text: #0f2b5c;
+  --navy-soft: #eef2ff;
+  --line: #e2e8f0;
+  --text: #0f172a;
+  --muted: #64748b;
+  --gold: #c9a54a;
+  --font-head: Inter, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+
+  font-family: var(--font-body);
+  color: var(--text);
+}
+
+.edc-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 4px 36px;
+}
+
+.edc-header {
+  margin-bottom: 18px;
+}
+
+.edc-kicker {
+  margin: 0 0 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.edc-header h1 {
+  margin: 0;
+  font-family: var(--font-head);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--navy-text);
+  letter-spacing: -0.02em;
+}
+
+.edc-sub {
+  margin: 6px 0 0;
+  max-width: 560px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--muted);
+}
+
+/* Toolbar: filter tabs on the left, search + sort on the right */
+.edc-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.edc-tabs {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.edc-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.edc-tabs button span {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.edc-tabs button.on {
+  background: var(--navy);
+  color: #fff;
+}
+
+.edc-tabs button.on span {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.edc-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.edc-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  min-width: 260px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--muted);
+}
+
+.edc-search:focus-within {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(0, 1, 104, 0.08);
+}
+
+.edc-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.edc-tools select {
+  height: 38px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.edc-alert {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+  background: #fef2f2;
+  font-size: 13px;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* List */
+.edc-panel {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+}
+
+.edc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.edc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 12px;
+  border-radius: 10px;
+}
+
+.edc-row + .edc-row {
+  border-top: 1px solid #f1f5f9;
+}
+
+.edc-row:hover {
+  background: #f8fafc;
+}
+
+.edc-type {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 46px;
+  height: 52px;
+  flex-shrink: 0;
+  border: 1px solid #dbe2f5;
+  border-radius: 9px;
+  background: var(--navy-soft);
+  color: var(--navy);
+}
+
+.edc-type small {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.edc-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.edc-name {
+  display: block;
+  overflow: hidden;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edc-desc {
+  margin: 3px 0 0;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: #475569;
+}
+
+.edc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 5px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.edc-meta .muted {
+  color: #94a3b8;
+}
+
+.edc-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.edc-fav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.edc-fav:hover {
+  color: var(--navy);
+}
+
+.edc-fav.on {
+  border-color: #ecdcae;
+  background: #fdf8ec;
+  color: var(--gold);
+}
+
+.edc-fav.on svg {
+  fill: currentColor;
+}
+
+.edc-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--navy);
+  border-radius: 9px;
+  background: var(--navy);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+}
+
+.edc-download:hover:not(:disabled) {
+  background: #00009e;
+}
+
+.edc-download:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.edc-spin {
+  animation: edc-spin 0.9s linear infinite;
+}
+
+@keyframes edc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Empty / loading */
+.edc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.edc-empty strong {
+  font-size: 14px;
+  color: var(--navy-text);
+}
+
+.edc-empty p {
+  margin: 0;
+  max-width: 380px;
+  font-size: 13px;
+}
+
+.edc-empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 4px;
+  border-radius: 50%;
+  background: var(--navy-soft);
+  color: var(--navy);
+}
+
+.edc-skel {
+  height: 64px;
+  margin: 6px 4px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: edc-shimmer 1.2s infinite;
+}
+
+@keyframes edc-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .edc-tools {
+    width: 100%;
+  }
+
+  .edc-search {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+
+  .edc-tools select {
+    flex: 1;
+  }
+
+  .edc-row {
+    flex-wrap: wrap;
+  }
+
+  .edc-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}

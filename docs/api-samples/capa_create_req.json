@@ -1,0 +1,22 @@
+{
+    "planTitle":  "Plan CAPA - SÃ©curisation soudure d\u0027ancrage Robot WR-05 / WR-04",
+    "actions":  [
+                    {
+                        "kind":  "CORRECTIVE",
+                        "branch":  "OCCURRENCE",
+                        "title":  "Mise en place d\u0027un interverrouillage Poka-Yoke sur l\u0027automate des robots WR-05 et WR-04",
+                        "description":  "Programmer un blocage automatique (Poka-Yoke Hard) du robot de soudage dÃ¨s que le nombre de cycles tolÃ©rÃ© avant dressement d\u0027Ã©lectrode (tip-dress) est atteint. Interdire le redÃ©marrage et le bypass manuel sans revalidation du process et dÃ©verrouillage par badge QualitÃ©/Maintenance.",
+                        "priority":  1,
+                        "suggestedDeadlineDays":  14
+                    },
+                    {
+                        "kind":  "PREVENTIVE",
+                        "branch":  "DETECTION",
+                        "title":  "Mise Ã  jour du Plan de Surveillance et ajout d\u0027un contrÃ´le de noyau/arrachement avec asservissement alarme",
+                        "description":  "RÃ©viser le plan de surveillance et l\u0027instruction de contrÃ´le final : intÃ©grer un critÃ¨re dimensionnel du noyau de soudure (diamÃ¨tre de nugget via ultrasons ou test destructif par Ã©chantillonnage). Automatiser l\u0027augmentation de frÃ©quence de contrÃ´le et le renforcement des critÃ¨res de dÃ©tection dÃ¨s l\u0027apparition d\u0027un prÃ©-alarme tip-dress.",
+                        "priority":  1,
+                        "suggestedDeadlineDays":  21
+                    }
+                ],
+    "planDescription":  "Plan d\u0027action d\u0027urgence et de fond suite au dÃ©faut de manque de fusion sur le robot WR-05 (RÃ©clamation e156c1c5-41ed-4664-860a-5c9bcec80435). Il vise Ã  Ã©liminer le risque de dÃ©rogation process (Occurrence) et Ã  fiabiliser les critÃ¨res de contrÃ´le de la soudure (DÃ©tection) selon les exigences IATF 16949."
+}

@@ -1,0 +1,120 @@
+# Whole application on one machine:  docker compose up -d --build
+#   frontend    http://localhost:3001        Auth API   http://${PUBLIC_HOST}:5119
+#   Action Plan API http://${PUBLIC_HOST}:5129   ML service http://localhost:8001   SQL Server localhost:1433
+# The Action Plan API runs inside the Auth API network namespace (network_mode) so that the issuer URL is identical
+# for the browser and for the APIs.
+# Only the database:  docker compose up -d sqlserver   (then run the APIs from the IDE)
+# Settings come from the .env file next to this one (copy .env.example to .env and fill it in).
+name: coficabauth
+
+x-connection: &connection
+  # Double quotes let SqlClient accept any character in the password.
+  ConnectionStrings__DefaultConnection: 'Server=sqlserver,1433;Database=coficab;User Id=sa;Password="${MSSQL_SA_PASSWORD}";TrustServerCertificate=True;Encrypt=True'
+
+x-api-common: &api-common
+  restart: unless-stopped
+  depends_on:
+    sqlserver:
+      condition: service_healthy
+
+services:
+  sqlserver:
+    image: ${MSSQL_IMAGE:-mcr.microsoft.com/mssql/server:2019-latest}
+    container_name: sigrc_sqlserver
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in the .env file}
+      MSSQL_MEMORY_LIMIT_MB: "2048"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+    healthcheck:
+      # sqlcmd lives in a different folder depending on the image version (2019: mssql-tools, 2022: mssql-tools18).
+      test: ["CMD-SHELL", "if [ -x /opt/mssql-tools18/bin/sqlcmd ]; then /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1; else /opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" || exit 1; fi"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  auth-api:
+    <<: *api-common
+    build:
+      context: ./Coficab.Auth
+      dockerfile: Dockerfile.auth
+    container_name: sigrc_auth_api
+    ports:
+      - "5119:5119"
+      # The Action Plan API shares this container's network (see below), so its port is published here.
+      - "5129:5129"
+    environment:
+      PORT: "5119"
+      <<: *connection
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Auth__Issuer: http://${PUBLIC_HOST:-localhost}:5119/
+      Frontend__Url: http://${PUBLIC_HOST:-localhost}:3001
+      Cors__AllowedOrigins: http://localhost:3001,http://${PUBLIC_HOST:-localhost}:3001
+      Seed__SuperAdminPassword: ${SEED_SUPERADMIN_PASSWORD:-}
+      Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-}
+    volumes:
+      # Token signing keys must survive a container re-creation, otherwise every session is invalidated.
+      - authkeys:/root/.dotnet/corefx
+
+  actionplan-api:
+    <<: *api-common
+    build:
+      context: ./Coficab.Auth
+      dockerfile: Dockerfile.actionplan
+    container_name: sigrc_actionplan_api
+    # Same network as the Auth API: both reach http://localhost:5119/ (the token issuer address that the browser
+    # uses too), which works without any host name setup and without internet access.
+    network_mode: "service:auth-api"
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      auth-api:
+        condition: service_started
+    environment:
+      PORT: "5129"
+      <<: *connection
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      Auth__Issuer: http://${PUBLIC_HOST:-localhost}:5119/
+      AuthApi__BaseUrl: http://localhost:5119
+      Cors__AllowedOrigins: http://localhost:3001,http://${PUBLIC_HOST:-localhost}:3001
+      MlService__BaseUrl: http://ml-service:8001
+      MlFeatures__DatasetApiKey: ${ML_DATASET_KEY:-}
+      Gemini__ApiKey: ${GEMINI_API_KEY:-}
+      # The semantic search backfill is only useful with a Gemini key.
+      Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}
+
+  ml-service:
+    build:
+      context: ./ml-service
+    container_name: sigrc_ml
+    restart: unless-stopped
+    environment:
+      PORT: "8001"
+    ports:
+      - "${ML_PORT:-8001}:8001"
+
+  frontend:
+    build:
+      context: ./coficab-auth-frontend
+      args:
+        # These are the addresses the BROWSER uses, so they point at the published ports.
+        REACT_APP_AUTH_API_URL: http://${PUBLIC_HOST:-localhost}:5119
+        REACT_APP_ACTION_PLAN_API_URL: http://${PUBLIC_HOST:-localhost}:5129/api
+        REACT_APP_ML_API_URL: http://localhost:${ML_PORT:-8001}
+    container_name: sigrc_frontend
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - auth-api
+      - actionplan-api
+
+volumes:
+  sqldata:
+  authkeys:

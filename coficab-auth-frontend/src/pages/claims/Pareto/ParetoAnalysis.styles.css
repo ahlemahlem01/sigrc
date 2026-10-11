@@ -1,0 +1,223 @@
+.pareto-container {
+  --pareto-navy: #000168;
+  --pareto-accent: #2563eb;
+  --pareto-amber: #d97706;
+  --pareto-border: #e2e8f0;
+  --pareto-muted: #64748b;
+  --pareto-text: #0f172a;
+  --pareto-bg: #f8fafc;
+
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 28px 24px 48px;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--pareto-text);
+}
+
+.pareto-header {
+  margin-bottom: 20px;
+}
+
+.pareto-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pareto-accent);
+  text-decoration: none;
+}
+
+.pareto-back-link:hover {
+  color: var(--pareto-navy);
+  text-decoration: underline;
+}
+
+.pareto-header h1 {
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+  color: var(--pareto-navy);
+  margin: 0 0 6px 0;
+  line-height: 1.25;
+}
+
+.pareto-context {
+  font-size: 13px;
+  color: var(--pareto-muted);
+  margin: 0;
+  line-height: 1.45;
+}
+
+.pareto-ai-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #dbeafe;
+  background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
+  color: #1e3a8a;
+}
+
+.pareto-ai-banner > svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--pareto-accent);
+}
+
+.pareto-ai-banner strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1e40af;
+  margin-bottom: 4px;
+}
+
+.pareto-ai-banner-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #334155;
+}
+
+.pareto-mode-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.pareto-toggle-btn {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--pareto-border);
+  background: #ffffff;
+  color: var(--pareto-muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pareto-toggle-btn:hover:not(:disabled) {
+  border-color: #cbd5e1;
+  background: var(--pareto-bg);
+  color: #334155;
+}
+
+.pareto-toggle-btn.active {
+  background: #fff7ed;
+  border-color: #fdba74;
+  color: #9a3412;
+  box-shadow: inset 0 0 0 1px rgba(217, 119, 6, 0.15);
+}
+
+.pareto-toggle-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.pareto-chart-card {
+  background: #ffffff;
+  border: 1px solid var(--pareto-border);
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 16px 12px 8px;
+  min-height: 420px;
+}
+
+.pareto-state {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--pareto-muted);
+  font-size: 13px;
+  background: #ffffff;
+  border: 1px dashed var(--pareto-border);
+  border-radius: 12px;
+}
+
+.pareto-state-error {
+  color: #dc2626;
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.pareto-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: #ffffff;
+  border: 1px solid var(--pareto-border);
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+
+.pareto-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #334155;
+  font-weight: 500;
+  cursor: pointer;
+  flex: 1 1 240px;
+}
+
+.pareto-select {
+  padding: 8px 12px;
+  border: 1px solid var(--pareto-border);
+  border-radius: 8px;
+  font-size: 12.5px;
+  background: var(--pareto-bg);
+  color: #334155;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+}
+
+.pareto-select:focus {
+  background: #ffffff;
+  border-color: var(--pareto-accent);
+}
+
+.pareto-btn-primary {
+  background: var(--pareto-navy);
+  color: #ffffff;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  margin-left: auto;
+}
+
+.pareto-btn-primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.pareto-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 720px) {
+  .pareto-container {
+    padding: 20px 16px 40px;
+  }
+
+  .pareto-mode-toggle {
+    grid-template-columns: 1fr;
+  }
+
+  .pareto-btn-primary {
+    margin-left: 0;
+    width: 100%;
+  }
+}

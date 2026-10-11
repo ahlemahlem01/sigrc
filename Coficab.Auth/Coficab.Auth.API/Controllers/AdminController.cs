@@ -1,0 +1,672 @@
+using Coficab.Auth.API.Data;
+using Coficab.Auth.API.Models;
+using Coficab.Auth.API.Services;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using OpenIddict.Abstractions;
+using OpenIddict.Validation.AspNetCore;
+using System.Security.Cryptography;
+
+namespace Coficab.Auth.API.Controllers;
+
+[ApiController]
+[Route("api/admin")]
+[Authorize(Roles = "superadmin,admin",
+    AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+public class AdminController : ControllerBase
+{
+    private readonly UserManager<ApplicationUser> _userManager;
+    private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly AppDbContext _db;
+    private readonly EmailService _emailService;
+    private readonly AuditService _auditService;
+    private readonly IOpenIddictTokenManager _tokenManager;
+
+    public AdminController(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<IdentityRole> roleManager,
+        AppDbContext db,
+        EmailService emailService,
+        AuditService auditService,
+        IOpenIddictTokenManager tokenManager)
+    {
+        _userManager = userManager;
+        _roleManager = roleManager;
+        _db = db;
+        _emailService = emailService;
+        _auditService = auditService;
+        _tokenManager = tokenManager;
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────
+
+    private string CurrentUserId =>
+        User.GetClaim(OpenIddictConstants.Claims.Subject) ?? "";
+
+    private string CurrentUserEmail =>
+        User.GetClaim(OpenIddictConstants.Claims.Email) ?? "unknown";
+
+    private bool CallerIsSuperadmin =>
+        User.IsInRole("superadmin");
+
+    private async Task<Guid?> GetCallerOrgIdAsync()
+    {
+        if (CallerIsSuperadmin) return null;
+        var caller = await _userManager.FindByIdAsync(CurrentUserId);
+        return caller?.OrganizationId;
+    }
+
+    private static string? ValidateRoleScoping(string role, Guid? organizationId, string? department)
+    {
+        if (role == "superadmin") return null;
+
+        if (role == "admin")
+        {
+            if (organizationId == null)
+                return "An admin must be assigned to an organization.";
+            if (string.IsNullOrWhiteSpace(department))
+                return "An admin must have a department set.";
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Cryptographically secure password that satisfies Identity default complexity.
+    /// </summary>
+    private static string GenerateSecurePassword(int length = 16)
+    {
+        const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+        const string lower = "abcdefghjkmnpqrstuvwxyz";
+        const string digits = "23456789";
+        const string special = "!@#$%^&*()-_=+[]{}";
+        const string all = upper + lower + digits + special;
+
+        var password = new char[length];
+        password[0] = upper[RandomNumberGenerator.GetInt32(upper.Length)];
+        password[1] = lower[RandomNumberGenerator.GetInt32(lower.Length)];
+        password[2] = digits[RandomNumberGenerator.GetInt32(digits.Length)];
+        password[3] = special[RandomNumberGenerator.GetInt32(special.Length)];
+
+        for (int i = 4; i < length; i++)
+            password[i] = all[RandomNumberGenerator.GetInt32(all.Length)];
+
+        RandomNumberGenerator.Shuffle(password.AsSpan());
+        return new string(password);
+    }
+
+    /// <summary>
+    /// Revokes all active tokens (access + refresh) issued to a user, so a
+    /// lock/lockout takes effect immediately instead of waiting for token expiry.
+    /// </summary>
+    private async Task RevokeAllTokensForUserAsync(string userId)
+    {
+        await foreach (var token in _tokenManager.FindBySubjectAsync(userId))
+        {
+            await _tokenManager.TryRevokeAsync(token);
+        }
+    }
+
+    // ─── GET /api/admin/users ─────────────────────────────────
+
+    [HttpGet("users")]
+    public async Task<IActionResult> GetUsers()
+    {
+        IQueryable<ApplicationUser> query = _userManager.Users;
+
+        if (!CallerIsSuperadmin)
+        {
+            var callerOrgId = await GetCallerOrgIdAsync();
+            if (callerOrgId == null) return Forbid();
+            query = query.Where(u => u.OrganizationId == callerOrgId);
+        }
+
+        var users = await query.ToListAsync();
+        var userIds = users.Select(u => u.Id).ToList();
+
+        var roleRows = await (
+            from link in _db.Set<Microsoft.AspNetCore.Identity.IdentityUserRole<string>>()
+            join role in _db.Roles on link.RoleId equals role.Id
+            where userIds.Contains(link.UserId)
+            select new { link.UserId, role.Name }
+        ).ToListAsync();
+
+        var permissionRows = await _db.UserPermissions
+            .Where(up => userIds.Contains(up.UserId) && up.IsGranted && up.Permission != null)
+            .Select(up => new { up.UserId, up.Permission.Name })
+            .ToListAsync();
+
+        var rolesByUser = roleRows
+            .GroupBy(r => r.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.Name).Where(n => n != null).Cast<string>().ToList());
+        var permissionsByUser = permissionRows
+            .GroupBy(p => p.UserId)
+            .ToDictionary(g => g.Key, g => g.Select(p => p.Name).ToList());
+
+        var result = users.Select(user => new
+        {
+            user.Id,
+            user.Email,
+            user.FullName,
+            user.Department,
+            user.DepartmentId,
+            user.OrganizationId,
+            user.LockoutEnd,
+            user.AccessFailedCount,
+            user.LastLoginAt,
+            IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
+            Roles = rolesByUser.TryGetValue(user.Id, out var roles) ? roles : new List<string>(),
+            Permissions = permissionsByUser.TryGetValue(user.Id, out var permissions) ? permissions : new List<string>(),
+            CreatedAt = (DateTimeOffset?)null,
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    // ─── GET /api/admin/permissions ───────────────────────────
+
+    [HttpGet("permissions")]
+    public async Task<IActionResult> GetPermissions()
+    {
+        var permissions = await _db.Permissions
+            .Where(p => p.IsActive)
+            .ToListAsync();
+        permissions = permissions.Where(p => ProjectPermissionCatalog.IsSupported(p.Name)).ToList();
+        return Ok(permissions);
+    }
+
+    // ─── GET /api/admin/audit-logs ────────────────────────────
+
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    {
+        var total = await _db.AuditLogs.CountAsync();
+        var logs = await _db.AuditLogs
+            .OrderByDescending(a => a.Timestamp)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new { total, page, pageSize, logs });
+    }
+
+    // ─── POST /api/admin/users ────────────────────────────────
+
+    [HttpPost("users")]
+    [Authorize(Roles = "superadmin",
+        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest request)
+    {
+        if (string.IsNullOrEmpty(CurrentUserId))
+            return BadRequest("Cannot resolve current user ID.");
+
+        if (request.Role == "superadmin")
+            request.OrganizationId = null;
+
+        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
+        if (scopingError != null) return BadRequest(scopingError);
+
+        var created = await TryCreateUserAsync(request);
+        if (created.Error != null)
+            return BadRequest(created.Error);
+
+        return Ok(new { created.Id, created.Email, created.FullName, created.OrganizationId });
+    }
+
+    /// <summary>
+    /// CSV des employés. Colonnes : FullName, Email, Department, Role, Poste, Equipe.
+    /// Role vaut user par défaut.
+    /// </summary>
+    [HttpPost("users/import")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(8_000_000)]
+    public async Task<IActionResult> ImportUsers(IFormFile file, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrEmpty(CurrentUserId))
+            return BadRequest("Cannot resolve current user ID.");
+
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Fichier CSV requis." });
+
+        string text;
+        using (var reader = new StreamReader(file.OpenReadStream()))
+            text = await reader.ReadToEndAsync(cancellationToken);
+
+        var rows = ParseEmployeeCsv(text);
+        if (rows.Count == 0)
+            return BadRequest(new { message = "Aucune ligne à importer. En-tête attendu : Nom complet, E-mail, Département, Rôle, Poste, Équipe." });
+        if (rows.Count > 300)
+            return BadRequest(new { message = "Maximum 300 employés par fichier." });
+
+        var created = new List<object>();
+        var errors = new List<object>();
+        for (var i = 0; i < rows.Count; i++)
+        {
+            var row = rows[i];
+            if (string.IsNullOrWhiteSpace(row.FullName) || string.IsNullOrWhiteSpace(row.Email))
+            {
+                errors.Add(new { line = i + 2, message = "FullName et Email sont requis." });
+                continue;
+            }
+
+            var role = string.IsNullOrWhiteSpace(row.Role) ? "user" : row.Role.Trim().ToLowerInvariant();
+            if (role is not ("user" or "admin" or "superadmin"))
+            {
+                errors.Add(new { line = i + 2, message = "Role invalide. Valeurs : user, admin, superadmin." });
+                continue;
+            }
+
+            if (!CallerIsSuperadmin && role is "admin" or "superadmin")
+            {
+                errors.Add(new { line = i + 2, message = "Seul un superadmin peut créer un admin ou un superadmin." });
+                continue;
+            }
+
+            var result = await TryCreateUserAsync(new AdminCreateUserRequest
+            {
+                Email = row.Email.Trim(),
+                FullName = row.FullName.Trim(),
+                Department = row.Department?.Trim() ?? "",
+                Role = role,
+                Permissions = []
+            });
+
+            if (result.Error != null)
+            {
+                errors.Add(new { line = i + 2, message = result.Error });
+                continue;
+            }
+
+            created.Add(new
+            {
+                id = result.Id,
+                email = result.Email,
+                fullName = result.FullName,
+                role,
+                department = row.Department?.Trim() ?? "",
+                poste = row.Poste?.Trim() ?? "",
+                equipe = row.Equipe?.Trim() ?? ""
+            });
+        }
+
+        return Ok(new { created = created.Count, users = created, errors });
+    }
+
+    private async Task<UserCreateOutcome> TryCreateUserAsync(AdminCreateUserRequest request)
+    {
+        if (string.IsNullOrEmpty(CurrentUserId))
+            return new UserCreateOutcome("Cannot resolve current user ID.", null, null, null, null);
+
+        if (request.Role == "superadmin")
+            request.OrganizationId = null;
+
+        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
+        if (scopingError != null)
+            return new UserCreateOutcome(scopingError, null, null, null, null);
+
+        var user = new ApplicationUser
+        {
+            UserName = request.Email,
+            Email = request.Email,
+            FullName = request.FullName,
+            Department = request.Department,
+            OrganizationId = request.OrganizationId
+        };
+
+        var temporaryPassword = GenerateSecurePassword();
+        var result = await _userManager.CreateAsync(user, temporaryPassword);
+        if (!result.Succeeded)
+            return new UserCreateOutcome(result.Errors.First().Description, null, null, null, null);
+
+        if (!string.IsNullOrEmpty(request.Role))
+            await _userManager.AddToRoleAsync(user, request.Role);
+
+        if (request.Permissions?.Any() == true)
+        {
+            foreach (var permName in request.Permissions)
+            {
+                var perm = await _db.Permissions.FirstOrDefaultAsync(p => p.Name == permName);
+                if (perm != null)
+                    _db.UserPermissions.Add(new UserPermission
+                    {
+                        UserId = user.Id,
+                        PermissionId = perm.Id,
+                        IsGranted = true,
+                        GrantedById = CurrentUserId
+                    });
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        try
+        {
+            await _emailService.SendWelcomeEmailAsync(user.Email!, user.FullName, temporaryPassword);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine(
+                $"[AdminController] Welcome email failed for {user.Email}: {ex.Message}");
+        }
+
+        await _auditService.LogAsync(
+            action: "CREATE",
+            targetEmail: user.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Role: {request.Role}, Department: {request.Department}");
+
+        return new UserCreateOutcome(null, user.Id, user.Email, user.FullName, user.OrganizationId);
+    }
+
+    private sealed record UserCreateOutcome(string? Error, string? Id, string? Email, string? FullName, Guid? OrganizationId);
+
+    private sealed record CsvEmployeeRow(string FullName, string Email, string? Department, string? Role, string? Poste, string? Equipe);
+
+    private static List<CsvEmployeeRow> ParseEmployeeCsv(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").Replace('\r', '\n')
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (lines.Length < 2) return [];
+
+        var delimiter = lines[0].Contains(';') && !lines[0].Contains(',') ? ';' : ',';
+        var header = SplitCsvLine(lines[0], delimiter)
+            .Select(h => h.Trim().Trim('"').ToLowerInvariant())
+            .ToList();
+        int Index(params string[] names)
+        {
+            foreach (var name in names)
+            {
+                var wanted = name.Trim().TrimStart('\uFEFF').ToLowerInvariant();
+                var index = header.FindIndex(cell => cell.Trim().TrimStart('\uFEFF') == wanted);
+                if (index >= 0) return index;
+            }
+            return -1;
+        }
+        var iName = Index("fullname", "nom complet", "nom");
+        var iEmail = Index("email", "e-mail", "courriel");
+        var iDept = Index("department", "département", "departement");
+        var iRole = Index("role", "rôle");
+        var iPoste = Index("poste");
+        var iEquipe = Index("equipe", "équipe");
+        if (iName < 0 || iEmail < 0) return [];
+
+        string? Cell(IReadOnlyList<string> cells, int index) =>
+            index >= 0 && index < cells.Count ? cells[index] : null;
+
+        var rows = new List<CsvEmployeeRow>();
+        for (var i = 1; i < lines.Length; i++)
+        {
+            var cells = SplitCsvLine(lines[i], delimiter);
+            if (cells.All(string.IsNullOrWhiteSpace)) continue;
+            var fullName = Cell(cells, iName) ?? "";
+            if (fullName.Trim().StartsWith("EXEMPLE", StringComparison.OrdinalIgnoreCase)) continue;
+            rows.Add(new CsvEmployeeRow(
+                Cell(cells, iName) ?? "",
+                Cell(cells, iEmail) ?? "",
+                Cell(cells, iDept),
+                Cell(cells, iRole),
+                Cell(cells, iPoste),
+                Cell(cells, iEquipe)));
+        }
+        return rows;
+    }
+
+    private static List<string> SplitCsvLine(string line, char delimiter)
+    {
+        var cells = new List<string>();
+        var current = new System.Text.StringBuilder();
+        var quoted = false;
+        foreach (var ch in line)
+        {
+            if (ch == '"') { quoted = !quoted; continue; }
+            if (ch == delimiter && !quoted) { cells.Add(current.ToString().Trim()); current.Clear(); continue; }
+            current.Append(ch);
+        }
+        cells.Add(current.ToString().Trim());
+        return cells;
+    }
+
+    // ─── PUT /api/admin/users/{id} ────────────────────────────
+
+    [HttpPut("users/{id}")]
+    public async Task<IActionResult> UpdateUser(string id, [FromBody] AdminUpdateUserRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        if (!CallerIsSuperadmin)
+        {
+            var callerOrgId = await GetCallerOrgIdAsync();
+            if (callerOrgId == null || user.OrganizationId != callerOrgId)
+                return Forbid();
+
+            if (request.Role is "admin" or "superadmin")
+                return BadRequest("You do not have permission to assign this role.");
+        }
+
+        if (request.Role == "superadmin")
+            request.OrganizationId = null;
+
+        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
+        if (scopingError != null) return BadRequest(scopingError);
+
+        // Build detail string before overwriting
+        var changes = new List<string>();
+        if (user.FullName != request.FullName) changes.Add($"FullName: {user.FullName} → {request.FullName}");
+        if (user.Department != request.Department) changes.Add($"Department: {user.Department} → {request.Department}");
+
+        var oldRoles = await _userManager.GetRolesAsync(user);
+        var oldRole = oldRoles.FirstOrDefault() ?? "none";
+        if (oldRole != request.Role) changes.Add($"Role: {oldRole} → {request.Role}");
+
+        user.FullName = request.FullName;
+        user.Department = request.Department;
+        user.OrganizationId = request.OrganizationId;
+        await _userManager.UpdateAsync(user);
+
+        await _userManager.RemoveFromRolesAsync(user, oldRoles);
+        if (!string.IsNullOrEmpty(request.Role))
+            await _userManager.AddToRoleAsync(user, request.Role);
+
+        var existing = _db.UserPermissions.Where(up => up.UserId == id);
+        _db.UserPermissions.RemoveRange(existing);
+
+        if (request.Permissions?.Any() == true)
+        {
+            foreach (var permName in request.Permissions)
+            {
+                var perm = await _db.Permissions.FirstOrDefaultAsync(p => p.Name == permName);
+                if (perm != null)
+                    _db.UserPermissions.Add(new UserPermission
+                    {
+                        UserId = user.Id,
+                        PermissionId = perm.Id,
+                        IsGranted = true,
+                        GrantedById = CurrentUserId
+                    });
+            }
+        }
+
+        if (request.Permissions != null)
+        {
+            var permLabel = request.Permissions.Any()
+                ? string.Join(", ", request.Permissions)
+                : "(aucune)";
+            changes.Add($"Permissions: → [{permLabel}]");
+        }
+
+        await _db.SaveChangesAsync();
+
+        await _auditService.LogAsync(
+            action: "UPDATE",
+            targetEmail: user.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: changes.Any() ? string.Join("; ", changes) : "No field changes");
+
+        return Ok();
+    }
+
+    // ─── DELETE /api/admin/users/{id} ────────────────────────
+
+    [HttpDelete("users/{id}")]
+    [Authorize(Roles = "superadmin",
+        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> DeleteUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        if (user.Id == CurrentUserId)
+            return BadRequest("You cannot delete your own account.");
+
+        var userRoles = await _userManager.GetRolesAsync(user);
+        if (userRoles.Contains("superadmin"))
+        {
+            var superadminCount = (await _userManager.GetUsersInRoleAsync("superadmin")).Count;
+            if (superadminCount <= 1)
+                return BadRequest("Cannot delete the last superadmin account.");
+        }
+
+        var email = user.Email!;
+        await _userManager.DeleteAsync(user);
+
+        await _auditService.LogAsync(
+            action: "DELETE",
+            targetEmail: email,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Roles: {string.Join(", ", userRoles)}");
+
+        return Ok();
+    }
+
+    // ─── POST /api/admin/users/{id}/reset-password ────────────
+
+    [HttpPost("users/{id}/reset-password")]
+    [Authorize(Roles = "superadmin",
+        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> ResetPassword(string id, [FromBody] AdminResetPasswordRequest request)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var result = await _userManager.ResetPasswordAsync(user, token, request.NewPassword);
+
+        if (!result.Succeeded)
+            return BadRequest(result.Errors.First().Description);
+
+        await _auditService.LogAsync(
+            action: "RESET_PASSWORD",
+            targetEmail: user.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Mot de passe réinitialisé par {CurrentUserEmail}");
+
+        return Ok();
+    }
+
+    // ─── POST /api/admin/users/{id}/unlock ───────────────────
+
+    [HttpPost("users/{id}/unlock")]
+    public async Task<IActionResult> UnlockUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        if (!CallerIsSuperadmin)
+        {
+            var callerOrgId = await GetCallerOrgIdAsync();
+            if (callerOrgId == null || user.OrganizationId != callerOrgId)
+                return Forbid();
+        }
+
+        await _userManager.SetLockoutEndDateAsync(user, null);
+        await _userManager.ResetAccessFailedCountAsync(user);
+
+        await _auditService.LogAsync(
+            action: "UNLOCK",
+            targetEmail: user.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Compte déverrouillé par {CurrentUserEmail}");
+
+        return Ok();
+    }
+
+    // ─── POST /api/admin/users/{id}/lock ──────────────────────
+
+    [HttpPost("users/{id}/lock")]
+    public async Task<IActionResult> LockUser(string id)
+    {
+        var user = await _userManager.FindByIdAsync(id);
+        if (user == null) return NotFound();
+
+        if (user.Id == CurrentUserId)
+            return BadRequest("You cannot lock your own account.");
+
+        var targetRoles = await _userManager.GetRolesAsync(user);
+        if (targetRoles.Contains("superadmin"))
+        {
+            var superadminCount = (await _userManager.GetUsersInRoleAsync("superadmin")).Count;
+            if (superadminCount <= 1)
+                return BadRequest("Cannot lock the last superadmin account.");
+        }
+
+        if (!CallerIsSuperadmin)
+        {
+            var callerOrgId = await GetCallerOrgIdAsync();
+            if (callerOrgId == null || user.OrganizationId != callerOrgId)
+                return Forbid();
+        }
+
+        if (!await _userManager.GetLockoutEnabledAsync(user))
+            await _userManager.SetLockoutEnabledAsync(user, true);
+
+        await _userManager.SetLockoutEndDateAsync(user, DateTimeOffset.MaxValue);
+
+        // Revoke active tokens so the lock takes effect immediately, not just
+        // at next login/refresh. Safe with UseLocalServer(), which checks
+        // token status on every request.
+        await RevokeAllTokensForUserAsync(user.Id);
+
+        await _auditService.LogAsync(
+            action: "LOCK",
+            targetEmail: user.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Compte verrouillé manuellement par {CurrentUserEmail}");
+
+        return Ok();
+    }
+}
+
+// ─── Request models ───────────────────────────────────────────
+
+public class AdminCreateUserRequest
+{
+    public string Email { get; set; } = "";
+    public string FullName { get; set; } = "";
+    public string Department { get; set; } = "";
+    // Password removed — generated on the backend
+    public string Role { get; set; } = "";
+    public Guid? OrganizationId { get; set; }
+    public List<string>? Permissions { get; set; }
+}
+
+public class AdminUpdateUserRequest
+{
+    public string FullName { get; set; } = "";
+    public string Department { get; set; } = "";
+    public string Role { get; set; } = "";
+    public Guid? OrganizationId { get; set; }
+    public List<string>? Permissions { get; set; }
+}
+
+public class AdminResetPasswordRequest
+{
+    public string NewPassword { get; set; } = "";
+}

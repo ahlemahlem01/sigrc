@@ -1,0 +1,6 @@
+{
+    "rootCauseDetection":  "Cause racine Detection : standard de controle final limite a la presence visuelle du point, sans critere de penetrieration / diametre de nugget ni echantillon destructif renforce. Aucune liaison entre alarme PM tip-dress depasse et renforcement du controle (MSA / frequence / poke-yoke) apres les recidives WR-04.",
+    "problemStatement":  "Soudure d\u0027ancrage gauche incomplete / manque de fusion detectee en controle final sur robot WR-05 (recurrence famille WR-04), lot LOT-2026-0807-TEST, client BMW-DEB-4521.",
+    "rootCauseOccurrence":  "Cause racine Occurrence : absence d\u0027interverrouillage process empechant le soudage lorsque le dressage d\u0027electrode (tip dress) est en retard ou hors standard. La pression de production a fait deroger au PM tip-dress sur WR-05, electrodes usees =\u003e force/energie insuffisantes =\u003e manque de fusion au point d\u0027ancrage gauche.",
+    "claimTitle":  "Recurrence soudure ancrage - robot WR-05"
+}

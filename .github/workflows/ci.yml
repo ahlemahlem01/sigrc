@@ -1,0 +1,208 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  frontend:
+    name: Frontend build and tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coficab-auth-frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: coficab-auth-frontend/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (includes ESLint)
+        run: npm run build
+        env:
+          CI: true
+
+      - name: Unit tests
+        run: npm test -- --watchAll=false
+        env:
+          CI: true
+
+  backend-tests:
+    name: Backend unit + integration (xUnit)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Coficab.Auth
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+
+      - name: Restore
+        run: dotnet restore Coficab.Auth.sln
+
+      - name: Build
+        run: dotnet build Coficab.Auth.sln --no-restore --configuration Release -warnaserror
+
+      - name: Migrations match the models
+        run: |
+          dotnet tool install --global dotnet-ef --version 9.0.15
+          export ConnectionStrings__DefaultConnection="Server=localhost;Database=x;User Id=sa;Password=unused;TrustServerCertificate=True"
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release --project Coficab.ActionPlan.Infrastructure --startup-project Coficab.ActionPlan.API --context ActionPlanDbContext
+          dotnet ef migrations has-pending-model-changes --no-build --configuration Release --project Coficab.Auth.API --context AppDbContext
+
+      - name: Unit tests (Application)
+        run: >
+          dotnet test Coficab.ActionPlan.Application.Tests/Coficab.ActionPlan.Application.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory ./TestResults
+
+      - name: Integration tests (API)
+        run: >
+          dotnet test Coficab.ActionPlan.API.Tests/Coficab.ActionPlan.API.Tests.csproj
+          --no-build --configuration Release
+          --logger "trx;LogFileName=integration.trx"
+          --results-directory ./TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: Coficab.Auth/TestResults
+
+  ml-tests:
+    name: ML service tests (pytest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml-service
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest httpx
+
+      - name: Build test model artifacts
+        run: python build_test_model.py
+
+      - name: Run pytest
+        run: pytest -q tests
+
+  docker-stack:
+    name: Docker stack on SQL Server
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create the .env file (throw-away passwords)
+        run: |
+          {
+            echo "MSSQL_SA_PASSWORD=Ci!$(openssl rand -hex 12)Aa1"
+            echo "SEED_SUPERADMIN_PASSWORD=Ci!$(openssl rand -hex 12)Aa1"
+            echo "SEED_ADMIN_PASSWORD=Ci!$(openssl rand -hex 12)Aa1"
+          } > .env
+          # The seed password is read by the smoke test below.
+          echo "SEED_ADMIN_PASSWORD=$(grep '^SEED_ADMIN_PASSWORD=' .env | cut -d= -f2-)" >> "$GITHUB_ENV"
+
+      - name: Build and start the stack
+        run: docker compose up -d --build
+
+      - name: Smoke test (health, sign in, token accepted by the second API, KPI)
+        run: python3 scripts/stack-smoke.py
+
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs --tail 80
+
+      - name: Stop
+        if: always()
+        run: docker compose down -v
+
+  # Gate job: required status check for branch protection / rulesets.
+  # Name this check "CI" (or require each job) so PRs cannot merge on failure.
+  ci-success:
+    name: CI
+    if: always()
+    needs: [frontend, backend-tests, ml-tests, docker-stack]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All jobs green?
+        run: |
+          echo "frontend=${{ needs.frontend.result }}"
+          echo "backend=${{ needs.backend-tests.result }}"
+          echo "ml=${{ needs.ml-tests.result }}"
+          echo "docker=${{ needs.docker-stack.result }}"
+          if [ "${{ needs.frontend.result }}" != "success" ] || [ "${{ needs.backend-tests.result }}" != "success" ] || [ "${{ needs.ml-tests.result }}" != "success" ] || [ "${{ needs.docker-stack.result }}" != "success" ]; then
+            echo "::error::One or more CI jobs failed — merge must be blocked."
+            exit 1
+          fi
+
+  deploy-staging:
+    name: Deploy staging
+    needs: ci-success
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: staging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The APIs, the ML service and the database are not deployed from here (they run from docker-compose.yml on the server).
+      - name: Deploy frontend to Vercel (preview)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: coficab-auth-frontend
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+
+  deploy-production:
+    name: Deploy production
+    needs: deploy-staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy frontend to Vercel (production)
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: coficab-auth-frontend
+          scope: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-args: "--prod"

@@ -1,0 +1,16 @@
+# Auth API. Build context is the Coficab.Auth folder.
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+COPY Coficab.ActionPlan.Core/Coficab.ActionPlan.Core.csproj Coficab.ActionPlan.Core/
+COPY Coficab.Auth.API/Coficab.Auth.API.csproj Coficab.Auth.API/
+RUN dotnet restore Coficab.Auth.API/Coficab.Auth.API.csproj
+COPY Coficab.ActionPlan.Core/ Coficab.ActionPlan.Core/
+COPY Coficab.Auth.API/ Coficab.Auth.API/
+RUN dotnet publish Coficab.Auth.API/Coficab.Auth.API.csproj -c Release -o /app /p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:9.0
+WORKDIR /app
+ENV ASPNETCORE_ENVIRONMENT=Production
+COPY --from=build /app .
+EXPOSE 8080
+CMD ["sh", "-c", "dotnet Coficab.Auth.API.dll --urls http://0.0.0.0:${PORT:-8080}"]

@@ -1,0 +1,74 @@
+{
+  "best_model": "LogisticRegression",
+  "best_f1_test": 0.6446280991735537,
+  "best_accuracy_test": 0.5612244897959183,
+  "target": "IsOnTime",
+  "numeric_features": [
+    "EmployeeSkill",
+    "Workload"
+  ],
+  "categorical_features": [
+    "DefectType",
+    "Severity",
+    "DepartmentId"
+  ],
+  "feature_names_out": [
+    "num__EmployeeSkill",
+    "num__Workload",
+    "cat__DefectType_Connecteur desserré",
+    "cat__DefectType_Contamination surface",
+    "cat__DefectType_Couleur incorrecte",
+    "cat__DefectType_Coupure fil",
+    "cat__DefectType_Dimension hors tolérance",
+    "cat__DefectType_Débordement étain",
+    "cat__DefectType_Isolation endommagée",
+    "cat__DefectType_Longueur câble incorrecte",
+    "cat__DefectType_Manque de sertissage",
+    "cat__DefectType_Marquage illisible",
+    "cat__DefectType_Non-conformité emballage",
+    "cat__DefectType_Polarité inversée",
+    "cat__DefectType_Soudure défectueuse",
+    "cat__DefectType_Étiquette manquante",
+    "cat__Severity_CRITICAL",
+    "cat__Severity_HIGH",
+    "cat__Severity_LOW",
+    "cat__Severity_MEDIUM",
+    "cat__DepartmentId_KUJBJB",
+    "cat__DepartmentId_RH",
+    "cat__DepartmentId_SEED-LOG",
+    "cat__DepartmentId_SEED-MAINT",
+    "cat__DepartmentId_SEED-PROD",
+    "cat__DepartmentId_SEED-QUAL",
+    "cat__DepartmentId_SEED-RH"
+  ],
+  "n_train_rows": 488,
+  "defect_types": [
+    "Connecteur desserré",
+    "Contamination surface",
+    "Couleur incorrecte",
+    "Coupure fil",
+    "Dimension hors tolérance",
+    "Débordement étain",
+    "Isolation endommagée",
+    "Longueur câble incorrecte",
+    "Manque de sertissage",
+    "Marquage illisible",
+    "Non-conformité emballage",
+    "Polarité inversée",
+    "Soudure défectueuse",
+    "Étiquette manquante"
+  ],
+  "severities": [
+    "CRITICAL",
+    "HIGH",
+    "LOW",
+    "MEDIUM"
+  ],
+  "trained_on": "realistic_claims",
+  "files": {
+    "model": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\model.pkl",
+    "encoder": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\encoder.pkl",
+    "scaler": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\scaler.pkl",
+    "preprocessor": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\preprocessor.pkl"
+  }
+}

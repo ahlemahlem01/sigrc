@@ -1,0 +1,6 @@
+@Coficab.ActionPlan.API_HostAddress = http://localhost:5029
+
+GET {{Coficab.ActionPlan.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
