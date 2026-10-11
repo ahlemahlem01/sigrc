@@ -37,3 +37,6 @@ Thumbs.db
 # Uploaded employee documents (served only through the API)
 **/App_Data/
 logs/
+
+# Database backups
+*.bak

@@ -1,0 +1,59 @@
+# Server configuration (Azure VM), used on top of the main file:
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.azure.yml up -d --build
+# Only Caddy is reachable from the internet (HTTPS on 443 for the Auth API, 8443 for the Action Plan API, 8444 for the ML service).
+# The frontend is hosted on Vercel; its address is FRONTEND_URL in .env.
+name: coficabauth
+
+services:
+  caddy:
+    image: caddy:2
+    container_name: sigrc_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8443:8443"
+      - "8444:8444"
+    environment:
+      PUBLIC_HOST: ${PUBLIC_HOST:?Set PUBLIC_HOST (the DNS name of the VM) in the .env file}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on:
+      - auth-api
+
+  sqlserver:
+    ports: !reset []
+
+  ml-service:
+    ports: !reset []
+    environment:
+      CORS_ORIGINS: ${FRONTEND_URL}
+
+  frontend:
+    profiles: ["local-only"]
+
+  auth-api:
+    ports: !reset []
+    extra_hosts:
+      # The Action Plan API (same network) validates tokens against the public issuer address:
+      # route that name to this machine instead of going out to the internet and back.
+      - "${PUBLIC_HOST:?}:host-gateway"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Auth__Issuer: https://${PUBLIC_HOST}/
+      Frontend__Url: ${FRONTEND_URL:?Set FRONTEND_URL (the Vercel address) in the .env file}
+      Cors__AllowedOrigins: ${FRONTEND_URL}
+      Auth__SigningCertificate__Base64: ${AUTH_SIGNING_CERT_BASE64:?Run deploy/bootstrap-vm.sh to generate the certificates}
+      Auth__SigningCertificate__Password: ${AUTH_CERT_PASSWORD}
+      Auth__EncryptionCertificate__Base64: ${AUTH_ENCRYPTION_CERT_BASE64}
+      Auth__EncryptionCertificate__Password: ${AUTH_CERT_PASSWORD}
+
+  actionplan-api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Auth__Issuer: https://${PUBLIC_HOST}/
+      Cors__AllowedOrigins: ${FRONTEND_URL}
+
+volumes:
+  caddydata:

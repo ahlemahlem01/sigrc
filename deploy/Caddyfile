@@ -1,0 +1,17 @@
+# HTTPS certificates are obtained and renewed automatically (Let's Encrypt) for the VM's DNS name.
+# Ports 80, 443, 8443 and 8444 must be open in the Azure network security group.
+
+# Auth API: this address is also the token issuer.
+{$PUBLIC_HOST} {
+	reverse_proxy auth-api:5119
+}
+
+# Action Plan API (it shares the network of the Auth API container) and its SignalR hub.
+{$PUBLIC_HOST}:8443 {
+	reverse_proxy auth-api:5129
+}
+
+# ML service (called directly by the browser).
+{$PUBLIC_HOST}:8444 {
+	reverse_proxy ml-service:8001
+}
