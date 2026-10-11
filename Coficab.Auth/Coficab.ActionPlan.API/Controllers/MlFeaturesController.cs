@@ -62,6 +62,21 @@ public class MlFeaturesController : ControllerBase
         return Ok(new { count = result.Count, items = result.Items });
     }
 
+    /// <summary>
+    /// Punctuality history of candidate employees (smoothed on-time rate, closed claims, open claims) as of now.
+    /// The recommendation model scores employees with these values.
+    /// </summary>
+    [HttpPost("employee-stats")]
+    [ProducesResponseType(typeof(IReadOnlyList<EmployeeStatsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<IReadOnlyList<EmployeeStatsDto>>> GetEmployeeStats(
+        [FromBody] EmployeeStatsRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _mediator.Send(
+            new GetEmployeeStatsQuery(request.EmployeeIds ?? new List<string>()), cancellationToken);
+        return Ok(result);
+    }
+
     private bool HasValidDatasetKey(string? expected)
     {
         if (string.IsNullOrEmpty(expected))
@@ -73,3 +88,5 @@ public class MlFeaturesController : ControllerBase
             Encoding.UTF8.GetBytes(expected));
     }
 }
+
+public record EmployeeStatsRequest(List<string>? EmployeeIds);

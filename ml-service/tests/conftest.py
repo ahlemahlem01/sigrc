@@ -13,4 +13,4 @@ if str(ROOT) not in sys.path:
 def pytest_configure(config):  # noqa: ARG001
     from build_test_model import build
 
-    build(ROOT / "artifacts")
+    build(ROOT / "artifacts")  # only creates a fixture when no trained model exists

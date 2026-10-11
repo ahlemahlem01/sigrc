@@ -65,6 +65,21 @@ Le frontend lit `REACT_APP_AUTH_API_URL`, `REACT_APP_ACTION_PLAN_API_URL` (suffi
 
 Les chaînes de connexion SQL Server acceptent `Connect Timeout`, `ConnectRetryCount` et `ConnectRetryInterval` ; les valeurs par défaut sont 60 s, 6 essais et 10 s, pour attendre une base qui démarre.
 
+## Modèle de recommandation (service ML)
+
+Le modèle prédit si une réclamation sera livrée à l'heure selon l'employé qui la traite, pour classer les candidats à l'assignation. Ses variables ne contiennent que ce qui était connu à l'assignation : ponctualité passée de l'employé (lissée vers la moyenne de l'équipe), nombre de dossiers déjà traités, dossiers ouverts, délai alloué, gravité et type de défaut. Elles sont calculées côté API (`api/ml-features/training-dataset` pour l'entraînement, `api/ml-features/employee-stats` pour le calcul en direct).
+
+Ré-entraîner (la clé est `MlFeatures__DatasetApiKey`, soit `ML_DATASET_KEY` dans le `.env` Docker) :
+
+```bash
+cd ml-service
+COFICAB_DATASET_KEY=<clé> COFICAB_API_URL=http://localhost:5129/api python retrain.py
+```
+
+Le script évalue le modèle (validation croisée, découpage dans le temps, comparaison avec un modèle sans variables employé) avant de l'enregistrer, et inscrit dans `artifacts/feature_meta.json` si la recommandation est **validée** (AUC d'au moins 0,60 et gain d'au moins 0,01 grâce aux variables de l'employé). Sinon l'interface l'affiche comme **indicative**.
+
+Les données de test de l'application n'ont aucun lien entre l'employé et la ponctualité. `ml-service/simulation/` contient un jeu simulé, clairement déclaré comme tel, qui permet de vérifier que la chaîne retrouve des relations connues, ainsi que le rapport d'évaluation. Ces chiffres ne sont pas ceux de l'historique réel de Coficab : pour celui-ci, importer l'historique avec l'employé assigné, la date d'assignation et l'échéance, puis relancer `retrain.py`.
+
 ## Tests
 
 ```bash

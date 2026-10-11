@@ -2192,6 +2192,11 @@
   },
   "recommend": {
     "reason": "Compétence {{skill}}/5 · Charge {{load}}%",
+    "reasonHistory": "{{rate}} % à l'heure sur {{closed}} dossiers · {{open}} en cours",
+    "indicative": "Indicatif",
+    "indicativeHint": "Ce modèle n'a pas été validé statistiquement : les scores donnent seulement une indication.",
+    "validated": "Modèle validé",
+    "validatedHint": "Évalué par validation croisée sur les données d'entraînement ({{source}}).",
     "loadingAria": "Chargement des recommandations",
     "title": "Recommandations IA",
     "analysing": "Analyse en cours…",

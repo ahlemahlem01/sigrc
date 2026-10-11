@@ -15,7 +15,12 @@ public record TrainingDatasetRowDto(
     double? EmployeeSkill,
     double? Workload,
     bool IsOnTime,
-    DateTime? CompletedAt
+    DateTime? CompletedAt,
+    // History features known at assignment time (see EmployeeHistory); the model trains on these.
+    double? OnTimeRate = null,
+    int? ClosedCount = null,
+    int? OpenClaims = null,
+    double? AllocDays = null
 );
 
 public record TrainingDatasetDto(
@@ -57,6 +62,8 @@ public class GetTrainingDatasetQueryHandler
                 c.IsOnTime,
                 c.CompletedAt,
                 c.CreatedAt,
+                c.AssignedAt,
+                c.Deadline,
             })
             .ToListAsync(cancellationToken);
 
@@ -98,6 +105,18 @@ public class GetTrainingDatasetQueryHandler
         var now = DateTime.UtcNow;
         var rows = new List<TrainingDatasetRowDto>(labeled.Count);
 
+        // History features: every assigned claim counts for the workload, closed ones for the punctuality rate.
+        var assigned = await _db.Claims
+            .AsNoTracking()
+            .Where(c => !c.IsArchived && c.AssignedToId != null)
+            .Select(c => new { c.Id, c.AssignedToId, c.AssignedAt, c.CreatedAt, c.Deadline, c.CompletedAt, c.IsOnTime })
+            .ToListAsync(cancellationToken);
+        var outcomes = assigned.Select(c => new ClaimOutcome(
+            c.Id, c.AssignedToId!, c.AssignedAt ?? c.CreatedAt, c.Deadline, c.CompletedAt, c.IsOnTime)).ToList();
+        var prior = EmployeeHistory.TeamPrior(outcomes);
+        var outcomesByUser = outcomes.GroupBy(o => o.UserId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<ClaimOutcome>)g.ToList(), StringComparer.OrdinalIgnoreCase);
+
         foreach (var c in labeled)
         {
             string? dept = null;
@@ -119,6 +138,19 @@ public class GetTrainingDatasetQueryHandler
                 ? "MEDIUM"
                 : c.Severity.Trim().ToUpperInvariant();
 
+            double? onTimeRate = null, allocDays = null;
+            int? closedCount = null, openClaims = null;
+            if (!string.IsNullOrWhiteSpace(c.AssignedToId) && outcomesByUser.TryGetValue(c.AssignedToId, out var mine))
+            {
+                var assignedAt = c.AssignedAt ?? c.CreatedAt;
+                var current = new ClaimOutcome(c.Id, c.AssignedToId, assignedAt, c.Deadline, c.CompletedAt, c.IsOnTime);
+                var h = EmployeeHistory.AsOfAssignment(mine, current, prior);
+                onTimeRate = Math.Round(h.OnTimeRate, 4);
+                closedCount = h.ClosedCount;
+                openClaims = h.OpenClaims;
+                allocDays = EmployeeHistory.AllocatedDays(assignedAt, c.Deadline);
+            }
+
             rows.Add(new TrainingDatasetRowDto(
                 c.Id.ToString(),
                 defectTypes.Resolve(c.DefectType),
@@ -127,7 +159,11 @@ public class GetTrainingDatasetQueryHandler
                 skill,
                 workload,
                 c.IsOnTime!.Value,
-                c.CompletedAt
+                c.CompletedAt,
+                onTimeRate,
+                closedCount,
+                openClaims,
+                allocDays
             ));
         }
 

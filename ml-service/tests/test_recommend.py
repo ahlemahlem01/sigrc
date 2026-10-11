@@ -62,9 +62,9 @@ def test_recommend_endpoint_with_artifacts():
     payload = {
         "dossier": {"DefectType": "Soudure", "Severity": "HIGH", "DepartmentId": "d1"},
         "employees": [
-            {"employeeId": "e1", "EmployeeSkill": 0.9, "Workload": 0.2},
-            {"employeeId": "e2", "EmployeeSkill": 0.4, "Workload": 0.8},
-            {"employeeId": "e3", "EmployeeSkill": 0.7, "Workload": 0.4},
+            {"employeeId": "e1", "OnTimeRate": 0.95, "ClosedCount": 40, "OpenClaims": 1},
+            {"employeeId": "e2", "OnTimeRate": 0.40, "ClosedCount": 30, "OpenClaims": 6},
+            {"employeeId": "e3", "OnTimeRate": 0.75, "ClosedCount": 2, "OpenClaims": 3},
         ],
     }
     with TestClient(app) as client:
@@ -80,3 +80,36 @@ def test_recommend_endpoint_with_artifacts():
     assert data["recommendations"][0]["rank"] == 1
     scores = [item["score"] for item in data["recommendations"]]
     assert scores == sorted(scores, reverse=True)
+    assert "validated" in data and "trainedOn" in data
+
+
+def test_recommend_still_answers_when_history_is_missing():
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+    from api import app
+
+    payload = {
+        "dossier": {"DefectType": "Soudure", "Severity": "HIGH"},
+        "employees": [{"employeeId": "new-hire"}, {"employeeId": "old-timer", "OnTimeRate": 0.9, "ClosedCount": 50}],
+    }
+    with TestClient(app) as client:
+        resp = client.post("/recommend", json=payload)
+    assert resp.status_code == 200
+    assert resp.json()["scoredCount"] == 2
+
+
+def test_build_row_carries_the_history_features():
+    row = build_feature_row(
+        defect_type="Soudure", severity="HIGH", dossier_department_id=None, employee_id="e1",
+        employee_skill=None, workload=None, on_time_rate=0.8, closed_count=12, open_claims=2, alloc_days=14.0,
+    )
+    assert (row["OnTimeRate"], row["ClosedCount"], row["OpenClaims"], row["AllocDays"]) == (0.8, 12, 2, 14.0)
+
+
+def test_validation_gate_needs_both_a_good_auc_and_a_gain_from_employee_information():
+    from retrain import is_validated
+
+    assert is_validated(0.74, 0.715)          # clearly above chance, employee features help
+    assert not is_validated(0.58, 0.50)       # too close to chance
+    assert not is_validated(0.70, 0.70)       # employee features add nothing
+    assert not is_validated(0.52, 0.53)

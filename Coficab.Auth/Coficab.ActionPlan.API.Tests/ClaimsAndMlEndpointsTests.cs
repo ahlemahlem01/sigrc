@@ -171,6 +171,31 @@ public class ClaimsAndMlEndpointsTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public async Task MlEmployeeStats_ReturnsOneEntryPerEmployee_WithTeamDefaultsWhenUnknown()
+    {
+        var response = await _client.PostAsJsonAsync("/api/ml-features/employee-stats",
+            new { employeeIds = new[] { "nobody-1", "nobody-2", "nobody-1" } });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var items = await response.Content.ReadFromJsonAsync<JsonElement>(JsonOpts);
+        Assert.Equal(JsonValueKind.Array, items.ValueKind);
+        Assert.Equal(2, items.GetArrayLength());          // duplicates are merged
+        var first = items[0];
+        Assert.Equal(0, first.GetProperty("closedCount").GetInt32());
+        Assert.Equal(0, first.GetProperty("openClaims").GetInt32());
+        Assert.InRange(first.GetProperty("onTimeRate").GetDouble(), 0.0, 1.0);
+    }
+
+    [Fact]
+    public async Task MlEmployeeStats_WithoutAToken_IsRefused()
+    {
+        using var anonymous = _factory.CreateClient();
+        anonymous.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, TestAuthHandler.Anonymous);
+        var response = await anonymous.PostAsJsonAsync("/api/ml-features/employee-stats", new { employeeIds = new[] { "x" } });
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task MlAnomalyTimeseries_ReturnsOkShape()
     {
         var response = await _client.GetAsync("/api/ml-features/anomaly-timeseries?weeks=4");

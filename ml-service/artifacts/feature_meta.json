@@ -1,20 +1,21 @@
 {
   "best_model": "LogisticRegression",
-  "best_f1_test": 0.6446280991735537,
-  "best_accuracy_test": 0.5612244897959183,
   "target": "IsOnTime",
   "numeric_features": [
-    "EmployeeSkill",
-    "Workload"
+    "OnTimeRate",
+    "ClosedCount",
+    "OpenClaims",
+    "AllocDays"
   ],
   "categorical_features": [
     "DefectType",
-    "Severity",
-    "DepartmentId"
+    "Severity"
   ],
   "feature_names_out": [
-    "num__EmployeeSkill",
-    "num__Workload",
+    "num__OnTimeRate",
+    "num__ClosedCount",
+    "num__OpenClaims",
+    "num__AllocDays",
     "cat__DefectType_Connecteur desserré",
     "cat__DefectType_Contamination surface",
     "cat__DefectType_Couleur incorrecte",
@@ -32,16 +33,9 @@
     "cat__Severity_CRITICAL",
     "cat__Severity_HIGH",
     "cat__Severity_LOW",
-    "cat__Severity_MEDIUM",
-    "cat__DepartmentId_KUJBJB",
-    "cat__DepartmentId_RH",
-    "cat__DepartmentId_SEED-LOG",
-    "cat__DepartmentId_SEED-MAINT",
-    "cat__DepartmentId_SEED-PROD",
-    "cat__DepartmentId_SEED-QUAL",
-    "cat__DepartmentId_SEED-RH"
+    "cat__Severity_MEDIUM"
   ],
-  "n_train_rows": 488,
+  "n_train_rows": 3170,
   "defect_types": [
     "Connecteur desserré",
     "Contamination surface",
@@ -64,11 +58,28 @@
     "LOW",
     "MEDIUM"
   ],
-  "trained_on": "realistic_claims",
-  "files": {
-    "model": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\model.pkl",
-    "encoder": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\encoder.pkl",
-    "scaler": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\scaler.pkl",
-    "preprocessor": "C:\\Users\\jkoom\\OneDrive\\Desktop\\PFE\\ml-service\\artifacts\\preprocessor.pkl"
+  "trained_on": "simulated claims (ml-service/simulation) + test data of the application",
+  "trained_at": "2026-10-11T22:35:16+00:00",
+  "validated": true,
+  "validation_rule": "cross-validated AUC >= 0.6 and gain over claim-only model >= 0.01",
+  "metrics": {
+    "trivial_accuracy": 0.7425867507886436,
+    "claim_only_cv": {
+      "auc": 0.7148971348712391,
+      "auc_sd": 0.02815298317779178,
+      "brier": 0.17311387520733684,
+      "accuracy": 0.7391167192429023
+    },
+    "cv": {
+      "auc": 0.7412511144095529,
+      "auc_sd": 0.024937063368078195,
+      "brier": 0.16621362380634658,
+      "accuracy": 0.7548107255520506
+    },
+    "candidates_cv_auc": {
+      "LogisticRegression": 0.7412511144095529,
+      "GradientBoosting": 0.7325893222399268
+    },
+    "time_split_auc": 0.7378398968588842
   }
 }

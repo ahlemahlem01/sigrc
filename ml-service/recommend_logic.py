@@ -14,6 +14,10 @@ def build_feature_row(
     employee_skill: float | int | str | None,
     workload: float | int | None,
     employee_department_id: str | None = None,
+    on_time_rate: float | None = None,
+    closed_count: int | None = None,
+    open_claims: int | None = None,
+    alloc_days: float | None = None,
     dossier_extra: dict[str, Any] | None = None,
     employee_extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
@@ -23,6 +27,10 @@ def build_feature_row(
         "DepartmentId": employee_department_id or dossier_department_id,
         "EmployeeSkill": employee_skill,
         "Workload": workload,
+        "OnTimeRate": on_time_rate,
+        "ClosedCount": closed_count,
+        "OpenClaims": open_claims,
+        "AllocDays": alloc_days,
         "employeeId": employee_id,
     }
     row.update(dossier_extra or {})

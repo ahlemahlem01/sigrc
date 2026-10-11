@@ -1,6 +1,9 @@
 """
-Build a small LogisticRegression artifact set so POST /recommend can run in CI
-without the notebook-trained model.pkl.
+Build a small LogisticRegression artifact set so POST /recommend can run when no trained model exists
+(a fresh clone without artifacts, a CI job).
+
+It NEVER replaces an existing model: the artifacts committed in the repository come from retrain.py.
+The fixture is random data and is recorded as not validated.
 """
 
 from __future__ import annotations
@@ -17,31 +20,33 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-NUM_FEATURES = ["EmployeeSkill", "Workload"]
-CAT_FEATURES = ["DefectType", "Severity", "DepartmentId"]
+NUM_FEATURES = ["OnTimeRate", "ClosedCount", "OpenClaims", "AllocDays"]
+CAT_FEATURES = ["DefectType", "Severity"]
 
 
-def build(artifacts_dir: Path | None = None) -> Path:
+def build(artifacts_dir: Path | None = None, overwrite: bool = False) -> Path:
     artifacts = Path(artifacts_dir or Path(__file__).resolve().parent / "artifacts")
     artifacts.mkdir(parents=True, exist_ok=True)
+    if (artifacts / "model.pkl").exists() and not overwrite:
+        return artifacts / "model.pkl"
 
     rng = np.random.default_rng(7)
     n = 120
     defects = ["Soudure", "Connecteur desserré", "Coupure fil", "Soudure défectueuse"]
     severities = ["HIGH", "LOW", "MEDIUM", "CRITICAL"]
-    departments = ["d1", "SEED-QUAL", "SEED-PROD"]
 
     frame = pd.DataFrame(
         {
             "DefectType": rng.choice(defects, n),
             "Severity": rng.choice(severities, n),
-            "DepartmentId": rng.choice(departments, n),
-            "EmployeeSkill": rng.uniform(0.05, 1.0, n),
-            "Workload": rng.uniform(0.05, 1.0, n),
+            "OnTimeRate": rng.uniform(0.3, 1.0, n),
+            "ClosedCount": rng.integers(0, 60, n),
+            "OpenClaims": rng.integers(0, 8, n),
+            "AllocDays": rng.uniform(3, 40, n),
         }
     )
-    # Skill high + workload low → more often on time. Force both classes.
-    y = ((frame["EmployeeSkill"] - frame["Workload"]) > 0).astype(int)
+    # Reliable employee with few open claims → more often on time. Force both classes.
+    y = ((frame["OnTimeRate"] - 0.08 * frame["OpenClaims"]) > 0.6).astype(int)
     y.iloc[0] = 0
     y.iloc[1] = 1
 
@@ -77,7 +82,7 @@ def build(artifacts_dir: Path | None = None) -> Path:
     joblib.dump(cat_pipe.named_steps["imputer"], artifacts / "cat_imputer.pkl")
 
     meta_path = artifacts / "feature_meta.json"
-    if not meta_path.exists():
+    if overwrite or not meta_path.exists():
         meta_path.write_text(
             json.dumps(
                 {
@@ -87,6 +92,7 @@ def build(artifacts_dir: Path | None = None) -> Path:
                     "categorical_features": CAT_FEATURES,
                     "trained_on": "ci_test_fixture",
                     "ci_test_model": True,
+                    "validated": False,
                 },
                 indent=2,
                 ensure_ascii=False,

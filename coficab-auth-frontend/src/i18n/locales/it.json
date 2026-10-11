@@ -2192,6 +2192,11 @@
   },
   "recommend": {
     "reason": "Competenza {{skill}}/5 · Carico {{load}}%",
+    "reasonHistory": "{{rate}}% in orario su {{closed}} pratiche · {{open}} aperte",
+    "indicative": "Indicativo",
+    "indicativeHint": "Questo modello non è stato validato statisticamente: i punteggi sono solo indicativi.",
+    "validated": "Modello validato",
+    "validatedHint": "Valutato con validazione incrociata sui dati di addestramento ({{source}}).",
     "loadingAria": "Caricamento dei suggerimenti",
     "title": "Suggerimenti IA",
     "analysing": "Analisi in corso…",

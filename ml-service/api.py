@@ -25,8 +25,8 @@ from sklearn.pipeline import Pipeline
 ARTIFACTS_DIR = Path(__file__).resolve().parent / "artifacts"
 
 # Feature contract aligned with training_model.ipynb synthetic + prep cells
-DEFAULT_CAT_FEATURES = ["DefectType", "Severity", "DepartmentId"]
-DEFAULT_NUM_FEATURES = ["EmployeeSkill", "Workload"]
+DEFAULT_CAT_FEATURES = ["DefectType", "Severity"]
+DEFAULT_NUM_FEATURES = ["OnTimeRate", "ClosedCount", "OpenClaims", "AllocDays"]
 ALL_INPUT_FEATURES = DEFAULT_CAT_FEATURES + DEFAULT_NUM_FEATURES
 
 
@@ -36,6 +36,8 @@ class DossierFeatures(BaseModel):
     DefectType: str | None = None
     Severity: str | None = None
     DepartmentId: str | None = None
+    # Jours entre l'assignation et l'échéance, s'ils sont connus (même valeur pour tous les candidats).
+    AllocDays: float | None = None
     # Champs libres supplémentaires éventuels (ignorés s'ils ne sont pas dans le modèle)
     extra: dict[str, Any] = Field(default_factory=dict)
 
@@ -44,6 +46,11 @@ class EmployeeCandidate(BaseModel):
     """Employé candidat avec ses features ML."""
 
     employeeId: str
+    # Historique de ponctualité de l'employé (GET api/ml-features/employee-stats côté API plans).
+    OnTimeRate: float | None = None
+    ClosedCount: int | None = None
+    OpenClaims: int | None = None
+    # Anciennes variables : acceptées pour compatibilité, ignorées par le modèle actuel.
     EmployeeSkill: float | int | str | None = None
     Workload: float | int | None = None
     # Optionnel : surcharge dossier-level si besoin
@@ -66,6 +73,9 @@ class RecommendResponse(BaseModel):
     recommendations: list[EmployeeRecommendation]
     model: str | None = None
     scoredCount: int
+    # Le modèle a-t-il battu le hasard et le modèle sans variables employé à l'évaluation ? Sinon : indicatif.
+    validated: bool | None = None
+    trainedOn: str | None = None
 
 
 def _load_meta() -> dict[str, Any]:
@@ -89,6 +99,10 @@ def _build_row(dossier: DossierFeatures, emp: EmployeeCandidate) -> dict[str, An
         employee_skill=emp.EmployeeSkill,
         workload=emp.Workload,
         employee_department_id=emp.DepartmentId,
+        on_time_rate=emp.OnTimeRate,
+        closed_count=emp.ClosedCount,
+        open_claims=emp.OpenClaims,
+        alloc_days=dossier.AllocDays,
         dossier_extra=dossier.extra,
         employee_extra=emp.extra,
     )
@@ -262,6 +276,9 @@ def health() -> dict[str, Any]:
         "status": "ok" if ok else "degraded",
         "modelLoaded": ok,
         "bestModel": runtime.meta.get("best_model"),
+        "validated": runtime.meta.get("validated"),
+        "trainedOn": runtime.meta.get("trained_on"),
+        "metrics": runtime.meta.get("metrics"),
         "error": getattr(runtime, "_load_error", None),
     }
 
@@ -298,6 +315,8 @@ def recommend(payload: RecommendRequest) -> RecommendResponse:
         recommendations=top3,
         model=runtime.meta.get("best_model"),
         scoredCount=len(payload.employees),
+        validated=runtime.meta.get("validated"),
+        trainedOn=runtime.meta.get("trained_on"),
     )
 
 

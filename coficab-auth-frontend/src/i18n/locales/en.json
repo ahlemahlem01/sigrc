@@ -2192,6 +2192,11 @@
   },
   "recommend": {
     "reason": "Skill {{skill}}/5 · Workload {{load}}%",
+    "reasonHistory": "{{rate}}% on time over {{closed}} claims · {{open}} open",
+    "indicative": "Indicative",
+    "indicativeHint": "This model has not been statistically validated: scores are only an indication.",
+    "validated": "Validated model",
+    "validatedHint": "Evaluated by cross-validation on the training data ({{source}}).",
     "loadingAria": "Loading recommendations",
     "title": "AI recommendations",
     "analysing": "Analysing…",

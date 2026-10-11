@@ -9,6 +9,8 @@ import {
 import {
   normalizeSeverityForMl,
   recommendEmployees,
+  fetchEmployeeMlStats,
+  MlEmployeeStats,
   type MlEmployeeCandidate,
 } from '../services/mlRecommendService';
 import {
@@ -114,6 +116,8 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
   const [loading, setLoading] = useState(false);
   const [perfById, setPerfById] = useState<Record<string, EmployeePerformanceRow>>({});
   const [perfReady, setPerfReady] = useState(false);
+  const [validated, setValidated] = useState<boolean | null>(null);
+  const [trainedOn, setTrainedOn] = useState<string | null>(null);
 
   const defect = String(defectType ?? '').trim();
   const sev = normalizeSeverityForMl(severity);
@@ -235,6 +239,12 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
 
     const timer = window.setTimeout(async () => {
       const uniqueCandidates = dedupeByEmployeeId(filteredEmployees);
+      let statsById: Record<string, MlEmployeeStats> = {};
+      try {
+        statsById = await fetchEmployeeMlStats(uniqueCandidates.map((e) => String(e.employeeId)));
+      } catch {
+        // Sans historique, le modèle retombe sur la moyenne de l'équipe.
+      }
       const candidates: MlEmployeeCandidate[] = uniqueCandidates.map((e) => {
         const id = String(e.employeeId);
         const { skill, workload } = featuresFromPerf(perfById[id], defect, e);
@@ -246,6 +256,9 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
           EmployeeSkill: skill,
           Workload: workload,
           DepartmentId: empMl,
+          OnTimeRate: statsById[id.toLowerCase()]?.onTimeRate ?? null,
+          ClosedCount: statsById[id.toLowerCase()]?.closedCount ?? null,
+          OpenClaims: statsById[id.toLowerCase()]?.openClaims ?? null,
         };
       });
 
@@ -268,6 +281,8 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
         );
 
         if (controller.signal.aborted) return;
+        setValidated(res.validated ?? null);
+        setTrainedOn(res.trainedOn ?? null);
 
         const seenRec = new Set<string>();
         const mapped: BannerRec[] = [];
@@ -290,7 +305,13 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
             employeeId: String(r.employeeId),
             name: source?.name || String(r.employeeId),
             scorePct: Math.round(Math.min(1, Math.max(0, r.score)) * 100),
-            reason: buildReason(skill, workload),
+            reason: statsById[id]
+              ? t('recommend.reasonHistory', {
+                  rate: Math.round(statsById[id].onTimeRate * 100),
+                  closed: statsById[id].closedCount,
+                  open: statsById[id].openClaims,
+                })
+              : buildReason(skill, workload),
             rank: mapped.length + 1,
             skill,
             workload,
@@ -389,6 +410,18 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
           {t('recommend.top', { n: recs.length })}
           {mlDept ? ` · ${mlDept}` : ''}
         </span>
+        {validated === true ? (
+          <span
+            className="erb-badge erb-badge--validated"
+            title={t('recommend.validatedHint', { source: trainedOn ?? '' })}
+          >
+            {t('recommend.validated')}
+          </span>
+        ) : (
+          <span className="erb-badge erb-badge--indicative" title={t('recommend.indicativeHint')}>
+            {t('recommend.indicative')}
+          </span>
+        )}
       </div>
       {assignDisabled && assignDisabledHint ? (
         <p className="erb-hint">{assignDisabledHint}</p>
@@ -404,7 +437,7 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
                 <span className="erb-name">{r.name}</span>
                 <span className="erb-score">{r.scorePct}%</span>
               </div>
-              <div className="erb-reason">{buildReason(r.skill, r.workload)}</div>
+              <div className="erb-reason">{r.reason}</div>
             </div>
             <button
               type="button"
