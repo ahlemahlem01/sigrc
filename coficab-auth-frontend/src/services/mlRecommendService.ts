@@ -1,6 +1,5 @@
 import axios from 'axios';
-import { ML_API_URL } from '../config/apiEnv';
-import { actionPlanApi } from './apiClient';
+import { ACTION_PLAN_API_URL, ML_API_URL } from '../config/apiEnv';
 
 const ML_API_BASE = ML_API_URL;
 
@@ -32,13 +31,16 @@ export interface MlEmployeeStats {
 
 /** Historique de ponctualité des employés candidats, tel que le modèle l'attend. Clés en minuscules. */
 export async function fetchEmployeeMlStats(
+  token: string,
   employeeIds: string[]
 ): Promise<Record<string, MlEmployeeStats>> {
   const ids = Array.from(new Set(employeeIds.map((i) => String(i).trim()).filter(Boolean)));
   if (ids.length === 0) return {};
-  const { data } = await actionPlanApi.post<MlEmployeeStats[]>('/ml-features/employee-stats', {
-    employeeIds: ids,
-  });
+  const { data } = await axios.post<MlEmployeeStats[]>(
+    `${ACTION_PLAN_API_URL}/ml-features/employee-stats`,
+    { employeeIds: ids },
+    { headers: { Authorization: `Bearer ${token}` }, timeout: 8000 }
+  );
   const byId: Record<string, MlEmployeeStats> = {};
   for (const row of data ?? []) byId[String(row.employeeId).toLowerCase()] = row;
   return byId;

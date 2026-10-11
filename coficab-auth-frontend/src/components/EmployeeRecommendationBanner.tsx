@@ -241,7 +241,10 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
       const uniqueCandidates = dedupeByEmployeeId(filteredEmployees);
       let statsById: Record<string, MlEmployeeStats> = {};
       try {
-        statsById = await fetchEmployeeMlStats(uniqueCandidates.map((e) => String(e.employeeId)));
+        statsById = await fetchEmployeeMlStats(
+          accessToken ?? '',
+          uniqueCandidates.map((e) => String(e.employeeId))
+        );
       } catch {
         // Sans historique, le modèle retombe sur la moyenne de l'équipe.
       }
