@@ -75,7 +75,7 @@ cd coficab-auth-frontend && npm test -- --watchAll=false
 
 ## CI/CD
 
-GitHub Actions (`.github/workflows/ci.yml`) :
+GitHub Actions (`.github/workflows/ci.yml`) valide chaque push et chaque pull request :
 
 | Job | Quand | Action |
 |---|---|---|
@@ -84,20 +84,10 @@ GitHub Actions (`.github/workflows/ci.yml`) :
 | ML service tests | pull request et push | pytest |
 | Docker stack on SQL Server | pull request et push | `docker compose up --build` sur une base vide (migrations et seed réels), puis `scripts/stack-smoke.py` |
 | CI | après les quatre jobs | échoue si l'un a échoué |
-| Deploy staging | push sur `main`, si CI est vert | frontend sur Vercel (preview) |
-| Deploy production | après staging | frontend sur Vercel `--prod`. L'approbation manuelle se règle dans GitHub (`Settings` → `Environments` → `production` → *Required reviewers*) |
 
-Les pull requests ne déploient rien. Les API, le service ML et la base ne sont pas déployés par la CI : ils tournent avec `docker compose` sur le serveur de démonstration.
+La CI ne déploie rien : elle ne fait que valider. Le frontend est déployé par l'intégration Git de Vercel (chaque push sur `main` crée un déploiement de production). Les API, le service ML et la base tournent avec `docker compose` sur le serveur (voir `deploy/AZURE.md`).
 
-### Secrets GitHub (environnements `staging` et `production`)
-
-| Secret | Usage |
-|---|---|
-| `VERCEL_TOKEN` | jeton Vercel (Account Settings → Tokens) |
-| `VERCEL_ORG_ID` | équipe ou compte, visible dans `.vercel/project.json` après `vercel link` |
-| `VERCEL_PROJECT_ID` | projet Vercel lié à `coficab-auth-frontend` |
-
-Sur Vercel, renseignez pour Preview et Production `REACT_APP_AUTH_API_URL`, `REACT_APP_ACTION_PLAN_API_URL` et `REACT_APP_ML_API_URL` (adresses publiques des API).
+Sur Vercel, le projet pointe sur le dossier `coficab-auth-frontend` (*Root Directory*) et les variables `REACT_APP_AUTH_API_URL`, `REACT_APP_ACTION_PLAN_API_URL` et `REACT_APP_ML_API_URL` (adresses publiques des API, type *Config*) sont renseignées pour Production.
 
 ## Mise en ligne sur un serveur
 
@@ -140,4 +130,4 @@ Dans `.github/workflows/ci.yml`, ajoutez un step au job concerné, par exemple a
         run: npm audit --audit-level=high
 ```
 
-Si l'étape doit empêcher le déploiement, placez-la dans `frontend`, `backend-tests`, `ml-tests` ou `docker-stack` : le job `CI` bloque `deploy-staging` dès qu'un de ces jobs échoue.
+Le job `CI` échoue dès qu'un des quatre jobs échoue : activez-le comme vérification obligatoire dans les règles de protection de la branche `main` pour bloquer les fusions en échec.
