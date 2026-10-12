@@ -110,49 +110,6 @@ type PodiumEntry = EmployeePerformanceRow & {
   deadlineScore: number;
 };
 
-type BadgeCard = {
-  id: string;
-  name: string;
-  description?: string;
-  color: string;
-  userId: string;
-  userName: string;
-  earnedAt?: string;
-};
-
-function fixText(text?: string | null): string {
-  if (!text) return '';
-  let value = String(text);
-  if (/[\u00C3\u00C2\u00E2]/.test(value)) {
-    try {
-      value = decodeURIComponent(escape(value));
-    } catch {
-      /* keep */
-    }
-  }
-  return value
-    .replace(/Cl\?\?ture/gi, 'Clôture')
-    .replace(/\?\? temps/gi, 'à temps')
-    .replace(/cl\?\?tures/gi, 'clôtures')
-    .replace(/anticip\?\?es/gi, 'anticipées')
-    .replace(/Succ\?\?s/gi, 'Succès')
-    .replace(/d\?\?lais/gi, 'délais')
-    .replace(/excellents \?\?/gi, 'excellents ')
-    .replace(/\?\?\s/g, '— ')
-    .replace(/\?\?/g, 'é');
-}
-
-function fmtDate(iso?: string) {
-  if (!iso) return '—';
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString(dateLocale(), { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-const COLOR_BY_NAME: Record<string, string> = Object.fromEntries(
-  BADGE_DEFINITIONS.map((d) => [d.name.toLowerCase(), d.color]),
-);
-
 export default function EmployeeRecognitionPage() {
   const { t } = useTranslation();
   const MONTH_LABEL = new Date().toLocaleDateString(dateLocale(), { month: 'long', year: 'numeric' });
@@ -161,7 +118,6 @@ export default function EmployeeRecognitionPage() {
   const [loading, setLoading] = useState(true);
   const [profiles, setProfiles] = useState<ProfileLite[]>([]);
   const [performance, setPerformance] = useState<EmployeePerformanceRow[]>([]);
-  const [badges, setBadges] = useState<BadgeCard[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [recalculating, setRecalculating] = useState(false);
@@ -179,10 +135,9 @@ export default function EmployeeRecognitionPage() {
     setLoading(true);
     setError(null);
     try {
-      const [profilesRaw, usersRaw, badgesRaw] = await Promise.all([
+      const [profilesRaw, usersRaw] = await Promise.all([
         adminEmployeeService.getAllProfiles(accessToken),
         getUsers(accessToken),
-        adminEmployeeService.getAllBadges(accessToken).catch(() => []),
       ]);
 
       const merged = mergeProfiles(profilesRaw, unwrap(usersRaw));
@@ -191,22 +146,6 @@ export default function EmployeeRecognitionPage() {
       const perf = await fetchEmployeePerformance(accessToken, merged);
       setPerformance(perf);
 
-      const nameById = new Map(merged.map((p) => [p.id.toLowerCase(), p.fullName]));
-      const badgeCards: BadgeCard[] = unwrap(badgesRaw).map((b: any) => {
-        const userId = String(b.userId ?? b.UserId ?? b.__ownerId ?? '');
-        const name = fixText(b.name ?? b.Name ?? 'Badge');
-        return {
-          id: String(b.id ?? b.Id),
-          name,
-          description: fixText(b.description ?? b.Description),
-          color: b.color ?? b.Color ?? COLOR_BY_NAME[name.toLowerCase()] ?? '#000168',
-          userId,
-          userName: fixText(b.userName ?? b.UserName ?? nameById.get(userId.toLowerCase()) ?? '—'),
-          earnedAt: b.earnedAt ?? b.EarnedAt ?? b.awardedAt ?? b.createdAt,
-        };
-      });
-      badgeCards.sort((a, b) => new Date(b.earnedAt ?? 0).getTime() - new Date(a.earnedAt ?? 0).getTime());
-      setBadges(badgeCards);
     } catch (e) {
       console.error(e);
       setError(i18n.t('recognition.loadFailed'));
@@ -262,51 +201,6 @@ export default function EmployeeRecognitionPage() {
       )
       .slice(0, 8);
   }, [performance, teamAvgDelay]);
-
-  const badgeGroups = useMemo(() => {
-    const byKey = new Map<string, {
-      key: string;
-      userId: string;
-      userName: string;
-      profilePictureUrl?: string | null;
-      items: BadgeCard[];
-    }>();
-    const profileById = new Map(profiles.map((p) => [p.id.toLowerCase(), p]));
-
-    badges.forEach((b) => {
-      const uid = (b.userId || '').toLowerCase();
-      const key = uid || `name:${b.userName.toLowerCase()}`;
-      const existing = byKey.get(key);
-      if (existing) {
-        existing.items.push(b);
-        return;
-      }
-      const profile = uid ? profileById.get(uid) : undefined;
-      byKey.set(key, {
-        key,
-        userId: b.userId,
-        userName: profile?.fullName || b.userName,
-        profilePictureUrl: profile?.profilePictureUrl,
-        items: [b],
-      });
-    });
-
-    const latest = (items: BadgeCard[]) =>
-      Math.max(0, ...items.map((x) => new Date(x.earnedAt ?? 0).getTime()));
-
-    return Array.from(byKey.values())
-      .map((g) => ({
-        ...g,
-        items: [...g.items].sort(
-          (a, b) => new Date(b.earnedAt ?? 0).getTime() - new Date(a.earnedAt ?? 0).getTime(),
-        ),
-      }))
-      .sort(
-        (a, b) =>
-          latest(b.items) - latest(a.items) ||
-          a.userName.localeCompare(b.userName, i18n.language),
-      );
-  }, [badges, profiles]);
 
   const openModal = () => {
     setForm({
@@ -423,12 +317,6 @@ export default function EmployeeRecognitionPage() {
                   <div className="rec-info-label">{t('recognition.watch')}</div>
                   <p>
                     {t('recognition.watchHelp')}
-                  </p>
-                </div>
-                <div>
-                  <div className="rec-info-label">{t('employeesAdmin.tabBadges')}</div>
-                  <p>
-                    {t('recognition.badgesHelp')}
                   </p>
                 </div>
               </div>
@@ -618,53 +506,6 @@ export default function EmployeeRecognitionPage() {
               )}
             </div>
 
-            <div className="rec-block rec-block-fill">
-              <div className="rec-block-head">
-                <div className="rec-block-title">{t('recognition.badgesByEmployee')}</div>
-                <div className="rec-formula-pill">{t('recognition.employeesShort', { count: badgeGroups.length })}</div>
-              </div>
-              {loading ? (
-                <div className="rec-badge-groups">
-                  {[0, 1, 2].map((i) => <div key={i} className="rec-feed-sk" />)}
-                </div>
-              ) : badgeGroups.length === 0 ? (
-                <div className="rec-empty-panel">{t('employeesAdmin.emptyBadges')}</div>
-              ) : (
-                <ul className="rec-badge-groups">
-                  {badgeGroups.map((g, i) => (
-                    <li key={g.key} className="rec-badge-group" style={{ animationDelay: `${i * 0.04}s` }}>
-                      <div className="rec-badge-group-head">
-                        <UserAvatar
-                          user={{
-                            id: g.userId,
-                            fullName: g.userName,
-                            profilePictureUrl: g.profilePictureUrl,
-                          }}
-                          name={g.userName}
-                          size={32}
-                          radius="lg"
-                        />
-                        <div className="rec-feed-main">
-                          <div className="rec-person-name">{g.userName}</div>
-                          <div className="rec-hint">
-                            {t('employeesAdmin.badgeCount', { count: g.items.length })}
-                          </div>
-                        </div>
-                      </div>
-                      <ul className="rec-badge-chips">
-                        {g.items.map((b) => (
-                          <li key={b.id} className="rec-badge-chip" title={b.description || b.name}>
-                            <span className="rec-badge-dot" style={{ background: b.color }} />
-                            <span className="rec-badge-chip-name">{b.name}</span>
-                            <time className="rec-badge-date">{fmtDate(b.earnedAt)}</time>
-                          </li>
-                        ))}
-                      </ul>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -1019,7 +860,7 @@ const CSS = `
   }
 
   .rec-split {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;
+    display: grid; grid-template-columns: 1fr; gap: 16px; align-items: start;
   }
   .rec-split .rec-block { margin-bottom: 0; }
   .rec-feed-main { flex: 1; min-width: 0; }
