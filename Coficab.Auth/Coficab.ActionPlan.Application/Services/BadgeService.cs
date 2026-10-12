@@ -79,6 +79,20 @@ public class BadgeService : IBadgeService
         return awarded;
     }
 
+    public async Task<IReadOnlyList<BadgeDto>> AwardEarnedForEveryoneAsync()
+    {
+        var users = await _context.Claims.AsNoTracking()
+            .Where(c => !c.IsArchived && c.AssignedToId != null && c.IsOnTime != null && c.CompletedAt != null)
+            .Select(c => c.AssignedToId!)
+            .Distinct()
+            .ToListAsync();
+
+        var awarded = new List<BadgeDto>();
+        foreach (var user in users.Distinct(StringComparer.OrdinalIgnoreCase))
+            awarded.AddRange(await AwardEarnedAsync(user));
+        return awarded;
+    }
+
     public async Task<bool> HasBadgeAsync(string userId, string badgeCategory)
     {
         return await _context.Badges

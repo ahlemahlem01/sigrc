@@ -127,6 +127,18 @@ public class AdminEmployeeController : ControllerBase
         return Ok(badge);
     }
 
+    /// <summary>Gives every employee the automatic badges their closed claims already earned. Never removes anything.</summary>
+    [HttpPost("badges/recalculate")]
+    public async Task<IActionResult> RecalculateBadges()
+    {
+        var awarded = await _badgeService.AwardEarnedForEveryoneAsync();
+        return Ok(new
+        {
+            awarded = awarded.Count,
+            employees = awarded.Select(b => b.UserId).Distinct(StringComparer.OrdinalIgnoreCase).Count(),
+        });
+    }
+
     [HttpDelete("badges/{id}")]
     public async Task<IActionResult> RemoveBadge(Guid id)
     {

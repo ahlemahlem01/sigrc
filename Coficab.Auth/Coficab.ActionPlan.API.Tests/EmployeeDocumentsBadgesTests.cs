@@ -217,4 +217,31 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Empty(await badges.AwardEarnedAsync(user));   // nothing new: each badge is given once
         Assert.Equal(first.Count, (await badges.GetUserBadgesAsync(user)).Count());
     }
+
+    [Fact]
+    public async Task RecalculateBadges_IsAdminOnly_AndOnlyAdds()
+    {
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").PostAsync("/api/admin/employees/badges/recalculate", null)).StatusCode);
+
+        var user = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            db.Claims.Add(new Claim
+            {
+                Title = "r1", AssignedToId = user, StatusCode = "CLOTUREE",
+                CompletedAt = DateTime.UtcNow.AddDays(-3), IsOnTime = true,
+            });
+            return Task.CompletedTask;
+        });
+
+        var first = await ClientAs("admin").PostAsync("/api/admin/employees/badges/recalculate", null);
+        Assert.Equal(HttpStatusCode.OK, first.StatusCode);
+        Assert.True((await first.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("awarded").GetInt32() >= 1);
+
+        var mine = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/admin/employees/badges/{user}", JsonOpts);
+        Assert.Contains(mine.EnumerateArray(), b => b.GetProperty("name").GetString() == "Rapidité Bronze");
+
+        var second = await ClientAs("admin").PostAsync("/api/admin/employees/badges/recalculate", null);
+        Assert.Equal(0, (await second.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("awarded").GetInt32());
+    }
 }
