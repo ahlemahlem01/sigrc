@@ -3298,6 +3298,11 @@
     "avgDelayHint": "Average file age, or days late if the deadline has passed"
   },
   "recognition": {
+    "recalculate": "Recalculate badges",
+    "recalculating": "Recalculating…",
+    "recalculateHint": "Gives each employee the automatic badges (speed, streak, perfect quarter, reliability) that their closed claims already earned. Nothing is removed.",
+    "recalculateDone": "{{count}} badge(s) given to {{employees}} employee(s).",
+    "recalculateFailed": "Could not recalculate the badges.",
     "loadLow": "Low workload",
     "loadMedium": "Medium workload",
     "loadHigh": "High workload",

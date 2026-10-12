@@ -3298,6 +3298,11 @@
     "avgDelayHint": "Età media dei dossier o ritardo se la scadenza è superata"
   },
   "recognition": {
+    "recalculate": "Ricalcola i badge",
+    "recalculating": "Calcolo in corso…",
+    "recalculateHint": "Assegna a ogni dipendente i badge automatici (rapidità, serie, trimestre perfetto, affidabilità) già meritati con le pratiche chiuse. Nulla viene rimosso.",
+    "recalculateDone": "{{count}} badge assegnati a {{employees}} dipendenti.",
+    "recalculateFailed": "Impossibile ricalcolare i badge.",
     "loadLow": "Carico basso",
     "loadMedium": "Carico medio",
     "loadHigh": "Carico elevato",

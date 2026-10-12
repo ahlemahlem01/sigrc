@@ -164,6 +164,7 @@ export default function EmployeeRecognitionPage() {
   const [badges, setBadges] = useState<BadgeCard[]>([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [recalculating, setRecalculating] = useState(false);
   const [notifyingId, setNotifyingId] = useState<string | null>(null);
   const [notifiedIds, setNotifiedIds] = useState<string[]>([]);
   const [form, setForm] = useState({
@@ -341,6 +342,21 @@ export default function EmployeeRecognitionPage() {
     }
   };
 
+  const recalculateBadges = async () => {
+    if (!accessToken || recalculating) return;
+    setRecalculating(true);
+    try {
+      const { awarded, employees } = await adminEmployeeService.recalculateBadges(accessToken);
+      window.alert(t('recognition.recalculateDone', { count: awarded, employees }));
+      await load();
+    } catch (err) {
+      console.error(err);
+      window.alert(t('recognition.recalculateFailed'));
+    } finally {
+      setRecalculating(false);
+    }
+  };
+
   const notifyPodiumMember = async (emp: PodiumEntry, place: number) => {
     if (!accessToken || notifyingId) return;
     setNotifyingId(emp.userId);
@@ -374,9 +390,20 @@ export default function EmployeeRecognitionPage() {
             {t('recognition.subtitle', { month: MONTH_LABEL })}
           </div>
         </div>
-        <button type="button" className="rec-btn-primary" onClick={openModal}>
-          {t('recognition.awardBadge')}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            type="button"
+            className="rec-btn-primary"
+            onClick={recalculateBadges}
+            disabled={recalculating}
+            title={t('recognition.recalculateHint')}
+          >
+            {recalculating ? t('recognition.recalculating') : t('recognition.recalculate')}
+          </button>
+          <button type="button" className="rec-btn-primary" onClick={openModal}>
+            {t('recognition.awardBadge')}
+          </button>
+        </div>
       </div>
 
       <div className="rec-shell">

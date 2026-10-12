@@ -89,6 +89,10 @@ export const adminEmployeeService = {
   }) =>
     axios.post(`${API_URL}/recognition/notify-podium`, data, h(token)).then(r => r.data),
 
+  /** Gives everyone the automatic badges their closed claims already earned (never removes any). */
+  recalculateBadges: (token: string): Promise<{ awarded: number; employees: number }> =>
+    axios.post(`${API_URL}/badges/recalculate`, null, h(token)).then(r => r.data),
+
   removeBadge: (token: string, id: string) =>
     axios.delete(`${API_URL}/badges/${id}`, h(token)),
 

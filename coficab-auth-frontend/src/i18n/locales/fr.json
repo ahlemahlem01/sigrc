@@ -3298,6 +3298,11 @@
     "avgDelayHint": "Âge moyen des dossiers ou retard si échéance dépassée"
   },
   "recognition": {
+    "recalculate": "Recalculer les badges",
+    "recalculating": "Calcul en cours…",
+    "recalculateHint": "Attribue à chaque employé les badges automatiques (rapidité, série, trimestre parfait, fiabilité) que ses réclamations clôturées ont déjà mérités. Rien n'est retiré.",
+    "recalculateDone": "{{count}} badge(s) attribué(s) à {{employees}} employé(s).",
+    "recalculateFailed": "Impossible de recalculer les badges.",
     "loadLow": "Charge faible",
     "loadMedium": "Charge moyenne",
     "loadHigh": "Charge élevée",
