@@ -59,7 +59,7 @@
     "MEDIUM"
   ],
   "trained_on": "simulated claims (ml-service/simulation) + test data of the application",
-  "trained_at": "2026-10-11T22:35:16+00:00",
+  "trained_at": "2026-10-12T16:14:52+00:00",
   "validated": true,
   "validation_rule": "cross-validated AUC >= 0.6 and gain over claim-only model >= 0.01",
   "metrics": {
@@ -71,15 +71,15 @@
       "accuracy": 0.7391167192429023
     },
     "cv": {
-      "auc": 0.7412511144095529,
-      "auc_sd": 0.024937063368078195,
-      "brier": 0.16621362380634658,
-      "accuracy": 0.7548107255520506
+      "auc": 0.7403316292264465,
+      "auc_sd": 0.025103373446801303,
+      "brier": 0.1664038177321896,
+      "accuracy": 0.7549684542586752
     },
     "candidates_cv_auc": {
-      "LogisticRegression": 0.7412511144095529,
-      "GradientBoosting": 0.7325893222399268
+      "LogisticRegression": 0.7403316292264465,
+      "GradientBoosting": 0.7311993091051129
     },
-    "time_split_auc": 0.7378398968588842
+    "time_split_auc": 0.7377988748241914
   }
 }

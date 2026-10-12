@@ -113,7 +113,7 @@ public class GetTrainingDatasetQueryHandler
             .ToListAsync(cancellationToken);
         var outcomes = assigned.Select(c => new ClaimOutcome(
             c.Id, c.AssignedToId!, c.AssignedAt ?? c.CreatedAt, c.Deadline, c.CompletedAt, c.IsOnTime)).ToList();
-        var prior = EmployeeHistory.TeamPrior(outcomes);
+        var priorTimeline = new EmployeeHistory.TeamPriorTimeline(outcomes);
         var outcomesByUser = outcomes.GroupBy(o => o.UserId, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<ClaimOutcome>)g.ToList(), StringComparer.OrdinalIgnoreCase);
 
@@ -144,7 +144,7 @@ public class GetTrainingDatasetQueryHandler
             {
                 var assignedAt = c.AssignedAt ?? c.CreatedAt;
                 var current = new ClaimOutcome(c.Id, c.AssignedToId, assignedAt, c.Deadline, c.CompletedAt, c.IsOnTime);
-                var h = EmployeeHistory.AsOfAssignment(mine, current, prior);
+                var h = EmployeeHistory.AsOfAssignment(mine, current, priorTimeline.At(assignedAt));
                 onTimeRate = Math.Round(h.OnTimeRate, 4);
                 closedCount = h.ClosedCount;
                 openClaims = h.OpenClaims;

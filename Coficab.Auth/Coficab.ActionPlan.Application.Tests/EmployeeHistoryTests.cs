@@ -76,4 +76,17 @@ public class EmployeeHistoryTests
         Assert.Equal(0, EmployeeHistory.AllocatedDays(T0, T0.AddDays(-3)));
         Assert.Equal(7, EmployeeHistory.AllocatedDays(T0, T0.AddDays(7)));
     }
+
+    [Fact]
+    public void TeamPriorTimeline_OnlyUsesClaimsCompletedBeforeTheMoment()
+    {
+        var claims = new List<ClaimOutcome>();
+        for (var i = 0; i < EmployeeHistory.MinOutcomesForPrior; i++) claims.Add(Claim(i, i + 1, true));
+        for (var i = 0; i < 100; i++) claims.Add(Claim(200 + i, 201 + i, false));   // all late, but only later
+        var timeline = new EmployeeHistory.TeamPriorTimeline(claims);
+
+        Assert.Equal(1.0, timeline.At(T0.AddDays(100)));                            // the late claims do not exist yet
+        Assert.True(timeline.At(T0.AddDays(400)) < 0.3);                            // they do once completed
+        Assert.Equal(EmployeeHistory.DefaultPrior, timeline.At(T0.AddDays(-1)));    // too little data: default
+    }
 }

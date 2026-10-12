@@ -31,23 +31,29 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 warnings.filterwarnings("ignore")
-SMOOTHING = 6  # an employee with few closed claims is pulled towards the team average
+SMOOTHING = 6  # an employee with few closed claims is pulled towards the team average (see smoothing_sweep.py)
+DEFAULT_PRIOR = 0.75   # team average while fewer than MIN_PRIOR_N outcomes are known
+MIN_PRIOR_N = 30
 
 
-def build_features(df: pd.DataFrame) -> pd.DataFrame:
+def build_features(df: pd.DataFrame, smoothing: float = SMOOTHING) -> pd.DataFrame:
     d = df.copy()
     for c in ("assigned_at", "deadline", "completed_at"):
         d[c] = pd.to_datetime(d[c])
     d = d[d["is_on_time"].notna() & d["assigned_to_id"].notna()].sort_values("assigned_at").reset_index(drop=True)
     d["y"] = d["is_on_time"].astype(str).str.lower().isin(["true", "1", "1.0"]).astype(int)
-    prior = d["y"].mean()
+    # team average as it was at each assignment: only claims already completed (same rule as the application)
+    done = d.sort_values("completed_at")
+    done_t, done_cum = done["completed_at"].to_numpy(), done["y"].cumsum().to_numpy()
     user_rate, user_n, workload = [], [], []
     by_user = {u: g for u, g in d.groupby("assigned_to_id")}
     for _, r in d.iterrows():
         g = by_user[r["assigned_to_id"]]
         past = g[g["completed_at"] < r["assigned_at"]]
         n, k = len(past), int(past["y"].sum())
-        user_rate.append((k + prior * SMOOTHING) / (n + SMOOTHING))
+        m = int(np.searchsorted(done_t, np.datetime64(r["assigned_at"]), side="left"))
+        prior = DEFAULT_PRIOR if m < MIN_PRIOR_N else done_cum[m - 1] / m
+        user_rate.append((k + prior * smoothing) / (n + smoothing) if n + smoothing > 0 else prior)
         user_n.append(n)
         workload.append(int(((g["assigned_at"] <= r["assigned_at"]) & (g["completed_at"] > r["assigned_at"])).sum()) - 1)
     d["user_rate"], d["user_n"], d["workload_at"] = user_rate, user_n, np.maximum(workload, 0)

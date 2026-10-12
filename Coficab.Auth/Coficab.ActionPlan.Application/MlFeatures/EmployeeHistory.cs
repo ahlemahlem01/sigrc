@@ -36,6 +36,46 @@ public static class EmployeeHistory
         return known == 0 ? 0.75 : (double)onTime / known;
     }
 
+    /// <summary>Default prior, and the number of known outcomes below which the dated prior is not trusted.</summary>
+    public const double DefaultPrior = 0.75;
+    public const int MinOutcomesForPrior = 30;
+
+    /// <summary>
+    /// Team on-time share as it was at a given moment: only claims completed before that moment. Built once, queried
+    /// per training row, so the prior of a row never contains its own outcome or anything later.
+    /// </summary>
+    public sealed class TeamPriorTimeline
+    {
+        private readonly DateTime[] _completedAt;
+        private readonly int[] _onTimeCumulative;
+
+        public TeamPriorTimeline(IEnumerable<ClaimOutcome> claims)
+        {
+            var known = claims.Where(c => c.IsOnTime != null && c.CompletedAt != null)
+                .OrderBy(c => c.CompletedAt!.Value).ToList();
+            _completedAt = known.Select(c => c.CompletedAt!.Value).ToArray();
+            _onTimeCumulative = new int[known.Count];
+            var running = 0;
+            for (var i = 0; i < known.Count; i++)
+            {
+                if (known[i].IsOnTime == true) running++;
+                _onTimeCumulative[i] = running;
+            }
+        }
+
+        public double At(DateTime moment)
+        {
+            var lo = 0;
+            var hi = _completedAt.Length;
+            while (lo < hi)
+            {
+                var mid = (lo + hi) / 2;
+                if (_completedAt[mid] < moment) lo = mid + 1; else hi = mid;
+            }
+            return lo < MinOutcomesForPrior ? DefaultPrior : (double)_onTimeCumulative[lo - 1] / lo;
+        }
+    }
+
     /// <summary>The employee's history as it was when <paramref name="current"/> was assigned (the claim itself excluded).</summary>
     public static EmployeeHistoryValues AsOfAssignment(
         IReadOnlyList<ClaimOutcome> userClaims, ClaimOutcome current, double prior)

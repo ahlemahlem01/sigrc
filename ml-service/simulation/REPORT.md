@@ -53,3 +53,31 @@ Corrélation entre le taux de ponctualité estimé de chaque employé et sa capa
 - Un modèle utile au classement des employés doit améliorer l'AUC grâce aux variables **de l'employé** (ligne « réclamation seule » comparée à « réclamation + employé »).
 - Les données réelles de Coficab devront être importées avec l'employé assigné, la date d'assignation et l'échéance.
 - Rapport généré le 2026-10-11.
+
+## Choix du poids de lissage (W = 6)
+
+Le taux de ponctualité d'un employé est `(à_l'heure + moyenne_équipe × W) / (clôturés + W)`. W est le nombre de dossiers
+« virtuels » au niveau de l'équipe ajoutés à son historique : trop petit, on se fie à 2 ou 3 dossiers ; trop grand, on efface
+les vraies différences entre employés. La moyenne d'équipe est celle connue **à la date d'assignation** (75 % tant que moins
+de 30 issues sont connues). Comparaison par validation croisée (`python smoothing_sweep.py --claims simulated_claims.csv`) :
+
+| Poids W | AUC (validation croisée) | Écart-type | Brier | AUC découpage temps |
+|---|---|---|---|---|
+| 0 | 0.789 | 0.020 | 0.153 | 0.809 |
+| 1 | 0.789 | 0.020 | 0.152 | 0.809 |
+| 2 | 0.790 | 0.020 | 0.152 | 0.810 |
+| 4 | 0.790 | 0.020 | 0.152 | 0.809 |
+| 6 **(retenu)** | 0.790 | 0.020 | 0.152 | 0.810 |
+| 10 | 0.790 | 0.020 | 0.152 | 0.809 |
+| 20 | 0.790 | 0.020 | 0.152 | 0.810 |
+| 40 | 0.789 | 0.020 | 0.152 | 0.810 |
+| 80 | 0.786 | 0.020 | 0.153 | 0.811 |
+
+Meilleure AUC : 0.790. Les écarts plus petits que l'écart-type d'un pli ne sont pas significatifs.
+
+**Lecture.** Entre W = 0 et W = 40, l'AUC varie de 0,001 environ, soit bien moins que l'écart-type (0,020) : le résultat est
+**insensible** au poids sur ces données. Cela s'explique : le nombre de dossiers clôturés est lui-même une variable du modèle
+(il corrige déjà le manque d'historique), et les employés simulés ont tous un historique long. W = 6 a été gardé comme valeur
+usuelle (comparable à une estimation bayésienne avec 6 observations a priori) ; on ne peut pas prétendre qu'il est optimal.
+Sur l'historique réel de Coficab, où certains employés ont peu de dossiers, relancer ce script avant de conclure.
+
