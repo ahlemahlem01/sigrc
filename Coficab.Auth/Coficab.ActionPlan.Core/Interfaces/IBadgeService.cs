@@ -5,6 +5,8 @@ public interface IBadgeService
     Task<IEnumerable<BadgeDto>> GetUserBadgesAsync(string userId);
     Task<BadgeDto?> AwardBadgeAsync(string userId, AwardBadgeDto dto);
     Task<bool> HasBadgeAsync(string userId, string badgeCategory);
+    /// <summary>Awards every automatic badge the employee has earned so far (speed tiers, streaks, perfect quarters, reliability).</summary>
+    Task<IReadOnlyList<BadgeDto>> AwardEarnedAsync(string userId);
     Task<IEnumerable<BadgeDto>> GetAllBadgesAsync(); // admin view
     Task<BadgeDto> CreateAsync(CreateBadgeDto dto);
     Task DeleteAsync(Guid id);

@@ -190,4 +190,31 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         var response = await ClientAs("admin").PostAsJsonAsync("/api/admin/employees/badges", new { name = "Premier Plan" });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
+
+    [Fact]
+    public async Task AwardEarned_GivesSeveralBadges_AndNeverTheSameOneTwice()
+    {
+        var user = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            for (var i = 0; i < 5; i++)
+                db.Claims.Add(new Claim
+                {
+                    Title = $"c{i}", AssignedToId = user, StatusCode = "CLOTUREE",
+                    AssignedAt = DateTime.UtcNow.AddDays(-30 + i), Deadline = DateTime.UtcNow.AddDays(-5 + i),
+                    CompletedAt = DateTime.UtcNow.AddDays(-10 + i), IsOnTime = true,
+                });
+            return Task.CompletedTask;
+        });
+
+        using var scope = _factory.Services.CreateScope();
+        var badges = scope.ServiceProvider.GetRequiredService<IBadgeService>();
+
+        var first = (await badges.AwardEarnedAsync(user)).Select(b => b.Name).ToList();
+        Assert.Contains("Rapidité Bronze", first);
+        Assert.Contains("Série de 5", first);
+
+        Assert.Empty(await badges.AwardEarnedAsync(user));   // nothing new: each badge is given once
+        Assert.Equal(first.Count, (await badges.GetUserBadgesAsync(user)).Count());
+    }
 }

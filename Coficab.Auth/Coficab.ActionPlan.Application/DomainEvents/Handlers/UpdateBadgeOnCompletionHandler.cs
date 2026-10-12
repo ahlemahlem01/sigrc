@@ -29,16 +29,14 @@ public sealed class UpdateBadgeOnCompletionHandler :
         var userId = FirstNonEmpty(notification.AssignedToId, notification.ClosedById, notification.CreatedById);
         if (string.IsNullOrWhiteSpace(userId)) return;
 
-        if (notification.IsOnTime == true)
+        // Speed tiers, streaks, perfect quarters and reliability all come from the employee's closed claims (BadgeRules).
+        try
         {
-            await TryAwardAsync(userId, new AwardBadgeDto
-            {
-                Category = "speed",
-                Name = "Clôture dans les délais",
-                Description = "Réclamation clôturée avant la date limite.",
-                Icon = "⚡",
-                Color = "#16a34a",
-            });
+            await _badges.AwardEarnedAsync(userId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Badge evaluation failed for {UserId}", userId);
         }
     }
 
