@@ -56,17 +56,33 @@ public class EmployeeHistoryTests
     {
         var claims = new[] { Claim(0, 5, true), Claim(1, 6, false), Claim(2, null, null) };
 
-        var h = EmployeeHistory.AsOfNow(claims, 0.5);
+        var h = EmployeeHistory.AsOfNow(claims, 0.5, T0.AddDays(10));
 
         Assert.Equal(2, h.ClosedCount);
         Assert.Equal(1, h.OpenClaims);
     }
 
     [Fact]
-    public void TeamPrior_WithoutOutcomes_FallsBackToADefault()
+    public void TeamPrior_IsMeasured_AndOnlyDefaultsOnAnAlmostEmptySystem()
     {
         Assert.Equal(0.75, EmployeeHistory.TeamPrior(Array.Empty<ClaimOutcome>()));
-        Assert.Equal(0.5, EmployeeHistory.TeamPrior(new[] { Claim(0, 1, true), Claim(0, 1, false) }));
+        Assert.Equal(0.75, EmployeeHistory.TeamPrior(new[] { Claim(0, 1, false), Claim(0, 1, false) }));   // too few outcomes
+        var measured = Enumerable.Range(0, 40).Select(i => Claim(i, i + 1, i % 2 == 0)).ToList();
+        Assert.Equal(0.5, EmployeeHistory.TeamPrior(measured));
+    }
+
+    [Fact]
+    public void OpenClaims_IgnoreClaimsThatHaveBeenOpenForMoreThanTheWindow()
+    {
+        var stale = Claim(0, null, null);                // assigned long ago, never closed
+        var recent = Claim(150, null, null);
+        var current = Claim(200, 210, true);
+
+        var asOfAssignment = EmployeeHistory.AsOfAssignment(new[] { stale, recent, current }, current, 0.75);
+        Assert.Equal(1, asOfAssignment.OpenClaims);       // only the recent one
+
+        var asOfNow = EmployeeHistory.AsOfNow(new[] { stale, recent }, 0.75, T0.AddDays(200));
+        Assert.Equal(1, asOfNow.OpenClaims);
     }
 
     [Fact]
@@ -81,12 +97,12 @@ public class EmployeeHistoryTests
     public void TeamPriorTimeline_OnlyUsesClaimsCompletedBeforeTheMoment()
     {
         var claims = new List<ClaimOutcome>();
-        for (var i = 0; i < EmployeeHistory.MinOutcomesForPrior; i++) claims.Add(Claim(i, i + 1, true));
+        for (var i = 0; i < EmployeeHistory.TeamPriorTimeline.MinOutcomes; i++) claims.Add(Claim(i, i + 1, true));
         for (var i = 0; i < 100; i++) claims.Add(Claim(200 + i, 201 + i, false));   // all late, but only later
         var timeline = new EmployeeHistory.TeamPriorTimeline(claims);
 
         Assert.Equal(1.0, timeline.At(T0.AddDays(100)));                            // the late claims do not exist yet
         Assert.True(timeline.At(T0.AddDays(400)) < 0.3);                            // they do once completed
-        Assert.Equal(EmployeeHistory.DefaultPrior, timeline.At(T0.AddDays(-1)));    // too little data: default
+        Assert.Null(timeline.At(T0.AddDays(-1)));                                    // too little data: not used
     }
 }

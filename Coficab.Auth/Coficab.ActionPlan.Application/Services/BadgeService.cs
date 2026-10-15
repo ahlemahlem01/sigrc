@@ -68,10 +68,16 @@ public class BadgeService : IBadgeService
             .Select(g => (OnTime: g.Count(c => c.IsOnTime == true), Closed: g.Count()))
             .ToList();
         var cutoff = BadgeRules.ReliabilityCutoff(perEmployee, teamRate);
+        var thresholds = BadgeThresholds.FromTeam(closed
+            .GroupBy(c => c.AssignedToId!, StringComparer.OrdinalIgnoreCase)
+            .Select(g => (
+                OnTime: g.Count(c => c.IsOnTime == true),
+                LongestRun: BadgeRules.LongestOnTimeRun(g.OrderBy(c => c.CompletedAt).Select(c => new ClosedClaim(c.CompletedAt!.Value, c.IsOnTime == true)))))
+            .ToList());
         var reliable = BadgeRules.IsReliable(mine.Count(c => c.OnTime), mine.Count, teamRate, cutoff);
 
         var awarded = new List<BadgeDto>();
-        foreach (var dto in BadgeRules.Earned(mine, reliable, DateTime.UtcNow))
+        foreach (var dto in BadgeRules.Earned(mine, reliable, DateTime.UtcNow, thresholds))
         {
             var badge = await AwardBadgeAsync(userId, dto);
             if (badge != null) awarded.Add(badge);

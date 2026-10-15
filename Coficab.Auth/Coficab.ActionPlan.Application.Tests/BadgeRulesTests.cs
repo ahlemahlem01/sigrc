@@ -41,18 +41,18 @@ public class BadgeRulesTests
     {
         // 4 on time, 1 late, 4 on time: the longest run is 4, so no streak badge
         var broken = Run(4, true, 60).Concat(new[] { C(50, false) }).Concat(Run(4, true, 40)).ToList();
-        Assert.DoesNotContain("Série de 5", Names(BadgeRules.Earned(broken, false, Now)));
+        Assert.DoesNotContain("Série solide", Names(BadgeRules.Earned(broken, false, Now)));
 
         var names = Names(BadgeRules.Earned(Run(5, true, 40), false, Now));
-        Assert.Contains("Série de 5", names);
-        Assert.DoesNotContain("Série de 10", names);
+        Assert.Contains("Série solide", names);
+        Assert.DoesNotContain("Série d'élite", names);
     }
 
     [Fact]
     public void Streak_ThatWasReachedEarlier_StillCountsAfterALaterDelay()
     {
         var claims = Run(5, true, 90).Concat(new[] { C(10, false) }).ToList();
-        Assert.Contains("Série de 5", Names(BadgeRules.Earned(claims, false, Now)));
+        Assert.Contains("Série solide", Names(BadgeRules.Earned(claims, false, Now)));
     }
 
     [Fact]
@@ -108,5 +108,45 @@ public class BadgeRulesTests
         var claims = Run(3, true, 20);
         Assert.DoesNotContain("Fiabilité · meilleurs 25 %", Names(BadgeRules.Earned(claims, false, Now)));
         Assert.Contains("Fiabilité · meilleurs 25 %", Names(BadgeRules.Earned(claims, true, Now)));
+    }
+
+    [Fact]
+    public void Thresholds_FollowTheTeam_WhenEnoughColleaguesHaveARecord_AndNeverDropBelowTheFloors()
+    {
+        // 10 colleagues with 40 to 130 on-time closures: the levels rise with the team
+        var team = Enumerable.Range(0, 10).Select(i => (OnTime: 40 + i * 10, LongestRun: 8 + i * 2)).ToList();
+        var t = BadgeThresholds.FromTeam(team);
+        Assert.True(t.SilverOnTime > BadgeThresholds.FloorSilver);
+        Assert.True(t.GoldOnTime > t.SilverOnTime);
+        Assert.True(t.StreakElite > t.StreakSolid);
+
+        // a tiny team: floors
+        Assert.Equal(BadgeThresholds.Floors, BadgeThresholds.FromTeam(team.Take(3).ToList()));
+
+        // a team with low volume never lowers the floors
+        var lowTeam = Enumerable.Range(0, 10).Select(_ => (OnTime: 1, LongestRun: 1)).ToList();
+        Assert.Equal(BadgeThresholds.Floors, BadgeThresholds.FromTeam(lowTeam));
+    }
+
+    [Fact]
+    public void RaisedThresholds_MakeTheTopTiersSelective()
+    {
+        var thresholds = new BadgeThresholds(SilverOnTime: 60, GoldOnTime: 90, StreakSolid: 12, StreakElite: 50);
+        var claims = Run(40, true, 200);   // 40 on time in a row: enough for the old floors (25 / 10), not for the team
+        var names = Names(BadgeRules.Earned(claims, false, Now, thresholds));
+        Assert.Contains("Rapidité Bronze", names);
+        Assert.DoesNotContain("Rapidité Argent", names);
+        Assert.DoesNotContain("Rapidité Or", names);
+        Assert.Contains("Série solide", names);
+        Assert.DoesNotContain("Série d'élite", names);
+    }
+
+    [Fact]
+    public void Percentile_UsesTheNearestRank()
+    {
+        var values = new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+        Assert.Equal(5, BadgeRules.Percentile(values, 0.50));
+        Assert.Equal(8, BadgeRules.Percentile(values, 0.75));
+        Assert.Equal(9, BadgeRules.Percentile(values, 0.90));
     }
 }

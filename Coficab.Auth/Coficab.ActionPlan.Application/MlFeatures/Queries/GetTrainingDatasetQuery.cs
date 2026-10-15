@@ -144,7 +144,9 @@ public class GetTrainingDatasetQueryHandler
             {
                 var assignedAt = c.AssignedAt ?? c.CreatedAt;
                 var current = new ClaimOutcome(c.Id, c.AssignedToId, assignedAt, c.Deadline, c.CompletedAt, c.IsOnTime);
-                var h = EmployeeHistory.AsOfAssignment(mine, current, priorTimeline.At(assignedAt));
+                // Too early in the history for a team average to mean anything: the row is not used for training.
+                if (priorTimeline.At(assignedAt) is not { } teamRate) continue;
+                var h = EmployeeHistory.AsOfAssignment(mine, current, teamRate);
                 onTimeRate = Math.Round(h.OnTimeRate, 4);
                 closedCount = h.ClosedCount;
                 openClaims = h.OpenClaims;

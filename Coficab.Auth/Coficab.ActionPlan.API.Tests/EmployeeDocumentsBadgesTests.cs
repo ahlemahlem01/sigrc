@@ -212,7 +212,7 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
 
         var first = (await badges.AwardEarnedAsync(user)).Select(b => b.Name).ToList();
         Assert.Contains("Rapidité Bronze", first);
-        Assert.Contains("Série de 5", first);
+        Assert.Contains("Série solide", first);
 
         Assert.Empty(await badges.AwardEarnedAsync(user));   // nothing new: each badge is given once
         Assert.Equal(first.Count, (await badges.GetUserBadgesAsync(user)).Count());

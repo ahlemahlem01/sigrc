@@ -35,7 +35,7 @@
     "cat__Severity_LOW",
     "cat__Severity_MEDIUM"
   ],
-  "n_train_rows": 3170,
+  "n_train_rows": 3109,
   "defect_types": [
     "Connecteur desserré",
     "Contamination surface",
@@ -59,27 +59,27 @@
     "MEDIUM"
   ],
   "trained_on": "simulated claims (ml-service/simulation) + test data of the application",
-  "trained_at": "2026-10-12T16:14:52+00:00",
+  "trained_at": "2026-10-15T19:00:06+00:00",
   "validated": true,
   "validation_rule": "cross-validated AUC >= 0.6 and gain over claim-only model >= 0.01",
   "metrics": {
-    "trivial_accuracy": 0.7425867507886436,
+    "trivial_accuracy": 0.7407526535863622,
     "claim_only_cv": {
-      "auc": 0.7148971348712391,
-      "auc_sd": 0.02815298317779178,
-      "brier": 0.17311387520733684,
-      "accuracy": 0.7391167192429023
+      "auc": 0.7129094858464178,
+      "auc_sd": 0.021915692823251863,
+      "brier": 0.17407084114289825,
+      "accuracy": 0.7370530883182919
     },
     "cv": {
-      "auc": 0.7403316292264465,
-      "auc_sd": 0.025103373446801303,
-      "brier": 0.1664038177321896,
-      "accuracy": 0.7549684542586752
+      "auc": 0.7380603546958809,
+      "auc_sd": 0.019244739330208954,
+      "brier": 0.16736245193936405,
+      "accuracy": 0.7534578860980371
     },
     "candidates_cv_auc": {
-      "LogisticRegression": 0.7403316292264465,
-      "GradientBoosting": 0.7311993091051129
+      "LogisticRegression": 0.7380603546958809,
+      "GradientBoosting": 0.7325529786396944
     },
-    "time_split_auc": 0.7377988748241914
+    "time_split_auc": 0.7343579019040439
   }
 }

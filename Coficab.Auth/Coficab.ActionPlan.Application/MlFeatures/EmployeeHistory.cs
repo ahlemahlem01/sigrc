@@ -20,10 +20,20 @@ public static class EmployeeHistory
     /// <summary>Weight of the team average: an employee with few closed claims is pulled towards it.</summary>
     public const double Smoothing = 6;
 
+    /// <summary>
+    /// A claim assigned longer ago than this and still open is stale (forgotten, test data), not current workload.
+    /// An operational rule, not a tuned value.
+    /// </summary>
+    public const int OpenWindowDays = 90;
+
     public static double SmoothedRate(int onTime, int closed, double prior) =>
         (onTime + prior * Smoothing) / (closed + Smoothing);
 
-    /// <summary>Team average used as the prior (share of on-time claims among all known outcomes).</summary>
+    /// <summary>
+    /// Team average used as the prior (share of on-time claims among all known outcomes), measured on the data.
+    /// Only a system with fewer than <see cref="TeamPriorTimeline.MinOutcomes"/> known outcomes falls back to
+    /// <see cref="TeamPriorTimeline.DefaultPrior"/>; every candidate then shares it, so the ranking is unaffected.
+    /// </summary>
     public static double TeamPrior(IEnumerable<ClaimOutcome> claims)
     {
         int known = 0, onTime = 0;
@@ -33,12 +43,8 @@ public static class EmployeeHistory
             known++;
             if (c.IsOnTime == true) onTime++;
         }
-        return known == 0 ? 0.75 : (double)onTime / known;
+        return known < TeamPriorTimeline.MinOutcomes ? TeamPriorTimeline.DefaultPrior : (double)onTime / known;
     }
-
-    /// <summary>Default prior, and the number of known outcomes below which the dated prior is not trusted.</summary>
-    public const double DefaultPrior = 0.75;
-    public const int MinOutcomesForPrior = 30;
 
     /// <summary>
     /// Team on-time share as it was at a given moment: only claims completed before that moment. Built once, queried
@@ -46,6 +52,11 @@ public static class EmployeeHistory
     /// </summary>
     public sealed class TeamPriorTimeline
     {
+        /// <summary>Below this many known outcomes a team average is too unstable to be used.</summary>
+        public const int MinOutcomes = 30;
+        /// <summary>Only used when the whole system has fewer than <see cref="MinOutcomes"/> known outcomes.</summary>
+        public const double DefaultPrior = 0.75;
+
         private readonly DateTime[] _completedAt;
         private readonly int[] _onTimeCumulative;
 
@@ -63,7 +74,8 @@ public static class EmployeeHistory
             }
         }
 
-        public double At(DateTime moment)
+        /// <summary>The team average at that moment, or null when fewer than <see cref="MinOutcomes"/> outcomes were known (the row is then not used for training).</summary>
+        public double? At(DateTime moment)
         {
             var lo = 0;
             var hi = _completedAt.Length;
@@ -72,7 +84,7 @@ public static class EmployeeHistory
                 var mid = (lo + hi) / 2;
                 if (_completedAt[mid] < moment) lo = mid + 1; else hi = mid;
             }
-            return lo < MinOutcomesForPrior ? DefaultPrior : (double)_onTimeCumulative[lo - 1] / lo;
+            return lo < MinOutcomes ? null : (double)_onTimeCumulative[lo - 1] / lo;
         }
     }
 
@@ -89,15 +101,17 @@ public static class EmployeeHistory
                 closed++;
                 if (c.IsOnTime == true) onTime++;
             }
-            if (c.AssignedAt <= current.AssignedAt && (c.CompletedAt == null || c.CompletedAt > current.AssignedAt))
+            if (c.AssignedAt <= current.AssignedAt && c.AssignedAt > current.AssignedAt.AddDays(-OpenWindowDays)
+                && (c.CompletedAt == null || c.CompletedAt > current.AssignedAt))
                 open++;
         }
         return new EmployeeHistoryValues(SmoothedRate(onTime, closed, prior), closed, open);
     }
 
     /// <summary>The employee's history now (used to score candidates for a new claim).</summary>
-    public static EmployeeHistoryValues AsOfNow(IReadOnlyList<ClaimOutcome> userClaims, double prior)
+    public static EmployeeHistoryValues AsOfNow(IReadOnlyList<ClaimOutcome> userClaims, double prior, DateTime? nowUtc = null)
     {
+        var since = (nowUtc ?? DateTime.UtcNow).AddDays(-OpenWindowDays);
         int closed = 0, onTime = 0, open = 0;
         foreach (var c in userClaims)
         {
@@ -106,7 +120,7 @@ public static class EmployeeHistory
                 closed++;
                 if (c.IsOnTime == true) onTime++;
             }
-            if (c.CompletedAt == null) open++;
+            if (c.CompletedAt == null && c.AssignedAt > since) open++;
         }
         return new EmployeeHistoryValues(SmoothedRate(onTime, closed, prior), closed, open);
     }

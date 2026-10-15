@@ -7,22 +7,36 @@ namespace Coficab.ActionPlan.Application.Badges;
 public sealed record ClosedClaim(DateTime CompletedAt, bool OnTime);
 
 /// <summary>
+/// Levels at which the volume badges are earned. The floors are the minimum; when enough colleagues have a record the
+/// levels follow the team (median and upper percentiles), so a badge stays selective whatever the team's volume.
+/// </summary>
+public sealed record BadgeThresholds(int SilverOnTime, int GoldOnTime, int StreakSolid, int StreakElite)
+{
+    public const int FloorSilver = 10, FloorGold = 25, FloorStreakSolid = 5, FloorStreakElite = 10;
+    public const int MinPeers = 8;
+
+    public static readonly BadgeThresholds Floors = new(FloorSilver, FloorGold, FloorStreakSolid, FloorStreakElite);
+
+    /// <summary>Per colleague: number of on-time closures and longest run of on-time closures.</summary>
+    public static BadgeThresholds FromTeam(IReadOnlyCollection<(int OnTime, int LongestRun)> team)
+    {
+        if (team.Count < MinPeers) return Floors;
+        var onTime = team.Select(t => t.OnTime).ToList();
+        var runs = team.Select(t => t.LongestRun).ToList();
+        return new BadgeThresholds(
+            Math.Max(FloorSilver, BadgeRules.Percentile(onTime, 0.50)),
+            Math.Max(FloorGold, BadgeRules.Percentile(onTime, 0.75)),
+            Math.Max(FloorStreakSolid, BadgeRules.Percentile(runs, 0.50)),
+            Math.Max(FloorStreakElite, BadgeRules.Percentile(runs, 0.90)));
+    }
+}
+
+/// <summary>
 /// Which badges an employee has earned, from the outcomes of the claims they closed. Pure functions: the service
 /// loads the data, awards what is returned (each badge name is awarded once) and nothing here touches the database.
 /// </summary>
 public static class BadgeRules
 {
-    /// <summary>Number of on-time closures needed for each speed tier.</summary>
-    public static readonly (int OnTime, string Tier, string Icon, string Color)[] SpeedTiers =
-    {
-        (1, "Bronze", "🥉", "#b45309"),
-        (10, "Argent", "🥈", "#64748b"),
-        (25, "Or", "🥇", "#ca8a04"),
-    };
-
-    /// <summary>Consecutive on-time closures (in closing order) that earn a streak badge.</summary>
-    public static readonly int[] StreakLevels = { 5, 10 };
-
     public const int PerfectQuarterMinClaims = 3;
 
     /// <summary>"Reliable" needs this many closed claims, and a rate in the top share of the colleagues who also have them.</summary>
@@ -30,13 +44,30 @@ public static class BadgeRules
     public const int ReliableMinPeers = 4;
     public const double ReliableTopShare = 0.25;
 
-    public static IReadOnlyList<AwardBadgeDto> Earned(IReadOnlyList<ClosedClaim> claims, bool reliable, DateTime nowUtc)
+    /// <summary>Nearest-rank percentile of a list of counts (p between 0 and 1).</summary>
+    public static int Percentile(IReadOnlyCollection<int> values, double p)
     {
+        if (values.Count == 0) return 0;
+        var sorted = values.OrderBy(v => v).ToList();
+        var index = (int)Math.Ceiling(p * sorted.Count) - 1;
+        return sorted[Math.Clamp(index, 0, sorted.Count - 1)];
+    }
+
+    public static IReadOnlyList<AwardBadgeDto> Earned(
+        IReadOnlyList<ClosedClaim> claims, bool reliable, DateTime nowUtc, BadgeThresholds? thresholds = null)
+    {
+        thresholds ??= BadgeThresholds.Floors;
         var badges = new List<AwardBadgeDto>();
         var ordered = claims.OrderBy(c => c.CompletedAt).ToList();
 
         var onTime = ordered.Count(c => c.OnTime);
-        foreach (var (needed, tier, icon, color) in SpeedTiers)
+        var tiers = new[]
+        {
+            (Needed: 1, Tier: "Bronze", Icon: "🥉", Color: "#b45309"),
+            (Needed: thresholds.SilverOnTime, Tier: "Argent", Icon: "🥈", Color: "#64748b"),
+            (Needed: thresholds.GoldOnTime, Tier: "Or", Icon: "🥇", Color: "#ca8a04"),
+        };
+        foreach (var (needed, tier, icon, color) in tiers)
         {
             if (onTime < needed) continue;
             badges.Add(new AwardBadgeDto
@@ -45,19 +76,24 @@ public static class BadgeRules
                 Name = $"Rapidité {tier}",
                 Description = needed == 1
                     ? "Première réclamation clôturée dans les délais."
-                    : $"{needed} réclamations clôturées dans les délais.",
+                    : $"{needed} réclamations clôturées dans les délais ou plus (seuil actuel de l'équipe).",
                 Icon = icon,
                 Color = color,
             });
         }
 
         var longest = LongestOnTimeRun(ordered);
-        foreach (var level in StreakLevels.Where(l => longest >= l))
+        var streaks = new[]
+        {
+            (Needed: thresholds.StreakSolid, Name: "Série solide"),
+            (Needed: thresholds.StreakElite, Name: "Série d'élite"),
+        };
+        foreach (var (needed, name) in streaks.Where(x => longest >= x.Needed))
             badges.Add(new AwardBadgeDto
             {
                 Category = "streak",
-                Name = $"Série de {level}",
-                Description = $"{level} réclamations de suite clôturées dans les délais.",
+                Name = name,
+                Description = $"{needed} réclamations de suite clôturées dans les délais ou plus (seuil actuel de l'équipe).",
                 Icon = "🔥",
                 Color = "#ea580c",
             });

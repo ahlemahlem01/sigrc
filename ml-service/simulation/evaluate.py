@@ -32,8 +32,8 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
 warnings.filterwarnings("ignore")
 SMOOTHING = 6  # an employee with few closed claims is pulled towards the team average (see smoothing_sweep.py)
-DEFAULT_PRIOR = 0.75   # team average while fewer than MIN_PRIOR_N outcomes are known
-MIN_PRIOR_N = 30
+MIN_PRIOR_N = 30      # rows assigned before this many outcomes are known have no usable team average: not used
+OPEN_WINDOW_DAYS = 90  # a claim open for longer than this is stale, not current workload
 
 
 def build_features(df: pd.DataFrame, smoothing: float = SMOOTHING) -> pd.DataFrame:
@@ -52,13 +52,15 @@ def build_features(df: pd.DataFrame, smoothing: float = SMOOTHING) -> pd.DataFra
         past = g[g["completed_at"] < r["assigned_at"]]
         n, k = len(past), int(past["y"].sum())
         m = int(np.searchsorted(done_t, np.datetime64(r["assigned_at"]), side="left"))
-        prior = DEFAULT_PRIOR if m < MIN_PRIOR_N else done_cum[m - 1] / m
+        prior = np.nan if m < MIN_PRIOR_N else done_cum[m - 1] / m
         user_rate.append((k + prior * smoothing) / (n + smoothing) if n + smoothing > 0 else prior)
         user_n.append(n)
-        workload.append(int(((g["assigned_at"] <= r["assigned_at"]) & (g["completed_at"] > r["assigned_at"])).sum()) - 1)
+        workload.append(int(((g["assigned_at"] <= r["assigned_at"])
+                             & (g["assigned_at"] > r["assigned_at"] - pd.Timedelta(days=OPEN_WINDOW_DAYS))
+                             & (g["completed_at"] > r["assigned_at"])).sum()) - 1)
     d["user_rate"], d["user_n"], d["workload_at"] = user_rate, user_n, np.maximum(workload, 0)
     d["alloc_days"] = ((d["deadline"] - d["assigned_at"]).dt.total_seconds() / 86400).clip(lower=0)
-    return d
+    return d[d["user_rate"].notna()].reset_index(drop=True)  # early rows without a team average are not used
 
 
 def pipeline(cat: list[str], num: list[str], model) -> Pipeline:
@@ -95,6 +97,57 @@ def time_split(d: pd.DataFrame, cat, num, make_model):
     p = pipe.predict_proba(te[cat + num])[:, 1]
     return dict(auc=float(roc_auc_score(te["y"], p)), brier=float(brier_score_loss(te["y"], p)),
                 acc=float(accuracy_score(te["y"], p >= 0.5)), base_acc=float(max(te["y"].mean(), 1 - te["y"].mean())))
+
+
+def top3_comparison(d: pd.DataFrame, k: int = 3) -> dict:
+    """Were claims handled by an employee the model ranks in the top k of the team delivered on time more often?
+
+    Train on the oldest 70 % of claims. For every later claim, score every employee of the team as it was at assignment
+    time (same claim, each employee's own history then), rank them, and see where the employee who actually got the
+    claim stands. This is observational: assignments were not made by the model, so it shows how well the ranking
+    agrees with outcomes, not what would happen if the model chose.
+    """
+    cat, num = ["severity", "defect_type"], ["alloc_days", "user_rate", "user_n", "workload_at"]
+    cut = int(len(d) * 0.7)
+    train, test = d.iloc[:cut], d.iloc[cut:]
+    pipe = pipeline(cat, num, LogisticRegression(max_iter=2000, C=0.5)).fit(train[cat + num], train["y"])
+
+    done = d.sort_values("completed_at")
+    done_t, done_cum = done["completed_at"].to_numpy(), done["y"].cumsum().to_numpy()
+    team = {u: (g["assigned_at"].to_numpy(), g["completed_at"].to_numpy(), g["y"].to_numpy()) for u, g in d.groupby("assigned_to_id")}
+    window = np.timedelta64(OPEN_WINDOW_DAYS, "D")
+
+    in_top, outcome, ranks = [], [], []
+    for _, r in test.iterrows():
+        t = np.datetime64(r["assigned_at"])
+        m = int(np.searchsorted(done_t, t, side="left"))
+        if m < MIN_PRIOR_N:
+            continue
+        prior = done_cum[m - 1] / m
+        cand = []
+        for u, (a, c, y) in team.items():
+            past = c < t
+            n, ok = int(past.sum()), int(y[past].sum())
+            opened = int(((a <= t) & (a > t - window) & (c > t)).sum())
+            if u == r["assigned_to_id"]:
+                opened = max(opened - 1, 0)  # the claim itself
+            cand.append({"u": u, "severity": r["severity"], "defect_type": r["defect_type"], "alloc_days": r["alloc_days"],
+                         "user_rate": (ok + prior * SMOOTHING) / (n + SMOOTHING), "user_n": n, "workload_at": opened})
+        frame = pd.DataFrame(cand)
+        frame["p"] = pipe.predict_proba(frame[cat + num])[:, 1]
+        order = frame.sort_values("p", ascending=False)["u"].tolist()
+        rank = order.index(r["assigned_to_id"]) + 1
+        ranks.append(rank)
+        in_top.append(rank <= k)
+        outcome.append(int(r["y"]))
+
+    top, y = np.array(in_top), np.array(outcome)
+    a, b = y[top], y[~top]
+    pa, pb = a.mean(), b.mean()
+    se = float(np.sqrt(pa * (1 - pa) / len(a) + pb * (1 - pb) / len(b)))
+    return dict(n=len(y), team=len(team), k=k, n_top=int(top.sum()), n_rest=int((~top).sum()), rate_top=float(pa),
+                rate_rest=float(pb), diff=float(pa - pb), lo=float(pa - pb - 1.96 * se), hi=float(pa - pb + 1.96 * se),
+                share_top=float(top.mean()), expected_share=min(1.0, k / len(team)), median_rank=float(np.median(ranks)))
 
 
 def main() -> None:
@@ -158,6 +211,19 @@ def main() -> None:
               "| Groupe | Réclamations | Taux à l'heure observé |", "|---|---|---|"]
     for k, r in qt.iterrows():
         lines.append(f"| {k} | {int(r['size'])} | {r['mean']:.2f} |")
+
+    t3 = top3_comparison(d)
+    lines += ["", f"## Le top {t3['k']} du modèle contre le reste (claims du dernier 30 %, équipe de {t3['team']})", "",
+              f"Pour chaque réclamation, tous les employés sont classés par probabilité prédite telle qu'elle était à l'assignation. "
+              f"On regarde si l'employé qui a réellement traité la réclamation était dans le top {t3['k']}.", "",
+              "| Employé assigné | Réclamations | Livrées à l'heure |", "|---|---|---|",
+              f"| Dans le top {t3['k']} du modèle | {t3['n_top']} | {t3['rate_top']:.1%} |",
+              f"| Hors du top {t3['k']} | {t3['n_rest']} | {t3['rate_rest']:.1%} |", "",
+              f"Écart : **{t3['diff'] * 100:+.1f} points** (intervalle de confiance à 95 % : {t3['lo'] * 100:+.1f} à {t3['hi'] * 100:+.1f}). "
+              f"Rang médian de l'employé assigné : {t3['median_rank']:.0f} sur {t3['team']}. "
+              f"Part des cas dans le top {t3['k']} : {t3['share_top']:.0%} (hasard : {t3['expected_share']:.0%}).", "",
+              "*Observation, pas expérience : les assignations n'ont pas été faites par le modèle. Ce tableau montre que le classement "
+              "est cohérent avec les résultats, pas ce qui arriverait si le modèle choisissait.*"]
 
     if a.truth:
         truth = pd.read_csv(a.truth, dtype={"user_id": str})
