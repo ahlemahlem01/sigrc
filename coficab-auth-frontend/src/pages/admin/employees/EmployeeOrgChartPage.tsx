@@ -820,16 +820,22 @@ export default function EmployeeOrgChartPage() {
   }, [employees, departments]);
 
   const otherCount = counts[OTHER_KEY] ?? 0;
+  // Departments without employees get no filter chip (the one currently selected stays so it can be switched off).
+  const chipDepartments = useMemo(
+    () => departments.filter((d) => (counts[d.key] ?? 0) > 0 || deptFilter === d.key),
+    [departments, counts, deptFilter],
+  );
+  // the same department name in several organizations: say which organization on the chip
   const duplicateLabels = useMemo(() => {
     const seen = new Set<string>();
     const dup = new Set<string>();
-    for (const d of departments) {
+    for (const d of chipDepartments) {
       const k = norm(d.label);
       if (seen.has(k)) dup.add(k);
       seen.add(k);
     }
     return dup;
-  }, [departments]);
+  }, [chipDepartments]);
 
   return (
     <div className="org">
@@ -1026,7 +1032,7 @@ export default function EmployeeOrgChartPage() {
           >
             {t('common.all')}<span>{counts.all}</span>
           </button>
-          {departments.map((d) => (
+          {chipDepartments.map((d) => (
             <button
               key={d.key}
               type="button"
