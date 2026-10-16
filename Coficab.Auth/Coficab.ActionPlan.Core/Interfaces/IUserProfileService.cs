@@ -12,4 +12,6 @@ public interface IUserProfileService
     Task DeleteAsync(string userId);
     Task<UserProfileDto?> UpdateProfileAsync(string userId, UpdateUserProfileDto dto);// NEW
     Task<UserProfileDto> UpdateAvatarAsync(string userId, string avatarUrl);
+    /// <summary>Puts the employee in another (non-archived) department. Nothing else on the profile changes.</summary>
+    Task<DepartmentMoveResult> MoveToDepartmentAsync(string userId, Guid departmentId);
 }

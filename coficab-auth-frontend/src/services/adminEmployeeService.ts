@@ -77,6 +77,10 @@ export const adminEmployeeService = {
   getProfile: (token: string, userId: string) =>
     axios.get(`${API_URL}/profiles/${userId}`, h(token)).then(r => r.data),
 
+  /** Org chart drag-and-drop: the employee's department in the profile (the account is updated through adminService.updateUser). */
+  moveToDepartment: (token: string, userId: string, departmentId: string) =>
+    axios.put(`${API_URL}/profiles/${userId}/department`, { departmentId }, h(token)).then(r => r.data),
+
   updateProfile: (token: string, userId: string, data: any) =>
     axios.put(`${API_URL}/profiles/${userId}`, data, h(token)).then(r => r.data),
 

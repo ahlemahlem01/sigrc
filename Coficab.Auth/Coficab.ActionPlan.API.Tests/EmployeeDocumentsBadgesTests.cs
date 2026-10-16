@@ -4,6 +4,7 @@ using System.Text.Json;
 using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Core.Entities;
+using Coficab.ActionPlan.Core.Enums;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -243,5 +244,42 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
 
         var second = await ClientAs("admin").PostAsync("/api/admin/employees/badges/recalculate", null);
         Assert.Equal(0, (await second.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("awarded").GetInt32());
+    }
+
+    [Fact]
+    public async Task MoveToDepartment_ChangesOnlyTheDepartment_AndRefusesArchivedOrUnknownOnes()
+    {
+        var orgId = Guid.NewGuid();
+        var from = Guid.NewGuid();
+        var to = Guid.NewGuid();
+        var archived = Guid.NewGuid();
+        var user = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            db.Organizations.Add(new Organization { Id = orgId, Name = "Org move", Type = OrganizationType.Local });
+            db.Departments.Add(new Department { Id = from, Name = "Production move", Code = "PM", OrganizationId = orgId });
+            db.Departments.Add(new Department { Id = to, Name = "Qualite move", Code = "QM", OrganizationId = orgId });
+            db.Departments.Add(new Department { Id = archived, Name = "Ancien", Code = "OLD", OrganizationId = orgId, IsArchived = true });
+            db.UserProfiles.Add(new UserProfile { UserId = user, Name = "Mover", Email = "mover@test", Poste = "Operateur", Equipe = "A", DepartmentId = from });
+            return Task.CompletedTask;
+        });
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await ClientAs("user").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = to })).StatusCode);
+
+        var ok = await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = to });
+        Assert.Equal(HttpStatusCode.NoContent, ok.StatusCode);
+
+        var profile = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/admin/employees/profiles/{user}", JsonOpts);
+        Assert.Equal("Qualite move", profile.GetProperty("department").GetString());
+        Assert.Equal("Mover", profile.GetProperty("name").GetString());       // nothing else changed
+        Assert.Equal("Operateur", profile.GetProperty("poste").GetString());
+
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = archived })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest,
+            (await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = Guid.NewGuid() })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{Guid.NewGuid()}/department", new { departmentId = to })).StatusCode);
     }
 }

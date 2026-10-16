@@ -3384,6 +3384,16 @@
     "noResults": "No results."
   },
   "orgChart": {
+    "moveTitle": "Move to another department?",
+    "moveBody": "{{name}} will move from {{from}} to {{to}}.",
+    "moveWarn": "The department changes in their profile and in their account. What they can see (claims, plans, alerts) follows the department.",
+    "moveConfirm": "Confirm the move",
+    "moving": "Moving…",
+    "moveDone": "{{name}} moved to {{to}}.",
+    "moveFailed": "Could not move {{name}}. Nothing was changed.",
+    "moveNotDepartment": "“Other” is not a department: drop the card on a department column.",
+    "moveRoleUnsupported": "This account has several roles: change its department from the user form instead.",
+    "hintDrag": "Drop a card on another department to move the employee (with confirmation).",
     "others": "Other",
     "downloadTitle": "Download the org chart as PNG",
     "exporting": "Exporting…",
@@ -3395,7 +3405,7 @@
     "team": "Team",
     "loadFailed": "Could not load the org chart.",
     "title": "Org chart",
-    "subtitle": "Team structure by department. Move around freely and click an employee for details."
+    "subtitle": "Team structure by department. Click an employee for details, or drop a card on another department to move them (with confirmation)."
   },
   "hrReports": {
     "aiSummary": "AI summary",

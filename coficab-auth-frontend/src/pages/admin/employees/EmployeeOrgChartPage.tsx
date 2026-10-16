@@ -23,7 +23,7 @@ import { toPng } from 'html-to-image';
 import { useAuth } from '../../../context/AuthContext';
 import UserAvatar from '../../../components/UserAvatar';
 import { adminEmployeeService } from '../../../services/adminEmployeeService';
-import { getUsers } from '../../../services/adminService';
+import { getUsers, updateUser } from '../../../services/adminService';
 import { departmentService } from '../../../services/departmentService';
 import type { Department } from '../../../types/department';
 import {
@@ -422,6 +422,8 @@ function OrgChartCanvas({
   selected,
   setSelected,
   onSelect,
+  layoutVersion,
+  onRequestMove,
 }: {
   employees: OrgEmployee[];
   departments: OrgDept[];
@@ -431,11 +433,16 @@ function OrgChartCanvas({
   selected: OrgEmployee | null;
   setSelected: (e: OrgEmployee | null) => void;
   onSelect: (e: OrgEmployee) => void;
+  /** Bumped by the page to put every card back where the data says it belongs (move cancelled). */
+  layoutVersion: number;
+  /** A card was dropped on another department column: ask for confirmation. Returns false when the drop is not a move. */
+  onRequestMove: (employee: OrgEmployee, targetDeptKey: string) => boolean;
 }) {
   const navigate = useNavigate();
   const { t, i18n: { language } } = useTranslation();
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [snapBack, setSnapBack] = useState(0);
   const fitToken = `${deptFilter}|${employees.length}|${departments.map((d) => d.key).join(',')}`;
 
   useEffect(() => {
@@ -449,7 +456,26 @@ function OrgChartCanvas({
     setNodes(n);
     setEdges(e);
     // language: rebuild so the « Autres » column label follows the UI language
-  }, [employees, departments, selected?.id, onSelect, deptFilter, setNodes, setEdges, language]);
+  }, [employees, departments, selected?.id, onSelect, deptFilter, setNodes, setEdges, language, layoutVersion, snapBack]);
+
+  // A card dropped on the column of another department asks for a move; anything else snaps back.
+  const onNodeDragStop = useCallback(
+    (_: unknown, node: Node) => {
+      const emp = (node.data as EmpNodeData | undefined)?.employee;
+      if (node.type !== 'employee' || !emp) return;
+      const center = node.position.x + (node.measured?.width ?? 200) / 2;
+      let best: { key: string; dist: number } | null = null;
+      for (const n of nodes) {
+        if (n.type !== 'dept') continue;
+        const dist = Math.abs(n.position.x + (n.measured?.width ?? 150) / 2 - center);
+        if (best === null || dist < best.dist) best = { key: n.id.replace(/^dept-/, ''), dist };
+      }
+      const known = departments.some((d) => d.key === emp.deptKey);
+      const ownKey = known ? emp.deptKey : OTHER_KEY;
+      if (!best || best.key === ownKey || !onRequestMove(emp, best.key)) setSnapBack((v) => v + 1);
+    },
+    [nodes, departments, onRequestMove],
+  );
 
   return (
     <div className="org-canvas">
@@ -461,6 +487,7 @@ function OrgChartCanvas({
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         minZoom={0.25}
         maxZoom={1.6}
@@ -558,6 +585,12 @@ export default function EmployeeOrgChartPage() {
   const [error, setError] = useState('');
   const [deptFilter, setDeptFilter] = useState<string>('all');
   const [selected, setSelected] = useState<OrgEmployee | null>(null);
+  const [authUsers, setAuthUsers] = useState<any[]>([]);
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const [pendingMove, setPendingMove] = useState<{ employee: OrgEmployee; target: OrgDept } | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState('');
+  const [notice, setNotice] = useState('');
 
   const onSelect = useCallback((e: OrgEmployee) => {
     setSelected(e);
@@ -601,6 +634,7 @@ export default function EmployeeOrgChartPage() {
         /* perf optionnel */
       }
 
+      setAuthUsers(unwrap(usersRaw));
       setDepartments(deptList);
       setEmployees(merged);
       setDeptFilter((prev) =>
@@ -620,6 +654,76 @@ export default function EmployeeOrgChartPage() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const requestMove = useCallback(
+    (employee: OrgEmployee, targetKey: string): boolean => {
+      const target = departments.find((d) => d.key === targetKey);
+      if (!target) {
+        setNotice(i18n.t('orgChart.moveNotDepartment'));
+        return false;
+      }
+      setMoveError('');
+      setPendingMove({ employee, target });
+      return true;
+    },
+    [departments],
+  );
+
+  const cancelMove = () => {
+    if (moving) return;
+    setPendingMove(null);
+    setMoveError('');
+    setLayoutVersion((v) => v + 1);
+  };
+
+  const confirmMove = async () => {
+    if (!pendingMove || !accessToken || moving) return;
+    const { employee, target } = pendingMove;
+    const account = authUsers.find((u) => String(pick(u, 'id', 'Id') ?? '').toLowerCase() === employee.id.toLowerCase());
+    const roles: string[] = Array.isArray(pick(account, 'roles', 'Roles')) ? pick(account, 'roles', 'Roles') : [];
+    if (account && roles.length !== 1) {
+      // updateUser replaces the whole role set: refuse rather than risk dropping a role.
+      setMoveError(i18n.t('orgChart.moveRoleUnsupported'));
+      return;
+    }
+    const previousKey = employee.deptKey;
+    setMoving(true);
+    setMoveError('');
+    try {
+      await adminEmployeeService.moveToDepartment(accessToken, employee.id, target.key);
+      if (account) {
+        try {
+          await updateUser(accessToken, employee.id, {
+            fullName: String(pick(account, 'fullName', 'FullName') ?? employee.fullName),
+            department: target.label,
+            organizationId: pick(account, 'organizationId', 'OrganizationId') ?? undefined,
+            role: roles[0],
+            permissions: Array.isArray(pick(account, 'permissions', 'Permissions')) ? pick(account, 'permissions', 'Permissions') : [],
+          });
+        } catch (err) {
+          // keep profile and account in step: put the profile back when it had a real department
+          if (departments.some((d) => d.key === previousKey)) {
+            await adminEmployeeService.moveToDepartment(accessToken, employee.id, previousKey).catch(() => undefined);
+          }
+          throw err;
+        }
+      }
+      setPendingMove(null);
+      setNotice(i18n.t('orgChart.moveDone', { name: employee.fullName, to: target.label }));
+      setLayoutVersion((v) => v + 1);
+      await load();
+    } catch {
+      setMoveError(i18n.t('orgChart.moveFailed', { name: employee.fullName }));
+    } finally {
+      setMoving(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(''), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { all: employees.length, [OTHER_KEY]: 0 };
@@ -764,6 +868,24 @@ export default function EmployeeOrgChartPage() {
           border: 1px solid ${LINE}; border-radius: 8px; padding: 6px 10px;
           pointer-events: none;
         }
+        .org-notice {
+          position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 60;
+          background: #0d1340; color: #fff; font-size: 13px; padding: 10px 16px; border-radius: 10px;
+          box-shadow: 0 8px 24px rgba(13,19,64,.25);
+        }
+        .org-modal-back {
+          position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
+          background: rgba(13,19,64,.45); padding: 16px;
+        }
+        .org-modal {
+          width: min(440px, 100%); background: #fff; border-radius: 14px; padding: 20px 22px;
+          box-shadow: 0 20px 50px rgba(13,19,64,.3);
+        }
+        .org-modal-title { margin: 0 0 10px; font-size: 16px; font-weight: 700; }
+        .org-modal-text { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+        .org-modal-hint { margin: 0 0 14px; font-size: 12.5px; color: #64748b; line-height: 1.45; }
+        .org-modal-error { margin: 0 0 12px; font-size: 13px; color: #b91c1c; }
+        .org-modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
         .react-flow__minimap { border-radius: 8px; overflow: hidden; border: 1px solid ${LINE}; }
         .react-flow__controls { border-radius: 8px; overflow: hidden; border: 1px solid ${LINE}; box-shadow: none; }
         .react-flow__edge.animated path { stroke-dasharray: 5; animation: org-dash 1.2s linear infinite; }
@@ -835,7 +957,38 @@ export default function EmployeeOrgChartPage() {
           selected={selected}
           setSelected={setSelected}
           onSelect={onSelect}
+          layoutVersion={layoutVersion}
+          onRequestMove={requestMove}
         />
+
+        {notice && <div className="org-notice" role="status">{notice}</div>}
+
+        {pendingMove && (
+          <div className="org-modal-back" role="dialog" aria-modal="true" aria-label={t('orgChart.moveTitle')}>
+            <div className="org-modal">
+              <h2 className="org-modal-title">{t('orgChart.moveTitle')}</h2>
+              <p className="org-modal-text">
+                {t('orgChart.moveBody', {
+                  name: pendingMove.employee.fullName,
+                  from: pendingMove.employee.department && pendingMove.employee.department !== '—'
+                    ? pendingMove.employee.department
+                    : t('orgChart.others'),
+                  to: pendingMove.target.label,
+                })}
+              </p>
+              <p className="org-modal-hint">{t('orgChart.moveWarn')}</p>
+              {moveError && <p className="org-modal-error">{moveError}</p>}
+              <div className="org-modal-actions">
+                <button type="button" className="org-btn" onClick={cancelMove} disabled={moving}>
+                  {t('common.cancel')}
+                </button>
+                <button type="button" className="org-pop-btn" onClick={() => void confirmMove()} disabled={moving}>
+                  {moving ? t('orgChart.moving') : t('orgChart.moveConfirm')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </ReactFlowProvider>
     </div>
   );

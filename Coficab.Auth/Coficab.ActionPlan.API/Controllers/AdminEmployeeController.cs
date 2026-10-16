@@ -87,6 +87,19 @@ public class AdminEmployeeController : ControllerBase
         return Ok(updated);
     }
 
+    /// <summary>Org chart drag-and-drop: moves an employee to another department (profile only; the account is updated by the Auth API).</summary>
+    [HttpPut("profiles/{userId}/department")]
+    public async Task<IActionResult> MoveToDepartment(string userId, [FromBody] MoveDepartmentDto dto)
+    {
+        var result = await _userProfileService.MoveToDepartmentAsync(userId, dto.DepartmentId);
+        return result switch
+        {
+            DepartmentMoveResult.Moved => NoContent(),
+            DepartmentMoveResult.ProfileNotFound => NotFound(new { error = "Profil introuvable." }),
+            _ => BadRequest(new { error = "Département introuvable ou archivé." }),
+        };
+    }
+
     [HttpDelete("profiles/{userId}")]
     public async Task<IActionResult> DeleteProfile(string userId)
     {

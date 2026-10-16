@@ -3384,6 +3384,16 @@
     "noResults": "Nessun risultato."
   },
   "orgChart": {
+    "moveTitle": "Cambiare reparto?",
+    "moveBody": "{{name}} passerà da {{from}} a {{to}}.",
+    "moveWarn": "Il reparto cambia nel profilo e nell'account. Ciò che vede (reclami, piani, avvisi) segue il reparto.",
+    "moveConfirm": "Conferma il cambio",
+    "moving": "Cambio in corso…",
+    "moveDone": "{{name}} è stato/a spostato/a in {{to}}.",
+    "moveFailed": "Impossibile spostare {{name}}. Nulla è stato modificato.",
+    "moveNotDepartment": "« Altri » non è un reparto: rilascia la scheda su una colonna di reparto.",
+    "moveRoleUnsupported": "Questo account ha più ruoli: cambia il reparto dal modulo utente.",
+    "hintDrag": "Rilascia una scheda su un altro reparto per spostare il dipendente (con conferma).",
     "others": "Altri",
     "downloadTitle": "Scarica l’organigramma in PNG",
     "exporting": "Esportazione…",
@@ -3395,7 +3405,7 @@
     "team": "Team",
     "loadFailed": "Impossibile caricare l’organigramma.",
     "title": "Organigramma",
-    "subtitle": "Struttura dei team per reparto. Naviga liberamente e clicca un collaboratore per i dettagli."
+    "subtitle": "Struttura dei team per reparto. Clicca un collaboratore per i dettagli, o rilascia la sua scheda su un altro reparto per spostarlo (con conferma)."
   },
   "hrReports": {
     "aiSummary": "Sintesi IA",

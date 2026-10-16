@@ -121,6 +121,21 @@ public class UserProfileService : IUserProfileService
         return resultDto;
     }
 
+    public async Task<DepartmentMoveResult> MoveToDepartmentAsync(string userId, Guid departmentId)
+    {
+        var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId);
+        if (profile == null) return DepartmentMoveResult.ProfileNotFound;
+
+        var exists = await _context.Departments.AsNoTracking()
+            .AnyAsync(d => d.Id == departmentId && !d.IsArchived);
+        if (!exists) return DepartmentMoveResult.DepartmentNotFound;
+
+        profile.DepartmentId = departmentId;
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return DepartmentMoveResult.Moved;
+    }
+
     public async Task<bool> ExistsAsync(string userId)
     {
         return await _context.UserProfiles.AnyAsync(p => p.UserId == userId);

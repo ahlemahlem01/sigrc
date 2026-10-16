@@ -3384,6 +3384,16 @@
     "noResults": "Aucun résultat."
   },
   "orgChart": {
+    "moveTitle": "Changer de département ?",
+    "moveBody": "{{name}} passera de {{from}} à {{to}}.",
+    "moveWarn": "Le département change dans son profil et dans son compte. Ce qu'il voit (réclamations, plans, alertes) suit le département.",
+    "moveConfirm": "Confirmer le changement",
+    "moving": "Changement en cours…",
+    "moveDone": "{{name}} a été déplacé(e) vers {{to}}.",
+    "moveFailed": "Impossible de déplacer {{name}}. Rien n'a été modifié.",
+    "moveNotDepartment": "« Autres » n'est pas un département : déposez la carte sur une colonne de département.",
+    "moveRoleUnsupported": "Ce compte a plusieurs rôles : changez son département depuis le formulaire utilisateur.",
+    "hintDrag": "Déposez une carte sur un autre département pour déplacer l'employé (avec confirmation).",
     "others": "Autres",
     "downloadTitle": "Télécharger l’organigramme en PNG",
     "exporting": "Export…",
@@ -3395,7 +3405,7 @@
     "team": "Équipe",
     "loadFailed": "Impossible de charger l’organigramme.",
     "title": "Organigramme",
-    "subtitle": "Structure des équipes par département. Naviguez librement, cliquez un collaborateur pour les détails."
+    "subtitle": "Structure des équipes par département. Cliquez un collaborateur pour les détails, ou déposez sa carte sur un autre département pour le déplacer (avec confirmation)."
   },
   "hrReports": {
     "aiSummary": "Synthèse IA",
