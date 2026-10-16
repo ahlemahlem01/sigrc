@@ -22,7 +22,7 @@ import AdminClaimsList from './pages/admin/AdminClaimsList';
 import ReferenceListsPage from './pages/admin/ReferenceListsPage';
 import WorkflowConfigPage from './pages/admin/WorkflowConfigPage';
 import HistoryImportPage from './pages/admin/HistoryImportPage';
-import AdminEightDList from './pages/admin/AdminEightDList';
+import ClaimsAnalysesHubPage from './pages/claims/ClaimsAnalysesHubPage';
 import { isAdminUser } from './utils/roles';
 import ActionPlanSummary from './pages/action-plan/ActionPlanSummary';
 import AuditLogPage from './pages/admin/AuditLogPage';
@@ -201,10 +201,10 @@ const App = () => {
               <Route path="/admin/claims/indicators"            element={<ClaimsIndicatorsRoute />} />
               <Route path="/admin/claims/list"                  element={<AdminClaimsList />} />
               <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage />} />
-              <Route path="/admin/claims/analyses"              element={<QualityClaimsHistoryPage />} />
+              <Route path="/admin/claims/analyses"              element={<ClaimsAnalysesHubPage />} />
               <Route path="/admin/claims/eight-d/:claimId"      element={<EightDPage />} />
-              <Route path="/admin/claims/eight-d"               element={<AdminEightDList />} />
-              <Route path="/admin/claims/report"                element={<QualityClaimsHistoryPage />} />
+              <Route path="/admin/claims/eight-d"               element={<Navigate to="/admin/claims/analyses?tab=eightd" replace />} />
+              <Route path="/admin/claims/report"                element={<Navigate to="/admin/claims/analyses" replace />} />
               <Route path="/admin/claims/create"                element={<CreateClaimPage />} />
               <Route path="/admin/claims/import-history"        element={<HistoryImportPage />} />
               <Route path="/admin/claims/reference-lists"       element={<ReferenceListsPage />} />

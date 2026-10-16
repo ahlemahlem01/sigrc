@@ -197,6 +197,8 @@
     "footerAccess": "Access restricted to authorized employees"
   },
   "adminNav": {
+    "analysesHub": "Analyses & reports",
+    "analysesTab": "5 Why / Ishikawa & report",
     "overview": "Overview",
     "frontOffice": "Front office",
     "admin": "Admin",
