@@ -43,20 +43,27 @@ export default function CapaBoardPage() {
           </button>
         ))}
       </div>
-      {tab === 'capa' && <AdminCapaDashboard />}
-      {tab === 'overview' && <AssignmentsOverview />}
-      {tab === 'indicators' && <AdminCapaIndicators />}
+      <div className="ap-tab-body">
+        {tab === 'capa' && <AdminCapaDashboard />}
+        {tab === 'overview' && <AssignmentsOverview />}
+        {tab === 'indicators' && <AdminCapaIndicators />}
+      </div>
     </div>
   );
 }
 
 const TAB_CSS = `
-  .ap-tabs-page { display: flex; flex-direction: column; gap: 16px; }
-  .ap-tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ap-tabs-page { display: flex; flex-direction: column; gap: 18px; }
+  .ap-tabs { display: flex; gap: 4px; flex-wrap: wrap; border-bottom: 1px solid #e2e8f0; }
   .ap-tab {
-    border: 1px solid #e2e8f0; background: #fff; color: #334155;
-    border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+    position: relative; border: 0; background: transparent; color: #64748b;
+    padding: 10px 16px; margin-bottom: -1px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer;
+    border-bottom: 2px solid transparent; transition: color .15s ease, border-color .15s ease;
   }
-  .ap-tab.on { background: #000168; color: #fff; border-color: #000168; }
-  .ap-tab:hover { border-color: #c7d2fe; }
+  .ap-tab:hover { color: #000168; }
+  .ap-tab.on { color: #000168; border-bottom-color: #000168; }
+  .ap-tab:focus-visible { outline: 2px solid #c7d2fe; outline-offset: -2px; border-radius: 6px; }
+  /* every tab uses the full width; some embedded pages used to centre themselves in a narrower column */
+  .ap-tab-body { width: 100%; min-width: 0; }
+  .ap-tab-body .max-w-7xl { max-width: none; margin-left: 0; margin-right: 0; }
 `;

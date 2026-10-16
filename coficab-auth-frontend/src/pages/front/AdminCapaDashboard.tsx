@@ -444,9 +444,13 @@ export default function AdminCapaDashboard() {
   return (
     <div className="text-slate-900 w-full min-w-0 max-w-full">
       <style>{`
-        .acd-card{border:1px solid #e2e8f0;background:#fff}
-        .acd-card:hover{border-color:#c7d2fe}
-        .acd-card.active{border-color:#000168;background:#f8fafc}
+        .acd-card{border:1px solid #e2e8f0;border-top:3px solid var(--acd-accent,#cbd5e1);background:#fff;transition:border-color .15s,box-shadow .15s,transform .15s}
+        .acd-card:hover{border-color:#c7d2fe;border-top-color:var(--acd-accent,#cbd5e1);box-shadow:0 2px 10px rgba(0,1,104,.08);transform:translateY(-1px)}
+        .acd-card.active{border-color:#000168;border-top-color:var(--acd-accent,#000168);background:#f8fafc;box-shadow:0 0 0 1px #000168 inset}
+        .acd-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:20px}
+        .acd-top{display:flex;flex-wrap:wrap;align-items:stretch;gap:12px;margin-bottom:16px}
+        .acd-alert{flex:1 1 320px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;border:1px solid #fecdd3;border-left:4px solid #e11d48;background:#fff1f2;border-radius:12px;padding:10px 14px}
+        .acd-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-left:auto}
         .acd-filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
         .acd-filters input,.acd-filters select{min-width:0;width:100%}
         .acd-btn{padding:4px 10px;font-size:12px;line-height:1.25;border-radius:8px;border:1px solid #e2e8f0;background:#fff;color:#334155;cursor:pointer;transition:background .15s,border-color .15s,box-shadow .15s}
@@ -456,8 +460,9 @@ export default function AdminCapaDashboard() {
       `}</style>
 
       <div className="w-full min-w-0">
+        <div className="acd-top">
         {kpis.delayed > 0 && (
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+          <div className="acd-alert">
             <div>
               <div className="text-sm font-semibold text-rose-800">
                 {t('capaAlerts.bannerTitle', { count: kpis.delayed })}
@@ -474,8 +479,7 @@ export default function AdminCapaDashboard() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-end gap-2 mb-4">
-          <div className="flex gap-2 flex-wrap">
+          <div className="acd-actions">
             <button type="button" onClick={() => void load()} className="acd-btn">
               {t('dashboard.refresh')}
             </button>
@@ -500,11 +504,12 @@ export default function AdminCapaDashboard() {
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}
 
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mb-5">
+        <div className="acd-kpis">
           {cardDefs.map((c) => (
             <button
               key={c.key}
               type="button"
+              style={{ ['--acd-accent' as string]: c.accent }}
               className={`acd-card text-left rounded-xl px-4 py-3 ${activeKpi === c.key ? 'active' : ''}`}
               onClick={() => {
                 setActiveKpi((prev) => (prev === c.key ? 'all' : c.key));

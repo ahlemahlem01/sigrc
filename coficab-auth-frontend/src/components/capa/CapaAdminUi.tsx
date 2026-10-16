@@ -33,6 +33,8 @@ type HeaderProps = {
   title: string;
   subtitle?: string;
   actions?: React.ReactNode;
+  /** Subtitle and actions only: for a page shown under a tab that already carries its title. */
+  compact?: boolean;
 };
 
 export function CapaPageHeader({
@@ -40,7 +42,16 @@ export function CapaPageHeader({
   title,
   subtitle,
   actions,
+  compact = false,
 }: HeaderProps) {
+  if (compact) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+        {subtitle ? <p className="text-sm text-slate-500 max-w-2xl m-0">{subtitle}</p> : <span />}
+        {actions ? <div className="flex items-center gap-2 flex-wrap">{actions}</div> : null}
+      </div>
+    );
+  }
   return (
     <div className="flex flex-wrap items-end justify-between gap-4 mb-5">
       <div>

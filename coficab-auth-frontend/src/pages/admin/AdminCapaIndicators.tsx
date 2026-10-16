@@ -435,8 +435,9 @@ export default function AdminCapaIndicators() {
   }
 
   return (
-    <div className="text-slate-900 max-w-7xl mx-auto">
+    <div className="text-slate-900 w-full min-w-0">
       <CapaPageHeader
+        compact
         eyebrow={t('indicators.eyebrow')}
         title={t('indicators.title')}
         subtitle={t('indicators.subtitle')}
@@ -471,24 +472,28 @@ export default function AdminCapaIndicators() {
       )}
 
       {/* 4 KPI cards + vs previous period */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
         {kpiCards.map((c) => (
-          <div key={c.key} className="rounded-2xl border border-slate-200 p-5" style={{ background: c.tint }}>
-            <div className="flex items-start justify-between gap-2">
-              <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: c.color }}>{c.label}</div>
+          <div
+            key={c.key}
+            className="rounded-2xl border border-slate-200 p-5"
+            style={{ background: c.tint, borderTop: `3px solid ${c.color}` }}
+          >
+            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: c.color }}>{c.label}</div>
+            <div className="mt-2 flex items-end justify-between gap-2">
+              <div className="text-3xl font-bold text-slate-900 tabular-nums leading-none">{c.display}</div>
               <div className="text-right">
                 <DeltaBadge delta={c.delta} preferDown={!!c.invertDelta} />
                 <div className="text-[10px] text-slate-400 mt-0.5">{t('indicators.vsPrev')}</div>
               </div>
             </div>
-            <div className="text-3xl font-bold text-slate-900 mt-2 tabular-nums">{c.display}</div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
         {/* Closure rate by process — progress bars */}
-        <div className="xl:col-span-3 bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.closureByProcess')}</h2>
           <div className="space-y-3.5">
             {byProcess.length === 0 ? (
@@ -519,7 +524,7 @@ export default function AdminCapaIndicators() {
         </div>
 
         {/* Donut by nature (+ Critical) */}
-        <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-2">{t('indicators.byNature')}</h2>
           <div className="h-52 relative">
             <ResponsiveContainer width="100%" height="100%">
@@ -558,9 +563,9 @@ export default function AdminCapaIndicators() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         {/* Monthly trend */}
-        <div className="xl:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
+        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
           <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.monthlyTrend')}</h2>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
