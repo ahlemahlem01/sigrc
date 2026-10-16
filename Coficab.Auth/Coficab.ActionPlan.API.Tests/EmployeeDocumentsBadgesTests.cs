@@ -272,6 +272,7 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
 
         var profile = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/admin/employees/profiles/{user}", JsonOpts);
         Assert.Equal("Qualite move", profile.GetProperty("department").GetString());
+        Assert.Equal(to.ToString(), profile.GetProperty("departmentId").GetString(), ignoreCase: true);
         Assert.Equal("Mover", profile.GetProperty("name").GetString());       // nothing else changed
         Assert.Equal("Operateur", profile.GetProperty("poste").GetString());
 

@@ -78,7 +78,6 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.employeeList', icon: 'ti-list', path: '/admin/employees' },
       { label: 'adminNav.locked', icon: 'ti-lock', path: '/admin/employees?locked=1' },
-      { label: 'adminNav.orgChart', icon: 'ti-hierarchy-2', path: '/admin/employees/org-chart' },
       { label: 'adminNav.activity', icon: 'ti-activity', path: '/admin/employees/activity' },
       { label: 'adminNav.compare', icon: 'ti-arrows-diff', path: '/admin/employees/compare' },
       { label: 'adminNav.recognition', icon: 'ti-award', path: '/admin/employees/recognition' },
@@ -88,9 +87,8 @@ const NAV: NavItem[] = [
     id: 'orgs', label: 'adminNav.organizations', icon: 'ti-building',
     children: [
       { label: 'adminNav.orgList', icon: 'ti-list', path: '/admin/organizations' },
-      { label: 'adminNav.newOrg', icon: 'ti-building-plus', path: '/admin/organizations?create=1' },
       { label: 'adminNav.departments', icon: 'ti-building', path: '/admin/departments' },
-      { label: 'adminNav.orgMap', icon: 'ti-map', path: '/admin/departments/map' },
+      { label: 'adminNav.orgChart', icon: 'ti-hierarchy-2', path: '/admin/organizations/map' },
     ],
   },
   {
@@ -187,19 +185,18 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/employees/compare':          { title: 'adminNav.compare', crumb: 'adminNav.employees' },
     '/admin/employees/recognition':      { title: 'adminNav.recognition', crumb: 'adminNav.employees' },
     '/admin/employees/activity':         { title: 'adminNav.activity', crumb: 'adminNav.employees' },
-    '/admin/employees/org-chart':        { title: 'adminNav.orgChart', crumb: 'adminNav.employees' },
     '/admin/reports':                    { title: 'adminNav.teamReports', crumb: 'adminNav.audit' },
     '/admin/departments':                { title: 'adminNav.departments', crumb: 'adminNav.organizations' },
     '/admin/permissions':                { title: 'adminNav.allPermissions', crumb: 'adminNav.permissions' },
     '/admin/permissions/assign':         { title: 'adminNav.assign', crumb: 'adminNav.permissions' },
-    '/admin/departments/map':            { title: 'adminNav.orgMap', crumb: 'adminNav.organizations' },
+    '/admin/organizations/map':          { title: 'adminNav.orgChart', crumb: 'adminNav.organizations' },
     '/admin/audit-logs':                 { title: 'adminNav.fullTrace', crumb: 'adminNav.audit' },
     '/admin/login-logs':                 { title: 'adminNav.loginLogs', crumb: 'adminNav.audit' },
     '/pages/front/action-plans':         { title: 'adminNav.actionPlans', crumb: 'adminNav.applications' },
   };
 
   if (map[pathname]) return map[pathname];
-  if (pathname.startsWith('/admin/employees/') && pathname !== '/admin/employees/compare' && pathname !== '/admin/employees/recognition' && pathname !== '/admin/employees/activity' && pathname !== '/admin/employees/org-chart')
+  if (pathname.startsWith('/admin/employees/') && pathname !== '/admin/employees/compare' && pathname !== '/admin/employees/recognition' && pathname !== '/admin/employees/activity')
     return { title: 'adminNav.employeeFile', crumb: 'adminNav.employees' };
     if (pathname.startsWith('/admin/action-plans/'))
     return { title: 'adminNav.planDetail', crumb: 'adminNav.actionPlans' };

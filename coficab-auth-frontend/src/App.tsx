@@ -35,7 +35,6 @@ import EmployeeActivityTrackingPage from './pages/admin/employees/EmployeeActivi
 import EmployeeOrgChartPage from './pages/admin/employees/EmployeeOrgChartPage';
 import EmployeeAdminProfilePage from './pages/admin/employees/EmployeeAdminProfilePage';
 import HrReportsPage from './pages/admin/employees/reports/HrReportsPage';
-import OrganizationMapPage from './pages/admin/Organizationmappage';
 import AdminCapaActionsReport from './pages/admin/AdminCapaActionsReport';
 import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
@@ -171,12 +170,13 @@ const App = () => {
               <Route path="/admin/profile"                      element={<EmployeeProfile />} />
               <Route path="/admin/organizations"                element={<OrganizationList />} />
               <Route path="/admin/departments"                  element={<DepartmentsPage />} />
-              <Route path="/admin/departments/map"              element={<OrganizationMapPage />} />
+              <Route path="/admin/departments/map"              element={<Navigate to="/admin/organizations/map" replace />} />
               <Route path="/admin/employees"                    element={<EmployeeManagement />} />
               <Route path="/admin/employees/compare"            element={<EmployeeComparatorPage />} />
               <Route path="/admin/employees/recognition"        element={<EmployeeRecognitionPage />} />
               <Route path="/admin/employees/activity"           element={<EmployeeActivityTrackingPage />} />
-              <Route path="/admin/employees/org-chart"          element={<EmployeeOrgChartPage />} />
+              <Route path="/admin/organizations/map"            element={<EmployeeOrgChartPage />} />
+              <Route path="/admin/employees/org-chart"          element={<Navigate to="/admin/organizations/map" replace />} />
               <Route path="/admin/employees/reports"            element={<Navigate to="/admin/reports" replace />} />
               <Route path="/admin/reports"                      element={<HrReportsRoute />} />
               <Route path="/admin/employees/:id"                element={<EmployeeAdminPage />} />

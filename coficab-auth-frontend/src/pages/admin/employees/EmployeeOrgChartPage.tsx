@@ -23,7 +23,7 @@ import { toPng } from 'html-to-image';
 import { useAuth } from '../../../context/AuthContext';
 import UserAvatar from '../../../components/UserAvatar';
 import { adminEmployeeService } from '../../../services/adminEmployeeService';
-import { getUsers, updateUser } from '../../../services/adminService';
+import { getOrganizations, getUsers, updateUser } from '../../../services/adminService';
 import { departmentService } from '../../../services/departmentService';
 import type { Department } from '../../../types/department';
 import {
@@ -74,7 +74,11 @@ type OrgDept = {
   key: string;
   label: string;
   code?: string;
+  orgId: string;
+  orgName: string;
 };
+
+const OTHER_ORG = '__other_org__';
 
 type EmpNodeData = {
   employee: OrgEmployee;
@@ -88,6 +92,28 @@ type DeptNodeData = {
   count: number;
   delay: number;
 };
+
+type OrgNodeData = {
+  label: string;
+  departments: number;
+  employees: number;
+  delay: number;
+};
+
+function OrganizationNode({ data }: NodeProps) {
+  const { t } = useTranslation();
+  const d = data as OrgNodeData;
+  return (
+    <div className="org-orgnode" style={{ animationDelay: `${d.delay}ms` }}>
+      <Handle type="target" position={Position.Top} className="org-handle" />
+      <div className="org-orgnode-label">{d.label}</div>
+      <div className="org-dept-count">
+        {t('orgChart.orgCounts', { departments: d.departments, employees: d.employees })}
+      </div>
+      <Handle type="source" position={Position.Bottom} className="org-handle" />
+    </div>
+  );
+}
 
 function DeptNode({ data }: NodeProps) {
   const { t } = useTranslation();
@@ -152,6 +178,7 @@ function RootNode() {
 
 const nodeTypes = {
   root: RootNode,
+  org: OrganizationNode,
   dept: DeptNode,
   employee: EmployeeNode,
 };
@@ -168,6 +195,7 @@ function mergeEmployees(
   profilesRaw: any[],
   authUsers: any[],
   deptByName: Map<string, OrgDept>,
+  deptById: Map<string, OrgDept>,
 ): OrgEmployee[] {
   const byId = new Map(authUsers.map((u: any) => [String(u.id ?? u.Id).toLowerCase(), u]));
   const adminish = (roles: any) => {
@@ -198,7 +226,9 @@ function mergeEmployees(
           ?? '—',
         email: pick(p, 'email', 'Email') ?? pick(auth, 'email', 'Email') ?? '',
         department: department || '—',
-        deptKey: resolveDeptKey(department, deptByName),
+        deptKey:
+          deptById.get(String(pick(p, 'departmentId', 'DepartmentId') ?? '').toLowerCase())?.key
+          ?? resolveDeptKey(department, deptByName),
         poste: pick(p, 'poste', 'Poste') || inferred.poste,
         equipe: pick(p, 'equipe', 'Equipe') || inferred.equipe,
         telephone,
@@ -240,6 +270,14 @@ function buildGraph(
     ...(byDept.get(OTHER_KEY)?.length ? [OTHER_KEY] : []),
   ].filter((k) => (byDept.get(k)?.length ?? 0) > 0 || (deptFilter !== 'all' && k === deptFilter));
 
+  // departments are already ordered by organization name, then by label; « Other » closes the list
+  const orgOfKey = (key: string) =>
+    key === OTHER_KEY ? OTHER_ORG : departments.find((d) => d.key === key)?.orgId ?? OTHER_ORG;
+  const orgLabelOf = (orgId: string) =>
+    orgId === OTHER_ORG
+      ? i18n.t('orgChart.others')
+      : departments.find((d) => d.orgId === orgId)?.orgName ?? '—';
+
   const labelOf = (key: string) =>
     key === OTHER_KEY
       ? i18n.t('orgChart.others')
@@ -247,8 +285,9 @@ function buildGraph(
 
   const COL_W = 230;
   const ROW_H = 108;
-  const DEPT_Y = 130;
-  const EMP_START_Y = 240;
+  const ORG_Y = 120;
+  const DEPT_Y = 250;
+  const EMP_START_Y = 360;
   const EMP_W = 200;
   const totalW = Math.max(orderedKeys.length - 1, 0) * COL_W;
   const nodes: Node[] = [];
@@ -260,6 +299,45 @@ function buildGraph(
     position: { x: totalW / 2 - 70, y: 0 },
     data: {},
     draggable: false,
+  });
+
+  // one node per organization, centred above its department columns
+  const orgSpans: { orgId: string; first: number; last: number; keys: string[] }[] = [];
+  orderedKeys.forEach((deptKey, i) => {
+    const orgId = orgOfKey(deptKey);
+    const span = orgSpans[orgSpans.length - 1];
+    if (span && span.orgId === orgId) {
+      span.last = i;
+      span.keys.push(deptKey);
+    } else {
+      orgSpans.push({ orgId, first: i, last: i, keys: [deptKey] });
+    }
+  });
+  const ORG_W = 170;
+  orgSpans.forEach((span, n) => {
+    const orgNodeId = `org-${span.orgId}`;
+    const centre = ((span.first + span.last) / 2) * COL_W + EMP_W / 2;
+    nodes.push({
+      id: orgNodeId,
+      type: 'org',
+      position: { x: centre - ORG_W / 2, y: ORG_Y },
+      data: {
+        label: orgLabelOf(span.orgId),
+        departments: span.keys.length,
+        employees: span.keys.reduce((sum, k) => sum + (byDept.get(k)?.length ?? 0), 0),
+        delay: 40 + n * 55,
+      },
+      draggable: false,
+    });
+    edges.push({
+      id: `e-root-${span.orgId}`,
+      source: 'root',
+      target: orgNodeId,
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#a5b4fc', strokeWidth: 1.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#a5b4fc', width: 14, height: 14 },
+    });
   });
 
   orderedKeys.forEach((deptKey, i) => {
@@ -279,13 +357,11 @@ function buildGraph(
     });
 
     edges.push({
-      id: `e-root-${deptKey}`,
-      source: 'root',
+      id: `e-org-${deptKey}`,
+      source: `org-${orgOfKey(deptKey)}`,
       target: deptId,
       type: 'smoothstep',
-      animated: true,
-      style: { stroke: '#a5b4fc', strokeWidth: 1.5 },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#a5b4fc', width: 14, height: 14 },
+      style: { stroke: '#c7d2fe', strokeWidth: 1.5 },
     });
 
     members.forEach((emp, j) => {
@@ -601,11 +677,15 @@ export default function EmployeeOrgChartPage() {
     setLoading(true);
     setError('');
     try {
-      const [profilesRaw, usersRaw, deptsRaw] = await Promise.all([
+      const [profilesRaw, usersRaw, deptsRaw, orgsRaw] = await Promise.all([
         adminEmployeeService.getAllProfiles(accessToken),
         getUsers(accessToken),
         departmentService.getAll(accessToken),
+        getOrganizations(accessToken).catch(() => []),
       ]);
+      const orgNameById = new Map(
+        unwrap(orgsRaw).map((o: any) => [String(o.id ?? o.Id).toLowerCase(), String(o.name ?? o.Name ?? '')] as [string, string]),
+      );
 
       const deptList: OrgDept[] = unwrap(deptsRaw)
         .filter((d: Department) => !d.isArchived)
@@ -613,22 +693,26 @@ export default function EmployeeOrgChartPage() {
           key: String(d.id),
           label: d.name,
           code: d.code,
+          orgId: String(d.organizationId ?? ''),
+          orgName: d.organizationName || orgNameById.get(String(d.organizationId ?? '').toLowerCase()) || '—',
         }))
-        .sort((a, b) => a.label.localeCompare(b.label, 'fr'));
+        .sort((a, b) => a.orgName.localeCompare(b.orgName, 'fr') || a.label.localeCompare(b.label, 'fr'));
 
       const byName = new Map<string, OrgDept>();
+      const byId = new Map<string, OrgDept>();
       for (const d of deptList) {
         byName.set(norm(d.label), d);
         if (d.code) byName.set(norm(d.code), d);
+        byId.set(d.key.toLowerCase(), d);
       }
 
-      let merged = mergeEmployees(profilesRaw, usersRaw, byName);
+      let merged = mergeEmployees(profilesRaw, usersRaw, byName, byId);
       try {
         const perf = await fetchEmployeePerformance(accessToken, merged);
-        const byId = new Map(perf.map((r: EmployeePerformanceRow) => [r.userId, r]));
+        const perfById = new Map(perf.map((r: EmployeePerformanceRow) => [r.userId, r]));
         merged = merged.map((e) => ({
           ...e,
-          activeDossiers: byId.get(e.id)?.activeDossiers ?? 0,
+          activeDossiers: perfById.get(e.id)?.activeDossiers ?? 0,
         }));
       } catch {
         /* perf optionnel */
@@ -696,7 +780,7 @@ export default function EmployeeOrgChartPage() {
           await updateUser(accessToken, employee.id, {
             fullName: String(pick(account, 'fullName', 'FullName') ?? employee.fullName),
             department: target.label,
-            organizationId: pick(account, 'organizationId', 'OrganizationId') ?? undefined,
+            organizationId: target.orgId || (pick(account, 'organizationId', 'OrganizationId') ?? undefined),
             role: roles[0],
             permissions: Array.isArray(pick(account, 'permissions', 'Permissions')) ? pick(account, 'permissions', 'Permissions') : [],
           });
@@ -736,6 +820,16 @@ export default function EmployeeOrgChartPage() {
   }, [employees, departments]);
 
   const otherCount = counts[OTHER_KEY] ?? 0;
+  const duplicateLabels = useMemo(() => {
+    const seen = new Set<string>();
+    const dup = new Set<string>();
+    for (const d of departments) {
+      const k = norm(d.label);
+      if (seen.has(k)) dup.add(k);
+      seen.add(k);
+    }
+    return dup;
+  }, [departments]);
 
   return (
     <div className="org">
@@ -810,6 +904,13 @@ export default function EmployeeOrgChartPage() {
           box-shadow: 0 1px 2px rgba(13,19,64,.04);
           animation: org-rise .42s ease both;
         }
+        .org-orgnode {
+          background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 10px;
+          padding: 10px 14px; min-width: 170px; text-align: center;
+          box-shadow: 0 1px 2px rgba(13,19,64,.05);
+          animation: org-rise .42s ease both;
+        }
+        .org-orgnode-label { font-size: 13px; font-weight: 800; color: ${NAVY}; }
         .org-dept-label { font-size: 13px; font-weight: 700; color: ${NAVY}; }
         .org-dept-count { font-size: 11px; color: #64748b; margin-top: 2px; }
         .org-emp {
@@ -893,7 +994,7 @@ export default function EmployeeOrgChartPage() {
           to { stroke-dashoffset: -20; }
         }
         @media (prefers-reduced-motion: reduce) {
-          .org-root, .org-dept, .org-emp, .org-pop, .react-flow__edge.animated path {
+          .org-root, .org-orgnode, .org-dept, .org-emp, .org-pop, .react-flow__edge.animated path {
             animation: none !important;
           }
         }
@@ -902,7 +1003,7 @@ export default function EmployeeOrgChartPage() {
       <ReactFlowProvider>
         <div className="org-head">
           <div>
-            <p className="org-eyebrow">{t('frontNav.footerEmployees')}</p>
+            <p className="org-eyebrow">{t('adminNav.organizations')}</p>
             <h1 className="org-title">{t('orgChart.title')}</h1>
             <p className="org-sub">
               {t('orgChart.subtitle')}
@@ -932,7 +1033,7 @@ export default function EmployeeOrgChartPage() {
               className={`org-chip${deptFilter === d.key ? ' is-on' : ''}`}
               onClick={() => setDeptFilter(d.key)}
             >
-              {d.label}
+              {duplicateLabels.has(norm(d.label)) ? `${d.label} · ${d.orgName}` : d.label}
               <span>{counts[d.key] ?? 0}</span>
             </button>
           ))}
@@ -973,9 +1074,17 @@ export default function EmployeeOrgChartPage() {
                   from: pendingMove.employee.department && pendingMove.employee.department !== '—'
                     ? pendingMove.employee.department
                     : t('orgChart.others'),
-                  to: pendingMove.target.label,
+                  to: `${pendingMove.target.label} (${pendingMove.target.orgName})`,
                 })}
               </p>
+              {pendingMove.target.orgId !== (departments.find((d) => d.key === pendingMove.employee.deptKey)?.orgId ?? '') && (
+                <p className="org-modal-hint">
+                  {t('orgChart.moveOrgChange', {
+                    from: departments.find((d) => d.key === pendingMove.employee.deptKey)?.orgName ?? t('orgChart.others'),
+                    to: pendingMove.target.orgName,
+                  })}
+                </p>
+              )}
               <p className="org-modal-hint">{t('orgChart.moveWarn')}</p>
               {moveError && <p className="org-modal-error">{moveError}</p>}
               <div className="org-modal-actions">

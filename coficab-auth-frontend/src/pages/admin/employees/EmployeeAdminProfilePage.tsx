@@ -600,7 +600,7 @@ export default function EmployeeAdminProfilePage() {
               <button
                 type="button"
                 className="eap-btn"
-                onClick={() => navigate('/admin/employees/org-chart')}
+                onClick={() => navigate('/admin/organizations/map')}
               >
                 <i className="ti ti-hierarchy-2" /> {t('employeeProfileAdmin.orgChart')}
               </button>
