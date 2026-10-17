@@ -48,15 +48,7 @@ public record OverviewProblemsDto(
 
 public record OverviewMonthDto(string Month, int Opened, int Closed, int OnTime, double? OnTimeRate);
 
-public record CriticalClaimItemDto(
-    Guid Id,
-    string Title,
-    string ClientId,
-    string Severity,
-    int AgeDays,
-    string? ResponsibleName);
-
-public record OverviewCriticalDto(int Open, int? OldestDays, IReadOnlyList<CriticalClaimItemDto> Top);
+public record OverviewCriticalDto(int Open, int? OldestDays, int CriticalCount, int HighCount, int Late, int Unassigned);
 
 public record EightDStepDto(int Step, int Count);
 
@@ -158,10 +150,6 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         _mediator = mediator;
         _configuration = configuration;
     }
-
-    private double Target(string key, double fallback) =>
-        double.TryParse(_configuration[key], System.Globalization.NumberStyles.Float,
-            System.Globalization.CultureInfo.InvariantCulture, out var v) ? v : fallback;
 
     public async Task<OverviewDto> Handle(GetOverviewQuery request, CancellationToken ct)
     {
@@ -352,14 +340,22 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 ? (string.IsNullOrWhiteSpace(p.Name) ? p.Email : p.Name)
                 : null;
 
+        static int SeverityWeightOf(string sev) => (sev ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "CRITICAL" or "CRITIQUE" => 5,
+            "HIGH" or "ELEVEE" or "ÉLEVÉE" => 3,
+            "LOW" or "FAIBLE" => 1,
+            _ => 2,
+        };
         var critical = open.Where(c => IsCriticalSeverity(c.Severity)).ToList();
         int AgeDays(DateTime detection, DateTime created) => Math.Max(0, (today - (detection == default ? created : detection).Date).Days);
         var criticalDto = new OverviewCriticalDto(
             critical.Count,
             critical.Count == 0 ? null : critical.Max(c => AgeDays(c.DetectionDate, c.CreatedAt)),
-            critical.OrderByDescending(c => AgeDays(c.DetectionDate, c.CreatedAt)).Take(3)
-                .Select(c => new CriticalClaimItemDto(c.Id, c.Title, c.ClientId, c.Severity, AgeDays(c.DetectionDate, c.CreatedAt), NameOf(c.AssignedToId)))
-                .ToList());
+            critical.Count(c => SeverityWeightOf(c.Severity) == 5),
+            critical.Count(c => SeverityWeightOf(c.Severity) == 3),
+            critical.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)),
+            critical.Count(c => string.IsNullOrWhiteSpace(c.AssignedToId)));
 
         // ── to handle first: the open claims whose deadline has passed, the most severe first, then the most overdue ──
         static int SeverityWeight(string sev) => (sev ?? string.Empty).Trim().ToUpperInvariant() switch
@@ -479,11 +475,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         if (unattributed.OpenClaims > 0 || unattributed.OnTimeBase > 0) orgRows.Add(unattributed);
         var scope = new OverviewScopeDto(request.OrganizationId, orgs.FirstOrDefault(o => o.Id == request.OrganizationId)?.Name);
 
-        var targets = new OverviewTargetsDto(
-            Target("Overview:OnTimeGreen", 85),
-            Target("Overview:OnTimeOrange", 70),
-            Target("Overview:ResolutionDays", 14),
-            Target("Overview:PpmTolerancePct", 10));
+        var targets = await OverviewTargetsStore.LoadAsync(_context, _configuration, ct);
 
         return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows, priority);
     }

@@ -58,6 +58,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<WorkflowTransition> WorkflowTransitions => Set<WorkflowTransition>();
     public DbSet<ReferenceItem> ReferenceItems => Set<ReferenceItem>();
     public DbSet<EightDVersion> EightDVersions => Set<EightDVersion>();
+    public DbSet<OverviewSetting> OverviewSettings => Set<OverviewSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -523,6 +524,13 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.SnapshotJson).IsRequired();
             entity.HasIndex(e => new { e.DossierId, e.VersionNumber }).IsUnique();
             entity.HasIndex(e => e.ClaimId);
+        });
+
+        modelBuilder.Entity<OverviewSetting>(entity =>
+        {
+            entity.HasKey(e => e.Key);
+            entity.Property(e => e.Key).HasMaxLength(100);
+            entity.Property(e => e.UpdatedBy).HasMaxLength(80);
         });
 
         modelBuilder.Entity<ReferenceItem>(entity =>

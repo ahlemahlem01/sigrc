@@ -41,6 +41,7 @@ public interface IApplicationDbContext
     DbSet<WorkflowTransition> WorkflowTransitions { get; }
     DbSet<ReferenceItem> ReferenceItems { get; }
     DbSet<EightDVersion> EightDVersions { get; }
+    DbSet<OverviewSetting> OverviewSettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     DbSet<IshikawaAnalysis> IshikawaAnalyses { get; set; }

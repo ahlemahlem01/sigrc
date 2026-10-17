@@ -71,19 +71,13 @@ export interface OverviewMonth {
   onTimeRate: number | null;
 }
 
-export interface CriticalClaimItem {
-  id: string;
-  title: string;
-  clientId: string;
-  severity: string;
-  ageDays: number;
-  responsibleName?: string | null;
-}
-
 export interface OverviewCritical {
   open: number;
   oldestDays: number | null;
-  top: CriticalClaimItem[];
+  criticalCount: number;
+  highCount: number;
+  late: number;
+  unassigned: number;
 }
 
 export interface OverviewEightD {

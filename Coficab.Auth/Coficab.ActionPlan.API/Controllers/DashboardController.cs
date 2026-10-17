@@ -1,4 +1,6 @@
+using Coficab.ActionPlan.Application.Dashboard;
 using Coficab.ActionPlan.Application.Dashboard.Queries;
+using Coficab.ActionPlan.Application.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,10 +14,14 @@ namespace Coficab.ActionPlan.API.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IApplicationDbContext _db;
+    private readonly IConfiguration _configuration;
 
-    public DashboardController(IMediator mediator)
+    public DashboardController(IMediator mediator, IApplicationDbContext db, IConfiguration configuration)
     {
         _mediator = mediator;
+        _db = db;
+        _configuration = configuration;
     }
 
     /// <summary>Management overview: headline figures, actions, problems, trend and data health, for the last <paramref name="days"/> days.</summary>
@@ -28,6 +34,38 @@ public class DashboardController : ControllerBase
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
         return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin, organizationId), cancellationToken));
     }
+
+    /// <summary>The targets the overview's traffic lights are compared with.</summary>
+    [HttpGet("overview/targets")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<OverviewTargetsDto>> GetOverviewTargets(CancellationToken cancellationToken)
+        => Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
+
+    /// <summary>Saves new targets (superadmin only). Returns 400 with the name of the first invalid field.</summary>
+    [HttpPut("overview/targets")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> SetOverviewTargets([FromBody] OverviewTargetsDto targets, CancellationToken cancellationToken)
+    {
+        if (!IsSuperAdmin()) return Forbid();
+        var problem = OverviewTargetsStore.Validate(targets);
+        if (problem != null) return BadRequest(new { field = problem });
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        await OverviewTargetsStore.SaveAsync(_db, targets, userId, cancellationToken);
+        return Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
+    }
+
+    /// <summary>Back to the default targets (superadmin only).</summary>
+    [HttpDelete("overview/targets")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<OverviewTargetsDto>> ResetOverviewTargets(CancellationToken cancellationToken)
+    {
+        if (!IsSuperAdmin()) return Forbid();
+        await OverviewTargetsStore.ResetAsync(_db, cancellationToken);
+        return Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
+    }
+
+    private bool IsSuperAdmin() => User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
+        .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Vue globale Claims + Action Plans (KPIs, top retards, courbes, donuts, responsables).</summary>
     [HttpGet("summary")]

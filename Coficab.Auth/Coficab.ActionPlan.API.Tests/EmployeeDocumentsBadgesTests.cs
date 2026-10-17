@@ -435,4 +435,37 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         var lowIndex = titles.IndexOf($"low-{tag}");
         Assert.True(lowIndex == -1 || lowIndex > 1);                  // severity beats the length of the delay
     }
+
+    [Fact]
+    public async Task OverviewTargets_CanBeChangedBySuperAdmin_AreValidated_AndDriveTheOverview()
+    {
+        var client = ClientAs("superadmin");
+        var defaults = await client.GetFromJsonAsync<JsonElement>("/api/dashboard/overview/targets", JsonOpts);
+        Assert.Equal(85, defaults.GetProperty("onTimeGreen").GetDouble());
+
+        // an admin who is not superadmin can read the targets but not change them
+        var asAdmin = await ClientAs("admin").PutAsJsonAsync("/api/dashboard/overview/targets",
+            new { onTimeGreen = 90, onTimeOrange = 75, resolutionDays = 10, ppmTolerancePct = 5 });
+        Assert.Equal(HttpStatusCode.Forbidden, asAdmin.StatusCode);
+
+        // the orange level must stay under the green one
+        var invalid = await client.PutAsJsonAsync("/api/dashboard/overview/targets",
+            new { onTimeGreen = 80, onTimeOrange = 85, resolutionDays = 10, ppmTolerancePct = 5 });
+        Assert.Equal(HttpStatusCode.BadRequest, invalid.StatusCode);
+        Assert.Equal("onTimeOrderOrange", (await invalid.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("field").GetString());
+
+        var saved = await client.PutAsJsonAsync("/api/dashboard/overview/targets",
+            new { onTimeGreen = 90, onTimeOrange = 75, resolutionDays = 10, ppmTolerancePct = 5 });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+
+        var overview = await ClientAs("admin").GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+        Assert.Equal(90, overview.GetProperty("targets").GetProperty("onTimeGreen").GetDouble());
+        Assert.Equal(10, overview.GetProperty("targets").GetProperty("resolutionDays").GetDouble());
+
+        // back to the defaults
+        var reset = await client.DeleteAsync("/api/dashboard/overview/targets");
+        Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
+        var again = await client.GetFromJsonAsync<JsonElement>("/api/dashboard/overview/targets", JsonOpts);
+        Assert.Equal(85, again.GetProperty("onTimeGreen").GetDouble());
+    }
 }

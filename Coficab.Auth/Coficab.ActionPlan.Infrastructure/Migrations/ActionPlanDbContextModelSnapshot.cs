@@ -1752,6 +1752,27 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.ToTable("Organizations", "actionplan");
                 });
 
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.OverviewSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("float");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("OverviewSettings", "actionplan");
+                });
+
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.PlanAction", b =>
                 {
                     b.Property<Guid>("Id")

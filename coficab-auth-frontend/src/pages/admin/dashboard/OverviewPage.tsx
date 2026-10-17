@@ -7,6 +7,9 @@ import {
 import { useAuth } from '../../../context/AuthContext';
 import SegmentedToggle from '../../../components/SegmentedToggle';
 import { fetchDashboardOverview } from '../../../services/dashboardOverviewService';
+import { exportOverviewPdf } from '../../../utils/overviewPdfExport';
+import { normalizeRoles } from '../../../utils/roles';
+import OverviewTargetsDialog from './OverviewTargetsDialog';
 import type { OverviewData, OverviewMetric, RankedItem } from '../../../types/dashboardOverview';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
@@ -185,7 +188,9 @@ function monthLabel(m: string, locale: string) {
  */
 export default function OverviewPage() {
   const { t, i18n } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+  const isSuperAdmin = normalizeRoles(user).includes('superadmin');
+  const [editingTargets, setEditingTargets] = useState(false);
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('90');
   const [organizationId, setOrganizationId] = useState('');
@@ -274,6 +279,11 @@ export default function OverviewPage() {
           </div>
           <h1 className="text-xl font-bold m-0" style={{ color: COFICAB.ink }}>{t('adminDashboard.navTitle')}</h1>
           <p className="text-sm mt-1 mb-0" style={{ color: COFICAB.muted }}>{t('adminDashboard.overview.subtitle')}</p>
+          {data && (
+            <p className="text-[11px] mt-1 mb-0" style={{ color: COFICAB.muted }}>
+              {t('overviewPage.updatedAt', { date: new Date(data.generatedAt).toLocaleString(locale, { dateStyle: 'short', timeStyle: 'short' }) })}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <SegmentedToggle
@@ -298,6 +308,25 @@ export default function OverviewPage() {
               {knownOrganizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
             </select>
           )}
+          {isSuperAdmin && data && (
+            <button
+              type="button"
+              onClick={() => setEditingTargets(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border bg-white transition-all hover:shadow-sm"
+              style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
+            >
+              <i className="ti ti-target" /> {t('overviewPage.targetsButton')}
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={!data}
+            onClick={() => data && exportOverviewPdf(data, t as unknown as (k: string, o?: Record<string, unknown>) => string, locale)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-xl border bg-white transition-all hover:shadow-sm disabled:opacity-50"
+            style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
+          >
+            <i className="ti ti-file-type-pdf" /> {t('overviewPage.exportPdf')}
+          </button>
           <button
             type="button"
             onClick={() => void load()}
@@ -465,13 +494,6 @@ export default function OverviewPage() {
                 help={t('overviewPage.help.ppm')}
               />
               <MetricCard
-                label={t('overviewPage.latePlans')}
-                value={num(h.latePlans)}
-                tone={countTone(h.latePlans)}
-                to="/admin/action-plans/dashboard"
-                help={t('adminDashboard.help.plansLate')}
-              />
-              <MetricCard
                 label={t('overviewPage.plansClosure')}
                 value={num(h.plansClosureRate, 1)}
                 unit="%"
@@ -582,15 +604,17 @@ export default function OverviewPage() {
                 sub={data.watch.critical.oldestDays != null ? t('overviewPage.criticalOldest', { days: data.watch.critical.oldestDays }) : undefined}
                 to="/admin/claims/list?severity=critical"
               >
-                <MiniRows
-                  empty={t('overviewPage.noCritical')}
-                  rows={data.watch.critical.top.map((c) => ({
-                    key: c.id,
-                    left: c.title,
-                    sub: `${c.clientId} · ${c.responsibleName || t('claimDetail.unassigned')}`,
-                    right: t('overviewPage.daysOld', { count: c.ageDays }),
-                  }))}
-                />
+                {data.watch.critical.open === 0 ? (
+                  <div className="text-xs" style={{ color: COFICAB.muted }}>{t('overviewPage.noCritical')}</div>
+                ) : (
+                  <ul className="m-0 p-0 list-none text-xs space-y-1.5" style={{ color: COFICAB.ink }}>
+                    <li>{t('overviewPage.criticalSplit', { critical: data.watch.critical.criticalCount, high: data.watch.critical.highCount })}</li>
+                    <li style={{ color: data.watch.critical.late > 0 ? COFICAB.danger : COFICAB.ok }}>
+                      {t('overviewPage.criticalLateUnassigned', { late: data.watch.critical.late, unassigned: data.watch.critical.unassigned })}
+                    </li>
+                    <li style={{ color: COFICAB.muted }}>{t('overviewPage.criticalSeeFirst')}</li>
+                  </ul>
+                )}
               </WatchCard>
 
               <WatchCard
@@ -598,7 +622,6 @@ export default function OverviewPage() {
                 help={t('overviewPage.watchHelp.eightD')}
                 value={num(data.watch.eightD.inProgress)}
                 tone={data.watch.eightD.stalled > 0 ? 'orange' : 'green'}
-                sub={t('overviewPage.eightDPending', { count: data.watch.eightD.pendingValidation })}
                 to="/admin/claims/analyses?tab=eightd"
               >
                 <div className="flex items-end gap-1.5 h-[64px]">
@@ -704,6 +727,14 @@ export default function OverviewPage() {
             </div>
           </Section>
         </>
+      )}
+
+      {editingTargets && data && (
+        <OverviewTargetsDialog
+          targets={data.targets}
+          onClose={() => setEditingTargets(false)}
+          onSaved={() => { setEditingTargets(false); void load(); }}
+        />
       )}
 
       <footer
