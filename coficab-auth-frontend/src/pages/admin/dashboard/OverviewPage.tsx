@@ -496,51 +496,84 @@ export default function OverviewPage() {
               </WatchCard>
 
               <WatchCard
-                title={t('overviewPage.dueTitle')}
-                help={t('overviewPage.watchHelp.due')}
-                value={num(data.watch.actionsDue.count)}
-                tone={data.watch.actionsDue.count > 0 ? 'orange' : 'green'}
-                to="/admin/action-plans/tracking?tab=follow-up"
+                title={t('overviewPage.recurrenceTitle')}
+                help={t('overviewPage.watchHelp.recurrence', { days })}
+                value={num(data.watch.recurrence.repeatedLots)}
+                tone={data.watch.recurrence.repeatedLots > 0 ? 'orange' : 'green'}
+                sub={t('overviewPage.recurrenceSub', { count: data.watch.recurrence.claimsWithLot, days })}
               >
                 <MiniRows
-                  empty={t('overviewPage.dueNone')}
-                  rows={data.watch.actionsDue.items.map((a) => ({
-                    key: a.id,
-                    left: a.title,
-                    sub: `${a.planTitle}${a.responsibleName ? ` · ${a.responsibleName}` : ''}`,
-                    right: new Date(a.deadline).toLocaleDateString(locale, { day: '2-digit', month: 'short' }),
+                  empty={t('overviewPage.noRepeatedLot')}
+                  rows={data.watch.recurrence.topLots.map((l) => ({
+                    key: l.lot,
+                    left: l.lot,
+                    sub: `${l.clientId || '—'} · ${t('overviewPage.lotDefects', { count: l.defects })}`,
+                    right: t('overviewPage.lotClaims', { count: l.claims }),
                   }))}
                 />
+                {data.watch.recurrence.recurringPairs > 0 && (
+                  <div className="mt-3 pt-2 text-xs" style={{ borderTop: `1px solid ${COFICAB.line}` }}>
+                    <div className="font-bold mb-1" style={{ color: COFICAB.ink }}>
+                      {t('overviewPage.recurringPairs', { count: data.watch.recurrence.recurringPairs })}
+                    </div>
+                    {data.watch.recurrence.topPairs.map((p) => (
+                      <div key={`${p.defectType}-${p.productionLine}`} className="flex justify-between gap-2" style={{ color: COFICAB.muted }}>
+                        <span className="truncate">{p.defectType} · {p.productionLine}</span>
+                        <b className="tabular-nums shrink-0" style={{ color: COFICAB.ink }}>{p.claims}</b>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </WatchCard>
 
               <WatchCard
                 title={t('overviewPage.workloadTitle')}
                 help={t('overviewPage.watchHelp.workload')}
-                value={num(data.watch.workload.averagePerPerson, 1)}
-                tone="neutral"
-                sub={t('overviewPage.workloadAvg', { people: data.watch.workload.people })}
+                value={num(data.watch.workload.overloaded)}
+                tone={data.watch.workload.overloaded > 0 ? 'orange' : 'green'}
+                sub={t('overviewPage.workloadSub', { avg: num(data.watch.workload.averagePerPerson, 1), people: data.watch.workload.people })}
                 to="/admin/claims/assignments"
               >
                 {data.watch.workload.top.length === 0 ? (
                   <div className="text-xs" style={{ color: COFICAB.muted }}>{t('overviewPage.noWorkload')}</div>
                 ) : (
-                  <ul className="m-0 p-0 list-none space-y-2">
-                    {data.watch.workload.top.map((w) => {
-                      const max = Math.max(1, ...data.watch.workload.top.map((x) => x.openClaims));
-                      const heavy = data.watch.workload.averagePerPerson > 0 && w.openClaims >= data.watch.workload.averagePerPerson * 1.5;
-                      return (
-                        <li key={w.name}>
-                          <div className="flex justify-between text-xs">
-                            <span className="font-semibold truncate" style={{ color: COFICAB.ink }}>{w.name}</span>
-                            <span className="tabular-nums font-bold" style={{ color: heavy ? COFICAB.warn : COFICAB.ink }}>{w.openClaims}</span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden">
-                            <div className="h-full rounded-full" style={{ width: `${(w.openClaims / max) * 100}%`, background: heavy ? COFICAB.warn : PLANS_ACCENT }} />
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
+                  <>
+                    <ul className="m-0 p-0 list-none space-y-2.5">
+                      {data.watch.workload.top.map((w) => {
+                        const max = Math.max(1, ...data.watch.workload.top.map((x) => x.openClaims));
+                        const heavy = data.watch.workload.averagePerPerson > 0 && w.openClaims >= data.watch.workload.averagePerPerson * 1.5;
+                        const onTime = Math.max(0, w.openClaims - w.lateClaims);
+                        return (
+                          <li key={w.name}>
+                            <div className="flex justify-between gap-2 text-xs">
+                              <span className="font-semibold truncate" style={{ color: COFICAB.ink }}>
+                                {w.name}
+                                {heavy && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold" style={{ background: COFICAB.warnSoft, color: COFICAB.warn }}>
+                                    {t('overviewPage.overloaded')}
+                                  </span>
+                                )}
+                              </span>
+                              <span className="tabular-nums shrink-0" style={{ color: COFICAB.muted }}>
+                                <b style={{ color: COFICAB.ink }}>{w.openClaims}</b>
+                                {w.lateClaims > 0 ? <> · <span style={{ color: COFICAB.danger }}>{t('overviewPage.lateCount', { count: w.lateClaims })}</span></> : null}
+                              </span>
+                            </div>
+                            <div className="flex h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden" style={{ width: `${(w.openClaims / max) * 100}%` }}>
+                              <div style={{ width: `${(onTime / Math.max(1, w.openClaims)) * 100}%`, background: PLANS_ACCENT }} />
+                              <div style={{ width: `${(w.lateClaims / Math.max(1, w.openClaims)) * 100}%`, background: COFICAB.danger }} />
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    {data.watch.workload.leastLoaded && (
+                      <div className="mt-3 pt-2 text-xs flex justify-between gap-2" style={{ borderTop: `1px solid ${COFICAB.line}`, color: COFICAB.muted }}>
+                        <span className="truncate">{t('overviewPage.leastLoaded')} : <b style={{ color: COFICAB.ink }}>{data.watch.workload.leastLoaded.name}</b></span>
+                        <b className="tabular-nums shrink-0" style={{ color: COFICAB.ink }}>{data.watch.workload.leastLoaded.openClaims}</b>
+                      </div>
+                    )}
+                  </>
                 )}
               </WatchCard>
             </div>

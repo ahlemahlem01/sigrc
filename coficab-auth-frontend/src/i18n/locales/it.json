@@ -274,6 +274,16 @@
     "referenceLists": "Tipi di difetto e gravità"
   },
   "overviewPage": {
+    "recurrenceTitle": "Lotti reclamati più volte",
+    "recurrenceSub": "lotti reclamati più di una volta, su {{count}} reclami con lotto negli ultimi {{days}} giorni",
+    "noRepeatedLot": "Nessun lotto è stato reclamato due volte",
+    "lotDefects": "{{count}} difetto/i",
+    "lotClaims": "{{count}} reclami",
+    "recurringPairs": "{{count}} coppie difetto + linea tornate 3 volte o più",
+    "workloadSub": "persone a 1,5 volte la media o più (media {{avg}} reclami aperti, {{people}} persone)",
+    "overloaded": "sovraccarico",
+    "lateCount": "{{count}} in ritardo",
+    "leastLoaded": "Meno carico",
     "criticalTitle": "Reclami critici e alti",
     "criticalOldest": "il più vecchio: {{days}} giorni",
     "noCritical": "Nessun reclamo critico aperto",
@@ -291,15 +301,15 @@
     "watchHelp": {
       "critical": "Reclami aperti di gravità critica o alta, con il più vecchio e i tre in attesa da più tempo. Clicca sul titolo per aprire l'elenco.",
       "eightD": "Dossier 8D in corso, per fase raggiunta (da D1 a D8). Un dossier senza aggiornamenti da 14 giorni o più è considerato bloccato.",
-      "due": "Azioni correttive e preventive con scadenza nei prossimi 7 giorni e non ancora completate.",
-      "workload": "Numero medio di reclami aperti per dipendente assegnato e le cinque persone che ne portano di più. Una barra arancione indica 1,5 volte la media o più."
+      "recurrence": "Lotti reclamati almeno due volte negli ultimi {{days}} giorni: segno che un lotto difettoso ha continuato ad arrivare al cliente o che il contenimento non ha tenuto. Sotto, le coppie difetto e linea di produzione tornate 3 volte o più.",
+      "workload": "Persone che portano almeno 1,5 volte la media di reclami aperti. Ogni barra divide i reclami aperti di una persona in nei tempi (blu) e in ritardo (rosso)."
     },
     "hint": {
       "q1": "I dati chiave degli ultimi {{days}} giorni, confrontati con i {{days}} giorni precedenti.",
       "q2": "Ciò che attende una decisione o una correzione. Clicca su una scheda per aprire l'elenco.",
       "q3": "Da dove vengono i reclami del periodo: difetti, linee di produzione e clienti con più reclami.",
       "q4": "Mese per mese: le scadenze sono rispettate e il numero di reclami aperti è sotto controllo?",
-      "q5": "Il lato reparto: reclami critici, dossier 8D in corso, azioni in scadenza e chi porta il carico.",
+      "q5": "Il lato reparto: reclami critici, dossier 8D in corso, lotti che ritornano e chi porta il carico.",
       "rising": "Difetti con nettamente più reclami negli ultimi {{days}} giorni rispetto ai {{days}} precedenti (almeno 5, e 1,5 volte di più). Si confrontano solo i tipi di difetto dell'elenco di riferimento."
     },
     "healthHelp": {

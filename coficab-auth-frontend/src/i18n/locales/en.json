@@ -274,6 +274,16 @@
     "referenceLists": "Defect types and severities"
   },
   "overviewPage": {
+    "recurrenceTitle": "Repeated lots",
+    "recurrenceSub": "lots claimed more than once, among {{count}} claims with a lot in the last {{days}} days",
+    "noRepeatedLot": "No lot has been claimed twice",
+    "lotDefects": "{{count}} defect(s)",
+    "lotClaims": "{{count}} claims",
+    "recurringPairs": "{{count}} defect + line pairs came back 3 times or more",
+    "workloadSub": "people at 1.5x the average or more (average {{avg}} open claims, {{people}} people)",
+    "overloaded": "overloaded",
+    "lateCount": "{{count}} late",
+    "leastLoaded": "Least loaded",
     "criticalTitle": "Critical and high claims",
     "criticalOldest": "oldest open: {{days}} days",
     "noCritical": "No critical claim is open",
@@ -291,15 +301,15 @@
     "watchHelp": {
       "critical": "Open claims with a critical or high severity, with the oldest one and the three that have waited longest. Click the title to open the list.",
       "eightD": "8D files in progress, shown by the step they are at (D1 to D8). A file with no update for 14 days or more is considered stalled.",
-      "due": "Corrective and preventive actions whose deadline falls in the next 7 days and that are not completed yet.",
-      "workload": "Average number of open claims per assigned employee, and the five people carrying the most. An orange bar means 1.5 times the average or more."
+      "recurrence": "Lots that were claimed at least twice in the last {{days}} days: a sign that a defective batch kept reaching the customer or that the containment did not hold. Below, the defect and production line pairs that came back 3 times or more.",
+      "workload": "People carrying at least 1.5 times the average number of open claims. Each bar splits a person's open claims into on time (blue) and late (red)."
     },
     "hint": {
       "q1": "The key figures for the last {{days}} days, each compared with the {{days}} days before.",
       "q2": "What is waiting for a decision or a fix. Click a card to open the list.",
       "q3": "Where the claims of the period come from: the defects, production lines and clients with the most claims.",
       "q4": "Month by month: are deadlines being met, and is the number of opened claims under control?",
-      "q5": "The shop-floor side: critical claims, 8D files in progress, actions due soon and who is carrying the load.",
+      "q5": "The shop-floor side: critical claims, 8D files in progress, lots that keep coming back and who is carrying the load.",
       "rising": "Defects with clearly more claims in the last {{days}} days than in the {{days}} days before (at least 5, and 1.5 times more). Only defect types from the reference list are compared."
     },
     "healthHelp": {

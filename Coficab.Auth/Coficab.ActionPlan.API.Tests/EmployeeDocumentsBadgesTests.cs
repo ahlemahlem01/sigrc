@@ -322,6 +322,9 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         await _factory.SeedAsync(db =>
         {
             var now = DateTime.UtcNow;
+            // only employees count in the workload: the caller needs a (non-admin) profile
+            if (!db.UserProfiles.Any(p => p.UserId == Me))
+                db.UserProfiles.Add(new UserProfile { UserId = Me, Name = "Overview tester", Email = "overview.tester@test", Role = "user", Poste = "Operateur", Equipe = "A" });
             db.Claims.Add(new Claim { Title = $"ov1-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "PENDING_VALIDATION", DetectionDate = now.AddDays(-5), CreatedAt = now.AddDays(-5), ProducedQuantity = 1000, DefectiveQuantity = 10 });
             db.Claims.Add(new Claim { Title = $"ov2-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "PENDING_VALIDATION", DetectionDate = now.AddDays(-4), CreatedAt = now.AddDays(-4), AssignedToId = Me });
             db.Claims.Add(new Claim { Title = $"ov3-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "CLOTUREE", DetectionDate = now.AddDays(-20), CreatedAt = now.AddDays(-20), CompletedAt = now.AddDays(-10), IsOnTime = true, AssignedToId = Me });
@@ -347,6 +350,8 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         // to watch this week: the 8D queue and the workload are part of the answer
         Assert.True(after.GetProperty("watch").GetProperty("eightD").GetProperty("byStep").GetArrayLength() == 8);
         Assert.True(after.GetProperty("watch").GetProperty("workload").GetProperty("people").GetInt32() >= 1);
+        Assert.True(after.GetProperty("watch").GetProperty("recurrence").GetProperty("repeatedLots").GetInt32() >= 0);
+        Assert.True(after.GetProperty("watch").GetProperty("workload").TryGetProperty("overloaded", out _));
         Assert.Equal(6, after.GetProperty("months").GetArrayLength());
         Assert.Equal(85, after.GetProperty("targets").GetProperty("onTimeGreen").GetDouble());
     }

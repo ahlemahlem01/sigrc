@@ -1,6 +1,5 @@
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.ReferenceLists;
-using Coficab.ActionPlan.Core.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -63,19 +62,32 @@ public record EightDStepDto(int Step, int Count);
 
 public record OverviewEightDDto(int InProgress, int PendingValidation, int Stalled, IReadOnlyList<EightDStepDto> ByStep);
 
-public record DueActionDto(Guid Id, string Title, string PlanTitle, DateTime Deadline, string? ResponsibleName);
+public record RepeatedLotDto(string Lot, int Claims, int Defects, string? ClientId);
 
-public record OverviewDueDto(int Count, IReadOnlyList<DueActionDto> Items);
+public record RecurringPairDto(string DefectType, string ProductionLine, int Claims);
 
-public record WorkloadItemDto(string Name, int OpenClaims);
+/// <summary>Quality escapes that come back: lots claimed several times, and the same defect on the same line again and again.</summary>
+public record OverviewRecurrenceDto(
+    int RepeatedLots,
+    int ClaimsWithLot,
+    IReadOnlyList<RepeatedLotDto> TopLots,
+    int RecurringPairs,
+    IReadOnlyList<RecurringPairDto> TopPairs);
 
-public record OverviewWorkloadDto(double AveragePerPerson, int People, IReadOnlyList<WorkloadItemDto> Top);
+public record WorkloadItemDto(string Name, int OpenClaims, int LateClaims);
+
+public record OverviewWorkloadDto(
+    double AveragePerPerson,
+    int People,
+    int Overloaded,
+    IReadOnlyList<WorkloadItemDto> Top,
+    WorkloadItemDto? LeastLoaded);
 
 /// <summary>What to keep an eye on this week, on the shop floor side.</summary>
 public record OverviewWatchDto(
     OverviewCriticalDto Critical,
     OverviewEightDDto EightD,
-    OverviewDueDto ActionsDue,
+    OverviewRecurrenceDto Recurrence,
     OverviewWorkloadDto Workload);
 
 public record OverviewDto(
@@ -102,7 +114,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
     private const double RisingFactor = 1.5;
     private const int MaxDays = 366;
     private const int EightDStalledDays = 14;
-    private const int ActionsDueDays = 7;
+    private const int RecurringPairMin = 3;
+    private const double OverloadFactor = 1.5;
 
     private readonly IApplicationDbContext _context;
     private readonly IMediator _mediator;
@@ -137,6 +150,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 c.Id,
                 c.Title,
                 c.Severity,
+                c.Deadline,
+                c.LotNumber,
                 c.ClientId,
                 c.DefectType,
                 c.ProductionLine,
@@ -293,14 +308,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             || string.Equals(sev, "ÉLEVÉE", StringComparison.OrdinalIgnoreCase);
 
         var userIds = open.Select(c => c.AssignedToId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct().ToList();
-        var dueRaw = await _context.PlanActions.AsNoTracking()
-            .Where(a => !a.IsArchived && a.Deadline != null && a.Deadline.Value >= today && a.Deadline.Value < today.AddDays(ActionsDueDays + 1)
-                        && a.Progress != ActionProgress.Hundred && a.Progress != ActionProgress.Validated && a.Progress != ActionProgress.Cancelled)
-            .OrderBy(a => a.Deadline)
-            .Select(a => new { a.Id, a.Title, PlanTitle = a.ActionPlan.Title, Deadline = a.Deadline!.Value, a.AssignedToId })
-            .ToListAsync(ct);
-        var wantedUsers = userIds.Concat(dueRaw.Select(d => d.AssignedToId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!)).Distinct().ToList();
-        var profiles = await _context.UserProfiles.AsNoTracking().Where(p => wantedUsers.Contains(p.UserId)).ToListAsync(ct);
+        var profiles = await _context.UserProfiles.AsNoTracking().Where(p => userIds.Contains(p.UserId)).ToListAsync(ct);
         string? NameOf(string? id) => string.IsNullOrWhiteSpace(id)
             ? null
             : profiles.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase)) is { } p
@@ -330,21 +338,41 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             inProgress.Count(d => (now - (d.UpdatedAt ?? d.CreatedAt)).TotalDays >= EightDStalledDays),
             Enumerable.Range(1, 8).Select(step => new EightDStepDto(step, inProgress.Count(d => Math.Clamp(d.CurrentStep, 1, 8) == step))).ToList());
 
-        var due = new OverviewDueDto(
-            dueRaw.Count,
-            dueRaw.Take(4).Select(d => new DueActionDto(d.Id, d.Title, d.PlanTitle, d.Deadline, NameOf(d.AssignedToId))).ToList());
+        var withLot = inPeriod.Where(c => !string.IsNullOrWhiteSpace(c.LotNumber)).ToList();
+        var lots = withLot.GroupBy(c => c.LotNumber!.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Where(g => g.Count() >= 2)
+            .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var pairs = inPeriod.Where(c => !string.IsNullOrWhiteSpace(c.ProductionLine))
+            .GroupBy(c => (Defect: Defect(c.DefectType), Line: c.ProductionLine!.Trim()))
+            .Where(g => g.Count() >= RecurringPairMin)
+            .OrderByDescending(g => g.Count())
+            .ToList();
+        var recurrence = new OverviewRecurrenceDto(
+            lots.Count,
+            withLot.Count,
+            lots.Take(3).Select(g => new RepeatedLotDto(g.Key, g.Count(), g.Select(c => Defect(c.DefectType)).Distinct().Count(), g.Select(c => c.ClientId).FirstOrDefault())).ToList(),
+            pairs.Count,
+            pairs.Take(2).Select(g => new RecurringPairDto(g.Key.Defect, g.Key.Line, g.Count())).ToList());
 
-        var perPerson = open.Where(c => !string.IsNullOrWhiteSpace(c.AssignedToId))
+        // only employees count: administrators (and people without a profile) are not part of the team's workload
+        bool IsEmployee(string id) => profiles.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase)) is { } p
+            && !(p.Role ?? string.Empty).Contains("admin", StringComparison.OrdinalIgnoreCase);
+        var perPerson = open.Where(c => !string.IsNullOrWhiteSpace(c.AssignedToId) && IsEmployee(c.AssignedToId!))
             .GroupBy(c => c.AssignedToId!, StringComparer.OrdinalIgnoreCase)
-            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .Select(g => new { Id = g.Key, Count = g.Count(), Late = g.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)) })
             .OrderByDescending(x => x.Count)
             .ToList();
+        var average = perPerson.Count == 0 ? 0 : perPerson.Average(x => (double)x.Count);
+        WorkloadItemDto Item(string id, int count, int late) => new(NameOf(id) ?? "—", count, late);
         var workload = new OverviewWorkloadDto(
-            perPerson.Count == 0 ? 0 : Math.Round(perPerson.Average(x => (double)x.Count), 1),
+            Math.Round(average, 1),
             perPerson.Count,
-            perPerson.Take(5).Select(x => new WorkloadItemDto(NameOf(x.Id) ?? "—", x.Count)).ToList());
+            average <= 0 ? 0 : perPerson.Count(x => x.Count >= OverloadFactor * average),
+            perPerson.Take(5).Select(x => Item(x.Id, x.Count, x.Late)).ToList(),
+            perPerson.Count < 2 ? null : Item(perPerson[^1].Id, perPerson[^1].Count, perPerson[^1].Late));
 
-        var watch = new OverviewWatchDto(criticalDto, eightD, due, workload);
+        var watch = new OverviewWatchDto(criticalDto, eightD, recurrence, workload);
         var simulated = await _context.ImportBatches.AsNoTracking()
             .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("SIMULATION"), ct);
 

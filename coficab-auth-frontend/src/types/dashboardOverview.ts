@@ -93,25 +93,47 @@ export interface OverviewEightD {
   byStep: { step: number; count: number }[];
 }
 
-export interface DueAction {
-  id: string;
-  title: string;
-  planTitle: string;
-  deadline: string;
-  responsibleName?: string | null;
+export interface RepeatedLot {
+  lot: string;
+  claims: number;
+  defects: number;
+  clientId?: string | null;
+}
+
+export interface RecurringPair {
+  defectType: string;
+  productionLine: string;
+  claims: number;
+}
+
+/** Quality escapes that come back: lots claimed several times, the same defect on the same line again and again. */
+export interface OverviewRecurrence {
+  repeatedLots: number;
+  claimsWithLot: number;
+  topLots: RepeatedLot[];
+  recurringPairs: number;
+  topPairs: RecurringPair[];
+}
+
+export interface WorkloadItem {
+  name: string;
+  openClaims: number;
+  lateClaims: number;
 }
 
 export interface OverviewWorkload {
   averagePerPerson: number;
   people: number;
-  top: { name: string; openClaims: number }[];
+  overloaded: number;
+  top: WorkloadItem[];
+  leastLoaded?: WorkloadItem | null;
 }
 
 /** What to keep an eye on this week, on the shop floor side. */
 export interface OverviewWatch {
   critical: OverviewCritical;
   eightD: OverviewEightD;
-  actionsDue: { count: number; items: DueAction[] };
+  recurrence: OverviewRecurrence;
   workload: OverviewWorkload;
 }
 
