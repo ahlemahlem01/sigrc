@@ -5,6 +5,7 @@ import DepartmentFormModal from "../../components/DepartmentFormModal";
 import { useAuth } from '../../context/AuthContext';
 import { departmentService } from "../../services/departmentService";
 import type { Department, Organization } from "../../types/department";
+import { fetchStructure } from "../../services/organizationStructureService";
 import { ACTION_PLAN_API_URL as BASE_URL } from "../../config/apiEnv";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
@@ -30,6 +31,21 @@ export default function DepartmentsPage() {
     organizations.forEach((o) => map.set(o.id, o.name));
     return map;
   }, [organizations]);
+
+  // Names of the sites and regions the listed departments can be attached to.
+  const [siteNameById, setSiteNameById] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!accessToken) return;
+    const orgIds = Array.from(new Set(departments.map((d) => d.organizationId)));
+    let live = true;
+    Promise.all(orgIds.map((id) => fetchStructure(accessToken, id).catch(() => null))).then((all) => {
+      if (!live) return;
+      const map = new Map<string, string>();
+      all.forEach((st) => st && [...st.sites, ...st.regions].forEach((n) => map.set(n.id, n.name)));
+      setSiteNameById(map);
+    });
+    return () => { live = false; };
+  }, [departments, accessToken]);
 
   const fetchOrganizations = useCallback(async () => {
     try {
@@ -97,12 +113,16 @@ export default function DepartmentsPage() {
     code: string;
     description: string;
     organizationId: string;
+    siteId: string | null;
+    regionId: string | null;
   }) => {
     if (editingDepartment) {
       await departmentService.update(editingDepartment.id, {
         name: values.name,
         code: values.code,
         description: values.description || null,
+        siteId: values.siteId,
+        regionId: values.regionId,
       }, accessToken);
     } else {
       await departmentService.create({
@@ -110,8 +130,8 @@ export default function DepartmentsPage() {
         code: values.code,
         description: values.description || null,
         organizationId: values.organizationId,
-        siteId: null,
-        regionId: null,
+        siteId: values.siteId,
+        regionId: values.regionId,
       }, accessToken);
     }
     await loadDepartments(selectedOrgId);
@@ -472,6 +492,7 @@ export default function DepartmentsPage() {
                   <th>{t("deptForm.name")}</th>
                   <th>{t("planRef.colCode")}</th>
                   <th>{t("usersAdmin.organization")}</th>
+                  <th>{t("deptForm.site")}</th>
                   <th>{t("claimDetail.description")}</th>
                   <th>{t("common.actions")}</th>
                 </tr>
@@ -486,6 +507,7 @@ export default function DepartmentsPage() {
                     <td>
                       {dept.organizationName ?? orgNameById.get(dept.organizationId) ?? "—"}
                     </td>
+                    <td>{(dept.siteId && siteNameById.get(dept.siteId)) || (dept.regionId && siteNameById.get(dept.regionId)) || "—"}</td>
                     <td className="dept-description-cell">{dept.description || "—"}</td>
                     <td>
                       <div className="dept-row-actions">

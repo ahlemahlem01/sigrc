@@ -126,4 +126,26 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.OK, (await ClientAs("user").GetAsync(Url(org))).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").PostAsJsonAsync(Url(org, "/sites"), new { name = "X", code = "X" })).StatusCode);
     }
+
+    [Fact]
+    public async Task ADepartmentIsAttachedOnlyToASiteOfItsOwnOrganization()
+    {
+        var mine = await OrgAsync(OrganizationType.Corporate);
+        var other = await OrgAsync(OrganizationType.Corporate);
+        var admin = ClientAs("admin");
+        var site = (await (await admin.PostAsJsonAsync(Url(mine, "/sites"), new { name = "Mateur", code = "MAT" })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("id").GetGuid();
+        var foreign = (await (await admin.PostAsJsonAsync(Url(other, "/sites"), new { name = "Ailleurs", code = "AIL" })).Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("id").GetGuid();
+
+        var created = await admin.PostAsJsonAsync("/api/Department", new { name = "Qualite", code = "QA", organizationId = mine, siteId = site });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("id").GetGuid();
+
+        var refused = await admin.PutAsJsonAsync($"/api/Department/{id}", new { name = "Qualite", code = "QA", siteId = foreign });
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("site_not_in_organization", await CodeOf(refused));
+
+        var detached = await admin.PutAsJsonAsync($"/api/Department/{id}", new { name = "Qualite", code = "QA", siteId = (Guid?)null });
+        Assert.Equal(HttpStatusCode.OK, detached.StatusCode);
+        Assert.Equal(JsonValueKind.Null, (await detached.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("siteId").ValueKind);
+    }
 }

@@ -31,6 +31,8 @@ export interface UpdateDepartmentDto {
   name: string;
   code: string;
   description?: string | null;
+  siteId?: string | null;
+  regionId?: string | null;
 }
 
 export interface Organization {

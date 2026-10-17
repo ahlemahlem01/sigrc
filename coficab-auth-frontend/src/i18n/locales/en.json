@@ -3745,6 +3745,9 @@
     "namePh": "e.g. Human Resources",
     "codePh": "e.g. HR",
     "descriptionPh": "Optional description",
+    "site": "Site",
+    "region": "Region",
+    "notAttached": "Not attached",
     "selectOrg": "Select an organization",
     "create": "Create department"
   },

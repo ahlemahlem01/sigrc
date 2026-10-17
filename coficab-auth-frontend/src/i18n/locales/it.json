@@ -3745,6 +3745,9 @@
     "namePh": "Es.: Risorse umane",
     "codePh": "Es.: RU",
     "descriptionPh": "Descrizione facoltativa",
+    "site": "Sito",
+    "region": "Regione",
+    "notAttached": "Non collegato",
     "selectOrg": "Seleziona un’organizzazione",
     "create": "Crea reparto"
   },

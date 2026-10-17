@@ -3745,6 +3745,9 @@
     "namePh": "Ex : Ressources Humaines",
     "codePh": "Ex : RH",
     "descriptionPh": "Description optionnelle",
+    "site": "Site",
+    "region": "Région",
+    "notAttached": "Non rattaché",
     "selectOrg": "Sélectionner une organisation",
     "create": "Créer le département"
   },

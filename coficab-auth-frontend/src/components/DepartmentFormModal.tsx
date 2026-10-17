@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { fetchStructure, type OrganizationStructure } from "../services/organizationStructureService";
 import type { Department, Organization } from "../types/department";
 import { useTranslation } from "react-i18next";
 
@@ -10,6 +12,8 @@ interface DepartmentFormModalProps {
     code: string;
     description: string;
     organizationId: string;
+    siteId: string | null;
+    regionId: string | null;
   }) => Promise<void>;
   department?: Department | null; // null/undefined = create mode
   organizations: Organization[];
@@ -25,12 +29,16 @@ export default function DepartmentFormModal({
   defaultOrganizationId,
 }: DepartmentFormModalProps) {
   const { t } = useTranslation();
+  const { accessToken } = useAuth();
   const isEditMode = Boolean(department);
 
   const [name, setName] = useState("");
   const [code, setCode] = useState("");
   const [description, setDescription] = useState("");
   const [organizationId, setOrganizationId] = useState("");
+  const [siteId, setSiteId] = useState("");
+  const [regionId, setRegionId] = useState("");
+  const [structure, setStructure] = useState<OrganizationStructure | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,14 +50,26 @@ export default function DepartmentFormModal({
       setCode(department.code);
       setDescription(department.description ?? "");
       setOrganizationId(department.organizationId);
+      setSiteId(department.siteId ?? "");
+      setRegionId(department.regionId ?? "");
     } else {
       setName("");
       setCode("");
       setDescription("");
       setOrganizationId(defaultOrganizationId ?? "");
+      setSiteId("");
+      setRegionId("");
     }
     setErrors({});
   }, [isOpen, department, defaultOrganizationId]);
+
+  // The sites and regions offered are those of the chosen organization.
+  useEffect(() => {
+    if (!isOpen || !organizationId || !accessToken) { setStructure(null); return; }
+    let live = true;
+    fetchStructure(accessToken, organizationId).then((st) => { if (live) setStructure(st); }).catch(() => { if (live) setStructure(null); });
+    return () => { live = false; };
+  }, [isOpen, organizationId, accessToken]);
 
   if (!isOpen) return null;
 
@@ -75,6 +95,8 @@ export default function DepartmentFormModal({
         code: code.trim(),
         description: description.trim(),
         organizationId,
+        siteId: siteId || null,
+        regionId: regionId || null,
       });
       onClose();
     } catch (err) {
@@ -157,7 +179,7 @@ export default function DepartmentFormModal({
               <select
                 id="dept-org"
                 value={organizationId}
-                onChange={(e) => setOrganizationId(e.target.value)}
+                onChange={(e) => { setOrganizationId(e.target.value); setSiteId(""); setRegionId(""); }}
               >
                 <option value="">{t("deptForm.selectOrg")}</option>
                 {organizations.map((org) => (
@@ -169,6 +191,26 @@ export default function DepartmentFormModal({
               {errors.organizationId && (
                 <span className="dept-field-error">{errors.organizationId}</span>
               )}
+            </div>
+          )}
+
+          {structure && structure.sites.length > 0 && (
+            <div className="dept-field">
+              <label htmlFor="dept-site">{t("deptForm.site")}</label>
+              <select id="dept-site" value={siteId} onChange={(e) => setSiteId(e.target.value)}>
+                <option value="">{t("deptForm.notAttached")}</option>
+                {structure.sites.map((st) => <option key={st.id} value={st.id}>{st.name}</option>)}
+              </select>
+            </div>
+          )}
+
+          {structure && structure.hasRegions && structure.regions.length > 0 && (
+            <div className="dept-field">
+              <label htmlFor="dept-region">{t("deptForm.region")}</label>
+              <select id="dept-region" value={regionId} onChange={(e) => setRegionId(e.target.value)}>
+                <option value="">{t("deptForm.notAttached")}</option>
+                {structure.regions.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
             </div>
           )}
 

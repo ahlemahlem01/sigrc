@@ -44,7 +44,9 @@ public class DepartmentController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateDepartmentDto dto)
     {
         var createdBy = User.FindFirst("sub")?.Value ?? "system";
-        var dept = await _service.CreateAsync(dto, createdBy);
+        Core.DTOs.Department.DepartmentDto dept;
+        try { dept = await _service.CreateAsync(dto, createdBy); }
+        catch (Application.Services.DepartmentLocationException e) { return BadRequest(new { code = e.Code }); }
         return CreatedAtAction(nameof(GetById), new { id = dept.Id }, dept);
     }
 
@@ -52,8 +54,8 @@ public class DepartmentController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateDepartmentDto dto)
     {
         var updatedBy = User.FindFirst("sub")?.Value ?? "system";
-        var dept = await _service.UpdateAsync(id, dto, updatedBy);
-        return Ok(dept);
+        try { return Ok(await _service.UpdateAsync(id, dto, updatedBy)); }
+        catch (Application.Services.DepartmentLocationException e) { return BadRequest(new { code = e.Code }); }
     }
 
     [HttpDelete("{id}")]
