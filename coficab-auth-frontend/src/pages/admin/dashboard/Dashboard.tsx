@@ -10,10 +10,9 @@ import TopResponsiblesSection from './TopResponsiblesSection';
 import WorkflowEvolutionSection from './WorkflowEvolutionSection';
 import EmployeeActivityWidget from './EmployeeActivityWidget';
 import DashInfoTip from './DashInfoTip';
-import OverviewSummary from './OverviewSummary';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
 
-export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' | 'indicators' }) {
+export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'indicators' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -53,11 +52,11 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
             className="text-[10px] font-bold uppercase tracking-[1.4px] mb-1"
             style={{ color: COFICAB.navy }}
           >
-            {focus === 'all' ? t('adminDashboard.overview.eyebrow') : t('adminDashboard.eyebrow')}
+            {t('adminDashboard.eyebrow')}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold m-0" style={{ color: COFICAB.ink }}>
-              {focus === 'all' ? t('adminDashboard.navTitle') : focus === 'indicators' ? 'Indicateurs réclamations' : 'Dashboard Claims'}
+              {focus === 'indicators' ? t('adminNav.claimsIndicators') : t('adminNav.claimsDashboard')}
             </h1>
             <DashInfoTip
               text={t('adminDashboard.help.page')}
@@ -66,7 +65,7 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
             />
           </div>
           <p className="text-sm mt-1 mb-0" style={{ color: COFICAB.muted }}>
-            {focus === 'all' ? t('adminDashboard.overview.subtitle') : t('adminDashboard.subtitle')}
+            {t('adminDashboard.subtitle')}
           </p>
         </div>
         <button
@@ -88,10 +87,6 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
         </div>
       )}
 
-      {focus === 'all' ? (
-        <OverviewSummary data={data} loading={loading} />
-      ) : (
-        <>
       <DashboardSummaryBar
         data={data?.global}
         loading={loading}
@@ -122,8 +117,6 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
       <div className="mt-4">
         <EmployeeActivityWidget />
       </div>
-        </>
-      )}
 
       <footer
         className="mt-5 rounded-xl bg-white shadow-sm px-4 py-3.5 flex flex-wrap items-center gap-3 hover:shadow-md transition-shadow"

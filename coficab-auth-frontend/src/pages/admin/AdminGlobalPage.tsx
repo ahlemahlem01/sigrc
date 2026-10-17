@@ -1,5 +1,5 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
-import Dashboard from './dashboard/Dashboard';
+import OverviewPage from './dashboard/OverviewPage';
 
 /** Page principale admin — vue comparative Claims / Action Plans. */
 export default function AdminGlobalPage() {
@@ -9,5 +9,5 @@ export default function AdminGlobalPage() {
     return <Navigate to="/admin/users?locked=1" replace />;
   }
 
-  return <Dashboard />;
+  return <OverviewPage />;
 }

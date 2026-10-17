@@ -310,4 +310,47 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Contains($"nodeadline-{tag}", noDeadline);
         Assert.True(claims.GetProperty("kpis").GetProperty("noDeadline").GetInt32() >= 1);
     }
+
+    [Fact]
+    public async Task Overview_CountsTheValidationQueue_OnTimeClosures_AndRanksDefects()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var defect = $"Defect-{tag}";
+        var admin = ClientAs("admin");
+        var before = await admin.GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Claims.Add(new Claim { Title = $"ov1-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "PENDING_VALIDATION", DetectionDate = now.AddDays(-5), CreatedAt = now.AddDays(-5), ProducedQuantity = 1000, DefectiveQuantity = 10 });
+            db.Claims.Add(new Claim { Title = $"ov2-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "PENDING_VALIDATION", DetectionDate = now.AddDays(-4), CreatedAt = now.AddDays(-4), AssignedToId = Me });
+            db.Claims.Add(new Claim { Title = $"ov3-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "CLOTUREE", DetectionDate = now.AddDays(-20), CreatedAt = now.AddDays(-20), CompletedAt = now.AddDays(-10), IsOnTime = true, AssignedToId = Me });
+            db.Claims.Add(new Claim { Title = $"ov4-{tag}", DefectType = defect, CreatedById = Me, StatusCode = "CLOTUREE", DetectionDate = now.AddDays(-20), CreatedAt = now.AddDays(-20), CompletedAt = now.AddDays(-9), IsOnTime = false, AssignedToId = Me });
+            return Task.CompletedTask;
+        });
+
+        var after = await admin.GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+        int Delta(string a, string b) =>
+            after.GetProperty(a).GetProperty(b).GetInt32() - before.GetProperty(a).GetProperty(b).GetInt32();
+
+        Assert.Equal(2, Delta("actions", "pendingValidation"));
+        Assert.Equal(1, Delta("actions", "unassigned"));              // only the first one has no assignee
+        Assert.Equal(2, Delta("headline", "closedInPeriod"));
+        Assert.Equal(1, Delta("headline", "onTimeCount"));
+        Assert.Equal(2, Delta("headline", "onTimeBase"));
+
+        var top = after.GetProperty("problems").GetProperty("topDefects").EnumerateArray()
+            .FirstOrDefault(d => d.GetProperty("name").GetString() == defect);
+        Assert.Equal(JsonValueKind.Object, top.ValueKind);          // the 4 claims of this test make it a top defect
+        Assert.Equal(4, top.GetProperty("count").GetInt32());
+
+        Assert.Equal(6, after.GetProperty("months").GetArrayLength());
+        Assert.Equal(85, after.GetProperty("targets").GetProperty("onTimeGreen").GetDouble());
+    }
+
+    [Fact]
+    public async Task Overview_IsForAdminsOnly()
+    {
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/overview")).StatusCode);
+    }
 }
