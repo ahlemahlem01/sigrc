@@ -85,15 +85,41 @@ function MetricCard({
   );
 }
 
-function Section({ title, children, aside }: { title: string; children: React.ReactNode; aside?: React.ReactNode }) {
+function Section({ title, hint, children, aside }: { title: string; hint?: string; children: React.ReactNode; aside?: React.ReactNode }) {
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between gap-2 mb-2.5">
-        <h2 className="text-sm font-bold uppercase tracking-wide m-0" style={{ color: COFICAB.navy }}>{title}</h2>
+        <div>
+          <h2 className="text-sm font-bold uppercase tracking-wide m-0" style={{ color: COFICAB.navy }}>{title}</h2>
+          {hint ? <p className="text-[12px] m-0 mt-0.5" style={{ color: COFICAB.muted }}>{hint}</p> : null}
+        </div>
         {aside}
       </div>
       {children}
     </section>
+  );
+}
+
+function HealthItem({
+  label, help, tone = 'neutral', onClick, children,
+}: { label: string; help: string; tone?: Tone; onClick?: () => void; children: React.ReactNode }) {
+  return (
+    <div
+      role={onClick ? 'link' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick(); } : undefined}
+      className={`rounded-xl bg-white shadow-sm px-4 py-3 ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
+      style={{ border: `1px solid ${COFICAB.line}` }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COFICAB.muted }}>{label}</span>
+        <DashInfoTip text={help} title={label} side="bottom" />
+      </div>
+      <div className="mt-1.5 text-sm font-bold break-words" style={{ color: tone === 'neutral' ? COFICAB.ink : TONE_COLOR[tone] }}>
+        {children}
+      </div>
+    </div>
   );
 }
 
@@ -258,7 +284,7 @@ export default function OverviewPage() {
       ) : !data || !h || !targets ? null : (
         <>
           {/* 1. Are we on track? */}
-          <Section title={t('overviewPage.q1')}>
+          <Section title={t('overviewPage.q1')} hint={t('overviewPage.hint.q1', { days })}>
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
               <MetricCard
                 label={t('overviewPage.openClaims')}
@@ -315,7 +341,7 @@ export default function OverviewPage() {
           </Section>
 
           {/* 2. What needs action now? */}
-          <Section title={t('overviewPage.q2')}>
+          <Section title={t('overviewPage.q2')} hint={t('overviewPage.hint.q2')}>
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))' }}>
               {actionCards.map((c) => (
                 <MetricCard
@@ -349,6 +375,7 @@ export default function OverviewPage() {
           {/* 3. Where are the problems? */}
           <Section
             title={t('overviewPage.q3')}
+            hint={t('overviewPage.hint.q3', { days })}
             aside={<span className="text-[11px]" style={{ color: COFICAB.muted }}>{t('overviewPage.claimsInPeriod', { count: data.problems.claimsInPeriod, days })}</span>}
           >
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
@@ -358,6 +385,7 @@ export default function OverviewPage() {
             </div>
             <div className="mt-3 rounded-xl bg-white px-4 py-3 flex flex-wrap items-center gap-2 text-xs" style={{ border: `1px solid ${COFICAB.line}` }}>
               <span className="font-bold" style={{ color: COFICAB.ink }}>{t('overviewPage.rising')}</span>
+              <DashInfoTip text={t('overviewPage.hint.rising', { days })} title={t('overviewPage.rising')} side="bottom" />
               {data.problems.rising.length === 0 ? (
                 <span style={{ color: COFICAB.muted }}>{t('overviewPage.noRising')}</span>
               ) : data.problems.rising.map((r) => (
@@ -369,7 +397,7 @@ export default function OverviewPage() {
           </Section>
 
           {/* 4. Are we improving? */}
-          <Section title={t('overviewPage.q4')}>
+          <Section title={t('overviewPage.q4')} hint={t('overviewPage.hint.q4')}>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
               <div className="rounded-xl bg-white shadow-sm p-4" style={{ border: `1px solid ${COFICAB.line}` }}>
                 <h3 className="text-xs font-bold m-0 mb-1" style={{ color: COFICAB.ink }}>{t('overviewPage.onTimeTrend')}</h3>
@@ -403,30 +431,32 @@ export default function OverviewPage() {
           </Section>
 
           {/* 5. Can we trust the data? */}
-          <Section title={t('overviewPage.q5')}>
-            <div className="rounded-xl bg-white shadow-sm px-4 py-3 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs" style={{ border: `1px solid ${COFICAB.line}` }}>
-              <span>
-                <b style={{ color: COFICAB.ink }}>{t('overviewPage.lastImport')}: </b>
-                <span style={{ color: COFICAB.muted }}>
-                  {data.health.lastImportAt
-                    ? `${new Date(data.health.lastImportAt).toLocaleDateString(locale)} · ${data.health.lastImportName ?? ''}`
-                    : t('overviewPage.noImport')}
-                </span>
-              </span>
-              <span>
-                <b style={{ color: COFICAB.ink }}>{t('overviewPage.profilesWithoutDepartment')}: </b>
-                <span className="font-semibold" style={{ color: data.health.profilesWithoutDepartment > 0 ? COFICAB.warn : COFICAB.ok }}>
-                  {data.health.profilesWithoutDepartment}
-                </span>
-              </span>
-              <span>
-                <b style={{ color: COFICAB.ink }}>{t('overviewPage.model')}: </b>
-                <span className="font-semibold" style={{ color: TONE_COLOR[modelTone] }}>{modelLabel}</span>
-              </span>
+          <Section title={t('overviewPage.q5')} hint={t('overviewPage.hint.q5')}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+              <HealthItem
+                label={t('overviewPage.lastImport')}
+                help={t('overviewPage.healthHelp.lastImport')}
+                onClick={() => navigate('/admin/claims/import-history')}
+              >
+                {data.health.lastImportAt
+                  ? `${new Date(data.health.lastImportAt).toLocaleDateString(locale)} · ${data.health.lastImportName ?? ''}`
+                  : t('overviewPage.noImport')}
+              </HealthItem>
+              <HealthItem
+                label={t('overviewPage.profilesWithoutDepartment')}
+                help={t('overviewPage.healthHelp.profiles')}
+                tone={data.health.profilesWithoutDepartment > 0 ? 'orange' : 'green'}
+                onClick={data.health.profilesWithoutDepartment > 0 ? () => navigate('/admin/employees') : undefined}
+              >
+                {data.health.profilesWithoutDepartment}
+              </HealthItem>
+              <HealthItem label={t('overviewPage.model')} help={t('overviewPage.healthHelp.model')} tone={modelTone}>
+                {modelLabel}
+              </HealthItem>
               {data.health.simulatedData && (
-                <span className="px-2 py-0.5 rounded-full font-semibold" style={{ background: COFICAB.warnSoft, color: COFICAB.warn }}>
+                <HealthItem label={t('overviewPage.dataSource')} help={t('overviewPage.healthHelp.simulated')} tone="orange">
                   {t('overviewPage.simulated')}
-                </span>
+                </HealthItem>
               )}
             </div>
           </Section>

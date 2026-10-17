@@ -95,5 +95,12 @@ public sealed class DefectTypeResolver
         return key.Length > 0 && _byKey.TryGetValue(key, out var byKey) ? byKey : trimmed;
     }
 
+    /// <summary>
+    /// Is this (already resolved) name one of the administrator's listed defect types? With no list at all every name is
+    /// accepted. Used to keep a free-text spelling from showing up as a "new" defect in the trends.
+    /// </summary>
+    public bool IsKnown(string? resolved) =>
+        _listed.Count == 0 || (!string.IsNullOrWhiteSpace(resolved) && _listed.ContainsKey(resolved.Trim().ToLowerInvariant()));
+
     private string Canonical(string value) => _listed.TryGetValue(value.ToLowerInvariant(), out var listedValue) ? listedValue : value;
 }

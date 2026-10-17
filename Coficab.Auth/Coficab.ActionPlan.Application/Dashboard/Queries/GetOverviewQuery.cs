@@ -226,7 +226,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         var recentByDefect = inPeriod.GroupBy(c => Defect(c.DefectType)).ToDictionary(g => g.Key, g => g.Count());
         var prevByDefect = inPrev.GroupBy(c => Defect(c.DefectType)).ToDictionary(g => g.Key, g => g.Count());
         var rising = recentByDefect
-            .Where(kv => kv.Value >= RisingMinClaims && kv.Value >= RisingFactor * Math.Max(1, prevByDefect.GetValueOrDefault(kv.Key)))
+            .Where(kv => defectTypes.IsKnown(kv.Key) && kv.Value >= RisingMinClaims && kv.Value >= RisingFactor * Math.Max(1, prevByDefect.GetValueOrDefault(kv.Key)))
             .OrderByDescending(kv => (double)kv.Value / Math.Max(1, prevByDefect.GetValueOrDefault(kv.Key)))
             .Take(3)
             .Select(kv => new RisingDefectDto(kv.Key, kv.Value, prevByDefect.GetValueOrDefault(kv.Key)))

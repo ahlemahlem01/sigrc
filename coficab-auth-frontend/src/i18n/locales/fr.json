@@ -274,6 +274,21 @@
     "referenceLists": "Types de défaut et gravités"
   },
   "overviewPage": {
+    "hint": {
+      "q1": "Les chiffres clés des {{days}} derniers jours, comparés aux {{days}} jours précédents.",
+      "q2": "Ce qui attend une décision ou une correction. Cliquez sur une carte pour ouvrir la liste.",
+      "q3": "D'où viennent les réclamations de la période : les défauts, lignes de production et clients qui en ont le plus.",
+      "q4": "Mois par mois : les délais sont-ils tenus, et le nombre de réclamations ouvertes est-il maîtrisé ?",
+      "q5": "Les chiffres ci-dessus sont-ils fiables, et que corriger sinon.",
+      "rising": "Défauts qui ont nettement plus de réclamations sur les {{days}} derniers jours que sur les {{days}} jours d'avant (au moins 5, et 1,5 fois plus). Seuls les types de défaut de la liste de référence sont comparés."
+    },
+    "healthHelp": {
+      "lastImport": "Le dernier fichier d'historique de réclamations chargé, et sa date. Cliquez pour ouvrir l'historique des imports.",
+      "profiles": "Employés dont le profil n'a pas de département. Ils échappent aux filtres par département, aux recommandations et à la carte des organisations. Cliquez pour ouvrir la liste des employés.",
+      "model": "Le modèle qui recommande un employé pour une réclamation. Validé : il a passé ses contrôles statistiques. Indicatif : ses scores ne sont qu'une indication.",
+      "simulated": "Une partie des chiffres vient de réclamations simulées chargées pour tester l'application, pas de l'usine."
+    },
+    "dataSource": "Source des données",
     "loadFailed": "Impossible de charger la vue d'ensemble.",
     "periodLabel": "Période",
     "period30": "30 jours",
@@ -310,7 +325,7 @@
     "claimsInPeriod": "{{count}} réclamations sur les {{days}} derniers jours",
     "rising": "Défauts en hausse",
     "noRising": "Aucun défaut en hausse",
-    "risingLine": "{{defect}} : {{recent}} contre {{previous}}",
+    "risingLine": "{{defect}} : {{recent}} réclamations, contre {{previous}} avant",
     "onTimeTrend": "Taux dans les délais par mois",
     "targetLine": "Ligne pointillée : objectif {{target}} %",
     "openedClosed": "Ouvertes et clôturées par mois",

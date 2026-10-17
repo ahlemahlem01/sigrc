@@ -274,6 +274,21 @@
     "referenceLists": "Tipi di difetto e gravità"
   },
   "overviewPage": {
+    "hint": {
+      "q1": "I dati chiave degli ultimi {{days}} giorni, confrontati con i {{days}} giorni precedenti.",
+      "q2": "Ciò che attende una decisione o una correzione. Clicca su una scheda per aprire l'elenco.",
+      "q3": "Da dove vengono i reclami del periodo: difetti, linee di produzione e clienti con più reclami.",
+      "q4": "Mese per mese: le scadenze sono rispettate e il numero di reclami aperti è sotto controllo?",
+      "q5": "Se i dati sopra sono affidabili e cosa correggere altrimenti.",
+      "rising": "Difetti con nettamente più reclami negli ultimi {{days}} giorni rispetto ai {{days}} precedenti (almeno 5, e 1,5 volte di più). Si confrontano solo i tipi di difetto dell'elenco di riferimento."
+    },
+    "healthHelp": {
+      "lastImport": "L'ultimo file di storico reclami caricato e la data. Clicca per aprire lo storico delle importazioni.",
+      "profiles": "Dipendenti il cui profilo non ha un reparto. Restano fuori dai filtri per reparto, dalle raccomandazioni e dalla mappa delle organizzazioni. Clicca per aprire l'elenco dei dipendenti.",
+      "model": "Il modello che raccomanda un dipendente per un reclamo. Validato: ha superato i controlli statistici. Indicativo: i punteggi sono solo un'indicazione.",
+      "simulated": "Parte dei dati proviene da reclami simulati caricati per testare l'applicazione, non dallo stabilimento."
+    },
+    "dataSource": "Origine dei dati",
     "loadFailed": "Impossibile caricare la panoramica.",
     "periodLabel": "Periodo",
     "period30": "30 giorni",
@@ -310,7 +325,7 @@
     "claimsInPeriod": "{{count}} reclami negli ultimi {{days}} giorni",
     "rising": "Difetti in aumento",
     "noRising": "Nessun difetto in aumento",
-    "risingLine": "{{defect}}: {{recent}} contro {{previous}}",
+    "risingLine": "{{defect}}: {{recent}} reclami, contro {{previous}} prima",
     "onTimeTrend": "Tasso nei tempi per mese",
     "targetLine": "Linea tratteggiata: obiettivo {{target}} %",
     "openedClosed": "Aperti e chiusi per mese",
