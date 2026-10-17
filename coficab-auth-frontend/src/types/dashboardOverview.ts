@@ -137,6 +137,28 @@ export interface OverviewWatch {
   workload: OverviewWorkload;
 }
 
+export interface OverviewOrganization {
+  /** null for the claims no organization can be attributed to. */
+  organizationId: string | null;
+  name: string;
+  employees: number;
+  openClaims: number;
+  lateClaims: number;
+  noDeadline: number;
+  pendingValidation: number;
+  onTimeCount: number;
+  onTimeBase: number;
+  onTimeRate: number | null;
+  ppm: number | null;
+  openPlans: number;
+  latePlans: number;
+}
+
+export interface OverviewScope {
+  organizationId: string | null;
+  organizationName: string | null;
+}
+
 export interface OverviewData {
   days: number;
   generatedAt: string;
@@ -147,4 +169,6 @@ export interface OverviewData {
   months: OverviewMonth[];
   watch: OverviewWatch;
   simulatedData: boolean;
+  scope: OverviewScope;
+  organizations: OverviewOrganization[];
 }

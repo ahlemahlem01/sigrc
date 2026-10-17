@@ -90,6 +90,24 @@ public record OverviewWatchDto(
     OverviewRecurrenceDto Recurrence,
     OverviewWorkloadDto Workload);
 
+/// <summary>One row of the organization comparison. <c>OrganizationId</c> is null for the claims no organization can be attributed to.</summary>
+public record OverviewOrganizationDto(
+    Guid? OrganizationId,
+    string Name,
+    int Employees,
+    int OpenClaims,
+    int LateClaims,
+    int NoDeadline,
+    int PendingValidation,
+    int OnTimeCount,
+    int OnTimeBase,
+    double? OnTimeRate,
+    double? Ppm,
+    int OpenPlans,
+    int LatePlans);
+
+public record OverviewScopeDto(Guid? OrganizationId, string? OrganizationName);
+
 public record OverviewDto(
     int Days,
     DateTime GeneratedAt,
@@ -99,9 +117,11 @@ public record OverviewDto(
     OverviewProblemsDto Problems,
     IReadOnlyList<OverviewMonthDto> Months,
     OverviewWatchDto Watch,
-    bool SimulatedData);
+    bool SimulatedData,
+    OverviewScopeDto Scope,
+    IReadOnlyList<OverviewOrganizationDto> Organizations);
 
-public record GetOverviewQuery(int Days = 90, string? UserId = null, bool SuperAdmin = true) : IRequest<OverviewDto>;
+public record GetOverviewQuery(int Days = 90, string? UserId = null, bool SuperAdmin = true, Guid? OrganizationId = null) : IRequest<OverviewDto>;
 
 /// <summary>
 /// The management overview. Late, no-deadline and plan figures come from the dashboard summary so both pages always agree;
@@ -140,7 +160,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         var start = today.AddDays(-days);
         var prevStart = start.AddDays(-days);
 
-        var summary = await _mediator.Send(new GetDashboardSummaryQuery(request.UserId, request.SuperAdmin), ct);
+        var summary = await _mediator.Send(new GetDashboardSummaryQuery(request.UserId, request.SuperAdmin, request.OrganizationId), ct);
         var defectTypes = await DefectTypeResolver.LoadAsync(_context, ct);
 
         var all = await _context.Claims.AsNoTracking()
@@ -183,6 +203,12 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 || (c.CreatedById != null && deptUsers.Contains(c.CreatedById))
                 || (c.AssignedToId != null && deptUsers.Contains(c.AssignedToId))).ToList();
         }
+
+        // the comparison covers every organization; the figures below follow the selected one
+        var attribution = await OrganizationAttribution.LoadAsync(_context, ct);
+        var everything = all;
+        if (request.OrganizationId is { } orgFilter)
+            all = all.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) == orgFilter).ToList();
 
         static bool IsClosed(string s) =>
             string.Equals(s, "CLOTUREE", StringComparison.OrdinalIgnoreCase)
@@ -376,12 +402,60 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         var simulated = await _context.ImportBatches.AsNoTracking()
             .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("SIMULATION"), ct);
 
+        // ── comparison between organizations ──
+        // organizations come through their departments: an organization without a department has no people and no plans
+        var orgs = (await _context.Departments.AsNoTracking()
+                .Where(d => !d.IsArchived && !d.Organization.IsArchived)
+                .Select(d => new { d.OrganizationId, d.Organization.Name })
+                .ToListAsync(ct))
+            .GroupBy(d => d.OrganizationId)
+            .Select(g => new { Id = g.Key, Name = g.First().Name })
+            .ToList();
+        var allPlans = await _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Where(p => !p.IsArchived).ToListAsync(ct);
+        var everyLive = everything.Where(c => !IsDraft(c.StatusCode)).ToList();
+
+        OverviewOrganizationDto Row(Guid? orgId, string name)
+        {
+            var mine = everyLive.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) == orgId).ToList();
+            var myOpen = mine.Where(c => !IsClosed(c.StatusCode)).ToList();
+            var judged = mine.Where(c => c.CompletedAt != null && c.CompletedAt >= start && c.CompletedAt < today.AddDays(1) && c.IsOnTime != null).ToList();
+            var okCount = judged.Count(c => c.IsOnTime == true);
+            var withQty = mine.Where(c => c.DetectionDate >= start && c.DetectionDate < today.AddDays(1)
+                                          && c.ProducedQuantity is > 0 && c.DefectiveQuantity != null).ToList();
+            var produced = withQty.Sum(c => (double)c.ProducedQuantity!.Value);
+            var myPlans = orgId == null ? new List<Core.Entities.ActionPlan>() : allPlans.Where(p => p.OrganizationId == orgId).ToList();
+            var openPlans = myPlans.Where(PlanDeadlines.IsOpen).ToList();
+            return new OverviewOrganizationDto(
+                orgId,
+                name,
+                orgId == null ? 0 : attribution.Employees(orgId.Value),
+                myOpen.Count,
+                myOpen.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)),
+                myOpen.Count(c => ClaimDeadlines.HasNoDeadline(c.Deadline)),
+                mine.Count(c => string.Equals(c.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)),
+                okCount,
+                judged.Count,
+                Rate(okCount, judged.Count),
+                produced <= 0 ? null : Math.Round(1_000_000.0 * withQty.Sum(c => (double)c.DefectiveQuantity!.Value) / produced),
+                openPlans.Count,
+                openPlans.Count(p => PlanDeadlines.OverdueDays(p, today) > 0));
+        }
+
+        var orgRows = orgs.Select(o => Row(o.Id, o.Name))
+            // an organization that only has CAPA plans on schedule is not worth a row
+            .Where(r => r.OpenClaims > 0 || r.OnTimeBase > 0 || r.LatePlans > 0 || r.Employees > 0)
+            .OrderByDescending(r => r.OpenClaims).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var unattributed = Row(null, string.Empty);
+        if (unattributed.OpenClaims > 0 || unattributed.OnTimeBase > 0) orgRows.Add(unattributed);
+        var scope = new OverviewScopeDto(request.OrganizationId, orgs.FirstOrDefault(o => o.Id == request.OrganizationId)?.Name);
+
         var targets = new OverviewTargetsDto(
             Target("Overview:OnTimeGreen", 85),
             Target("Overview:OnTimeOrange", 70),
             Target("Overview:ResolutionDays", 14),
             Target("Overview:PpmTolerancePct", 10));
 
-        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated);
+        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows);
     }
 }

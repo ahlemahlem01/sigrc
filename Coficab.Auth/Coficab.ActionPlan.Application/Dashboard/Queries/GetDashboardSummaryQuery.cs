@@ -88,7 +88,7 @@ public record DashboardSummaryDto(
     ActionPlansDashboardDto ActionPlans
 );
 
-public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true) : IRequest<DashboardSummaryDto>;
+public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true, Guid? OrganizationId = null) : IRequest<DashboardSummaryDto>;
 
 public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
 {
@@ -163,6 +163,13 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
                 || planClaimIds.Contains(c.Id)).ToList();
         }
 
+        if (request.OrganizationId is { } orgFilter)
+        {
+            var attribution = await OrganizationAttribution.LoadAsync(_context, cancellationToken);
+            claims = claims.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) == orgFilter).ToList();
+            plans = plans.Where(p => p.OrganizationId == orgFilter).ToList();
+        }
+
         static bool IsClaimClosed(string status) =>
             string.Equals(status, "CLOTUREE", StringComparison.OrdinalIgnoreCase)
             || string.Equals(status, "CLOSED", StringComparison.OrdinalIgnoreCase)
@@ -179,30 +186,7 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
             || string.Equals(severity, "ELEVEE", StringComparison.OrdinalIgnoreCase)
             || string.Equals(severity, "ÉLEVÉE", StringComparison.OrdinalIgnoreCase);
 
-        int PlanOverdueDays(Core.Entities.ActionPlan plan)
-        {
-            if (plan.Status is ActionPlanStatus.Closed or ActionPlanStatus.Archived)
-                return 0;
-
-            var actions = plan.PlanActions?.Where(a => !a.IsArchived).ToList();
-            if (actions is { Count: > 0 })
-            {
-                var sum = 0;
-                foreach (var a in actions)
-                {
-                    if (a.Progress is ActionProgress.Hundred or ActionProgress.Validated or ActionProgress.Cancelled)
-                        continue;
-                    if (!a.Deadline.HasValue) continue;
-                    var lag = (today - a.Deadline.Value.Date).Days;
-                    if (lag > 0) sum += lag;
-                }
-                return sum;
-            }
-
-            if (!plan.Deadline.HasValue) return 0;
-            var planLag = (today - plan.Deadline.Value.Date).Days;
-            return planLag > 0 ? planLag : 0;
-        }
+        int PlanOverdueDays(Core.Entities.ActionPlan plan) => PlanDeadlines.OverdueDays(plan, today);
 
         string ResolveName(string? userId, string? fallback = null)
         {

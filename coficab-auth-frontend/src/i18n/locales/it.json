@@ -274,6 +274,23 @@
     "referenceLists": "Tipi di difetto e gravità"
   },
   "overviewPage": {
+    "q0": "Come si confrontano le organizzazioni?",
+    "organizationLabel": "Organizzazione",
+    "allOrganizations": "Tutte le organizzazioni",
+    "colOrganization": "Organizzazione",
+    "colOpen": "Aperti",
+    "colLate": "In ritardo",
+    "colNoDeadline": "Senza scadenza",
+    "colValidation": "Da validare",
+    "colOnTime": "Nei tempi",
+    "colPpm": "PPM",
+    "colLatePlans": "CAPA in ritardo",
+    "colEmployees": "Persone",
+    "unattributed": "Non assegnato",
+    "selected": "selezionata",
+    "scopeBadge": "Visualizzazione: solo {{name}}",
+    "clearScope": "Mostra tutto",
+    "comparisonNote": "Un reclamo appartiene all'organizzazione della persona a cui è assegnato, o del suo creatore se nessuno è assegnato. «Non assegnato» raccoglie quelli che nessuno dei due permette di collocare. Clicca su una riga per concentrare la pagina su quell'organizzazione.",
     "recurrenceTitle": "Lotti reclamati più volte",
     "recurrenceSub": "lotti reclamati più di una volta, su {{count}} reclami con lotto negli ultimi {{days}} giorni",
     "noRepeatedLot": "Nessun lotto è stato reclamato due volte",
@@ -305,6 +322,7 @@
       "workload": "Persone che portano almeno 1,5 volte la media di reclami aperti. Ogni barra divide i reclami aperti di una persona in nei tempi (blu) e in ritardo (rosso)."
     },
     "hint": {
+      "q0": "Reclami aperti, ritardi e tasso nei tempi di ogni organizzazione negli ultimi {{days}} giorni, affiancati.",
       "q1": "I dati chiave degli ultimi {{days}} giorni, confrontati con i {{days}} giorni precedenti.",
       "q2": "Ciò che attende una decisione o una correzione. Clicca su una scheda per aprire l'elenco.",
       "q3": "Da dove vengono i reclami del periodo: difetti, linee di produzione e clienti con più reclami.",

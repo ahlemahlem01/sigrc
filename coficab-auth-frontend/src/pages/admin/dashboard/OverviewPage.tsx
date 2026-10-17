@@ -188,6 +188,9 @@ export default function OverviewPage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('90');
+  const [organizationId, setOrganizationId] = useState('');
+  // the comparison table must keep listing every organization while one of them is selected
+  const [knownOrganizations, setKnownOrganizations] = useState<{ id: string; name: string }[]>([]);
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -197,7 +200,14 @@ export default function OverviewPage() {
     setLoading(true);
     setError('');
     try {
-      setData(await fetchDashboardOverview(accessToken, Number(period)));
+      const result = await fetchDashboardOverview(accessToken, Number(period), organizationId || undefined);
+      setData(result);
+      setKnownOrganizations((previous) => {
+        const fresh = result.organizations.filter((o) => o.organizationId).map((o) => ({ id: o.organizationId as string, name: o.name }));
+        const merged = new Map(previous.map((o) => [o.id, o]));
+        fresh.forEach((o) => merged.set(o.id, o));
+        return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
+      });
     } catch (err: any) {
       const status = err?.response?.status;
       setError(status === 401 || status === 403 ? t('adminDashboard.errorSession') : t('overviewPage.loadFailed'));
@@ -205,7 +215,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, period, t]);
+  }, [accessToken, period, organizationId, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -276,6 +286,18 @@ export default function OverviewPage() {
             onChange={setPeriod}
             ariaLabel={t('overviewPage.periodLabel')}
           />
+          {knownOrganizations.length > 1 && (
+            <select
+              value={organizationId}
+              onChange={(e) => setOrganizationId(e.target.value)}
+              aria-label={t('overviewPage.organizationLabel')}
+              className="px-3 py-2 text-xs font-semibold rounded-xl border bg-white"
+              style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
+            >
+              <option value="">{t('overviewPage.allOrganizations')}</option>
+              {knownOrganizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+            </select>
+          )}
           <button
             type="button"
             onClick={() => void load()}
@@ -286,6 +308,13 @@ export default function OverviewPage() {
           </button>
         </div>
       </div>
+
+      {data?.scope.organizationId && (
+        <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: COFICAB.light, color: COFICAB.navy }}>
+          {t('overviewPage.scopeBadge', { name: data.scope.organizationName ?? '' })}
+          <button type="button" onClick={() => setOrganizationId('')} className="underline font-bold">{t('overviewPage.clearScope')}</button>
+        </div>
+      )}
 
       {error && (
         <div className="mb-4 rounded-xl text-sm px-4 py-3" style={{ border: '1px solid #fecaca', background: COFICAB.dangerSoft, color: COFICAB.danger }}>
@@ -299,6 +328,59 @@ export default function OverviewPage() {
         </div>
       ) : !data || !h || !targets ? null : (
         <>
+          {/* 0. How do the organizations compare? */}
+          {data.organizations.length > 1 && (
+            <Section title={t('overviewPage.q0')} hint={t('overviewPage.hint.q0', { days })}>
+              <div className="rounded-xl bg-white shadow-sm overflow-x-auto" style={{ border: `1px solid ${COFICAB.line}` }}>
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ color: COFICAB.muted, background: COFICAB.light }}>
+                      <th className="text-left px-3 py-2 font-bold uppercase tracking-wide text-[10px]">{t('overviewPage.colOrganization')}</th>
+                      {[
+                        ['colOpen', 'right'], ['colLate', 'right'], ['colNoDeadline', 'right'], ['colValidation', 'right'],
+                        ['colOnTime', 'right'], ['colPpm', 'right'], ['colLatePlans', 'right'], ['colEmployees', 'right'],
+                      ].map(([k]) => (
+                        <th key={k} className="text-right px-3 py-2 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap">{t(`overviewPage.${k}`)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.organizations.map((o) => {
+                      const selected = !!o.organizationId && o.organizationId === organizationId;
+                      const rate = o.onTimeRate;
+                      const rateTone: Tone = rate == null ? 'neutral' : rate >= targets.onTimeGreen ? 'green' : rate >= targets.onTimeOrange ? 'orange' : 'red';
+                      const clickable = !!o.organizationId;
+                      return (
+                        <tr
+                          key={o.organizationId ?? 'none'}
+                          onClick={clickable ? () => setOrganizationId(selected ? '' : (o.organizationId as string)) : undefined}
+                          className={clickable ? 'cursor-pointer hover:bg-slate-50' : ''}
+                          style={{ borderTop: `1px solid ${COFICAB.line}`, background: selected ? COFICAB.light : undefined }}
+                        >
+                          <td className="px-3 py-2 font-semibold" style={{ color: o.organizationId ? COFICAB.ink : COFICAB.muted }}>
+                            {o.organizationId ? o.name : t('overviewPage.unattributed')}
+                            {selected && <span className="ml-1.5 text-[10px] font-bold" style={{ color: COFICAB.navy }}>● {t('overviewPage.selected')}</span>}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{num(o.openClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: o.lateClaims > 0 ? COFICAB.danger : COFICAB.ok }}>{num(o.lateClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.noDeadline > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.noDeadline)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.pendingValidation > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.pendingValidation)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: TONE_COLOR[rateTone] }}>
+                            {rate == null ? '—' : `${num(rate, 1)} %`}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">{num(o.ppm)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.latePlans > 0 ? COFICAB.danger : COFICAB.muted }}>{o.organizationId ? num(o.latePlans) : '—'}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: COFICAB.muted }}>{o.organizationId ? num(o.employees) : '—'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[11px] mt-2 mb-0" style={{ color: COFICAB.muted }}>{t('overviewPage.comparisonNote')}</p>
+            </Section>
+          )}
+
           {/* 1. Are we on track? */}
           <Section title={t('overviewPage.q1')} hint={t('overviewPage.hint.q1', { days })}>
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>

@@ -21,12 +21,12 @@ public class DashboardController : ControllerBase
     /// <summary>Management overview: headline figures, actions, problems, trend and data health, for the last <paramref name="days"/> days.</summary>
     [HttpGet("overview")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<OverviewDto>> GetOverview([FromQuery] int days = 90, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<OverviewDto>> GetOverview([FromQuery] int days = 90, [FromQuery] Guid? organizationId = null, CancellationToken cancellationToken = default)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var superAdmin = User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
-        return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin), cancellationToken));
+        return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin, organizationId), cancellationToken));
     }
 
     /// <summary>Vue globale Claims + Action Plans (KPIs, top retards, courbes, donuts, responsables).</summary>

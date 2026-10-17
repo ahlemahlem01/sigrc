@@ -361,4 +361,53 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
     {
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/overview")).StatusCode);
     }
+
+    [Fact]
+    public async Task Overview_AttributesClaimsToOrganizations_AndCanBeFilteredByOne()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var orgA = Guid.NewGuid();
+        var orgB = Guid.NewGuid();
+        var deptA = Guid.NewGuid();
+        var deptB = Guid.NewGuid();
+        var alice = Guid.NewGuid().ToString();
+        var bob = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Organizations.Add(new Organization { Id = orgA, Name = $"OrgA-{tag}", Type = OrganizationType.Local });
+            db.Organizations.Add(new Organization { Id = orgB, Name = $"OrgB-{tag}", Type = OrganizationType.Local });
+            db.Departments.Add(new Department { Id = deptA, Name = "Prod", Code = $"PA{tag}", OrganizationId = orgA });
+            db.Departments.Add(new Department { Id = deptB, Name = "Prod", Code = $"PB{tag}", OrganizationId = orgB });
+            db.UserProfiles.Add(new UserProfile { UserId = alice, Name = "Alice", Email = $"alice{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptA });
+            db.UserProfiles.Add(new UserProfile { UserId = bob, Name = "Bob", Email = $"bob{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptB });
+            // org A: one late claim and one without deadline; org B: one open claim with a future deadline
+            db.Claims.Add(new Claim { Title = $"a1-{tag}", StatusCode = "OUVERTE", AssignedToId = alice, CreatedById = Me, Deadline = now.AddDays(-5), DetectionDate = now.AddDays(-30), CreatedAt = now.AddDays(-30) });
+            db.Claims.Add(new Claim { Title = $"a2-{tag}", StatusCode = "OUVERTE", AssignedToId = alice, CreatedById = Me, Deadline = null, DetectionDate = now.AddDays(-30), CreatedAt = now.AddDays(-30) });
+            db.Claims.Add(new Claim { Title = $"b1-{tag}", StatusCode = "OUVERTE", AssignedToId = bob, CreatedById = Me, Deadline = now.AddDays(10), DetectionDate = now.AddDays(-3), CreatedAt = now.AddDays(-3) });
+            return Task.CompletedTask;
+        });
+
+        var admin = ClientAs("admin");
+        var all = await admin.GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+        JsonElement Row(string name) => all.GetProperty("organizations").EnumerateArray()
+            .First(o => o.GetProperty("name").GetString() == name);
+
+        var a = Row($"OrgA-{tag}");
+        var b = Row($"OrgB-{tag}");
+        Assert.Equal(2, a.GetProperty("openClaims").GetInt32());
+        Assert.Equal(1, a.GetProperty("lateClaims").GetInt32());
+        Assert.Equal(1, a.GetProperty("noDeadline").GetInt32());
+        Assert.Equal(1, a.GetProperty("employees").GetInt32());
+        Assert.Equal(1, b.GetProperty("openClaims").GetInt32());
+        Assert.Equal(0, b.GetProperty("lateClaims").GetInt32());
+
+        // filtering on one organization narrows the headline figures to it
+        var onlyA = await admin.GetFromJsonAsync<JsonElement>($"/api/dashboard/overview?days=90&organizationId={orgA}", JsonOpts);
+        Assert.Equal(2, onlyA.GetProperty("headline").GetProperty("openClaims").GetInt32());
+        Assert.Equal(1, onlyA.GetProperty("actions").GetProperty("lateClaims").GetInt32());
+        Assert.Equal($"OrgA-{tag}", onlyA.GetProperty("scope").GetProperty("organizationName").GetString());
+        // ... while the comparison still lists the other organizations
+        Assert.Contains(onlyA.GetProperty("organizations").EnumerateArray(), o => o.GetProperty("name").GetString() == $"OrgB-{tag}");
+    }
 }
