@@ -19,6 +19,16 @@ export interface LateClaimItem {
   responsibleName?: string | null;
 }
 
+export interface NoDeadlineClaimItem {
+  id: string;
+  title: string;
+  clientId: string;
+  severity: string;
+  ageDays: number;
+  responsibleId?: string | null;
+  responsibleName?: string | null;
+}
+
 export interface LateActionPlanItem {
   id: string;
   title: string;
@@ -44,6 +54,8 @@ export interface StreamKpis {
   late: number;
   closureRate: number;
   critical: number;
+  /** Open claims without a deadline: never counted as late, listed on their own. */
+  noDeadline?: number;
 }
 
 export interface ClaimsDashboard {
@@ -52,6 +64,7 @@ export interface ClaimsDashboard {
   monthlyOpenClosed: MonthlyOpenClosed[];
   severityDonut: NamedCount[];
   topResponsibles: ResponsibleItem[];
+  top5NoDeadline?: NoDeadlineClaimItem[];
 }
 
 export interface ActionPlansDashboard {

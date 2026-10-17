@@ -10,6 +10,16 @@ public record NamedCountDto(string Name, int Count);
 
 public record MonthlyOpenClosedDto(string Month, int Opened, int Closed);
 
+public record NoDeadlineClaimItemDto(
+    Guid Id,
+    string Title,
+    string ClientId,
+    string Severity,
+    int AgeDays,
+    string? ResponsibleId,
+    string? ResponsibleName
+);
+
 public record LateClaimItemDto(
     Guid Id,
     string Title,
@@ -44,7 +54,8 @@ public record StreamKpisDto(
     int TotalOpen,
     int Late,
     double ClosureRate,
-    int Critical
+    int Critical,
+    int NoDeadline = 0
 );
 
 public record ClaimsDashboardDto(
@@ -52,7 +63,8 @@ public record ClaimsDashboardDto(
     IReadOnlyList<LateClaimItemDto> Top5Late,
     IReadOnlyList<MonthlyOpenClosedDto> MonthlyOpenClosed,
     IReadOnlyList<NamedCountDto> SeverityDonut,
-    IReadOnlyList<ResponsibleItemDto> TopResponsibles
+    IReadOnlyList<ResponsibleItemDto> TopResponsibles,
+    IReadOnlyList<NoDeadlineClaimItemDto> Top5NoDeadline
 );
 
 public record ActionPlansDashboardDto(
@@ -80,7 +92,6 @@ public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = 
 
 public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
 {
-    private const int ClaimSlaDays = 14;
     private readonly IApplicationDbContext _context;
 
     public GetDashboardSummaryQueryHandler(IApplicationDbContext context)
@@ -107,6 +118,7 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
                 c.Severity,
                 c.StatusCode,
                 c.DetectionDate,
+                c.Deadline,
                 c.CreatedAt,
                 c.UpdatedAt,
                 c.CreatedById,
@@ -167,13 +179,6 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
             || string.Equals(severity, "ELEVEE", StringComparison.OrdinalIgnoreCase)
             || string.Equals(severity, "ÉLEVÉE", StringComparison.OrdinalIgnoreCase);
 
-        int ClaimOverdueDays(DateTime detection, DateTime created)
-        {
-            var refDate = detection == default ? created : detection;
-            var lag = (today - refDate.Date).Days - ClaimSlaDays;
-            return lag > 0 ? lag : 0;
-        }
-
         int PlanOverdueDays(Core.Entities.ActionPlan plan)
         {
             if (plan.Status is ActionPlanStatus.Closed or ActionPlanStatus.Archived)
@@ -223,14 +228,15 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
         // ── Claims ──
         var openClaims = claims.Where(c => !IsClaimClosed(c.StatusCode) && !IsClaimDraft(c.StatusCode)).ToList();
         var closedClaims = claims.Where(c => IsClaimClosed(c.StatusCode)).ToList();
+        // late = open and past its deadline; a claim without a deadline is reported separately, never as late
         var lateClaims = openClaims
-            .Select(c => new
-            {
-                Claim = c,
-                OverdueDays = ClaimOverdueDays(c.DetectionDate, c.CreatedAt),
-            })
-            .Where(x => x.OverdueDays > 0)
+            .Where(c => ClaimDeadlines.IsLate(c.Deadline, today))
+            .Select(c => new { Claim = c, OverdueDays = ClaimDeadlines.OverdueDays(c.Deadline, today) })
             .OrderByDescending(x => x.OverdueDays)
+            .ToList();
+        var noDeadlineClaims = openClaims
+            .Where(c => ClaimDeadlines.HasNoDeadline(c.Deadline))
+            .OrderBy(c => c.DetectionDate == default ? c.CreatedAt : c.DetectionDate)
             .ToList();
 
         var claimCritical = openClaims.Count(c => IsClaimCritical(c.Severity));
@@ -245,6 +251,16 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
             x.OverdueDays,
             x.Claim.AssignedToId ?? x.Claim.CreatedById,
             ResolveName(x.Claim.AssignedToId ?? x.Claim.CreatedById, x.Claim.CreatedBy)
+        )).ToList();
+
+        var claimNoDeadlineTop5 = noDeadlineClaims.Take(5).Select(c => new NoDeadlineClaimItemDto(
+            c.Id,
+            c.Title,
+            c.ClientId,
+            string.IsNullOrWhiteSpace(c.Severity) ? "MEDIUM" : c.Severity,
+            Math.Max(0, (today - (c.DetectionDate == default ? c.CreatedAt : c.DetectionDate).Date).Days),
+            c.AssignedToId ?? c.CreatedById,
+            ResolveName(c.AssignedToId ?? c.CreatedById, c.CreatedBy)
         )).ToList();
 
         var claimMonthly = months.Select(m =>
@@ -371,11 +387,12 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
         return new DashboardSummaryDto(
             new GlobalDashboardKpisDto(totalActive, totalOverdue, globalClosure, criticalAlerts),
             new ClaimsDashboardDto(
-                new StreamKpisDto(openClaims.Count, lateClaims.Count, claimClosure, claimCritical),
+                new StreamKpisDto(openClaims.Count, lateClaims.Count, claimClosure, claimCritical, noDeadlineClaims.Count),
                 claimTop5,
                 claimMonthly,
                 severityDonut,
-                claimResponsibles
+                claimResponsibles,
+                claimNoDeadlineTop5
             ),
             new ActionPlansDashboardDto(
                 new StreamKpisDto(openPlans.Count, planWithOverdue.Count, planClosure, planCritical),

@@ -6,11 +6,11 @@ import { fetchDashboardSummary } from '../../../services/dashboardSummaryService
 import type { DashboardSummary } from '../../../types/dashboardSummary';
 import DashboardSummaryBar from './DashboardSummaryBar';
 import ClaimsOverviewColumn from './ClaimsOverviewColumn';
-import ActionPlansOverviewColumn from './ActionPlansOverviewColumn';
 import TopResponsiblesSection from './TopResponsiblesSection';
 import WorkflowEvolutionSection from './WorkflowEvolutionSection';
 import EmployeeActivityWidget from './EmployeeActivityWidget';
 import DashInfoTip from './DashInfoTip';
+import OverviewSummary from './OverviewSummary';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
 
 export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' | 'indicators' }) {
@@ -53,11 +53,11 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
             className="text-[10px] font-bold uppercase tracking-[1.4px] mb-1"
             style={{ color: COFICAB.navy }}
           >
-            {t('adminDashboard.eyebrow')}
+            {focus === 'all' ? t('adminDashboard.overview.eyebrow') : t('adminDashboard.eyebrow')}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <h1 className="text-xl font-bold m-0" style={{ color: COFICAB.ink }}>
-              {focus === 'all' ? t('adminDashboard.title') : focus === 'indicators' ? 'Indicateurs réclamations' : 'Dashboard Claims'}
+              {focus === 'all' ? t('adminDashboard.navTitle') : focus === 'indicators' ? 'Indicateurs réclamations' : 'Dashboard Claims'}
             </h1>
             <DashInfoTip
               text={t('adminDashboard.help.page')}
@@ -66,7 +66,7 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
             />
           </div>
           <p className="text-sm mt-1 mb-0" style={{ color: COFICAB.muted }}>
-            {t('adminDashboard.subtitle')}
+            {focus === 'all' ? t('adminDashboard.overview.subtitle') : t('adminDashboard.subtitle')}
           </p>
         </div>
         <button
@@ -88,6 +88,10 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
         </div>
       )}
 
+      {focus === 'all' ? (
+        <OverviewSummary data={data} loading={loading} />
+      ) : (
+        <>
       <DashboardSummaryBar
         data={data?.global}
         loading={loading}
@@ -103,9 +107,8 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
       />
       )}
 
-      <div className={`grid grid-cols-1 ${focus === 'all' ? 'lg:grid-cols-2' : ''} gap-4 items-stretch`}>
+      <div className="grid grid-cols-1 gap-4 items-stretch">
         <ClaimsOverviewColumn data={data?.claims} loading={loading} />
-        {focus === 'all' && <ActionPlansOverviewColumn data={data?.actionPlans} loading={loading} />}
       </div>
 
       {focus !== 'indicators' && (
@@ -119,6 +122,8 @@ export default function Dashboard({ focus = 'all' }: { focus?: 'all' | 'claims' 
       <div className="mt-4">
         <EmployeeActivityWidget />
       </div>
+        </>
+      )}
 
       <footer
         className="mt-5 rounded-xl bg-white shadow-sm px-4 py-3.5 flex flex-wrap items-center gap-3 hover:shadow-md transition-shadow"

@@ -283,4 +283,31 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.NotFound,
             (await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{Guid.NewGuid()}/department", new { departmentId = to })).StatusCode);
     }
+
+    [Fact]
+    public async Task DashboardSummary_CountsLateByDeadline_AndListsClaimsWithoutDeadlineSeparately()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        await _factory.SeedAsync(db =>
+        {
+            db.Claims.Add(new Claim { Title = $"late-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(-9), DetectionDate = DateTime.UtcNow.AddDays(-60), CreatedById = Me });
+            db.Claims.Add(new Claim { Title = $"upcoming-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(9), DetectionDate = DateTime.UtcNow.AddDays(-60), CreatedById = Me });
+            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", StatusCode = "OUVERTE", Deadline = null, DetectionDate = DateTime.UtcNow.AddDays(-400), CreatedById = Me });
+            db.Claims.Add(new Claim { Title = $"closed-{tag}", StatusCode = "CLOTUREE", Deadline = DateTime.UtcNow.AddDays(-30), DetectionDate = DateTime.UtcNow.AddDays(-90), CreatedById = Me });
+            return Task.CompletedTask;
+        });
+
+        var summary = await ClientAs("admin").GetFromJsonAsync<JsonElement>("/api/dashboard/summary", JsonOpts);
+        var claims = summary.GetProperty("claims");
+
+        var late = claims.GetProperty("top5Late").EnumerateArray().Select(c => c.GetProperty("title").GetString()).ToList();
+        Assert.Contains($"late-{tag}", late);
+        Assert.DoesNotContain($"upcoming-{tag}", late);
+        Assert.DoesNotContain($"nodeadline-{tag}", late);          // never late without a deadline
+        Assert.DoesNotContain($"closed-{tag}", late);
+
+        var noDeadline = claims.GetProperty("top5NoDeadline").EnumerateArray().Select(c => c.GetProperty("title").GetString()).ToList();
+        Assert.Contains($"nodeadline-{tag}", noDeadline);
+        Assert.True(claims.GetProperty("kpis").GetProperty("noDeadline").GetInt32() >= 1);
+    }
 }

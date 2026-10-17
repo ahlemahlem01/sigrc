@@ -43,6 +43,7 @@ export async function fetchDashboardSummary(token: string): Promise<DashboardSum
     late: Number(k?.late ?? k?.Late ?? 0),
     closureRate: Number(k?.closureRate ?? k?.ClosureRate ?? 0),
     critical: Number(k?.critical ?? k?.Critical ?? 0),
+    noDeadline: Number(k?.noDeadline ?? k?.NoDeadline ?? 0),
   });
 
   return {
@@ -66,6 +67,15 @@ export async function fetchDashboardSummary(token: string): Promise<DashboardSum
       monthlyOpenClosed: mapMonthly(raw?.claims?.monthlyOpenClosed ?? raw?.Claims?.MonthlyOpenClosed),
       severityDonut: mapNamed(raw?.claims?.severityDonut ?? raw?.Claims?.SeverityDonut),
       topResponsibles: mapResponsible(raw?.claims?.topResponsibles ?? raw?.Claims?.TopResponsibles),
+      top5NoDeadline: (raw?.claims?.top5NoDeadline ?? raw?.Claims?.Top5NoDeadline ?? []).map((r: any) => ({
+        id: String(r.id ?? r.Id ?? ''),
+        title: String(r.title ?? r.Title ?? '—'),
+        clientId: String(r.clientId ?? r.ClientId ?? '—'),
+        severity: String(r.severity ?? r.Severity ?? 'MEDIUM'),
+        ageDays: Number(r.ageDays ?? r.AgeDays ?? 0),
+        responsibleId: r.responsibleId ?? r.ResponsibleId ?? null,
+        responsibleName: r.responsibleName ?? r.ResponsibleName ?? null,
+      })),
     },
     actionPlans: {
       kpis: mapStreamKpis(raw?.actionPlans?.kpis ?? raw?.ActionPlans?.Kpis),

@@ -1,3 +1,4 @@
+using Coficab.ActionPlan.Application.Dashboard;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -26,7 +27,6 @@ public interface IQualityAssistantService
 
 public class QualityAssistantService : IQualityAssistantService
 {
-    private const int ClaimSlaDays = 14;
     private const int MaxToolRounds = 4;
     private const int MaxHistoryTurns = 12;
 
@@ -591,8 +591,7 @@ public class QualityAssistantService : IQualityAssistantService
         var planClosureRate = planDenom == 0 ? 0 : Math.Round(100.0 * closedPlans / planDenom, 1);
 
         var overdueClaims = claims.Count(c =>
-            !IsClosed(c.StatusCode)
-            && ((today - (c.DetectionDate == default ? c.CreatedAt.Date : c.DetectionDate.Date)).Days - ClaimSlaDays) > 0);
+            !IsClosed(c.StatusCode) && ClaimDeadlines.IsLate(c.Deadline, today));
 
         var overduePlans = plans.Count(p =>
             p.Status is ActionPlanStatus.Created or ActionPlanStatus.Ongoing
@@ -665,7 +664,7 @@ public class QualityAssistantService : IQualityAssistantService
 
         var claims = await claimsQuery
             .Where(c => c.CreatedAt >= since || c.DetectionDate >= since)
-            .Select(c => new { c.StatusCode, c.Severity, c.DetectionDate, c.CreatedAt })
+            .Select(c => new { c.StatusCode, c.Severity, c.DetectionDate, c.Deadline, c.CreatedAt })
             .ToListAsync(ct);
 
         var plans = await plansQuery
@@ -691,11 +690,7 @@ public class QualityAssistantService : IQualityAssistantService
 
         var openClaims = claims.Where(c => !IsClosed(c.StatusCode) && !IsDraft(c.StatusCode)).ToList();
         var closedClaims = claims.Count(c => IsClosed(c.StatusCode));
-        var lateClaims = openClaims.Count(c =>
-        {
-            var refDate = c.DetectionDate == default ? c.CreatedAt.Date : c.DetectionDate.Date;
-            return (today - refDate).Days - ClaimSlaDays > 0;
-        });
+        var lateClaims = openClaims.Count(c => ClaimDeadlines.IsLate(c.Deadline, today));
 
         var openPlans = plans.Count(p => p.Status is ActionPlanStatus.Created or ActionPlanStatus.Ongoing);
         var closedPlans = plans.Count(p => p.Status == ActionPlanStatus.Closed);

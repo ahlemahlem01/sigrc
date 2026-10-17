@@ -64,6 +64,10 @@ export default function AdminClaimsList() {
   const [searchParams] = useSearchParams();
   const [filterStatus, setFilterStatus] = useState<string | 'all'>(searchParams.get('status') || 'all');
   const [filterSeverity, setFilterSeverity] = useState((searchParams.get('severity') || 'all').toLowerCase());
+  // ?deadline=late|none preselects the deadline filter (dashboard tiles)
+  const [filterDeadline, setFilterDeadline] = useState<'all' | 'late' | 'none'>(
+    searchParams.get('deadline') === 'late' ? 'late' : searchParams.get('deadline') === 'none' ? 'none' : 'all',
+  );
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [page, setPage] = useState(1);
@@ -92,6 +96,14 @@ export default function AdminClaimsList() {
       const status = resolveClaimStatus(claim);
       if (filterStatus !== 'all' && status !== filterStatus) return false;
       if (filterSeverity !== 'all' && String(claim.severity || '').toLowerCase() !== filterSeverity) return false;
+      if (filterDeadline !== 'all') {
+        const open = status !== 'CLOTUREE' && status !== 'DRAFT';
+        const deadline = dayStamp(claim.deadline);
+        if (filterDeadline === 'none' && !(open && deadline == null)) return false;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (filterDeadline === 'late' && !(open && deadline != null && deadline < today.getTime())) return false;
+      }
       const due = dayStamp(claim.deadline || claim.detectionDate);
       const from = dayStamp(filterFrom);
       const to = dayStamp(filterTo);
@@ -108,7 +120,7 @@ export default function AdminClaimsList() {
         person(claim),
       ].some((value) => String(value || '').toLowerCase().includes(term));
     });
-  }, [claims, search, filterStatus, filterSeverity, filterFrom, filterTo]);
+  }, [claims, search, filterStatus, filterSeverity, filterDeadline, filterFrom, filterTo]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -182,6 +194,14 @@ export default function AdminClaimsList() {
             </select>
           </label>
           <label className="block">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('dashboard.colDeadline')}</span>
+            <select className={capaSelectCls} value={filterDeadline} onChange={(e) => { setFilterDeadline(e.target.value as 'all' | 'late' | 'none'); setPage(1); }}>
+              <option value="all">{t('activity.all')}</option>
+              <option value="late">{t('adminDashboard.claims.late')}</option>
+              <option value="none">{t('adminDashboard.claims.noDeadline')}</option>
+            </select>
+          </label>
+          <label className="block">
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('qualityHistory.from')}</span>
             <input type="date" className={capaSelectCls} value={filterFrom} onChange={(e) => { setFilterFrom(e.target.value); setPage(1); }} />
           </label>
@@ -231,7 +251,9 @@ export default function AdminClaimsList() {
                     <td className="px-4 py-3.5 text-slate-700">{claim.productionLine || '—'}</td>
                     <td className="px-4 py-3.5 text-slate-700">{person(claim)}</td>
                     <td className="px-4 py-3.5"><span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${status.color}`}>{status.label}</span></td>
-                    <td className="px-4 py-3.5 text-slate-600">{formatDate(claim.deadline)}</td>
+                    <td className="px-4 py-3.5 text-slate-600">
+                  {claim.deadline ? formatDate(claim.deadline) : <span className="inline-block rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] font-semibold">{t('adminDashboard.claims.noDeadline')}</span>}
+                </td>
                     <td className="px-4 py-3.5 text-right">
                       <button type="button" className={btnSecondary} onClick={() => navigate(`/admin/claims/eight-d/${claim.id}`)}>8D</button>
                     </td>

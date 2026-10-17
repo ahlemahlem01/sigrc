@@ -89,7 +89,7 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
       </header>
 
       <div className="p-4 flex flex-col gap-4 flex-1">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <KpiMiniCard
             label={t('adminDashboard.claims.totalOpen')}
             to="/admin/claims/list"
@@ -102,12 +102,23 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
           />
           <KpiMiniCard
             label={t('adminDashboard.claims.late')}
+            to="/admin/claims/list?deadline=late"
             value={kpis?.late ?? 0}
             loading={loading}
             accent={COFICAB.danger}
             tint={COFICAB.dangerSoft}
             icon="ti-clock-exclamation"
             help={t('adminDashboard.help.claimsLate')}
+          />
+          <KpiMiniCard
+            label={t('adminDashboard.claims.noDeadline')}
+            to="/admin/claims/list?deadline=none"
+            value={kpis?.noDeadline ?? 0}
+            loading={loading}
+            accent={COFICAB.warn}
+            tint={COFICAB.warnSoft}
+            icon="ti-calendar-off"
+            help={t('adminDashboard.help.claimsNoDeadline')}
           />
           <KpiMiniCard
             label={t('adminDashboard.claims.closureRate')}
@@ -183,6 +194,55 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
               </ul>
             )}
           </div>
+        </div>
+
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <h3 className="text-sm font-bold text-slate-800 m-0">{t('adminDashboard.claims.noDeadlineTitle')}</h3>
+            <DashInfoTip text={t('adminDashboard.help.claimsNoDeadline')} title={t('adminDashboard.claims.noDeadlineTitle')} />
+          </div>
+          <p className="text-[11px] text-slate-500 m-0 mb-2">{t('adminDashboard.claims.noDeadlineHint')}</p>
+          <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${COFICAB.line}` }}>
+            {loading ? (
+              <div className="p-3 space-y-2">
+                {[1, 2, 3].map((i) => <div key={i} className="h-10 rounded-lg bg-slate-100 animate-pulse" />)}
+              </div>
+            ) : !data?.top5NoDeadline?.length ? (
+              <div className="p-5 text-center text-sm text-slate-400">{t('adminDashboard.claims.noDeadlineEmpty')}</div>
+            ) : (
+              <ul className="divide-y m-0 p-0 list-none" style={{ borderColor: COFICAB.line }}>
+                {data.top5NoDeadline.map((row) => (
+                  <li key={row.id} className="px-3 py-2.5 flex items-center gap-2" style={{ borderColor: COFICAB.line }}>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-slate-800 truncate">{row.title}</div>
+                      <div className="text-[11px] text-slate-500 truncate">{row.clientId} · {row.responsibleName || '—'}</div>
+                    </div>
+                    <span className="text-[11px] font-semibold tabular-nums shrink-0" style={{ color: COFICAB.muted }}>
+                      {t('adminDashboard.claims.noDeadlineAge', { count: row.ageDays })}
+                    </span>
+                    <button
+                      type="button"
+                      className="text-[11px] font-semibold hover:underline shrink-0"
+                      style={{ color: CLAIMS_ACCENT }}
+                      onClick={() => navigate(`/pages/front/quality-analyses?focus=${row.id}`)}
+                    >
+                      {t('adminDashboard.view')}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+          {(kpis?.noDeadline ?? 0) > (data?.top5NoDeadline?.length ?? 0) && (
+            <button
+              type="button"
+              className="mt-2 text-[11px] font-semibold hover:underline"
+              style={{ color: CLAIMS_ACCENT }}
+              onClick={() => navigate('/admin/claims/list?deadline=none')}
+            >
+              {t('adminDashboard.claims.seeAll', { count: kpis?.noDeadline ?? 0 })}
+            </button>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
