@@ -5,6 +5,9 @@ import { useAuth } from '../../context/AuthContext';
 import { ACTION_PLAN_API_URL as BASE_URL } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
+import { normalizeRoles } from '../../utils/roles';
+import { structureErrorCode } from '../../services/organizationStructureService';
+import OrganizationStructureModal from '../../components/OrganizationStructureModal';
 
 interface Organization {
   id: string;
@@ -29,12 +32,19 @@ const ORG_TYPE_COLORS: Record<number, { bg: string; color: string }> = {
   5: { bg: '#fef2f2', color: '#b91c1c' },
 };
 
+// the API sends the type by name ("CountryCorporate"); the screens work with its number
+const TYPE_NUMBERS: Record<string, number> = { Local: 1, Corporate: 2, CountryRegionalCorporate: 3, CountryCorporate: 4, RegionalCorporate: 5 };
+const typeNumber = (raw: unknown): number => (typeof raw === 'number' ? raw : TYPE_NUMBERS[String(raw)] ?? Number(raw) ?? 1);
+
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
 
 const OrganizationList = () => {
   const { t } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+  // the organization type (which levels exist) is the superadmin's to set
+  const isSuperAdmin = normalizeRoles(user).includes('superadmin');
+  const [structureOf, setStructureOf] = useState<Organization | null>(null);
   const navigate = useNavigate();
   const [orgs, setOrgs] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +53,7 @@ const OrganizationList = () => {
   const [editing, setEditing] = useState<Organization | null>(null);
   const [form, setForm] = useState({ name: '', type: 1 });
   const [feedback, setFeedback] = useState('');
+  const [formError, setFormError] = useState('');
 
   const headers = { headers: { Authorization: `Bearer ${accessToken}` } };
 
@@ -50,7 +61,7 @@ const OrganizationList = () => {
     setLoading(true);
     try {
       const res = await axios.get(`${BASE_URL}/organization`, headers);
-      setOrgs(res.data);
+      setOrgs((res.data as Organization[]).map((o) => ({ ...o, type: typeNumber(o.type) })));
     } catch (e) {
       console.error(e);
     } finally {
@@ -64,12 +75,14 @@ const OrganizationList = () => {
   const openCreate = () => {
     setEditing(null);
     setForm({ name: '', type: 1 });
+    setFormError('');
     setShowModal(true);
   };
 
   const openEdit = (org: Organization) => {
     setEditing(org);
     setForm({ name: org.name, type: org.type });
+    setFormError('');
     setShowModal(true);
   };
 
@@ -86,7 +99,14 @@ const OrganizationList = () => {
       loadOrgs();
     } catch (e) {
       console.error(e);
-      setFeedback(t('deptForm.genericError'));
+      const refusal = structureErrorCode(e);
+      if (refusal?.code === 'type_conflict' && refusal.conflicts) {
+        setFormError(`${t('orgs.typeConflictIntro')} : ${refusal.conflicts.map((c) => t(`orgs.conflict.${c.code}`, { count: c.count })).join(', ')}.`);
+      } else if (axios.isAxiosError(e) && e.response?.status === 403) {
+        setFormError(t('orgs.typeForbidden'));
+      } else {
+        setFormError(t('deptForm.genericError'));
+      }
     }
   };
 
@@ -416,9 +436,11 @@ const OrganizationList = () => {
                 placeholder={t('activityTracking.searchPh')}
               />
             </div>
-            <button className="ol-add-btn" onClick={openCreate}>
-              <i className="ti ti-building-plus" /> {t('orgs.new')}
-            </button>
+            {isSuperAdmin && (
+              <button className="ol-add-btn" onClick={openCreate}>
+                <i className="ti ti-building-plus" /> {t('orgs.new')}
+              </button>
+            )}
           </div>
         </div>
 
@@ -500,7 +522,7 @@ const OrganizationList = () => {
                   ? t('orgs.noSearchResult')
                   : t('orgs.createFirst')}
               </p>
-              {!search && (
+              {!search && isSuperAdmin && (
                 <button className="ol-add-btn" style={{ margin: '0 auto' }} onClick={openCreate}>
                   <i className="ti ti-building-plus" /> {t('orgs.new')}
                 </button>
@@ -551,12 +573,17 @@ const OrganizationList = () => {
                           >
                             <i className="ti ti-arrow-right" /> {t('orgs.manage')}
                           </button>
+                          <button className="ol-ab ol-ab-manage" onClick={() => setStructureOf(org)}>
+                            <i className="ti ti-hierarchy-2" /> {t('orgs.structure')}
+                          </button>
                           <button className="ol-ab ol-ab-edit" onClick={() => openEdit(org)}>
                             <i className="ti ti-pencil" /> {t('common.edit')}
                           </button>
-                          <button className="ol-ab ol-ab-arch" onClick={() => handleArchive(org.id)} title={t('alerts.archive')} aria-label={t('alerts.archive')}>
-                            <i className="ti ti-archive" />
-                          </button>
+                          {isSuperAdmin && (
+                            <button className="ol-ab ol-ab-arch" onClick={() => handleArchive(org.id)} title={t('alerts.archive')} aria-label={t('alerts.archive')}>
+                              <i className="ti ti-archive" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -567,6 +594,10 @@ const OrganizationList = () => {
           )}
         </div>
       </div>
+
+      {structureOf && (
+        <OrganizationStructureModal organizationId={structureOf.id} organizationName={structureOf.name} onClose={() => setStructureOf(null)} />
+      )}
 
       {/* ── MODAL ── */}
       {showModal && (
@@ -602,7 +633,8 @@ const OrganizationList = () => {
                       <div
                         key={key}
                         className={`ol-type-card${form.type === k ? ' sel' : ''}`}
-                        onClick={() => setForm({ ...form, type: k })}
+                        style={isSuperAdmin ? undefined : { cursor: 'not-allowed', opacity: form.type === k ? 1 : 0.55 }}
+                        onClick={() => { if (isSuperAdmin) setForm({ ...form, type: k }); }}
                       >
                         <span className="ol-type-card-dot" style={{ background: tc.color }} />
                         {label}
@@ -610,7 +642,10 @@ const OrganizationList = () => {
                     );
                   })}
                 </div>
+                <p style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>{t(`orgs.typeHelp.${form.type}`)}</p>
+                {!isSuperAdmin && <p style={{ fontSize: 12, color: '#9a3412', marginTop: 4 }}>{t('orgs.typeLocked')}</p>}
               </div>
+              {formError && <p style={{ fontSize: 12, fontWeight: 600, color: '#b91c1c' }}>{formError}</p>}
             </div>
 
             <div className="ol-mfoot">

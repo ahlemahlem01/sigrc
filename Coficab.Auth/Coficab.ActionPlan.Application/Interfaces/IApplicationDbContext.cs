@@ -16,6 +16,10 @@ public interface IApplicationDbContext
     DbSet<PlanAction> PlanActions { get; }
     DbSet<ActionDocument> ActionDocuments { get; }
     DbSet<Department> Departments { get; }
+    DbSet<Organization> Organizations { get; }
+    DbSet<Region> Regions { get; }
+    DbSet<Country> Countries { get; }
+    DbSet<Site> Sites { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<ActionPlanHistory> ActionPlanHistories { get; }
     DbSet<PlanActionAssignmentHistory> PlanActionAssignmentHistories { get; }

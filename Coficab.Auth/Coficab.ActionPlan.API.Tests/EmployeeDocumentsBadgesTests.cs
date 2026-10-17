@@ -290,10 +290,10 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         var tag = Guid.NewGuid().ToString("N")[..6];
         await _factory.SeedAsync(db =>
         {
-            db.Claims.Add(new Claim { Title = $"late-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(-9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
-            db.Claims.Add(new Claim { Title = $"upcoming-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
-            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", StatusCode = "OUVERTE", Deadline = null, DetectionDate = DateTime.UtcNow.AddDays(-400) });
-            db.Claims.Add(new Claim { Title = $"closed-{tag}", StatusCode = "CLOTUREE", Deadline = DateTime.UtcNow.AddDays(-30), DetectionDate = DateTime.UtcNow.AddDays(-90) });
+            db.Claims.Add(new Claim { Title = $"late-{tag}", CreatedById = Me, StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(-9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
+            db.Claims.Add(new Claim { Title = $"upcoming-{tag}", CreatedById = Me, StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
+            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", CreatedById = Me, StatusCode = "OUVERTE", Deadline = null, DetectionDate = DateTime.UtcNow.AddDays(-400) });
+            db.Claims.Add(new Claim { Title = $"closed-{tag}", CreatedById = Me, StatusCode = "CLOTUREE", Deadline = DateTime.UtcNow.AddDays(-30), DetectionDate = DateTime.UtcNow.AddDays(-90) });
             return Task.CompletedTask;
         });
 
@@ -415,6 +415,13 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(1, Delta(capa, capaBefore, "actionsAwaitingValidation"));
         Assert.Equal(1, Delta(capa.GetProperty("aging"), capaBefore.GetProperty("aging"), "from30To90"));
         Assert.Equal(3, capa.GetProperty("byType").GetArrayLength());
+
+        // the fixture is shared: put the long-overdue claims away so they do not crowd the "top 5 late" of other tests
+        await _factory.SeedAsync(db =>
+        {
+            foreach (var c in db.Claims.Where(c => c.ClientId == client)) c.IsArchived = true;
+            return Task.CompletedTask;
+        });
     }
 
     [Fact]

@@ -2215,7 +2215,7 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<Guid>("CountryId")
+                    b.Property<Guid?>("CountryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -3038,8 +3038,7 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.HasOne("Coficab.ActionPlan.Core.Entities.Country", "Country")
                         .WithMany("Sites")
                         .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("Coficab.ActionPlan.Core.Entities.Organization", "Organization")
                         .WithMany("Sites")

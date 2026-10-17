@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IPlanActionService, PlanActionService>();
         services.AddScoped<IDepartmentService, DepartmentService>();
         services.AddScoped<IOrganizationService, OrganizationService>();
+        services.AddScoped<Organizations.OrganizationStructureService>();
         services.AddScoped<IQualityReportPdfService, QualityReportPdfService>();
         services.AddScoped<IEightDService, EightDService>();
         services.AddScoped<IGeminiService, GeminiService>();

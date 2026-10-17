@@ -3893,7 +3893,27 @@
     "name": "Nome dell'organizzazione",
     "namePh": "Es.: Coficab Tunisia",
     "type": "Tipo di organizzazione",
-    "create": "Crea"
+    "create": "Crea",
+    "structure": "Struttura",
+    "typeLocked": "Il tipo di organizzazione è impostato dal superadmin (il fornitore): non è modificabile qui.",
+    "typeConflictIntro": "Cambio di tipo rifiutato: l'organizzazione contiene già",
+    "typeForbidden": "Solo il superadmin può creare un'organizzazione o cambiarne il tipo.",
+    "conflict": {
+      "regions_not_allowed": "{{count}} regione/i",
+      "countries_not_allowed": "{{count}} paese/i",
+      "countries_without_region": "{{count}} paese/i senza regione",
+      "countries_with_region": "{{count}} paese/i collegato/i a una regione",
+      "sites_without_country": "{{count}} sito/i senza paese",
+      "sites_with_country": "{{count}} sito/i collegato/i a un paese",
+      "too_many_sites": "{{count}} siti (ne è consentito uno)"
+    },
+    "typeHelp": {
+      "1": "Un solo sito, nessuna gerarchia.",
+      "2": "Sede centrale, poi direttamente i siti.",
+      "3": "Sede centrale, regioni, paesi, poi siti.",
+      "4": "Sede centrale, paesi, poi siti.",
+      "5": "Sede centrale, regioni, poi siti."
+    }
   },
   "sla": {
     "gateD4": "Fase di analisi (D4)",
@@ -4494,6 +4514,45 @@
       "preventiveStandardized": "Standardizzato",
       "congratulationsNote": "Nota di chiusura",
       "customerName": "Nome del cliente"
+    }
+  },
+  "orgStructure": {
+    "title": "Struttura di {{name}}",
+    "chain": "Livelli",
+    "corporate": "Sede centrale",
+    "regions": "Regioni",
+    "countries": "Paesi",
+    "sites": "Siti",
+    "region": "Regione",
+    "country": "Paese",
+    "add_regions": "Aggiungi una regione",
+    "add_countries": "Aggiungi un paese",
+    "add_sites": "Aggiungi un sito",
+    "name": "Nome",
+    "code": "Codice",
+    "departments": "Reparti",
+    "none": "Nessuno per ora.",
+    "needParent": "Crea prima il livello superiore.",
+    "localOneSite": "un'organizzazione locale è un solo sito",
+    "loading": "Caricamento…",
+    "loadFailed": "Impossibile caricare la struttura.",
+    "archiveConfirm": "Archiviare \"{{name}}\"? Non verrà eliminato.",
+    "err": {
+      "generic": "L'operazione non è riuscita.",
+      "organization_not_found": "Organizzazione non trovata.",
+      "regions_not_allowed": "Questo tipo di organizzazione non ha il livello regione.",
+      "countries_not_allowed": "Questo tipo di organizzazione non ha il livello paese.",
+      "region_required": "Scegli la regione del paese.",
+      "region_not_allowed": "Questo tipo di organizzazione non raggruppa i paesi in regioni.",
+      "country_required": "Scegli il paese del sito.",
+      "country_not_allowed": "Questo tipo di organizzazione non raggruppa i siti in paesi.",
+      "parent_not_found": "Il livello superiore scelto non è stato trovato.",
+      "too_many_sites": "Un'organizzazione locale ha un solo sito.",
+      "code_taken": "Questo codice è già in uso.",
+      "name_invalid": "Il nome è obbligatorio (massimo 200 caratteri).",
+      "code_invalid": "Il codice è obbligatorio (massimo 10 caratteri).",
+      "node_in_use": "Impossibile archiviare: {{count}} elemento/i ne dipendono ancora (reparti, paesi o siti).",
+      "node_not_found": "Elemento non trovato."
     }
   }
 }
