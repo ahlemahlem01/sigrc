@@ -11,11 +11,3 @@ export default function AdminGlobalPage() {
 
   return <Dashboard />;
 }
-
-export function ClaimsDashboardRoute() {
-  return <Dashboard focus="claims" />;
-}
-
-export function ClaimsIndicatorsRoute() {
-  return <Dashboard focus="indicators" />;
-}

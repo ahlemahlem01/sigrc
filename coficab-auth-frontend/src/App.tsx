@@ -17,7 +17,8 @@ import OrganizationList from './pages/admin/OrganizationList';
 
 import FrontLayout from './components/Layout/FrontLayout';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminGlobalPage, { ClaimsDashboardRoute, ClaimsIndicatorsRoute } from './pages/admin/AdminGlobalPage';
+import AdminGlobalPage from './pages/admin/AdminGlobalPage';
+import ClaimsBoardPage from './pages/admin/ClaimsBoardPage';
 import AdminClaimsList from './pages/admin/AdminClaimsList';
 import ReferenceListsPage from './pages/admin/ReferenceListsPage';
 import WorkflowConfigPage from './pages/admin/WorkflowConfigPage';
@@ -197,8 +198,8 @@ const App = () => {
               <Route path="/admin/action-plans/history"         element={<HistoryRedirect />} />
               <Route path="/admin/action-plans/create"          element={<CreateActionPlan />} />
               <Route path="/admin/action-plans/:id"             element={<ActionPlanDetail />} />
-              <Route path="/admin/claims/dashboard"             element={<ClaimsDashboardRoute />} />
-              <Route path="/admin/claims/indicators"            element={<ClaimsIndicatorsRoute />} />
+              <Route path="/admin/claims/dashboard"             element={<ClaimsBoardPage />} />
+              <Route path="/admin/claims/indicators"            element={<Navigate to="/admin/claims/dashboard?tab=indicators" replace />} />
               <Route path="/admin/claims/list"                  element={<AdminClaimsList />} />
               <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage />} />
               <Route path="/admin/claims/analyses"              element={<ClaimsAnalysesHubPage />} />

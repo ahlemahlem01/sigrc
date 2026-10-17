@@ -111,14 +111,10 @@ const NAV: NavItem[] = [
     id: 'claims', label: 'adminNav.claimsQuality', icon: 'ti-clipboard-check',
     children: [
       { label: 'adminNav.claimsDashboard', icon: 'ti-layout-dashboard', path: '/admin/claims/dashboard' },
-      { label: 'adminNav.claimsIndicators', icon: 'ti-chart-dots', path: '/admin/claims/indicators' },
       { label: 'adminNav.allClaims', icon: 'ti-list', path: '/admin/claims/list' },
       { label: 'adminNav.claimAssignments', icon: 'ti-user-check', path: '/admin/claims/assignments' },
       { label: 'adminNav.importHistory', icon: 'ti-file-import', path: '/admin/claims/import-history' },
       { label: 'adminNav.analysesHub', icon: 'ti-git-fork', path: '/admin/claims/analyses' },
-      // Portal pages (FrontLayout, which links back to the admin console)
-      { label: 'adminNav.analysisWorkspace', icon: 'ti-microscope', path: '/pages/front/quality-analyses' },
-      { label: 'adminNav.alerts', icon: 'ti-alert-triangle', path: '/alerts' },
     ],
   },
   {
@@ -168,7 +164,6 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/action-plans/assign':        { title: 'adminNav.overview', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans':               { title: 'adminNav.allPlans', crumb: 'adminNav.actionPlans' },
     '/admin/claims/dashboard':           { title: 'adminNav.claimsDashboard', crumb: 'adminNav.claimsQuality' },
-    '/admin/claims/indicators':          { title: 'adminNav.claimsIndicators', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/list':                { title: 'adminNav.allClaims', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/assignments':         { title: 'adminNav.claimAssignments', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/analyses':            { title: 'adminNav.analysesHub', crumb: 'adminNav.claimsQuality' },
