@@ -106,6 +106,16 @@ public record OverviewOrganizationDto(
     int OpenPlans,
     int LatePlans);
 
+/// <summary>An open claim that should be handled first: late, then the most severe, then the most overdue.</summary>
+public record PriorityClaimDto(
+    Guid Id,
+    string Title,
+    string ClientId,
+    string Severity,
+    int OverdueDays,
+    string? ResponsibleName,
+    string StatusCode);
+
 public record OverviewScopeDto(Guid? OrganizationId, string? OrganizationName);
 
 public record OverviewDto(
@@ -119,7 +129,8 @@ public record OverviewDto(
     OverviewWatchDto Watch,
     bool SimulatedData,
     OverviewScopeDto Scope,
-    IReadOnlyList<OverviewOrganizationDto> Organizations);
+    IReadOnlyList<OverviewOrganizationDto> Organizations,
+    IReadOnlyList<PriorityClaimDto> Priority);
 
 public record GetOverviewQuery(int Days = 90, string? UserId = null, bool SuperAdmin = true, Guid? OrganizationId = null) : IRequest<OverviewDto>;
 
@@ -350,6 +361,24 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 .Select(c => new CriticalClaimItemDto(c.Id, c.Title, c.ClientId, c.Severity, AgeDays(c.DetectionDate, c.CreatedAt), NameOf(c.AssignedToId)))
                 .ToList());
 
+        // ── to handle first: the open claims whose deadline has passed, the most severe first, then the most overdue ──
+        static int SeverityWeight(string sev) => (sev ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "CRITICAL" or "CRITIQUE" => 5,
+            "HIGH" or "ELEVEE" or "ÉLEVÉE" => 3,
+            "LOW" or "FAIBLE" => 1,
+            _ => 2,
+        };
+        var priority = open
+            .Where(c => ClaimDeadlines.IsLate(c.Deadline, today))
+            .Select(c => new { Claim = c, Overdue = ClaimDeadlines.OverdueDays(c.Deadline, today), Weight = SeverityWeight(c.Severity) })
+            .OrderByDescending(x => x.Weight).ThenByDescending(x => x.Overdue).ThenBy(x => x.Claim.Title, StringComparer.OrdinalIgnoreCase)
+            .Take(5)
+            .Select(x => new PriorityClaimDto(
+                x.Claim.Id, x.Claim.Title, x.Claim.ClientId, string.IsNullOrWhiteSpace(x.Claim.Severity) ? "MEDIUM" : x.Claim.Severity,
+                x.Overdue, NameOf(x.Claim.AssignedToId), x.Claim.StatusCode))
+            .ToList();
+
         var claimIds = all.Select(c => c.Id).ToHashSet();
         var dossiers = (await _context.EightDDossiers.AsNoTracking()
                 .Where(d => !d.IsArchived)
@@ -456,6 +485,6 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             Target("Overview:ResolutionDays", 14),
             Target("Overview:PpmTolerancePct", 10));
 
-        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows);
+        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows, priority);
     }
 }

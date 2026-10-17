@@ -274,6 +274,9 @@
     "referenceLists": "Tipi di difetto e gravità"
   },
   "overviewPage": {
+    "first": "Da gestire per primi",
+    "firstNone": "Nessun reclamo in ritardo: nulla di urgente da gestire.",
+    "firstLate": "{{count}} g di ritardo",
     "q0": "Come si confrontano le organizzazioni?",
     "organizationLabel": "Organizzazione",
     "allOrganizations": "Tutte le organizzazioni",
@@ -322,6 +325,7 @@
       "workload": "Persone che portano almeno 1,5 volte la media di reclami aperti. Ogni barra divide i reclami aperti di una persona in nei tempi (blu) e in ritardo (rosso)."
     },
     "hint": {
+      "first": "I cinque reclami aperti oltre la scadenza che richiedono attenzione per primi: i più gravi, poi i più in ritardo. Clicca per aprirlo. Quelli senza scadenza non sono elencati.",
       "q0": "Reclami aperti, ritardi e tasso nei tempi di ogni organizzazione negli ultimi {{days}} giorni, affiancati.",
       "q1": "I dati chiave degli ultimi {{days}} giorni, confrontati con i {{days}} giorni precedenti.",
       "q2": "Ciò che attende una decisione o una correzione. Clicca su una scheda per aprire l'elenco.",

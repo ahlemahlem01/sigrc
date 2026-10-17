@@ -274,6 +274,9 @@
     "referenceLists": "Types de défaut et gravités"
   },
   "overviewPage": {
+    "first": "À traiter en premier",
+    "firstNone": "Aucune réclamation en retard : rien d'urgent à traiter.",
+    "firstLate": "{{count}} j de retard",
     "q0": "Comment se comparent les organisations ?",
     "organizationLabel": "Organisation",
     "allOrganizations": "Toutes les organisations",
@@ -322,6 +325,7 @@
       "workload": "Personnes qui portent au moins 1,5 fois la moyenne de réclamations ouvertes. Chaque barre sépare les réclamations ouvertes d'une personne en dans les temps (bleu) et en retard (rouge)."
     },
     "hint": {
+      "first": "Les cinq réclamations ouvertes dont l'échéance est dépassée et qui demandent de l'attention en premier : les plus graves, puis les plus en retard. Cliquez pour l'ouvrir. Celles sans échéance ne sont pas listées ici.",
       "q0": "Réclamations ouvertes, retards et taux dans les délais de chaque organisation sur les {{days}} derniers jours, côte à côte.",
       "q1": "Les chiffres clés des {{days}} derniers jours, comparés aux {{days}} jours précédents.",
       "q2": "Ce qui attend une décision ou une correction. Cliquez sur une carte pour ouvrir la liste.",

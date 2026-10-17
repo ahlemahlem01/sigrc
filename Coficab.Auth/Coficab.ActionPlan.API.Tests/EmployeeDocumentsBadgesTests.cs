@@ -410,4 +410,29 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         // ... while the comparison still lists the other organizations
         Assert.Contains(onlyA.GetProperty("organizations").EnumerateArray(), o => o.GetProperty("name").GetString() == $"OrgB-{tag}");
     }
+
+    [Fact]
+    public async Task Overview_ListsTheMostUrgentClaimsFirst_SeverityThenDelay_NeverWithoutDeadline()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Claims.Add(new Claim { Title = $"urgent-b-{tag}", Severity = "CRITICAL", StatusCode = "OUVERTE", CreatedById = Me, Deadline = now.AddDays(-5000), DetectionDate = now.AddDays(-6000), CreatedAt = now.AddDays(-6000) });
+            db.Claims.Add(new Claim { Title = $"urgent-a-{tag}", Severity = "CRITICAL", StatusCode = "OUVERTE", CreatedById = Me, Deadline = now.AddDays(-5001), DetectionDate = now.AddDays(-6000), CreatedAt = now.AddDays(-6000) });
+            db.Claims.Add(new Claim { Title = $"low-{tag}", Severity = "LOW", StatusCode = "OUVERTE", CreatedById = Me, Deadline = now.AddDays(-9000), DetectionDate = now.AddDays(-9500), CreatedAt = now.AddDays(-9500) });
+            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", Severity = "CRITICAL", StatusCode = "OUVERTE", CreatedById = Me, Deadline = null, DetectionDate = now.AddDays(-9900), CreatedAt = now.AddDays(-9900) });
+            return Task.CompletedTask;
+        });
+
+        var overview = await ClientAs("admin").GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+        var titles = overview.GetProperty("priority").EnumerateArray().Select(c => c.GetProperty("title").GetString()).ToList();
+
+        Assert.True(titles.Count <= 5);
+        Assert.Equal($"urgent-a-{tag}", titles[0]);                  // critical, the most overdue of the two
+        Assert.Equal($"urgent-b-{tag}", titles[1]);
+        Assert.DoesNotContain($"nodeadline-{tag}", titles);          // a claim without a deadline is never "late"
+        var lowIndex = titles.IndexOf($"low-{tag}");
+        Assert.True(lowIndex == -1 || lowIndex > 1);                  // severity beats the length of the delay
+    }
 }

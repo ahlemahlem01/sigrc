@@ -154,6 +154,16 @@ export interface OverviewOrganization {
   latePlans: number;
 }
 
+export interface PriorityClaim {
+  id: string;
+  title: string;
+  clientId: string;
+  severity: string;
+  overdueDays: number;
+  responsibleName?: string | null;
+  statusCode: string;
+}
+
 export interface OverviewScope {
   organizationId: string | null;
   organizationName: string | null;
@@ -171,4 +181,5 @@ export interface OverviewData {
   simulatedData: boolean;
   scope: OverviewScope;
   organizations: OverviewOrganization[];
+  priority: PriorityClaim[];
 }

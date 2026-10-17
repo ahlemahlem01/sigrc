@@ -381,6 +381,49 @@ export default function OverviewPage() {
             </Section>
           )}
 
+          {/* À traiter en premier */}
+          <Section title={t('overviewPage.first')} hint={t('overviewPage.hint.first')}>
+            {data.priority.length === 0 ? (
+              <div className="rounded-xl bg-white shadow-sm px-4 py-4 text-sm font-semibold" style={{ border: `1px solid ${COFICAB.line}`, color: COFICAB.ok }}>
+                {t('overviewPage.firstNone')}
+              </div>
+            ) : (
+              <ol className="m-0 p-0 list-none rounded-xl bg-white shadow-sm overflow-hidden" style={{ border: `1px solid ${COFICAB.line}` }}>
+                {data.priority.map((c, i) => {
+                  const sev = c.severity.toUpperCase();
+                  const critical = sev.includes('CRIT');
+                  const high = sev.includes('HIGH') || sev.includes('ELEV');
+                  const chip = critical ? { bg: COFICAB.dangerSoft, fg: COFICAB.danger } : high ? { bg: COFICAB.warnSoft, fg: COFICAB.warn } : { bg: COFICAB.light, fg: COFICAB.navy };
+                  return (
+                    <li
+                      key={c.id}
+                      role="link"
+                      tabIndex={0}
+                      onClick={() => navigate(`/pages/front/quality-analyses?focus=${c.id}`)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/pages/front/quality-analyses?focus=${c.id}`); }}
+                      className="px-4 py-3 flex items-center gap-3 cursor-pointer hover:bg-slate-50"
+                      style={{ borderTop: i === 0 ? undefined : `1px solid ${COFICAB.line}` }}
+                    >
+                      <span className="w-6 h-6 shrink-0 rounded-full flex items-center justify-center text-[11px] font-extrabold text-white" style={{ background: critical ? COFICAB.danger : COFICAB.navy }}>
+                        {i + 1}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold truncate" style={{ color: COFICAB.ink }}>{c.title}</div>
+                        <div className="text-[11px] truncate" style={{ color: COFICAB.muted }}>
+                          {c.clientId} · {c.responsibleName || <b style={{ color: COFICAB.warn }}>{t('claimDetail.unassigned')}</b>}
+                        </div>
+                      </div>
+                      <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: chip.bg, color: chip.fg }}>{c.severity}</span>
+                      <span className="shrink-0 w-20 text-right text-xs font-bold tabular-nums" style={{ color: COFICAB.danger }}>
+                        {t('overviewPage.firstLate', { count: c.overdueDays })}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+          </Section>
+
           {/* 1. Are we on track? */}
           <Section title={t('overviewPage.q1')} hint={t('overviewPage.hint.q1', { days })}>
             <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>

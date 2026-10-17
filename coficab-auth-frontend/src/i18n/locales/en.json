@@ -274,6 +274,9 @@
     "referenceLists": "Defect types and severities"
   },
   "overviewPage": {
+    "first": "To handle first",
+    "firstNone": "No claim is late: nothing to handle urgently.",
+    "firstLate": "{{count}} d late",
     "q0": "How do the organizations compare?",
     "organizationLabel": "Organization",
     "allOrganizations": "All organizations",
@@ -322,6 +325,7 @@
       "workload": "People carrying at least 1.5 times the average number of open claims. Each bar splits a person's open claims into on time (blue) and late (red)."
     },
     "hint": {
+      "first": "The five open claims past their deadline that need attention first: the most severe, then the most overdue. Click one to open it. Claims without a deadline are not listed here.",
       "q0": "Open claims, delays and on-time rate of each organization for the last {{days}} days, side by side.",
       "q1": "The key figures for the last {{days}} days, each compared with the {{days}} days before.",
       "q2": "What is waiting for a decision or a fix. Click a card to open the list.",
