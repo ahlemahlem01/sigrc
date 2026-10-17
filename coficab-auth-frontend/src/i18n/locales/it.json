@@ -382,7 +382,9 @@
       "q3": "Da dove vengono i reclami del periodo: difetti, linee di produzione e clienti con più reclami.",
       "q4": "Mese per mese: le scadenze sono rispettate e il numero di reclami aperti è sotto controllo?",
       "q5": "Il lato reparto: reclami critici, dossier 8D in corso, lotti che ritornano e chi porta il carico.",
-      "rising": "Difetti con nettamente più reclami negli ultimi {{days}} giorni rispetto ai {{days}} precedenti (almeno 5, e 1,5 volte di più). Si confrontano solo i tipi di difetto dell'elenco di riferimento."
+      "rising": "Difetti con nettamente più reclami negli ultimi {{days}} giorni rispetto ai {{days}} precedenti (almeno 5, e 1,5 volte di più). Si confrontano solo i tipi di difetto dell'elenco di riferimento.",
+      "qCapa": "Il corrispettivo dei reclami per le azioni correttive e preventive: cosa è aperto, in ritardo, chiuso nei tempi o in attesa di decisione.",
+      "qClients": "I clienti con più reclami critici o alti aperti, poi più ritardi."
     },
     "healthHelp": {
       "lastImport": "L'ultimo file di storico reclami caricato e la data. Clicca per aprire lo storico delle importazioni.",
@@ -445,8 +447,48 @@
       "plansClosure": "Piani CAPA chiusi tra chiusi e aperti.",
       "pendingValidation": "Reclami in attesa di una decisione di validazione al front office.",
       "unassigned": "Reclami aperti senza dipendente assegnato.",
-      "alerts": "Avvisi di anomalia in attesa di decisione (numero insolito di reclami per un difetto su una linea)."
-    }
+      "alerts": "Avvisi di anomalia in attesa di decisione (numero insolito di reclami per un difetto su una linea).",
+      "lateShare": "Reclami aperti con scadenza superata, in percentuale dei reclami aperti. Quelli senza scadenza non sono considerati in ritardo.",
+      "capaLatePlans": "Piani CAPA aperti con almeno un’azione non terminata oltre la scadenza.",
+      "capaLateActions": "Azioni non terminate (non al 100 %, validate o annullate) con scadenza superata.",
+      "capaOnTime": "Quota dei piani chiusi nel periodo che sono stati chiusi entro la scadenza.",
+      "capaAwaiting": "Azioni arrivate al 100 % che nessuno ha ancora validato o valutato: il piano non può chiudersi finché attendono."
+    },
+    "severity": {
+      "critical": "Critica",
+      "high": "Alta",
+      "medium": "Media",
+      "low": "Bassa"
+    },
+    "lateShare": "Quota in ritardo",
+    "lateShareSub": "{{late}} su {{open}} reclami aperti",
+    "lateOfOpen": "{{pct}} % degli aperti",
+    "agingTitle": "Anzianità dei ritardi",
+    "agingHelp": "Da quanto tempo gli elementi in ritardo lo sono: fino a 30 giorni, da 31 a 90 giorni, oltre 90 giorni. Più la parte a destra è grande, più il ritardo è radicato.",
+    "agingUnder30": "≤ 30 giorni",
+    "aging30to90": "31–90 giorni",
+    "agingOver90": "> 90 giorni",
+    "agingNone": "Nessun ritardo",
+    "agingClaims": "Reclami in ritardo",
+    "agingPlans": "Piani CAPA in ritardo",
+    "qCapa": "A che punto sono i piani d’azione (CAPA)?",
+    "capaOpenPlans": "Piani aperti",
+    "capaOpenPlansSub": "{{actions}} azioni da fare",
+    "capaLatePlans": "Piani in ritardo",
+    "capaLateActions": "Azioni in ritardo",
+    "capaLateActionsSub": "su {{open}} azioni aperte",
+    "capaOnTime": "Chiusura nei tempi",
+    "capaOnTimeSub": "{{ok}} su {{total}} piani chiusi (ultimi {{days}} giorni)",
+    "capaClosure": "Durata media di chiusura",
+    "capaClosureSub": "{{count}} piani chiusi (ultimi {{days}} giorni)",
+    "capaAwaiting": "Azioni da validare",
+    "capaAwaitingSub": "completate al 100 %, in attesa di validazione",
+    "capaTypes": "Per tipo",
+    "qClients": "Quali clienti sono più esposti?",
+    "colCritical": "Critici / alti",
+    "colLateShare": "% in ritardo",
+    "clientsNone": "Nessun reclamo aperto per cliente.",
+    "clientsNote": "Ordinati per reclami critici o alti aperti, poi per ritardi. Tasso nei tempi e PPM sul periodo scelto."
   },
   "adminDashboard": {
     "overview": {

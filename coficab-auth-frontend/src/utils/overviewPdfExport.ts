@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
 import autoTable, { type RowInput } from 'jspdf-autotable';
 import type { OverviewData } from '../types/dashboardOverview';
+import { severityKey } from './overviewSeverity';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -19,6 +20,8 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
     n == null ? '-' : n.toLocaleString(locale, { maximumFractionDigits: digits });
   const pct = (n: number | null | undefined) => (n == null ? '-' : `${num(n, 1)} %`);
   const days = data.days;
+  const share = (part: number, whole: number) => (whole > 0 ? `${num((100 * part) / whole, 0)} %` : '-');
+  const severity = (raw: string) => t(`overviewPage.severity.${severityKey(raw)}`);
   const h = data.headline;
 
   let y = 16;
@@ -63,13 +66,30 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
       margin: { left: 14, right: 14 },
     });
 
+  // key figures
+  const tg = data.targets;
+  table(
+    section(t('overviewPage.q1')),
+    [t('overviewPage.colIndicator'), t('overviewPage.colValue'), t('overviewPage.colPrevious', { days }), t('overviewPage.colTarget')],
+    [
+      [t('overviewPage.openClaims'), num(h.openClaims), '-', '-'],
+      [t('overviewPage.lateShare'), share(data.actions.lateClaims, h.openClaims), '-', '-'],
+      [t('overviewPage.onTime'), pct(h.onTimeRate.value), pct(h.onTimeRate.previous), `>= ${num(tg.onTimeGreen)} %`],
+      [t('overviewPage.resolution'), h.avgResolutionDays.value == null ? '-' : `${num(h.avgResolutionDays.value, 1)} ${t('overviewPage.daysUnit')}`,
+        h.avgResolutionDays.previous == null ? '-' : `${num(h.avgResolutionDays.previous, 1)} ${t('overviewPage.daysUnit')}`, `<= ${num(tg.resolutionDays)} ${t('overviewPage.daysUnit')}`],
+      [t('overviewPage.ppm'), num(h.ppm.value), num(h.ppm.previous), `+${num(tg.ppmTolerancePct)} % max`],
+      [t('overviewPage.latePlans'), num(h.latePlans), '-', '-'],
+      [t('overviewPage.plansClosure'), pct(h.plansClosureRate), '-', '-'],
+    ],
+  );
+
   // to handle first
   table(
     section(t('overviewPage.first')),
     ['#', t('overviewPage.colTitle'), t('overviewPage.colClient'), t('overviewPage.colResponsible'), t('overviewPage.colSeverity'), t('overviewPage.colDelay')],
     data.priority.length === 0
       ? [[{ content: t('overviewPage.firstNone'), colSpan: 6 }]]
-      : data.priority.map((c, i) => [i + 1, c.title, c.clientId, c.responsibleName || t('claimDetail.unassigned'), c.severity, t('overviewPage.firstLate', { count: c.overdueDays })]),
+      : data.priority.map((c, i) => [i + 1, c.title, c.clientId, c.responsibleName || t('claimDetail.unassigned'), severity(c.severity), t('overviewPage.firstLate', { count: c.overdueDays })]),
     { 0: 8 },
   );
 
@@ -80,27 +100,11 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
       [t('overviewPage.colOrganization'), t('overviewPage.colOpen'), t('overviewPage.colLate'), t('overviewPage.colNoDeadline'), t('overviewPage.colValidation'), t('overviewPage.colOnTime'), t('overviewPage.colPpm'), t('overviewPage.colLatePlans'), t('overviewPage.colEmployees')],
       data.organizations.map((o) => [
         o.organizationId ? o.name : t('overviewPage.unattributed'),
-        num(o.openClaims), num(o.lateClaims), num(o.noDeadline), num(o.pendingValidation), pct(o.onTimeRate), num(o.ppm),
+        num(o.openClaims), `${num(o.lateClaims)} (${share(o.lateClaims, o.openClaims)})`, num(o.noDeadline), num(o.pendingValidation), pct(o.onTimeRate), num(o.ppm),
         o.organizationId ? num(o.latePlans) : '-', o.organizationId ? num(o.employees) : '-',
       ]),
     );
   }
-
-  // key figures
-  const tg = data.targets;
-  table(
-    section(t('overviewPage.q1')),
-    [t('overviewPage.colIndicator'), t('overviewPage.colValue'), t('overviewPage.colPrevious', { days }), t('overviewPage.colTarget')],
-    [
-      [t('overviewPage.openClaims'), num(h.openClaims), '-', '-'],
-      [t('overviewPage.onTime'), pct(h.onTimeRate.value), pct(h.onTimeRate.previous), `>= ${num(tg.onTimeGreen)} %`],
-      [t('overviewPage.resolution'), h.avgResolutionDays.value == null ? '-' : `${num(h.avgResolutionDays.value, 1)} ${t('overviewPage.daysUnit')}`,
-        h.avgResolutionDays.previous == null ? '-' : `${num(h.avgResolutionDays.previous, 1)} ${t('overviewPage.daysUnit')}`, `<= ${num(tg.resolutionDays)} ${t('overviewPage.daysUnit')}`],
-      [t('overviewPage.ppm'), num(h.ppm.value), num(h.ppm.previous), `+${num(tg.ppmTolerancePct)} % max`],
-      [t('overviewPage.latePlans'), num(h.latePlans), '-', '-'],
-      [t('overviewPage.plansClosure'), pct(h.plansClosureRate), '-', '-'],
-    ],
-  );
 
   // needs action
   const a = data.actions;
@@ -109,13 +113,48 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
     [t('overviewPage.colIndicator'), t('overviewPage.colCount')],
     [
       [t('overviewPage.pendingValidation'), num(a.pendingValidation)],
-      [t('overviewPage.lateClaims'), num(a.lateClaims)],
+      [t('overviewPage.lateClaims'), `${num(a.lateClaims)} (${share(a.lateClaims, h.openClaims)})`],
       [t('overviewPage.noDeadline'), num(a.noDeadline)],
       [t('overviewPage.unassigned'), num(a.unassigned)],
       [t('overviewPage.latePlans'), num(a.latePlans)],
       [t('overviewPage.openAlerts'), num(a.openAlerts)],
       ...a.alerts.map((al) => [`  ${t('overviewPage.alert')}: ${al.defectType} - ${al.productionLine || '-'}`, t('overviewPage.alertLine', { count: al.currentCount, z: al.zScore })]),
     ],
+  );
+
+  // how long the delays last
+  const aging = (label: string, a: { under30: number; from30To90: number; over90: number }) => [
+    label, num(a.under30), num(a.from30To90), num(a.over90),
+  ];
+  table(
+    section(t('overviewPage.agingTitle')),
+    [t('overviewPage.colIndicator'), t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')],
+    [aging(t('overviewPage.agingClaims'), data.claimAging), aging(t('overviewPage.agingPlans'), data.capa.aging)],
+  );
+
+  // CAPA
+  const c = data.capa;
+  table(
+    section(t('overviewPage.qCapa')),
+    [t('overviewPage.colIndicator'), t('overviewPage.colValue')],
+    [
+      [t('overviewPage.capaOpenPlans'), `${num(c.openPlans)} (${t('overviewPage.capaOpenPlansSub', { actions: num(c.openActions) })})`],
+      [t('overviewPage.capaLatePlans'), `${num(c.latePlans)} (${share(c.latePlans, c.openPlans)})`],
+      [t('overviewPage.capaLateActions'), `${num(c.lateActions)} (${share(c.lateActions, c.openActions)})`],
+      [t('overviewPage.capaOnTime'), `${pct(c.onTimeRate)} (${c.onTimeCount}/${c.onTimeBase})`],
+      [t('overviewPage.capaClosure'), c.avgClosureDays == null ? '-' : `${num(c.avgClosureDays, 1)} ${t('overviewPage.daysUnit')}`],
+      [t('overviewPage.capaAwaiting'), num(c.actionsAwaitingValidation)],
+      ...c.byType.map((x) => [`  ${x.type}`, `${num(x.openPlans)} (${t('overviewPage.lateCount', { count: x.latePlans })})`]),
+    ],
+  );
+
+  // customers
+  table(
+    section(t('overviewPage.qClients')),
+    [t('overviewPage.colClient'), t('overviewPage.colOpen'), t('overviewPage.colCritical'), t('overviewPage.colLate'), t('overviewPage.colLateShare'), t('overviewPage.colOnTime'), t('overviewPage.colPpm')],
+    data.clients.length === 0
+      ? [[{ content: t('overviewPage.clientsNone'), colSpan: 7 }]]
+      : data.clients.map((x) => [x.clientId, num(x.openClaims), num(x.criticalOpen), num(x.lateClaims), share(x.lateClaims, x.openClaims), pct(x.onTimeRate), num(x.ppm)]),
   );
 
   // problems

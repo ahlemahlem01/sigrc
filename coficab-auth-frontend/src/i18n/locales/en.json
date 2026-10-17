@@ -382,7 +382,9 @@
       "q3": "Where the claims of the period come from: the defects, production lines and clients with the most claims.",
       "q4": "Month by month: are deadlines being met, and is the number of opened claims under control?",
       "q5": "The shop-floor side: critical claims, 8D files in progress, lots that keep coming back and who is carrying the load.",
-      "rising": "Defects with clearly more claims in the last {{days}} days than in the {{days}} days before (at least 5, and 1.5 times more). Only defect types from the reference list are compared."
+      "rising": "Defects with clearly more claims in the last {{days}} days than in the {{days}} days before (at least 5, and 1.5 times more). Only defect types from the reference list are compared.",
+      "qCapa": "The counterpart of the claims figures for corrective and preventive actions: what is open, late, closed on time, or waiting for a decision.",
+      "qClients": "Customers with the most open critical or high claims, then the most delays."
     },
     "healthHelp": {
       "lastImport": "The most recent file of historical claims that was loaded, and when. Click to open the import history.",
@@ -445,8 +447,48 @@
       "plansClosure": "Closed CAPA plans among closed and open plans.",
       "pendingValidation": "Claims waiting for a validation decision in the front office.",
       "unassigned": "Open claims with no employee assigned.",
-      "alerts": "Anomaly alerts waiting for a decision (unusual number of claims for a defect on a line)."
-    }
+      "alerts": "Anomaly alerts waiting for a decision (unusual number of claims for a defect on a line).",
+      "lateShare": "Open claims whose deadline has passed, as a percentage of open claims. Claims without a deadline are not counted as late.",
+      "capaLatePlans": "Open CAPA plans with at least one unfinished action past its deadline.",
+      "capaLateActions": "Unfinished actions (not at 100 %, validated or cancelled) whose deadline has passed.",
+      "capaOnTime": "Share of the plans closed in the period that were closed before their deadline.",
+      "capaAwaiting": "Actions that reached 100 % and that nobody has validated or assessed yet: the plan cannot be closed while they wait."
+    },
+    "severity": {
+      "critical": "Critical",
+      "high": "High",
+      "medium": "Medium",
+      "low": "Low"
+    },
+    "lateShare": "Share late",
+    "lateShareSub": "{{late}} of {{open}} open claims",
+    "lateOfOpen": "{{pct}} % of open",
+    "agingTitle": "Age of the delays",
+    "agingHelp": "How long late items have been late: up to 30 days, 31 to 90 days, more than 90 days. The larger the right-hand part, the more entrenched the delay.",
+    "agingUnder30": "≤ 30 days",
+    "aging30to90": "31 to 90 days",
+    "agingOver90": "> 90 days",
+    "agingNone": "Nothing late",
+    "agingClaims": "Late claims",
+    "agingPlans": "Late CAPA plans",
+    "qCapa": "How are the action plans (CAPA) doing?",
+    "capaOpenPlans": "Open plans",
+    "capaOpenPlansSub": "{{actions}} actions to do",
+    "capaLatePlans": "Late plans",
+    "capaLateActions": "Late actions",
+    "capaLateActionsSub": "of {{open}} open actions",
+    "capaOnTime": "Closed on time",
+    "capaOnTimeSub": "{{ok}} of {{total}} closed plans (last {{days}} days)",
+    "capaClosure": "Average closure time",
+    "capaClosureSub": "{{count}} closed plans (last {{days}} days)",
+    "capaAwaiting": "Actions to validate",
+    "capaAwaitingSub": "finished at 100 %, waiting for validation",
+    "capaTypes": "By type",
+    "qClients": "Which customers are the most exposed?",
+    "colCritical": "Critical / high",
+    "colLateShare": "% late",
+    "clientsNone": "No open claim per customer.",
+    "clientsNote": "Sorted by open critical or high claims, then by delays. On-time rate and PPM over the chosen period."
   },
   "adminDashboard": {
     "overview": {

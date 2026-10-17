@@ -290,10 +290,10 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         var tag = Guid.NewGuid().ToString("N")[..6];
         await _factory.SeedAsync(db =>
         {
-            db.Claims.Add(new Claim { Title = $"late-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(-9), DetectionDate = DateTime.UtcNow.AddDays(-60), CreatedById = Me });
-            db.Claims.Add(new Claim { Title = $"upcoming-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(9), DetectionDate = DateTime.UtcNow.AddDays(-60), CreatedById = Me });
-            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", StatusCode = "OUVERTE", Deadline = null, DetectionDate = DateTime.UtcNow.AddDays(-400), CreatedById = Me });
-            db.Claims.Add(new Claim { Title = $"closed-{tag}", StatusCode = "CLOTUREE", Deadline = DateTime.UtcNow.AddDays(-30), DetectionDate = DateTime.UtcNow.AddDays(-90), CreatedById = Me });
+            db.Claims.Add(new Claim { Title = $"late-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(-9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
+            db.Claims.Add(new Claim { Title = $"upcoming-{tag}", StatusCode = "OUVERTE", Deadline = DateTime.UtcNow.AddDays(9), DetectionDate = DateTime.UtcNow.AddDays(-60) });
+            db.Claims.Add(new Claim { Title = $"nodeadline-{tag}", StatusCode = "OUVERTE", Deadline = null, DetectionDate = DateTime.UtcNow.AddDays(-400) });
+            db.Claims.Add(new Claim { Title = $"closed-{tag}", StatusCode = "CLOTUREE", Deadline = DateTime.UtcNow.AddDays(-30), DetectionDate = DateTime.UtcNow.AddDays(-90) });
             return Task.CompletedTask;
         });
 
@@ -354,6 +354,67 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.True(after.GetProperty("watch").GetProperty("workload").TryGetProperty("overloaded", out _));
         Assert.Equal(6, after.GetProperty("months").GetArrayLength());
         Assert.Equal(85, after.GetProperty("targets").GetProperty("onTimeGreen").GetDouble());
+    }
+
+    [Fact]
+    public async Task Overview_AgesTheLateItems_ListsTheCustomersAtRisk_AndSummarisesCapa()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var client = $"CLI-{tag}";
+        var admin = ClientAs("admin");
+        var before = await admin.GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            Claim Late(int daysLate, string severity) => new()
+            {
+                Title = $"age-{tag}-{daysLate}", ClientId = client, Severity = severity, StatusCode = "EN_ANALYSE", CreatedById = Me,
+                DetectionDate = now.AddDays(-200), CreatedAt = now.AddDays(-200), Deadline = now.AddDays(-daysLate),
+            };
+            db.Claims.Add(Late(10, "CRITICAL"));
+            db.Claims.Add(Late(60, "LOW"));
+            db.Claims.Add(Late(120, "HIGH"));
+            db.Claims.Add(new Claim { Title = $"age-{tag}-open", ClientId = client, Severity = "LOW", StatusCode = "EN_ANALYSE", CreatedById = Me, DetectionDate = now, CreatedAt = now, Deadline = now.AddDays(30) });
+
+            var orgId = Guid.NewGuid();
+            var deptId = Guid.NewGuid();
+            db.Organizations.Add(new Organization { Id = orgId, Name = $"Org-{tag}" });
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = orgId });
+            var plan = new Core.Entities.ActionPlan
+            {
+                Title = $"capa-{tag}", Status = ActionPlanStatus.Ongoing, Type = ActionPlanType.PAC, OrganizationId = orgId, DepartmentId = deptId,
+                OwnerId = Me, CreatedBy = Me, CreatedAt = now.AddDays(-100),
+            };
+            plan.PlanActions.Add(new PlanAction { Title = "late-action", Progress = ActionProgress.NotStarted, Deadline = now.AddDays(-40) });
+            plan.PlanActions.Add(new PlanAction { Title = "to-validate", Progress = ActionProgress.Hundred, Deadline = now.AddDays(5) });
+            db.ActionPlans.Add(plan);
+            return Task.CompletedTask;
+        });
+
+        var after = await admin.GetFromJsonAsync<JsonElement>("/api/dashboard/overview?days=90", JsonOpts);
+        int Delta(JsonElement a, JsonElement b, string name) => a.GetProperty(name).GetInt32() - b.GetProperty(name).GetInt32();
+
+        var aging = after.GetProperty("claimAging");
+        var agingBefore = before.GetProperty("claimAging");
+        Assert.Equal(1, Delta(aging, agingBefore, "under30"));
+        Assert.Equal(1, Delta(aging, agingBefore, "from30To90"));
+        Assert.Equal(1, Delta(aging, agingBefore, "over90"));
+
+        var row = after.GetProperty("clients").EnumerateArray().FirstOrDefault(c => c.GetProperty("clientId").GetString() == client);
+        Assert.Equal(JsonValueKind.Object, row.ValueKind);
+        Assert.Equal(4, row.GetProperty("openClaims").GetInt32());
+        Assert.Equal(2, row.GetProperty("criticalOpen").GetInt32());     // critical + high
+        Assert.Equal(3, row.GetProperty("lateClaims").GetInt32());
+
+        var capa = after.GetProperty("capa");
+        var capaBefore = before.GetProperty("capa");
+        Assert.Equal(1, Delta(capa, capaBefore, "openPlans"));
+        Assert.Equal(1, Delta(capa, capaBefore, "latePlans"));
+        Assert.Equal(1, Delta(capa, capaBefore, "lateActions"));
+        Assert.Equal(1, Delta(capa, capaBefore, "actionsAwaitingValidation"));
+        Assert.Equal(1, Delta(capa.GetProperty("aging"), capaBefore.GetProperty("aging"), "from30To90"));
+        Assert.Equal(3, capa.GetProperty("byType").GetArrayLength());
     }
 
     [Fact]

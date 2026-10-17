@@ -35,6 +35,15 @@ const sample = (): OverviewData => ({
     { organizationId: 'o1', name: 'Coficab Group', employees: 20, openClaims: 561, lateClaims: 425, noDeadline: 136, pendingValidation: 82, onTimeCount: 1, onTimeBase: 2, onTimeRate: 77.6, ppm: 9681, openPlans: 3, latePlans: 0 },
     { organizationId: null, name: '', employees: 0, openClaims: 26, lateClaims: 6, noDeadline: 20, pendingValidation: 2, onTimeCount: 1, onTimeBase: 2, onTimeRate: 76.7, ppm: 16901, openPlans: 0, latePlans: 0 },
   ],
+  claimAging: { under30: 100, from30To90: 250, over90: 209 },
+  capa: {
+    openPlans: 72, latePlans: 60, openActions: 210, lateActions: 150, closedInPeriod: 20, onTimeCount: 8, onTimeBase: 18, onTimeRate: 44.4,
+    avgClosureDays: 31.5, actionsAwaitingValidation: 12, aging: { under30: 5, from30To90: 20, over90: 35 },
+    byType: [{ type: 'PA', openPlans: 20, latePlans: 15 }, { type: 'PAC', openPlans: 40, latePlans: 35 }, { type: 'PAP', openPlans: 12, latePlans: 10 }],
+  },
+  clients: [
+    { clientId: 'YAZAKI', openClaims: 40, criticalOpen: 12, lateClaims: 30, onTimeCount: 5, onTimeBase: 10, onTimeRate: 50, ppm: 12000 },
+  ],
   priority: [
     { id: 'p1', title: 'Débordement étain', clientId: 'YAZAKI', severity: 'CRITICAL', overdueDays: 433, responsibleName: null, statusCode: 'OUVERTE' },
   ],
@@ -52,10 +61,12 @@ describe('buildOverviewPdf', () => {
     const pdf = doc.output();
     const updated = pdf.split('overviewPage.updatedAt').length - 1;
     expect(updated).toBeGreaterThanOrEqual(1 + doc.getNumberOfPages());   // under the title + the footer of every page
-    ['overviewPage.first', 'overviewPage.q0', 'overviewPage.q1', 'overviewPage.q2', 'overviewPage.q3', 'overviewPage.q4', 'overviewPage.q5']
+    ['overviewPage.first', 'overviewPage.q0', 'overviewPage.q1', 'overviewPage.q2', 'overviewPage.q3', 'overviewPage.q4', 'overviewPage.q5', 'overviewPage.agingTitle', 'overviewPage.qCapa', 'overviewPage.qClients']
       .forEach((key) => expect(pdf).toContain(key));
     expect(pdf).toContain('overviewPage.simulated');                       // simulated data is flagged
     expect(pdf).toContain('Amine Ben Youssef');                            // the workload is in the report
+    expect(pdf).toContain('YAZAKI');                                       // the customers table
+    expect(pdf).not.toContain('CRITICAL');                                 // severities are translated, never printed raw
   });
 
   it('does not list a single-organization comparison', () => {

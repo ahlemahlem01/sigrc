@@ -108,6 +108,37 @@ public record PriorityClaimDto(
     string? ResponsibleName,
     string StatusCode);
 
+/// <summary>How long the late items have been late: up to 30 days, 31 to 90 days, more than 90 days.</summary>
+public record OverviewAgingDto(int Under30, int From30To90, int Over90);
+
+public record CapaTypeDto(string Type, int OpenPlans, int LatePlans);
+
+/// <summary>The CAPA side, comparable with the claims figures: what is open, what is late, how well plans close, what waits for a decision.</summary>
+public record OverviewCapaDto(
+    int OpenPlans,
+    int LatePlans,
+    int OpenActions,
+    int LateActions,
+    int ClosedInPeriod,
+    int OnTimeCount,
+    int OnTimeBase,
+    double? OnTimeRate,
+    double? AvgClosureDays,
+    int ActionsAwaitingValidation,
+    OverviewAgingDto Aging,
+    IReadOnlyList<CapaTypeDto> ByType);
+
+/// <summary>One customer: how many of its claims are open, how many are critical or high, how many are late, how on time we close them.</summary>
+public record OverviewClientDto(
+    string ClientId,
+    int OpenClaims,
+    int CriticalOpen,
+    int LateClaims,
+    int OnTimeCount,
+    int OnTimeBase,
+    double? OnTimeRate,
+    double? Ppm);
+
 public record OverviewScopeDto(Guid? OrganizationId, string? OrganizationName);
 
 public record OverviewDto(
@@ -122,7 +153,10 @@ public record OverviewDto(
     bool SimulatedData,
     OverviewScopeDto Scope,
     IReadOnlyList<OverviewOrganizationDto> Organizations,
-    IReadOnlyList<PriorityClaimDto> Priority);
+    IReadOnlyList<PriorityClaimDto> Priority,
+    OverviewAgingDto ClaimAging,
+    OverviewCapaDto Capa,
+    IReadOnlyList<OverviewClientDto> Clients);
 
 public record GetOverviewQuery(int Days = 90, string? UserId = null, bool SuperAdmin = true, Guid? OrganizationId = null) : IRequest<OverviewDto>;
 
@@ -149,6 +183,12 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         _context = context;
         _mediator = mediator;
         _configuration = configuration;
+    }
+
+    private static OverviewAgingDto Aging(IEnumerable<int> lateDays)
+    {
+        var list = lateDays.ToList();
+        return new OverviewAgingDto(list.Count(d => d <= 30), list.Count(d => d > 30 && d <= 90), list.Count(d => d > 90));
     }
 
     public async Task<OverviewDto> Handle(GetOverviewQuery request, CancellationToken ct)
@@ -477,6 +517,61 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
 
         var targets = await OverviewTargetsStore.LoadAsync(_context, _configuration, ct);
 
-        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows, priority);
+        // ── aging of the late claims ──
+        var claimAging = Aging(open.Where(c => ClaimDeadlines.IsLate(c.Deadline, today)).Select(c => ClaimDeadlines.OverdueDays(c.Deadline, today)));
+
+        // ── CAPA, scoped like the claims (organization filter, like the dashboard summary) ──
+        var plans = allPlans;
+        if (request.OrganizationId is { } planOrg) plans = plans.Where(p => p.OrganizationId == planOrg).ToList();
+        var openPlansAll = plans.Where(PlanDeadlines.IsOpen).ToList();
+        var latePlansAll = openPlansAll.Where(p => PlanDeadlines.OverdueDays(p, today) > 0).ToList();
+        var openActionList = openPlansAll.SelectMany(p => p.PlanActions.Where(a => !a.IsArchived && !PlanDeadlines.IsFinished(a))).ToList();
+        var closedPlans = plans.Where(p => p.Status == Core.Enums.ActionPlanStatus.Closed
+                                           && p.CompletedAt != null && p.CompletedAt >= start && p.CompletedAt < today.AddDays(1)).ToList();
+        var judgedPlans = closedPlans.Where(p => p.IsOnTime != null).ToList();
+        var capa = new OverviewCapaDto(
+            openPlansAll.Count,
+            latePlansAll.Count,
+            openActionList.Count,
+            openActionList.Count(a => a.Deadline.HasValue && a.Deadline.Value.Date < today),
+            closedPlans.Count,
+            judgedPlans.Count(p => p.IsOnTime == true),
+            judgedPlans.Count,
+            Rate(judgedPlans.Count(p => p.IsOnTime == true), judgedPlans.Count),
+            closedPlans.Count == 0 ? null : Math.Round(closedPlans.Average(p => Math.Max(0, (p.CompletedAt!.Value - p.CreatedAt).TotalDays)), 1),
+            openPlansAll.SelectMany(p => p.PlanActions).Count(a => !a.IsArchived && a.Progress == Core.Enums.ActionProgress.Hundred),
+            Aging(latePlansAll.Select(p => PlanDeadlines.MaxLagDays(p, today))),
+            new[] { Core.Enums.ActionPlanType.PA, Core.Enums.ActionPlanType.PAC, Core.Enums.ActionPlanType.PAP }
+                .Select(t => new CapaTypeDto(t.ToString(), openPlansAll.Count(p => p.Type == t), latePlansAll.Count(p => p.Type == t)))
+                .ToList());
+
+        // ── customers: where the risk sits ──
+        var clients = live.Where(c => !string.IsNullOrWhiteSpace(c.ClientId))
+            .GroupBy(c => c.ClientId.Trim(), StringComparer.OrdinalIgnoreCase)
+            .Select(g =>
+            {
+                var gOpen = g.Where(c => !IsClosed(c.StatusCode)).ToList();
+                var judged = g.Where(c => c.CompletedAt != null && c.CompletedAt >= start && c.CompletedAt < today.AddDays(1) && c.IsOnTime != null).ToList();
+                var ok = judged.Count(c => c.IsOnTime == true);
+                var qty = g.Where(c => c.DetectionDate >= start && c.DetectionDate < today.AddDays(1)
+                                       && c.ProducedQuantity is > 0 && c.DefectiveQuantity != null).ToList();
+                var produced = qty.Sum(c => (double)c.ProducedQuantity!.Value);
+                return new OverviewClientDto(
+                    g.Key,
+                    gOpen.Count,
+                    gOpen.Count(c => IsCriticalSeverity(c.Severity)),
+                    gOpen.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)),
+                    ok,
+                    judged.Count,
+                    Rate(ok, judged.Count),
+                    produced <= 0 ? null : Math.Round(1_000_000.0 * qty.Sum(c => (double)c.DefectiveQuantity!.Value) / produced));
+            })
+            .Where(x => x.OpenClaims > 0)
+            .OrderByDescending(x => x.CriticalOpen).ThenByDescending(x => x.LateClaims).ThenByDescending(x => x.OpenClaims)
+            .ThenBy(x => x.ClientId, StringComparer.OrdinalIgnoreCase)
+            .Take(8)
+            .ToList();
+
+        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows, priority, claimAging, capa, clients);
     }
 }

@@ -158,6 +158,45 @@ export interface PriorityClaim {
   statusCode: string;
 }
 
+/** How long the late items have been late. */
+export interface OverviewAging {
+  under30: number;
+  from30To90: number;
+  over90: number;
+}
+
+export interface CapaType {
+  type: string;
+  openPlans: number;
+  latePlans: number;
+}
+
+export interface OverviewCapa {
+  openPlans: number;
+  latePlans: number;
+  openActions: number;
+  lateActions: number;
+  closedInPeriod: number;
+  onTimeCount: number;
+  onTimeBase: number;
+  onTimeRate: number | null;
+  avgClosureDays: number | null;
+  actionsAwaitingValidation: number;
+  aging: OverviewAging;
+  byType: CapaType[];
+}
+
+export interface OverviewClient {
+  clientId: string;
+  openClaims: number;
+  criticalOpen: number;
+  lateClaims: number;
+  onTimeCount: number;
+  onTimeBase: number;
+  onTimeRate: number | null;
+  ppm: number | null;
+}
+
 export interface OverviewScope {
   organizationId: string | null;
   organizationName: string | null;
@@ -176,4 +215,7 @@ export interface OverviewData {
   scope: OverviewScope;
   organizations: OverviewOrganization[];
   priority: PriorityClaim[];
+  claimAging: OverviewAging;
+  capa: OverviewCapa;
+  clients: OverviewClient[];
 }

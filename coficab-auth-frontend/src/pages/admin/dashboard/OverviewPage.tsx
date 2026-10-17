@@ -10,7 +10,8 @@ import { fetchDashboardOverview } from '../../../services/dashboardOverviewServi
 import { exportOverviewPdf } from '../../../utils/overviewPdfExport';
 import { normalizeRoles } from '../../../utils/roles';
 import OverviewTargetsDialog from './OverviewTargetsDialog';
-import type { OverviewData, OverviewMetric, RankedItem } from '../../../types/dashboardOverview';
+import { severityKey } from '../../../utils/overviewSeverity';
+import type { OverviewAging, OverviewData, OverviewMetric, RankedItem } from '../../../types/dashboardOverview';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
 
@@ -176,6 +177,40 @@ function RankedList({ title, rows, color, empty }: { title: string; rows: Ranked
   );
 }
 
+const AGING_COLORS = [COFICAB.warn, '#ea580c', COFICAB.danger];
+
+/** The late items split by how long they have been late: a single stacked bar with its legend. */
+function AgingBar({ title, aging, labels, none }: { title: string; aging: OverviewAging; labels: [string, string, string]; none: string }) {
+  const parts = [aging.under30, aging.from30To90, aging.over90];
+  const total = parts.reduce((a, b) => a + b, 0);
+  return (
+    <div className="rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
+      <div className="flex items-baseline justify-between gap-2">
+        <h3 className="text-xs font-bold m-0" style={{ color: COFICAB.ink }}>{title}</h3>
+        <span className="text-xs font-bold tabular-nums" style={{ color: total > 0 ? COFICAB.danger : COFICAB.ok }}>{total}</span>
+      </div>
+      {total === 0 ? (
+        <div className="mt-2 text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</div>
+      ) : (
+        <>
+          <div className="flex h-2.5 rounded-full overflow-hidden mt-2 bg-slate-100">
+            {parts.map((n, i) => (n > 0 ? <div key={labels[i]} style={{ width: `${(n / total) * 100}%`, background: AGING_COLORS[i] }} /> : null))}
+          </div>
+          <ul className="m-0 mt-2 p-0 list-none flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: COFICAB.muted }}>
+            {parts.map((n, i) => (
+              <li key={labels[i]} className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full" style={{ background: AGING_COLORS[i] }} />
+                {labels[i]} : <b className="tabular-nums" style={{ color: COFICAB.ink }}>{n}</b>
+                <span className="tabular-nums">({Math.round((n / total) * 100)} %)</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
+  );
+}
+
 function monthLabel(m: string, locale: string) {
   const [y, mo] = m.split('-');
   if (!y || !mo) return m;
@@ -251,6 +286,10 @@ export default function OverviewPage() {
   }, [h, targets]);
 
   const countTone = (n: number, bad: Tone = 'red'): Tone => (n > 0 ? bad : 'green');
+  const share = (part: number, whole: number) => (whole > 0 ? Math.round((1000 * part) / whole) / 10 : 0);
+  // a plain reading of the share of late claims: up to 10 % is under control, beyond 25 % it is a real problem
+  const shareTone = (pct: number): Tone => (pct <= 10 ? 'green' : pct <= 25 ? 'orange' : 'red');
+  const severityLabel = (raw: string) => t(`overviewPage.severity.${severityKey(raw)}`);
   const vs = t('overviewPage.vsPrevious', { days });
 
   const actionCards = data ? [
@@ -357,6 +396,65 @@ export default function OverviewPage() {
         </div>
       ) : !data || !h || !targets ? null : (
         <>
+          {/* 1. Are we on track? */}
+          <Section title={t('overviewPage.q1')} hint={t('overviewPage.hint.q1', { days })}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+              <MetricCard
+                label={t('overviewPage.openClaims')}
+                value={num(h.openClaims)}
+                tone="neutral"
+                sub={t('overviewPage.closedSub', { count: h.closedInPeriod, days })}
+                to="/admin/claims/list"
+                help={t('adminDashboard.help.claimsOpen')}
+              />
+              <MetricCard
+                label={t('overviewPage.lateShare')}
+                value={num(share(data.actions.lateClaims, h.openClaims), 1)}
+                unit="%"
+                tone={h.openClaims === 0 ? 'neutral' : shareTone(share(data.actions.lateClaims, h.openClaims))}
+                sub={t('overviewPage.lateShareSub', { late: num(data.actions.lateClaims), open: num(h.openClaims) })}
+                to="/admin/claims/list?deadline=late"
+                help={t('overviewPage.help.lateShare')}
+              />
+              <MetricCard
+                label={t('overviewPage.onTime')}
+                value={num(h.onTimeRate.value, 1)}
+                unit={h.onTimeRate.value == null ? undefined : '%'}
+                tone={onTimeTone}
+                delta={metricDelta(h.onTimeRate, false, 'pts')}
+                deltaLabel={vs}
+                sub={t('overviewPage.onTimeSub', { ok: h.onTimeCount, total: h.onTimeBase, target: targets.onTimeGreen })}
+                help={t('overviewPage.help.onTime', { days })}
+              />
+              <MetricCard
+                label={t('overviewPage.resolution')}
+                value={num(h.avgResolutionDays.value, 1)}
+                unit={h.avgResolutionDays.value == null ? undefined : t('overviewPage.daysUnit')}
+                tone={resolutionTone}
+                delta={metricDelta(h.avgResolutionDays, true, 'd')}
+                deltaLabel={vs}
+                sub={t('overviewPage.resolutionSub', { days: targets.resolutionDays })}
+                help={t('overviewPage.help.resolution')}
+              />
+              <MetricCard
+                label={t('overviewPage.ppm')}
+                value={num(h.ppm.value)}
+                tone={ppmTone}
+                delta={metricDelta(h.ppm, true, '%')}
+                deltaLabel={vs}
+                sub={t('overviewPage.ppmSub', { count: h.ppmClaims })}
+                help={t('overviewPage.help.ppm')}
+              />
+              <MetricCard
+                label={t('overviewPage.plansClosure')}
+                value={num(h.plansClosureRate, 1)}
+                unit="%"
+                tone="neutral"
+                help={t('overviewPage.help.plansClosure')}
+              />
+            </div>
+          </Section>
+
           {/* 0. How do the organizations compare? */}
           {data.organizations.length > 1 && (
             <Section title={t('overviewPage.q0')} hint={t('overviewPage.hint.q0', { days })}>
@@ -391,7 +489,9 @@ export default function OverviewPage() {
                             {selected && <span className="ml-1.5 text-[10px] font-bold" style={{ color: COFICAB.navy }}>● {t('overviewPage.selected')}</span>}
                           </td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold">{num(o.openClaims)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: o.lateClaims > 0 ? COFICAB.danger : COFICAB.ok }}>{num(o.lateClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: o.lateClaims > 0 ? COFICAB.danger : COFICAB.ok }}>{num(o.lateClaims)}
+                            {o.openClaims > 0 && <span className="font-normal" style={{ color: COFICAB.muted }}> · {num(share(o.lateClaims, o.openClaims), 0)} %</span>}
+                          </td>
                           <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.noDeadline > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.noDeadline)}</td>
                           <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.pendingValidation > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.pendingValidation)}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: TONE_COLOR[rateTone] }}>
@@ -442,7 +542,7 @@ export default function OverviewPage() {
                           {c.clientId} · {c.responsibleName || <b style={{ color: COFICAB.warn }}>{t('claimDetail.unassigned')}</b>}
                         </div>
                       </div>
-                      <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: chip.bg, color: chip.fg }}>{c.severity}</span>
+                      <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: chip.bg, color: chip.fg }}>{severityLabel(c.severity)}</span>
                       <span className="shrink-0 w-20 text-right text-xs font-bold tabular-nums" style={{ color: COFICAB.danger }}>
                         {t('overviewPage.firstLate', { count: c.overdueDays })}
                       </span>
@@ -451,56 +551,6 @@ export default function OverviewPage() {
                 })}
               </ol>
             )}
-          </Section>
-
-          {/* 1. Are we on track? */}
-          <Section title={t('overviewPage.q1')} hint={t('overviewPage.hint.q1', { days })}>
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
-              <MetricCard
-                label={t('overviewPage.openClaims')}
-                value={num(h.openClaims)}
-                tone="neutral"
-                sub={t('overviewPage.closedSub', { count: h.closedInPeriod, days })}
-                to="/admin/claims/list"
-                help={t('adminDashboard.help.claimsOpen')}
-              />
-              <MetricCard
-                label={t('overviewPage.onTime')}
-                value={num(h.onTimeRate.value, 1)}
-                unit={h.onTimeRate.value == null ? undefined : '%'}
-                tone={onTimeTone}
-                delta={metricDelta(h.onTimeRate, false, 'pts')}
-                deltaLabel={vs}
-                sub={t('overviewPage.onTimeSub', { ok: h.onTimeCount, total: h.onTimeBase, target: targets.onTimeGreen })}
-                help={t('overviewPage.help.onTime', { days })}
-              />
-              <MetricCard
-                label={t('overviewPage.resolution')}
-                value={num(h.avgResolutionDays.value, 1)}
-                unit={h.avgResolutionDays.value == null ? undefined : t('overviewPage.daysUnit')}
-                tone={resolutionTone}
-                delta={metricDelta(h.avgResolutionDays, true, 'd')}
-                deltaLabel={vs}
-                sub={t('overviewPage.resolutionSub', { days: targets.resolutionDays })}
-                help={t('overviewPage.help.resolution')}
-              />
-              <MetricCard
-                label={t('overviewPage.ppm')}
-                value={num(h.ppm.value)}
-                tone={ppmTone}
-                delta={metricDelta(h.ppm, true, '%')}
-                deltaLabel={vs}
-                sub={t('overviewPage.ppmSub', { count: h.ppmClaims })}
-                help={t('overviewPage.help.ppm')}
-              />
-              <MetricCard
-                label={t('overviewPage.plansClosure')}
-                value={num(h.plansClosureRate, 1)}
-                unit="%"
-                tone="neutral"
-                help={t('overviewPage.help.plansClosure')}
-              />
-            </div>
           </Section>
 
           {/* 2. What needs action now? */}
@@ -512,11 +562,25 @@ export default function OverviewPage() {
                   label={c.label}
                   value={num(c.n)}
                   tone={c.tone}
-                  sub={c.n === 0 ? t('overviewPage.allClear') : undefined}
+                  sub={c.n === 0 ? t('overviewPage.allClear') : c.key === 'lateClaims' ? t('overviewPage.lateOfOpen', { pct: num(share(c.n, h.openClaims), 1) }) : undefined}
                   to={c.to}
                   help={c.help}
                 />
               ))}
+            </div>
+            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <AgingBar
+                title={`${t('overviewPage.agingClaims')} · ${t('overviewPage.agingTitle')}`}
+                aging={data.claimAging}
+                labels={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
+                none={t('overviewPage.agingNone')}
+              />
+              <AgingBar
+                title={`${t('overviewPage.agingPlans')} · ${t('overviewPage.agingTitle')}`}
+                aging={data.capa.aging}
+                labels={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
+                none={t('overviewPage.agingNone')}
+              />
             </div>
             {data.actions.alerts.length > 0 && (
               <ul className="m-0 mt-3 p-0 list-none rounded-xl bg-white overflow-hidden" style={{ border: `1px solid ${COFICAB.line}` }}>
@@ -533,6 +597,105 @@ export default function OverviewPage() {
                 ))}
               </ul>
             )}
+          </Section>
+
+          {/* CAPA: the counterpart of the claims figures */}
+          <Section title={t('overviewPage.qCapa')} hint={t('overviewPage.hint.qCapa')}>
+            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+              <MetricCard
+                label={t('overviewPage.capaOpenPlans')}
+                value={num(data.capa.openPlans)}
+                tone="neutral"
+                sub={t('overviewPage.capaOpenPlansSub', { actions: num(data.capa.openActions) })}
+                to="/admin/action-plans/dashboard"
+              />
+              <MetricCard
+                label={t('overviewPage.capaLatePlans')}
+                value={num(data.capa.latePlans)}
+                tone={data.capa.openPlans === 0 ? 'neutral' : countTone(data.capa.latePlans)}
+                sub={t('overviewPage.lateOfOpen', { pct: num(share(data.capa.latePlans, data.capa.openPlans), 1) })}
+                to="/admin/action-plans/dashboard"
+                help={t('overviewPage.help.capaLatePlans')}
+              />
+              <MetricCard
+                label={t('overviewPage.capaLateActions')}
+                value={num(data.capa.lateActions)}
+                tone={data.capa.openActions === 0 ? 'neutral' : countTone(data.capa.lateActions)}
+                sub={t('overviewPage.capaLateActionsSub', { open: num(data.capa.openActions) })}
+                help={t('overviewPage.help.capaLateActions')}
+              />
+              <MetricCard
+                label={t('overviewPage.capaOnTime')}
+                value={num(data.capa.onTimeRate, 1)}
+                unit={data.capa.onTimeRate == null ? undefined : '%'}
+                tone={data.capa.onTimeRate == null ? 'neutral' : data.capa.onTimeRate >= targets.onTimeGreen ? 'green' : data.capa.onTimeRate >= targets.onTimeOrange ? 'orange' : 'red'}
+                sub={t('overviewPage.capaOnTimeSub', { ok: data.capa.onTimeCount, total: data.capa.onTimeBase, days })}
+                help={t('overviewPage.help.capaOnTime')}
+              />
+              <MetricCard
+                label={t('overviewPage.capaClosure')}
+                value={num(data.capa.avgClosureDays, 1)}
+                unit={data.capa.avgClosureDays == null ? undefined : t('overviewPage.daysUnit')}
+                tone="neutral"
+                sub={t('overviewPage.capaClosureSub', { count: data.capa.closedInPeriod, days })}
+              />
+              <MetricCard
+                label={t('overviewPage.capaAwaiting')}
+                value={num(data.capa.actionsAwaitingValidation)}
+                tone={countTone(data.capa.actionsAwaitingValidation, 'orange')}
+                sub={t('overviewPage.capaAwaitingSub')}
+                to="/admin/action-plans/dashboard"
+                help={t('overviewPage.help.capaAwaiting')}
+              />
+            </div>
+            <div className="mt-3 rounded-xl bg-white px-4 py-3 flex flex-wrap items-center gap-2 text-xs" style={{ border: `1px solid ${COFICAB.line}` }}>
+              <span className="font-bold" style={{ color: COFICAB.ink }}>{t('overviewPage.capaTypes')}</span>
+              {data.capa.byType.map((x) => (
+                <span key={x.type} className="px-2 py-0.5 rounded-full font-semibold" style={{ background: COFICAB.light, color: COFICAB.navy }}>
+                  {x.type} · {x.openPlans}
+                  {x.latePlans > 0 && <span style={{ color: COFICAB.danger }}> ({t('overviewPage.lateCount', { count: x.latePlans })})</span>}
+                </span>
+              ))}
+            </div>
+          </Section>
+
+          {/* Customers where the risk sits */}
+          <Section title={t('overviewPage.qClients')} hint={t('overviewPage.hint.qClients')}>
+            <div className="rounded-xl bg-white shadow-sm overflow-x-auto" style={{ border: `1px solid ${COFICAB.line}` }}>
+              {data.clients.length === 0 ? (
+                <div className="px-4 py-4 text-sm" style={{ color: COFICAB.muted }}>{t('overviewPage.clientsNone')}</div>
+              ) : (
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr style={{ color: COFICAB.muted, background: COFICAB.light }}>
+                      <th className="text-left px-3 py-2 font-bold uppercase tracking-wide text-[10px]">{t('overviewPage.colClient')}</th>
+                      {['colOpen', 'colCritical', 'colLate', 'colLateShare', 'colOnTime', 'colPpm'].map((k) => (
+                        <th key={k} className="text-right px-3 py-2 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap">{t(`overviewPage.${k}`)}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.clients.map((c) => {
+                      const rate = c.onTimeRate;
+                      const rateTone: Tone = rate == null ? 'neutral' : rate >= targets.onTimeGreen ? 'green' : rate >= targets.onTimeOrange ? 'orange' : 'red';
+                      const lateShare = share(c.lateClaims, c.openClaims);
+                      return (
+                        <tr key={c.clientId} style={{ borderTop: `1px solid ${COFICAB.line}` }}>
+                          <td className="px-3 py-2 font-semibold" style={{ color: COFICAB.ink }}>{c.clientId}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{num(c.openClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: c.criticalOpen > 0 ? COFICAB.danger : COFICAB.muted }}>{num(c.criticalOpen)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: c.lateClaims > 0 ? COFICAB.danger : COFICAB.muted }}>{num(c.lateClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: TONE_COLOR[shareTone(lateShare)] }}>{num(lateShare, 0)} %</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: TONE_COLOR[rateTone] }}>{rate == null ? '—' : `${num(rate, 1)} %`}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{num(c.ppm)}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+            <p className="text-[11px] mt-2 mb-0" style={{ color: COFICAB.muted }}>{t('overviewPage.clientsNote')}</p>
           </Section>
 
           {/* 3. Where are the problems? */}

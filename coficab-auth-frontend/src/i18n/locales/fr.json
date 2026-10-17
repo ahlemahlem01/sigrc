@@ -382,7 +382,9 @@
       "q3": "D'où viennent les réclamations de la période : les défauts, lignes de production et clients qui en ont le plus.",
       "q4": "Mois par mois : les délais sont-ils tenus, et le nombre de réclamations ouvertes est-il maîtrisé ?",
       "q5": "Le côté atelier : réclamations critiques, dossiers 8D en cours, lots qui reviennent et qui porte la charge.",
-      "rising": "Défauts qui ont nettement plus de réclamations sur les {{days}} derniers jours que sur les {{days}} jours d'avant (au moins 5, et 1,5 fois plus). Seuls les types de défaut de la liste de référence sont comparés."
+      "rising": "Défauts qui ont nettement plus de réclamations sur les {{days}} derniers jours que sur les {{days}} jours d'avant (au moins 5, et 1,5 fois plus). Seuls les types de défaut de la liste de référence sont comparés.",
+      "qCapa": "Le pendant des réclamations pour les actions correctives et préventives : ce qui est ouvert, en retard, bien clôturé, en attente de décision.",
+      "qClients": "Les clients avec le plus de réclamations critiques ou élevées ouvertes, puis le plus de retards."
     },
     "healthHelp": {
       "lastImport": "Le dernier fichier d'historique de réclamations chargé, et sa date. Cliquez pour ouvrir l'historique des imports.",
@@ -445,8 +447,48 @@
       "plansClosure": "Plans CAPA clôturés parmi les plans clôturés et ouverts.",
       "pendingValidation": "Réclamations qui attendent une décision de validation au front office.",
       "unassigned": "Réclamations ouvertes sans employé assigné.",
-      "alerts": "Alertes d'anomalie en attente de décision (nombre inhabituel de réclamations pour un défaut sur une ligne)."
-    }
+      "alerts": "Alertes d'anomalie en attente de décision (nombre inhabituel de réclamations pour un défaut sur une ligne).",
+      "lateShare": "Réclamations ouvertes dont l'échéance est dépassée, en pourcentage des réclamations ouvertes. Celles sans échéance ne sont pas comptées comme en retard.",
+      "capaLatePlans": "Plans CAPA ouverts dont au moins une action non terminée a dépassé son échéance.",
+      "capaLateActions": "Actions non terminées (hors 100 %, validées, annulées) dont l'échéance est dépassée.",
+      "capaOnTime": "Part des plans clôturés sur la période qui l'ont été avant leur échéance.",
+      "capaAwaiting": "Actions arrivées à 100 % que personne n'a encore validées ni évaluées : le plan ne peut pas se clôturer tant qu'elles attendent."
+    },
+    "severity": {
+      "critical": "Critique",
+      "high": "Élevée",
+      "medium": "Moyenne",
+      "low": "Faible"
+    },
+    "lateShare": "Part en retard",
+    "lateShareSub": "{{late}} sur {{open}} réclamations ouvertes",
+    "lateOfOpen": "{{pct}} % des ouvertes",
+    "agingTitle": "Ancienneté des retards",
+    "agingHelp": "Depuis combien de temps les éléments en retard le sont : jusqu'à 30 jours, de 31 à 90 jours, plus de 90 jours. Plus la part de droite est grande, plus le retard est installé.",
+    "agingUnder30": "≤ 30 jours",
+    "aging30to90": "31 à 90 jours",
+    "agingOver90": "> 90 jours",
+    "agingNone": "Aucun retard",
+    "agingClaims": "Réclamations en retard",
+    "agingPlans": "Plans CAPA en retard",
+    "qCapa": "Où en sont les plans d’action (CAPA) ?",
+    "capaOpenPlans": "Plans ouverts",
+    "capaOpenPlansSub": "{{actions}} actions à faire",
+    "capaLatePlans": "Plans en retard",
+    "capaLateActions": "Actions en retard",
+    "capaLateActionsSub": "sur {{open}} actions ouvertes",
+    "capaOnTime": "Clôture dans les délais",
+    "capaOnTimeSub": "{{ok}} sur {{total}} plans clôturés ({{days}} derniers jours)",
+    "capaClosure": "Durée moyenne de clôture",
+    "capaClosureSub": "{{count}} plans clôturés ({{days}} derniers jours)",
+    "capaAwaiting": "Actions à valider",
+    "capaAwaitingSub": "terminées à 100 %, en attente de validation",
+    "capaTypes": "Par type",
+    "qClients": "Quels clients sont les plus exposés ?",
+    "colCritical": "Critiques / élevées",
+    "colLateShare": "% en retard",
+    "clientsNone": "Aucune réclamation ouverte par client.",
+    "clientsNote": "Triés par réclamations critiques ou élevées ouvertes, puis par retards. Taux à l’heure et PPM sur la période choisie."
   },
   "adminDashboard": {
     "overview": {
