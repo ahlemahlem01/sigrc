@@ -1,5 +1,6 @@
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.ReferenceLists;
+using Coficab.ActionPlan.Core.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -48,11 +49,34 @@ public record OverviewProblemsDto(
 
 public record OverviewMonthDto(string Month, int Opened, int Closed, int OnTime, double? OnTimeRate);
 
-public record OverviewHealthDto(
-    DateTime? LastImportAt,
-    string? LastImportName,
-    bool SimulatedData,
-    int ProfilesWithoutDepartment);
+public record CriticalClaimItemDto(
+    Guid Id,
+    string Title,
+    string ClientId,
+    string Severity,
+    int AgeDays,
+    string? ResponsibleName);
+
+public record OverviewCriticalDto(int Open, int? OldestDays, IReadOnlyList<CriticalClaimItemDto> Top);
+
+public record EightDStepDto(int Step, int Count);
+
+public record OverviewEightDDto(int InProgress, int PendingValidation, int Stalled, IReadOnlyList<EightDStepDto> ByStep);
+
+public record DueActionDto(Guid Id, string Title, string PlanTitle, DateTime Deadline, string? ResponsibleName);
+
+public record OverviewDueDto(int Count, IReadOnlyList<DueActionDto> Items);
+
+public record WorkloadItemDto(string Name, int OpenClaims);
+
+public record OverviewWorkloadDto(double AveragePerPerson, int People, IReadOnlyList<WorkloadItemDto> Top);
+
+/// <summary>What to keep an eye on this week, on the shop floor side.</summary>
+public record OverviewWatchDto(
+    OverviewCriticalDto Critical,
+    OverviewEightDDto EightD,
+    OverviewDueDto ActionsDue,
+    OverviewWorkloadDto Workload);
 
 public record OverviewDto(
     int Days,
@@ -62,7 +86,8 @@ public record OverviewDto(
     OverviewActionsDto Actions,
     OverviewProblemsDto Problems,
     IReadOnlyList<OverviewMonthDto> Months,
-    OverviewHealthDto Health);
+    OverviewWatchDto Watch,
+    bool SimulatedData);
 
 public record GetOverviewQuery(int Days = 90, string? UserId = null, bool SuperAdmin = true) : IRequest<OverviewDto>;
 
@@ -76,6 +101,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
     private const int RisingMinClaims = 5;
     private const double RisingFactor = 1.5;
     private const int MaxDays = 366;
+    private const int EightDStalledDays = 14;
+    private const int ActionsDueDays = 7;
 
     private readonly IApplicationDbContext _context;
     private readonly IMediator _mediator;
@@ -108,6 +135,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             .Select(c => new
             {
                 c.Id,
+                c.Title,
+                c.Severity,
                 c.ClientId,
                 c.DefectType,
                 c.ProductionLine,
@@ -255,15 +284,69 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 Rate(ok, judged.Count));
         }).ToList();
 
-        // ── health of the data and of the tool ──
-        var batches = await _context.ImportBatches.AsNoTracking().Where(b => !b.IsArchived).ToListAsync(ct);
-        var lastImport = batches.OrderByDescending(b => b.CreatedAt).FirstOrDefault();
-        var withoutDepartment = await _context.UserProfiles.AsNoTracking().CountAsync(p => p.DepartmentId == null, ct);
-        var health = new OverviewHealthDto(
-            lastImport?.CreatedAt,
-            lastImport?.FileName,
-            batches.Any(b => b.FileName.StartsWith("SIMULATION", StringComparison.OrdinalIgnoreCase)),
-            withoutDepartment);
+        // ── to watch this week ──
+        static bool IsCriticalSeverity(string sev) =>
+            string.Equals(sev, "CRITICAL", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sev, "CRITIQUE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sev, "HIGH", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sev, "ELEVEE", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(sev, "ÉLEVÉE", StringComparison.OrdinalIgnoreCase);
+
+        var userIds = open.Select(c => c.AssignedToId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!).Distinct().ToList();
+        var dueRaw = await _context.PlanActions.AsNoTracking()
+            .Where(a => !a.IsArchived && a.Deadline != null && a.Deadline.Value >= today && a.Deadline.Value < today.AddDays(ActionsDueDays + 1)
+                        && a.Progress != ActionProgress.Hundred && a.Progress != ActionProgress.Validated && a.Progress != ActionProgress.Cancelled)
+            .OrderBy(a => a.Deadline)
+            .Select(a => new { a.Id, a.Title, PlanTitle = a.ActionPlan.Title, Deadline = a.Deadline!.Value, a.AssignedToId })
+            .ToListAsync(ct);
+        var wantedUsers = userIds.Concat(dueRaw.Select(d => d.AssignedToId).Where(id => !string.IsNullOrWhiteSpace(id)).Select(id => id!)).Distinct().ToList();
+        var profiles = await _context.UserProfiles.AsNoTracking().Where(p => wantedUsers.Contains(p.UserId)).ToListAsync(ct);
+        string? NameOf(string? id) => string.IsNullOrWhiteSpace(id)
+            ? null
+            : profiles.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase)) is { } p
+                ? (string.IsNullOrWhiteSpace(p.Name) ? p.Email : p.Name)
+                : null;
+
+        var critical = open.Where(c => IsCriticalSeverity(c.Severity)).ToList();
+        int AgeDays(DateTime detection, DateTime created) => Math.Max(0, (today - (detection == default ? created : detection).Date).Days);
+        var criticalDto = new OverviewCriticalDto(
+            critical.Count,
+            critical.Count == 0 ? null : critical.Max(c => AgeDays(c.DetectionDate, c.CreatedAt)),
+            critical.OrderByDescending(c => AgeDays(c.DetectionDate, c.CreatedAt)).Take(3)
+                .Select(c => new CriticalClaimItemDto(c.Id, c.Title, c.ClientId, c.Severity, AgeDays(c.DetectionDate, c.CreatedAt), NameOf(c.AssignedToId)))
+                .ToList());
+
+        var claimIds = all.Select(c => c.Id).ToHashSet();
+        var dossiers = (await _context.EightDDossiers.AsNoTracking()
+                .Where(d => !d.IsArchived)
+                .Select(d => new { d.ClaimId, d.StatusCode, d.CurrentStep, d.UpdatedAt, d.CreatedAt })
+                .ToListAsync(ct))
+            .Where(d => claimIds.Contains(d.ClaimId))
+            .ToList();
+        var inProgress = dossiers.Where(d => string.Equals(d.StatusCode, "IN_PROGRESS", StringComparison.OrdinalIgnoreCase)).ToList();
+        var eightD = new OverviewEightDDto(
+            inProgress.Count,
+            dossiers.Count(d => string.Equals(d.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)),
+            inProgress.Count(d => (now - (d.UpdatedAt ?? d.CreatedAt)).TotalDays >= EightDStalledDays),
+            Enumerable.Range(1, 8).Select(step => new EightDStepDto(step, inProgress.Count(d => Math.Clamp(d.CurrentStep, 1, 8) == step))).ToList());
+
+        var due = new OverviewDueDto(
+            dueRaw.Count,
+            dueRaw.Take(4).Select(d => new DueActionDto(d.Id, d.Title, d.PlanTitle, d.Deadline, NameOf(d.AssignedToId))).ToList());
+
+        var perPerson = open.Where(c => !string.IsNullOrWhiteSpace(c.AssignedToId))
+            .GroupBy(c => c.AssignedToId!, StringComparer.OrdinalIgnoreCase)
+            .Select(g => new { Id = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .ToList();
+        var workload = new OverviewWorkloadDto(
+            perPerson.Count == 0 ? 0 : Math.Round(perPerson.Average(x => (double)x.Count), 1),
+            perPerson.Count,
+            perPerson.Take(5).Select(x => new WorkloadItemDto(NameOf(x.Id) ?? "—", x.Count)).ToList());
+
+        var watch = new OverviewWatchDto(criticalDto, eightD, due, workload);
+        var simulated = await _context.ImportBatches.AsNoTracking()
+            .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("SIMULATION"), ct);
 
         var targets = new OverviewTargetsDto(
             Target("Overview:OnTimeGreen", 85),
@@ -271,6 +354,6 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             Target("Overview:ResolutionDays", 14),
             Target("Overview:PpmTolerancePct", 10));
 
-        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, health);
+        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated);
     }
 }

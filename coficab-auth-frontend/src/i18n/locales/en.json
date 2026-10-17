@@ -274,12 +274,32 @@
     "referenceLists": "Defect types and severities"
   },
   "overviewPage": {
+    "criticalTitle": "Critical and high claims",
+    "criticalOldest": "oldest open: {{days}} days",
+    "noCritical": "No critical claim is open",
+    "daysOld": "{{count}} d",
+    "eightDTitle": "8D files in progress",
+    "eightDPending": "{{count}} awaiting validation",
+    "eightDStep": "D{{n}}",
+    "eightDStalled": "{{count}} without an update for 14 days or more",
+    "eightDMoving": "All 8D files were updated in the last 14 days",
+    "dueTitle": "Actions due in 7 days",
+    "dueNone": "No action is due this week",
+    "workloadTitle": "Workload per person",
+    "workloadAvg": "open claims on average, {{people}} people",
+    "noWorkload": "No assigned claim",
+    "watchHelp": {
+      "critical": "Open claims with a critical or high severity, with the oldest one and the three that have waited longest. Click the title to open the list.",
+      "eightD": "8D files in progress, shown by the step they are at (D1 to D8). A file with no update for 14 days or more is considered stalled.",
+      "due": "Corrective and preventive actions whose deadline falls in the next 7 days and that are not completed yet.",
+      "workload": "Average number of open claims per assigned employee, and the five people carrying the most. An orange bar means 1.5 times the average or more."
+    },
     "hint": {
       "q1": "The key figures for the last {{days}} days, each compared with the {{days}} days before.",
       "q2": "What is waiting for a decision or a fix. Click a card to open the list.",
       "q3": "Where the claims of the period come from: the defects, production lines and clients with the most claims.",
       "q4": "Month by month: are deadlines being met, and is the number of opened claims under control?",
-      "q5": "Whether the figures above can be trusted, and what to fix if not.",
+      "q5": "The shop-floor side: critical claims, 8D files in progress, actions due soon and who is carrying the load.",
       "rising": "Defects with clearly more claims in the last {{days}} days than in the {{days}} days before (at least 5, and 1.5 times more). Only defect types from the reference list are compared."
     },
     "healthHelp": {
@@ -298,7 +318,7 @@
     "q2": "What needs action now?",
     "q3": "Where are the problems?",
     "q4": "Are we improving?",
-    "q5": "Can we trust the data?",
+    "q5": "What to watch this week?",
     "openClaims": "Open claims",
     "closedSub": "{{count}} closed in the last {{days}} days",
     "onTime": "Closed on time",

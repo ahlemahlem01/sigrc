@@ -71,11 +71,48 @@ export interface OverviewMonth {
   onTimeRate: number | null;
 }
 
-export interface OverviewHealth {
-  lastImportAt: string | null;
-  lastImportName: string | null;
-  simulatedData: boolean;
-  profilesWithoutDepartment: number;
+export interface CriticalClaimItem {
+  id: string;
+  title: string;
+  clientId: string;
+  severity: string;
+  ageDays: number;
+  responsibleName?: string | null;
+}
+
+export interface OverviewCritical {
+  open: number;
+  oldestDays: number | null;
+  top: CriticalClaimItem[];
+}
+
+export interface OverviewEightD {
+  inProgress: number;
+  pendingValidation: number;
+  stalled: number;
+  byStep: { step: number; count: number }[];
+}
+
+export interface DueAction {
+  id: string;
+  title: string;
+  planTitle: string;
+  deadline: string;
+  responsibleName?: string | null;
+}
+
+export interface OverviewWorkload {
+  averagePerPerson: number;
+  people: number;
+  top: { name: string; openClaims: number }[];
+}
+
+/** What to keep an eye on this week, on the shop floor side. */
+export interface OverviewWatch {
+  critical: OverviewCritical;
+  eightD: OverviewEightD;
+  actionsDue: { count: number; items: DueAction[] };
+  workload: OverviewWorkload;
 }
 
 export interface OverviewData {
@@ -86,5 +123,6 @@ export interface OverviewData {
   actions: OverviewActions;
   problems: OverviewProblems;
   months: OverviewMonth[];
-  health: OverviewHealth;
+  watch: OverviewWatch;
+  simulatedData: boolean;
 }

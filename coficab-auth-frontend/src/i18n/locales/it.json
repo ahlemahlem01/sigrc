@@ -274,12 +274,32 @@
     "referenceLists": "Tipi di difetto e gravità"
   },
   "overviewPage": {
+    "criticalTitle": "Reclami critici e alti",
+    "criticalOldest": "il più vecchio: {{days}} giorni",
+    "noCritical": "Nessun reclamo critico aperto",
+    "daysOld": "{{count}} g",
+    "eightDTitle": "Dossier 8D in corso",
+    "eightDPending": "{{count}} da validare",
+    "eightDStep": "D{{n}}",
+    "eightDStalled": "{{count}} senza aggiornamenti da 14 giorni o più",
+    "eightDMoving": "Tutti i dossier 8D sono stati aggiornati negli ultimi 14 giorni",
+    "dueTitle": "Azioni in scadenza entro 7 giorni",
+    "dueNone": "Nessuna azione in scadenza questa settimana",
+    "workloadTitle": "Carico per persona",
+    "workloadAvg": "reclami aperti in media, {{people}} persone",
+    "noWorkload": "Nessun reclamo assegnato",
+    "watchHelp": {
+      "critical": "Reclami aperti di gravità critica o alta, con il più vecchio e i tre in attesa da più tempo. Clicca sul titolo per aprire l'elenco.",
+      "eightD": "Dossier 8D in corso, per fase raggiunta (da D1 a D8). Un dossier senza aggiornamenti da 14 giorni o più è considerato bloccato.",
+      "due": "Azioni correttive e preventive con scadenza nei prossimi 7 giorni e non ancora completate.",
+      "workload": "Numero medio di reclami aperti per dipendente assegnato e le cinque persone che ne portano di più. Una barra arancione indica 1,5 volte la media o più."
+    },
     "hint": {
       "q1": "I dati chiave degli ultimi {{days}} giorni, confrontati con i {{days}} giorni precedenti.",
       "q2": "Ciò che attende una decisione o una correzione. Clicca su una scheda per aprire l'elenco.",
       "q3": "Da dove vengono i reclami del periodo: difetti, linee di produzione e clienti con più reclami.",
       "q4": "Mese per mese: le scadenze sono rispettate e il numero di reclami aperti è sotto controllo?",
-      "q5": "Se i dati sopra sono affidabili e cosa correggere altrimenti.",
+      "q5": "Il lato reparto: reclami critici, dossier 8D in corso, azioni in scadenza e chi porta il carico.",
       "rising": "Difetti con nettamente più reclami negli ultimi {{days}} giorni rispetto ai {{days}} precedenti (almeno 5, e 1,5 volte di più). Si confrontano solo i tipi di difetto dell'elenco di riferimento."
     },
     "healthHelp": {
@@ -298,7 +318,7 @@
     "q2": "Cosa richiede un'azione?",
     "q3": "Dove sono i problemi?",
     "q4": "Stiamo migliorando?",
-    "q5": "Possiamo fidarci dei dati?",
+    "q5": "Cosa tenere d'occhio questa settimana?",
     "openClaims": "Reclami aperti",
     "closedSub": "{{count}} chiusi negli ultimi {{days}} giorni",
     "onTime": "Chiusi nei tempi",

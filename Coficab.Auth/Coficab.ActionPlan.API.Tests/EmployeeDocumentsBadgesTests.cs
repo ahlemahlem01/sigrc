@@ -344,6 +344,9 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(JsonValueKind.Object, top.ValueKind);          // the 4 claims of this test make it a top defect
         Assert.Equal(4, top.GetProperty("count").GetInt32());
 
+        // to watch this week: the 8D queue and the workload are part of the answer
+        Assert.True(after.GetProperty("watch").GetProperty("eightD").GetProperty("byStep").GetArrayLength() == 8);
+        Assert.True(after.GetProperty("watch").GetProperty("workload").GetProperty("people").GetInt32() >= 1);
         Assert.Equal(6, after.GetProperty("months").GetArrayLength());
         Assert.Equal(85, after.GetProperty("targets").GetProperty("onTimeGreen").GetDouble());
     }

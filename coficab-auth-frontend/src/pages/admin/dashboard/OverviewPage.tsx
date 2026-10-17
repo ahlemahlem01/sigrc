@@ -6,7 +6,7 @@ import {
 } from 'recharts';
 import { useAuth } from '../../../context/AuthContext';
 import SegmentedToggle from '../../../components/SegmentedToggle';
-import { fetchDashboardOverview, fetchModelStatus, type ModelStatus } from '../../../services/dashboardOverviewService';
+import { fetchDashboardOverview } from '../../../services/dashboardOverviewService';
 import type { OverviewData, OverviewMetric, RankedItem } from '../../../types/dashboardOverview';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
@@ -100,26 +100,48 @@ function Section({ title, hint, children, aside }: { title: string; hint?: strin
   );
 }
 
-function HealthItem({
-  label, help, tone = 'neutral', onClick, children,
-}: { label: string; help: string; tone?: Tone; onClick?: () => void; children: React.ReactNode }) {
+function WatchCard({
+  title, help, value, tone, sub, to, children,
+}: { title: string; help: string; value: string; tone: Tone; sub?: string; to?: string; children?: React.ReactNode }) {
+  const navigate = useNavigate();
   return (
     <div
-      role={onClick ? 'link' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={onClick ? (e) => { if (e.key === 'Enter') onClick(); } : undefined}
-      className={`rounded-xl bg-white shadow-sm px-4 py-3 ${onClick ? 'cursor-pointer hover:shadow-md' : ''}`}
-      style={{ border: `1px solid ${COFICAB.line}` }}
+      className="rounded-xl bg-white shadow-sm px-4 py-3"
+      style={{ border: `1px solid ${COFICAB.line}`, borderTop: `3px solid ${TONE_COLOR[tone]}` }}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COFICAB.muted }}>{label}</span>
-        <DashInfoTip text={help} title={label} side="bottom" />
+        {to ? (
+          <button type="button" onClick={() => navigate(to)} className="text-[11px] font-bold uppercase tracking-wide hover:underline text-left" style={{ color: COFICAB.muted }}>
+            {title}
+          </button>
+        ) : (
+          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: COFICAB.muted }}>{title}</span>
+        )}
+        <DashInfoTip text={help} title={title} side="bottom" />
       </div>
-      <div className="mt-1.5 text-sm font-bold break-words" style={{ color: tone === 'neutral' ? COFICAB.ink : TONE_COLOR[tone] }}>
-        {children}
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <span className="text-[28px] font-extrabold leading-none tabular-nums" style={{ color: TONE_COLOR[tone] }}>{value}</span>
+        {sub ? <span className="text-xs" style={{ color: COFICAB.muted }}>{sub}</span> : null}
       </div>
+      {children ? <div className="mt-3">{children}</div> : null}
     </div>
+  );
+}
+
+function MiniRows({ rows, empty }: { rows: { key: string; left: string; sub?: string; right: string }[]; empty: string }) {
+  if (rows.length === 0) return <div className="text-xs" style={{ color: COFICAB.muted }}>{empty}</div>;
+  return (
+    <ul className="m-0 p-0 list-none divide-y" style={{ borderColor: COFICAB.line }}>
+      {rows.map((r) => (
+        <li key={r.key} className="py-1.5 flex items-center gap-2 text-xs" style={{ borderColor: COFICAB.line }}>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold truncate" style={{ color: COFICAB.ink }}>{r.left}</div>
+            {r.sub ? <div className="truncate" style={{ color: COFICAB.muted }}>{r.sub}</div> : null}
+          </div>
+          <span className="shrink-0 font-bold tabular-nums" style={{ color: COFICAB.ink }}>{r.right}</span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -169,7 +191,6 @@ export default function OverviewPage() {
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [model, setModel] = useState<ModelStatus>('unavailable');
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -187,7 +208,6 @@ export default function OverviewPage() {
   }, [accessToken, period, t]);
 
   useEffect(() => { void load(); }, [load]);
-  useEffect(() => { void fetchModelStatus().then(setModel); }, []);
 
   const locale = i18n.language || 'fr';
   const days = Number(period);
@@ -234,10 +254,6 @@ export default function OverviewPage() {
     closed: m.closed,
   }));
   const tip = { borderRadius: 10, fontSize: 12, border: `1px solid ${COFICAB.line}` };
-
-  const modelLabel = model === 'validated' ? t('overviewPage.modelValidated')
-    : model === 'indicative' ? t('overviewPage.modelIndicative') : t('overviewPage.modelUnavailable');
-  const modelTone: Tone = model === 'validated' ? 'green' : model === 'indicative' ? 'orange' : 'neutral';
 
   return (
     <div className="pb-6">
@@ -432,32 +448,101 @@ export default function OverviewPage() {
 
           {/* 5. Can we trust the data? */}
           <Section title={t('overviewPage.q5')} hint={t('overviewPage.hint.q5')}>
-            <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
-              <HealthItem
-                label={t('overviewPage.lastImport')}
-                help={t('overviewPage.healthHelp.lastImport')}
-                onClick={() => navigate('/admin/claims/import-history')}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <WatchCard
+                title={t('overviewPage.criticalTitle')}
+                help={t('overviewPage.watchHelp.critical')}
+                value={num(data.watch.critical.open)}
+                tone={data.watch.critical.open > 0 ? 'red' : 'green'}
+                sub={data.watch.critical.oldestDays != null ? t('overviewPage.criticalOldest', { days: data.watch.critical.oldestDays }) : undefined}
+                to="/admin/claims/list?severity=critical"
               >
-                {data.health.lastImportAt
-                  ? `${new Date(data.health.lastImportAt).toLocaleDateString(locale)} · ${data.health.lastImportName ?? ''}`
-                  : t('overviewPage.noImport')}
-              </HealthItem>
-              <HealthItem
-                label={t('overviewPage.profilesWithoutDepartment')}
-                help={t('overviewPage.healthHelp.profiles')}
-                tone={data.health.profilesWithoutDepartment > 0 ? 'orange' : 'green'}
-                onClick={data.health.profilesWithoutDepartment > 0 ? () => navigate('/admin/employees') : undefined}
+                <MiniRows
+                  empty={t('overviewPage.noCritical')}
+                  rows={data.watch.critical.top.map((c) => ({
+                    key: c.id,
+                    left: c.title,
+                    sub: `${c.clientId} · ${c.responsibleName || t('claimDetail.unassigned')}`,
+                    right: t('overviewPage.daysOld', { count: c.ageDays }),
+                  }))}
+                />
+              </WatchCard>
+
+              <WatchCard
+                title={t('overviewPage.eightDTitle')}
+                help={t('overviewPage.watchHelp.eightD')}
+                value={num(data.watch.eightD.inProgress)}
+                tone={data.watch.eightD.stalled > 0 ? 'orange' : 'green'}
+                sub={t('overviewPage.eightDPending', { count: data.watch.eightD.pendingValidation })}
+                to="/admin/claims/analyses?tab=eightd"
               >
-                {data.health.profilesWithoutDepartment}
-              </HealthItem>
-              <HealthItem label={t('overviewPage.model')} help={t('overviewPage.healthHelp.model')} tone={modelTone}>
-                {modelLabel}
-              </HealthItem>
-              {data.health.simulatedData && (
-                <HealthItem label={t('overviewPage.dataSource')} help={t('overviewPage.healthHelp.simulated')} tone="orange">
-                  {t('overviewPage.simulated')}
-                </HealthItem>
-              )}
+                <div className="flex items-end gap-1.5 h-[64px]">
+                  {data.watch.eightD.byStep.map((s) => {
+                    const max = Math.max(1, ...data.watch.eightD.byStep.map((x) => x.count));
+                    return (
+                      <div key={s.step} className="flex-1 flex flex-col items-center justify-end gap-1">
+                        <span className="text-[10px] font-bold tabular-nums" style={{ color: COFICAB.ink }}>{s.count}</span>
+                        <div className="w-full rounded-t" style={{ height: `${Math.max(3, (s.count / max) * 36)}px`, background: CLAIMS_ACCENT }} />
+                        <span className="text-[10px]" style={{ color: COFICAB.muted }}>{t('overviewPage.eightDStep', { n: s.step })}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="mt-2 text-xs font-semibold" style={{ color: data.watch.eightD.stalled > 0 ? COFICAB.warn : COFICAB.ok }}>
+                  {data.watch.eightD.stalled > 0
+                    ? t('overviewPage.eightDStalled', { count: data.watch.eightD.stalled })
+                    : t('overviewPage.eightDMoving')}
+                </div>
+              </WatchCard>
+
+              <WatchCard
+                title={t('overviewPage.dueTitle')}
+                help={t('overviewPage.watchHelp.due')}
+                value={num(data.watch.actionsDue.count)}
+                tone={data.watch.actionsDue.count > 0 ? 'orange' : 'green'}
+                to="/admin/action-plans/tracking?tab=follow-up"
+              >
+                <MiniRows
+                  empty={t('overviewPage.dueNone')}
+                  rows={data.watch.actionsDue.items.map((a) => ({
+                    key: a.id,
+                    left: a.title,
+                    sub: `${a.planTitle}${a.responsibleName ? ` · ${a.responsibleName}` : ''}`,
+                    right: new Date(a.deadline).toLocaleDateString(locale, { day: '2-digit', month: 'short' }),
+                  }))}
+                />
+              </WatchCard>
+
+              <WatchCard
+                title={t('overviewPage.workloadTitle')}
+                help={t('overviewPage.watchHelp.workload')}
+                value={num(data.watch.workload.averagePerPerson, 1)}
+                tone="neutral"
+                sub={t('overviewPage.workloadAvg', { people: data.watch.workload.people })}
+                to="/admin/claims/assignments"
+              >
+                {data.watch.workload.top.length === 0 ? (
+                  <div className="text-xs" style={{ color: COFICAB.muted }}>{t('overviewPage.noWorkload')}</div>
+                ) : (
+                  <ul className="m-0 p-0 list-none space-y-2">
+                    {data.watch.workload.top.map((w) => {
+                      const max = Math.max(1, ...data.watch.workload.top.map((x) => x.openClaims));
+                      const heavy = data.watch.workload.averagePerPerson > 0 && w.openClaims >= data.watch.workload.averagePerPerson * 1.5;
+                      return (
+                        <li key={w.name}>
+                          <div className="flex justify-between text-xs">
+                            <span className="font-semibold truncate" style={{ color: COFICAB.ink }}>{w.name}</span>
+                            <span className="tabular-nums font-bold" style={{ color: heavy ? COFICAB.warn : COFICAB.ink }}>{w.openClaims}</span>
+                          </div>
+                          <div className="h-1.5 rounded-full bg-slate-100 mt-1 overflow-hidden">
+                            <div className="h-full rounded-full" style={{ width: `${(w.openClaims / max) * 100}%`, background: heavy ? COFICAB.warn : PLANS_ACCENT }} />
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </WatchCard>
             </div>
           </Section>
         </>
@@ -491,6 +576,9 @@ export default function OverviewPage() {
           {t('adminDashboard.footer.auditClaims')}
         </button>
       </footer>
+      {data?.simulatedData && (
+        <p className="text-[11px] mt-3 mb-0 text-center" style={{ color: COFICAB.muted }}>{t('overviewPage.simulated')}</p>
+      )}
     </div>
   );
 }
