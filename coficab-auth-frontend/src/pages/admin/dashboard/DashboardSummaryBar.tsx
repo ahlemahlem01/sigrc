@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Line, LineChart, ResponsiveContainer } from 'recharts';
 import { useTranslation } from 'react-i18next';
+import SegmentedToggle from '../../../components/SegmentedToggle';
 import type { GlobalDashboardKpis, MonthlyOpenClosed } from '../../../types/dashboardSummary';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
@@ -173,38 +174,13 @@ function ScopeToggle({
   onChange: (s: PulseScope) => void;
 }) {
   const { t } = useTranslation();
-  const options: { id: PulseScope; labelKey: string; accent: string }[] = [
-    { id: 'all', labelKey: 'adminDashboard.pulse.scopeAll', accent: COFICAB.navy },
-    { id: 'claims', labelKey: 'adminDashboard.pulse.scopeClaims', accent: CLAIMS_ACCENT },
-    { id: 'plans', labelKey: 'adminDashboard.pulse.scopePlans', accent: PLANS_ACCENT },
+  const options: { id: PulseScope; labelKey: string }[] = [
+    { id: 'all', labelKey: 'adminDashboard.pulse.scopeAll' },
+    { id: 'claims', labelKey: 'adminDashboard.pulse.scopeClaims' },
+    { id: 'plans', labelKey: 'adminDashboard.pulse.scopePlans' },
   ];
-
   return (
-    <div
-      className="inline-flex rounded-xl p-0.5"
-      style={{ border: `1px solid ${COFICAB.line}`, background: '#fff' }}
-      role="group"
-      aria-label={t('adminDashboard.pulse.scopeLabel')}
-    >
-      {options.map((o) => {
-        const on = value === o.id;
-        return (
-          <button
-            key={o.id}
-            type="button"
-            onClick={() => onChange(o.id)}
-            className="px-2.5 py-1.5 text-[11px] font-bold rounded-[10px] transition-colors"
-            style={
-              on
-                ? { background: o.accent, color: '#fff' }
-                : { background: 'transparent', color: COFICAB.muted }
-            }
-          >
-            {t(o.labelKey)}
-          </button>
-        );
-      })}
-    </div>
+    <SegmentedToggle options={options} value={value} onChange={onChange} ariaLabel={t('adminDashboard.pulse.scopeLabel')} />
   );
 }
 
@@ -293,25 +269,12 @@ export default function DashboardSummaryBar({
 
           <ScopeToggle value={scope} onChange={setScope} />
 
-          <label className="relative inline-flex items-center">
-            <select
-              value={period}
-              onChange={(e) => setPeriod(e.target.value as PulsePeriod)}
-              className="appearance-none text-[11px] font-semibold pl-2.5 pr-7 py-1.5 rounded-lg border bg-white cursor-pointer"
-              style={{ borderColor: COFICAB.line, color: COFICAB.ink }}
-              aria-label={t('adminDashboard.pulse.periodLabel')}
-            >
-              {periodOptions.map((o) => (
-                <option key={o.id} value={o.id}>
-                  {t(o.labelKey)}
-                </option>
-              ))}
-            </select>
-            <i
-              className="ti ti-chevron-down pointer-events-none absolute right-2"
-              style={{ fontSize: 12, color: COFICAB.muted }}
-            />
-          </label>
+          <SegmentedToggle
+            options={periodOptions}
+            value={period}
+            onChange={setPeriod}
+            ariaLabel={t('adminDashboard.pulse.periodLabel')}
+          />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import SegmentedToggle from '../../../components/SegmentedToggle';
 import UserAvatar from '../../../components/UserAvatar';
 import type { ResponsibleItem } from '../../../types/dashboardSummary';
 import DashInfoTip from './DashInfoTip';
@@ -43,29 +44,14 @@ export default function TopResponsiblesSection({ claims = [], actions = [], load
             {t('adminDashboard.topResponsibles.subtitle')}
           </p>
         </div>
-        <div
-          className="inline-flex rounded-xl p-0.5"
-          style={{ border: `1px solid ${COFICAB.line}`, background: COFICAB.soft }}
-        >
-          {([
+        <SegmentedToggle
+          options={[
             { id: 'claims' as const, labelKey: 'adminDashboard.topResponsibles.tabClaims' },
             { id: 'actions' as const, labelKey: 'adminDashboard.topResponsibles.tabActions' },
-          ]).map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTab(item.id)}
-              className="px-3.5 py-1.5 text-xs font-bold rounded-[10px] transition-colors"
-              style={
-                tab === item.id
-                  ? { background: accent, color: '#fff' }
-                  : { background: 'transparent', color: COFICAB.muted }
-              }
-            >
-              {t(item.labelKey)}
-            </button>
-          ))}
-        </div>
+          ]}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       <div className="p-4">

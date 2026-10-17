@@ -11,8 +11,7 @@ import {
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { fixMojibake } from '../../utils/textEncoding';
 import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
-
-const COFICAB = '#000168';
+import SegmentedToggle from '../../components/SegmentedToggle';
 
 type Period = '7d' | '1m' | '3m' | '1y';
 type NatureKey = UiType | 'critical';
@@ -449,19 +448,11 @@ export default function AdminCapaIndicators() {
             <button type="button" onClick={exportPdf} className={capaBtnSecondary}>
               {t('common.exportPdf')}
             </button>
-            <div className="inline-flex p-1 rounded-xl bg-white border border-slate-200">
-              {(['7d', '1m', '3m', '1y'] as Period[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPeriod(p)}
-                  className="px-3 py-1.5 text-xs font-semibold rounded-lg"
-                  style={period === p ? { background: COFICAB, color: '#fff' } : { color: '#64748b' }}
-                >
-                  {t(`indicators.period.${p}`)}
-                </button>
-              ))}
-            </div>
+            <SegmentedToggle
+              options={(['7d', '1m', '3m', '1y'] as Period[]).map((p) => ({ id: p, labelKey: `indicators.period.${p}` }))}
+              value={period}
+              onChange={setPeriod}
+            />
             <span className="text-xs text-emerald-600 font-medium">{t('indicators.dataFresh')}</span>
           </>
         }
