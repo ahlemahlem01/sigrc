@@ -177,36 +177,56 @@ function RankedList({ title, rows, color, empty }: { title: string; rows: Ranked
   );
 }
 
-const AGING_COLORS = [COFICAB.warn, '#ea580c', COFICAB.danger];
+// Yellow, orange, red: three clearly different steps of urgency.
+const AGING_COLORS = ['#ca8a04', '#ea580c', '#dc2626'];
 
-/** The late items split by how long they have been late: a single stacked bar with its legend. */
-function AgingBar({ title, aging, labels, none }: { title: string; aging: OverviewAging; labels: [string, string, string]; none: string }) {
-  const parts = [aging.under30, aging.from30To90, aging.over90];
-  const total = parts.reduce((a, b) => a + b, 0);
+/** How long the late items have been late: one compact table, a row per kind of item, a column per age band. */
+function AgingTable({ title, bands, rows, none }: {
+  title: string;
+  bands: [string, string, string];
+  rows: { label: string; aging: OverviewAging }[];
+  none: string;
+}) {
   return (
-    <div className="rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
-      <div className="flex items-baseline justify-between gap-2">
-        <h3 className="text-xs font-bold m-0" style={{ color: COFICAB.ink }}>{title}</h3>
-        <span className="text-xs font-bold tabular-nums" style={{ color: total > 0 ? COFICAB.danger : COFICAB.ok }}>{total}</span>
-      </div>
-      {total === 0 ? (
-        <div className="mt-2 text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</div>
-      ) : (
-        <>
-          <div className="flex h-2.5 rounded-full overflow-hidden mt-2 bg-slate-100">
-            {parts.map((n, i) => (n > 0 ? <div key={labels[i]} style={{ width: `${(n / total) * 100}%`, background: AGING_COLORS[i] }} /> : null))}
-          </div>
-          <ul className="m-0 mt-2 p-0 list-none flex flex-wrap gap-x-4 gap-y-1 text-[11px]" style={{ color: COFICAB.muted }}>
-            {parts.map((n, i) => (
-              <li key={labels[i]} className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full" style={{ background: AGING_COLORS[i] }} />
-                {labels[i]} : <b className="tabular-nums" style={{ color: COFICAB.ink }}>{n}</b>
-                <span className="tabular-nums">({Math.round((n / total) * 100)} %)</span>
-              </li>
+    <div className="mt-3 rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
+      <h3 className="text-xs font-bold uppercase tracking-wide m-0 mb-2" style={{ color: COFICAB.ink }}>{title}</h3>
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="text-[11px]" style={{ color: COFICAB.muted }}>
+            <th className="text-left font-semibold pb-1" />
+            {bands.map((b, i) => (
+              <th key={b} className="text-right font-semibold pb-1">
+                <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: AGING_COLORS[i] }} />{b}
+              </th>
             ))}
-          </ul>
-        </>
-      )}
+            <th className="text-right font-semibold pb-1">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => {
+            const parts = [r.aging.under30, r.aging.from30To90, r.aging.over90];
+            const total = parts.reduce((x, y) => x + y, 0);
+            return (
+              <tr key={r.label} style={{ borderTop: `1px solid ${COFICAB.line}` }}>
+                <td className="py-2 font-semibold" style={{ color: COFICAB.ink }}>{r.label}</td>
+                {total === 0 ? (
+                  <td colSpan={4} className="py-2 text-right text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</td>
+                ) : (
+                  <>
+                    {parts.map((n, i) => (
+                      <td key={i} className="py-2 text-right tabular-nums">
+                        <b style={{ color: n > 0 ? AGING_COLORS[i] : COFICAB.muted }}>{n}</b>
+                        <span className="text-[11px] ml-1" style={{ color: COFICAB.muted }}>({Math.round((n / total) * 100)} %)</span>
+                      </td>
+                    ))}
+                    <td className="py-2 text-right tabular-nums font-bold" style={{ color: COFICAB.ink }}>{total}</td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -568,20 +588,15 @@ export default function OverviewPage() {
                 />
               ))}
             </div>
-            <div className="mt-3 grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <AgingBar
-                title={`${t('overviewPage.agingClaims')} · ${t('overviewPage.agingTitle')}`}
-                aging={data.claimAging}
-                labels={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
-                none={t('overviewPage.agingNone')}
-              />
-              <AgingBar
-                title={`${t('overviewPage.agingPlans')} · ${t('overviewPage.agingTitle')}`}
-                aging={data.capa.aging}
-                labels={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
-                none={t('overviewPage.agingNone')}
-              />
-            </div>
+            <AgingTable
+              title={t('overviewPage.agingTitle')}
+              bands={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
+              rows={[
+                { label: t('overviewPage.agingClaims'), aging: data.claimAging },
+                { label: t('overviewPage.agingPlans'), aging: data.capa.aging },
+              ]}
+              none={t('overviewPage.agingNone')}
+            />
             {data.actions.alerts.length > 0 && (
               <ul className="m-0 mt-3 p-0 list-none rounded-xl bg-white overflow-hidden" style={{ border: `1px solid ${COFICAB.line}` }}>
                 {data.actions.alerts.map((a) => (
