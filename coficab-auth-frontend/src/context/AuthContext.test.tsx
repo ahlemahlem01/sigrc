@@ -21,6 +21,7 @@ const TokenProbe = () => {
 const tokens = (n: number) => ({ access_token: `access-${n}`, refresh_token: `refresh-${n}`, token_type: 'Bearer', expires_in: 3600 });
 
 beforeEach(() => {
+  sessionStorage.clear();
   jest.useFakeTimers();
   localStorage.setItem('refresh_token', 'refresh-0');
   (getUserInfo as jest.Mock).mockResolvedValue({ sub: 'u1', name: 'Test' });
@@ -30,6 +31,7 @@ beforeEach(() => {
 afterEach(() => {
   jest.useRealTimers();
   localStorage.clear();
+  sessionStorage.clear();   // the access token a tab keeps for reloads must not leak into the next test
 });
 
 it('renews the access token shortly before it expires, without a reload', async () => {
@@ -77,4 +79,12 @@ it('ends the session when the server refuses the refresh token', async () => {
 
   expect(await screen.findByText('token=none')).toBeInTheDocument();
   expect(localStorage.getItem('refresh_token')).toBeNull();
+});
+
+it('does not renew when the page is reloaded while this tab still holds a good access token', async () => {
+  sessionStorage.setItem('coficab_access', JSON.stringify({ token: 'kept', expiresAt: Date.now() + 30 * 60_000 }));
+
+  render(<AuthProvider><TokenProbe /></AuthProvider>);
+  expect(await screen.findByText('token=kept')).toBeInTheDocument();
+  expect(mockedRefresh).not.toHaveBeenCalled();          // a reload costs no single-use refresh token
 });

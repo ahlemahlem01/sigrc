@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { clearAccessToken, loadAccessToken, saveAccessToken, withRefreshLock } from '../utils/sessionRefresh';
 import {
   getUserInfo,
   login as loginService,
@@ -128,6 +129,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAccessToken(data.access_token);
     localStorage.setItem('refresh_token', data.refresh_token);
     expiresAtRef.current = Date.now() + (Number(data.expires_in) || 3600) * 1000;
+    saveAccessToken(data.access_token, expiresAtRef.current);
   }, []);
 
   useEffect(() => {
@@ -135,7 +137,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedRefreshToken = localStorage.getItem('refresh_token');
       if (storedRefreshToken) {
         try {
-          const data = await refreshTokenService(storedRefreshToken);
+          // a reload keeps the access token of this tab: nothing to renew, so nothing to lose
+          const kept = loadAccessToken();
+          if (kept) {
+            try {
+              const fullUser = await fetchFullUserProfile(kept.token);
+              setAccessToken(kept.token);
+              expiresAtRef.current = kept.expiresAt;
+              setUser(fullUser);
+              setIsLoading(false);
+              return;
+            } catch {
+              clearAccessToken();   // refused (e.g. the server restarted): renew below
+            }
+          }
+
+          // one renewal at a time across tabs, with the newest refresh token
+          const data = await withRefreshLock(async () => {
+            const latest = localStorage.getItem('refresh_token') ?? storedRefreshToken;
+            const result = await refreshTokenService(latest);
+            localStorage.setItem('refresh_token', result.refresh_token);
+            return result;
+          });
           applyTokens(data);
 
           const fullUser = await fetchFullUserProfile(data.access_token);
@@ -143,6 +166,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (err) {
           console.error('Échec de la connexion automatique:', err);
           localStorage.removeItem('refresh_token');
+          clearAccessToken();
           setAccessToken(null);
           setUser(null);
         }
@@ -161,15 +185,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let cancelled = false;
 
     const renew = async () => {
-      const stored = localStorage.getItem('refresh_token');
-      if (!stored || cancelled) return;
+      if (!localStorage.getItem('refresh_token') || cancelled) return;
       try {
-        applyTokens(await refreshTokenService(stored));
+        // another tab may have renewed already: read the newest refresh token once the lock is ours
+        const data = await withRefreshLock(async () => {
+          const latest = localStorage.getItem('refresh_token');
+          if (!latest) throw new Error('no refresh token');
+          const result = await refreshTokenService(latest);
+          localStorage.setItem('refresh_token', result.refresh_token);
+          return result;
+        });
+        applyTokens(data);
       } catch (err: any) {
         if (cancelled) return;
         if (err?.response) {
           // The server refused the refresh token (revoked or expired): the session is over.
           localStorage.removeItem('refresh_token');
+          clearAccessToken();
           setAccessToken(null);
           setUser(null);
         } else {
@@ -214,6 +246,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     localStorage.removeItem('refresh_token');
+    clearAccessToken();
     expiresAtRef.current = 0;
     setAccessToken(null);
     setUser(null);
