@@ -5,6 +5,7 @@ import { adminEmployeeService } from '../../services/adminEmployeeService';
 import { isPlatformAdmin } from '../../utils/roles';
 import { ACTION_PLAN_ORIGIN } from '../../config/apiEnv';
 import { CsvImportButton } from '../../components/CsvImportButton';
+import OrganizationDepartmentFields, { type OrgDeptValue } from '../../components/OrganizationDepartmentFields';
 import { createUser, getPermissions, getUsers, unlockUser, lockUser, importUsersCsv } from '../../services/adminService';
 import { fetchEmployeePerformance, EmployeePerformanceRow } from '../../services/employeePerformanceService';
 import { fetchAccountHistory, AccountHistoryRow } from '../../services/accountHistoryService';
@@ -360,7 +361,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const { accessToken } = useAuth();
   const [fullName,   setFullName]   = useState('');
   const [email,      setEmail]      = useState('');
-  const [department, setDepartment] = useState('');
+  const [orgDept,    setOrgDept]    = useState<OrgDeptValue>({ organizationId: '', departmentId: '', departmentName: '' });
   const [poste,      setPoste]      = useState('');
   const [equipe,     setEquipe]     = useState('');
   const [ligneProduction, setLigneProduction] = useState('');
@@ -395,9 +396,13 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!fullName.trim() || !email.trim()) { setError(t('employeesAdmin.nameEmailRequired')); return; }
     if (!poste.trim()) { setError(t('employeesAdmin.posteRequired')); return; }
     if (!equipe.trim()) { setError(t('employeesAdmin.teamRequired')); return; }
+    if (!orgDept.organizationId || !orgDept.departmentId) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
     setLoading(true); setError('');
     try {
-      await createUser(accessToken!, { fullName, email, department, role, permissions: selectedPermissions });
+      await createUser(accessToken!, {
+        fullName, email, department: orgDept.departmentName, departmentId: orgDept.departmentId,
+        organizationId: orgDept.organizationId, role, permissions: selectedPermissions,
+      });
       const users = await getUsers(accessToken!);
       const created = users.find((u) => u.email?.toLowerCase() === email.trim().toLowerCase());
       if (created?.id) {
@@ -454,10 +459,11 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <label className="em-label">{t('employeesAdmin.email')} <span className="em-req">*</span></label>
                   <input className="em-input" type="email" placeholder="email@coficab.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
-                <div className="em-field">
-                  <label className="em-label">{t('planDetail.department')}</label>
-                  <input className="em-input" placeholder={t('employeesAdmin.departmentPh')} value={department} onChange={e => setDepartment(e.target.value)} />
-                </div>
+                <OrganizationDepartmentFields
+                  value={orgDept}
+                  onChange={setOrgDept}
+                  classes={{ field: 'em-field', label: 'em-label', input: 'em-input' }}
+                />
                 <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.poste')} <span className="em-req">*</span></label>
                   <input className="em-input" placeholder={t('employeesAdmin.postePh')} value={poste} onChange={e => setPoste(e.target.value)} />

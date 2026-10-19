@@ -3337,6 +3337,7 @@
     "employeeList": "Elenco dei dipendenti",
     "roleEmployee": "dipendente",
     "roleEmployeeCap": "Dipendente",
+    "orgDeptRequiredEmployee": "Una persona deve appartenere a un'organizzazione e a uno dei suoi reparti.",
     "orgDeptRequired": "Un amministratore (admin o superadmin) deve appartenere a un'organizzazione e a uno dei suoi reparti.",
     "organization": "Organizzazione",
     "pickOrg": "Seleziona un’organizzazione…",

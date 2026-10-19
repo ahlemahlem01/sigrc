@@ -3337,6 +3337,7 @@
     "employeeList": "Employees",
     "roleEmployee": "employee",
     "roleEmployeeCap": "Employee",
+    "orgDeptRequiredEmployee": "A person must belong to an organization and to one of its departments.",
     "orgDeptRequired": "An administrator (admin or superadmin) must belong to an organization and to one of its departments.",
     "organization": "Organisation",
     "pickOrg": "Select an organisation…",

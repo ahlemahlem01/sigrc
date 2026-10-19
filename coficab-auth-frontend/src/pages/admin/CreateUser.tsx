@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createUser, getPermissions, getUsers } from '../../services/adminService';
 import { permissionTitle } from '../../utils/permissionLanguage';
 import { adminEmployeeService } from '../../services/adminEmployeeService';
+import OrganizationDepartmentFields, { type OrgDeptValue } from '../../components/OrganizationDepartmentFields';
 
 const CreateUser = () => {
   const navigate = useNavigate();
@@ -12,7 +13,7 @@ const CreateUser = () => {
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
-  const [department, setDepartment] = useState('');
+  const [orgDept, setOrgDept] = useState<OrgDeptValue>({ organizationId: '', departmentId: '', departmentName: '' });
   const [poste, setPoste] = useState('');
   const [equipe, setEquipe] = useState('');
   const [ligneProduction, setLigneProduction] = useState('');
@@ -54,10 +55,17 @@ const CreateUser = () => {
         setLoading(false);
         return;
       }
+      if (!orgDept.organizationId || !orgDept.departmentId) {
+        setError("Un utilisateur doit appartenir à une organisation et à l'un de ses départements.");
+        setLoading(false);
+        return;
+      }
       await createUser(accessToken!, {
         fullName,
         email,
-        department,
+        department: orgDept.departmentName,
+        departmentId: orgDept.departmentId,
+        organizationId: orgDept.organizationId,
         role,
         permissions: selectedPermissions,
       });
@@ -128,16 +136,11 @@ const CreateUser = () => {
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Département</label>
-          <input
-            type="text"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="IT, RH, Finance..."
-          />
-        </div>
+        <OrganizationDepartmentFields
+          value={orgDept}
+          onChange={setOrgDept}
+          classes={{ field: '', label: 'block text-sm font-medium text-gray-700 mb-1', input: 'w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500' }}
+        />
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
