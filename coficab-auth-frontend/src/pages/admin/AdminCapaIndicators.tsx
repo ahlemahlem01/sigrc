@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Area, AreaChart, CartesianGrid, Cell, Legend, Line, LineChart,
-  Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
+  Area, AreaChart, CartesianGrid, Legend, Line, LineChart,
+  ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -10,7 +10,7 @@ import {
 } from './capaAnalytics';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { fixMojibake } from '../../utils/textEncoding';
-import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
+import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import SegmentedToggle from '../../components/SegmentedToggle';
 
 type Period = '7d' | '1m' | '3m' | '1y';
@@ -273,22 +273,6 @@ export default function AdminCapaIndicators() {
     return ordered.filter((r) => r.total > 0 || (CANONICAL_PROCESSES as readonly string[]).includes(r.name));
   }, [scopedActions, plans]);
 
-  const byNature = useMemo(() => {
-    const map: Record<NatureKey, number> = {
-      correctif: 0, preventif: 0, amelioration: 0, critical: 0,
-    };
-    for (const a of scopedActions) map[natureBucket(a)] += 1;
-    const total = Object.values(map).reduce((s, n) => s + n, 0) || 1;
-    const order: NatureKey[] = ['correctif', 'preventif', 'amelioration', 'critical'];
-    return order.map((k) => ({
-      key: k,
-      name: t(`indicators.nature.${k}`),
-      value: map[k],
-      pct: Math.round((map[k] / total) * 100),
-      color: NATURE_COLORS[k],
-    }));
-  }, [scopedActions, t]);
-
   const trend = useMemo(() => {
     const keys: string[] = [];
     const now = new Date();
@@ -435,73 +419,61 @@ export default function AdminCapaIndicators() {
 
   return (
     <div className="text-slate-900 w-full min-w-0">
-      <CapaPageHeader
-        compact
-        eyebrow={t('indicators.eyebrow')}
-        title={t('indicators.title')}
-        subtitle={t('indicators.subtitle')}
-        actions={
-          <>
-            <button type="button" onClick={() => void load()} className={capaBtnSecondary}>
-              {t('dashboard.refresh')}
-            </button>
-            <button type="button" onClick={exportPdf} className={capaBtnSecondary}>
-              {t('common.exportPdf')}
-            </button>
-            <SegmentedToggle
-              options={(['7d', '1m', '3m', '1y'] as Period[]).map((p) => ({ id: p, labelKey: `indicators.period.${p}` }))}
-              value={period}
-              onChange={setPeriod}
-            />
-            <span className="text-xs text-emerald-600 font-medium">{t('indicators.dataFresh')}</span>
-          </>
-        }
-      />
+      <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+        <button type="button" onClick={() => void load()} className={capaBtnSecondary}>
+          {t('dashboard.refresh')}
+        </button>
+        <button type="button" onClick={exportPdf} className={capaBtnSecondary}>
+          {t('common.exportPdf')}
+        </button>
+        <SegmentedToggle
+          options={(['7d', '1m', '3m', '1y'] as Period[]).map((p) => ({ id: p, labelKey: `indicators.period.${p}` }))}
+          value={period}
+          onChange={setPeriod}
+        />
+      </div>
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
       )}
 
-      {/* 4 KPI cards + vs previous period */}
-      <div className="grid gap-4 mb-6" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+      {/* The four key figures, one row, same look as the overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {kpiCards.map((c) => (
           <div
             key={c.key}
-            className="rounded-2xl border border-slate-200 p-5"
-            style={{ background: c.tint, borderTop: `3px solid ${c.color}` }}
+            className="rounded-xl bg-white shadow-sm px-4 py-3"
+            style={{ border: '1px solid #e4e8f2', borderTop: `3px solid ${c.color}` }}
           >
-            <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: c.color }}>{c.label}</div>
-            <div className="mt-2 flex items-end justify-between gap-2">
-              <div className="text-3xl font-bold text-slate-900 tabular-nums leading-none">{c.display}</div>
-              <div className="text-right">
-                <DeltaBadge delta={c.delta} preferDown={!!c.invertDelta} />
-                <div className="text-[10px] text-slate-400 mt-0.5">{t('indicators.vsPrev')}</div>
-              </div>
+            <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{c.label}</div>
+            <div className="mt-1.5 flex items-baseline gap-2">
+              <span className="text-[28px] font-extrabold leading-none tabular-nums" style={{ color: '#000168' }}>{c.display}</span>
+              <DeltaBadge delta={c.delta} preferDown={!!c.invertDelta} />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 mb-6">
-        {/* Closure rate by process — progress bars */}
-        <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.closureByProcess')}</h2>
-          <div className="space-y-3.5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
+        {/* Closure rate by process */}
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">{t('indicators.closureByProcess')}</h2>
+          <div className="space-y-2.5">
             {byProcess.length === 0 ? (
               <p className="text-sm text-slate-400">{t('indicators.noData')}</p>
             ) : (
               byProcess.map((row) => (
                 <div key={row.name}>
-                  <div className="flex justify-between text-xs mb-1.5">
+                  <div className="flex justify-between text-xs mb-1">
                     <span className="font-medium text-slate-700">{row.name}</span>
                     <span className="tabular-nums text-slate-500">
                       <span className="font-semibold text-slate-800">{row.rate}%</span>
                       {' · '}{row.closed}/{row.total}
                     </span>
                   </div>
-                  <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
                     <div
-                      className="h-full rounded-full transition-all"
+                      className="h-full rounded-full"
                       style={{
                         width: `${row.rate}%`,
                         background: row.rate >= 70 ? '#10b981' : row.rate >= 45 ? '#3b82f6' : row.total === 0 ? '#cbd5e1' : '#ef4444',
@@ -514,73 +486,13 @@ export default function AdminCapaIndicators() {
           </div>
         </div>
 
-        {/* Donut by nature (+ Critical) */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-2">{t('indicators.byNature')}</h2>
-          <div className="h-52 relative">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={byNature.filter((s) => s.value > 0).length ? byNature.filter((s) => s.value > 0) : byNature}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={2}
-                >
-                  {byNature.map((s) => <Cell key={s.key} fill={s.color} />)}
-                </Pie>
-                <Tooltip formatter={(v: any, name: any) => [v, name]} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-center">
-                <div className="text-xl font-bold text-[#000168]">{kpis.rate}%</div>
-                <div className="text-[10px] text-slate-400 uppercase">{t('indicators.global')}</div>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-1.5 mt-2">
-            {byNature.map((s) => (
-              <div key={s.key} className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-2 text-slate-600">
-                  <span className="w-2 h-2 rounded-full" style={{ background: s.color }} />
-                  {s.name}
-                </span>
-                <span className="font-semibold tabular-nums">{s.value} · {s.pct}%</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        {/* Monthly trend */}
-        <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.monthlyTrend')}</h2>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Legend />
-                <Line type="monotone" dataKey="closed" name={t('indicators.seriesClosed')} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="open" name={t('indicators.seriesOpen')} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
-                <Line type="monotone" dataKey="late" name={t('indicators.seriesLate')} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Top responsible */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5">
-          <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.topResponsible')}</h2>
+        <div className="bg-white border border-slate-200 rounded-xl p-4">
+          <h2 className="text-sm font-semibold text-slate-800 mb-3">{t('indicators.topResponsible')}</h2>
           {topResponsible.length === 0 ? (
             <p className="text-sm text-slate-400">{t('indicators.noData')}</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               {topResponsible.map((r, i) => (
                 <div key={r.id}>
                   <div className="flex justify-between text-xs mb-1">
@@ -608,89 +520,54 @@ export default function AdminCapaIndicators() {
         </div>
       </div>
 
-      {/* Heatmap deadline / workload */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 mb-6 overflow-x-auto">
-        <div className="flex flex-wrap items-end justify-between gap-2 mb-4">
-          <div>
-            <h2 className="text-sm font-semibold text-slate-800">{t('indicators.heatmapTitle')}</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{t('indicators.heatmapHint')}</p>
-          </div>
-          <div className="flex items-center gap-2 text-[10px] text-slate-500">
-            <span>{t('indicators.heatmapLow')}</span>
-            {['#f1f5f9', '#dbeafe', '#93c5fd', '#fbbf24', '#f87171'].map((c) => (
-              <span key={c} className="w-4 h-3 rounded-sm border border-slate-200" style={{ background: c }} />
-            ))}
-            <span>{t('indicators.heatmapHigh')}</span>
-          </div>
+      {/* Monthly trend */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-5">
+        <h2 className="text-sm font-semibold text-slate-800 mb-3">{t('indicators.monthlyTrend')}</h2>
+        <div className="h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={trend}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Legend />
+              <Line type="monotone" dataKey="closed" name={t('indicators.seriesClosed')} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="open" name={t('indicators.seriesOpen')} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="late" name={t('indicators.seriesLate')} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-        {heatmap.matrix.length === 0 ? (
-          <p className="text-sm text-slate-400">{t('indicators.noData')}</p>
-        ) : (
-          <table className="w-full text-xs min-w-[640px]">
-            <thead>
-              <tr>
-                <th className="text-left font-semibold text-slate-500 py-2 pr-3">{t('dashboard.colProcess')}</th>
-                {weeks.map((w) => (
-                  <th key={w.key} className="font-semibold text-slate-500 py-2 px-1 text-center">{w.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {heatmap.matrix.map((row) => (
-                <tr key={row.process}>
-                  <td className="py-1.5 pr-3 font-medium text-slate-700 whitespace-nowrap">{row.process}</td>
-                  {row.cells.map((v, i) => (
-                    <td key={weeks[i].key} className="px-1 py-1">
-                      <div
-                        title={`${row.process} · ${weeks[i].label}: ${v}`}
-                        className="h-8 rounded-md flex items-center justify-center font-semibold tabular-nums border border-white/40"
-                        style={{ background: heatColor(v, heatmap.max), color: v > heatmap.max * 0.5 ? '#0f172a' : '#475569' }}
-                      >
-                        {v > 0 ? v : ''}
-                      </div>
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
 
-      {/* Performance by nature + sparklines */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-5">
-        <h2 className="text-sm font-semibold text-slate-800 mb-4">{t('indicators.perfByNature')}</h2>
+      {/* Performance by nature */}
+      <div className="bg-white border border-slate-200 rounded-xl p-4 mb-5">
+        <h2 className="text-sm font-semibold text-slate-800 mb-2">{t('indicators.perfByNature')}</h2>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs">
             <thead>
-              <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-100">
-                <th className="pb-3 font-semibold">{t('dashboard.colNature')}</th>
-                <th className="pb-3 font-semibold">{t('indicators.kpiTotal')}</th>
-                <th className="pb-3 font-semibold">{t('indicators.kpiClosed')}</th>
-                <th className="pb-3 font-semibold">{t('indicators.kpiLate')}</th>
-                <th className="pb-3 font-semibold">{t('indicators.kpiRate')}</th>
-                <th className="pb-3 font-semibold">{t('indicators.sparkTrend')}</th>
+              <tr className="text-left text-[11px] text-slate-500 border-b border-slate-100">
+                <th className="pb-2 font-semibold">{t('dashboard.colNature')}</th>
+                <th className="pb-2 font-semibold text-right">{t('indicators.kpiTotal')}</th>
+                <th className="pb-2 font-semibold text-right">{t('indicators.kpiClosed')}</th>
+                <th className="pb-2 font-semibold text-right">{t('indicators.kpiLate')}</th>
+                <th className="pb-2 font-semibold text-right">{t('indicators.kpiRate')}</th>
+                <th className="pb-2 font-semibold pl-4">{t('indicators.sparkTrend')}</th>
               </tr>
             </thead>
             <tbody>
               {naturePerformance.map((row) => (
                 <tr key={row.key} className="border-t border-slate-50">
-                  <td className="py-3">
+                  <td className="py-1.5">
                     <span className="inline-flex items-center gap-2 font-medium text-slate-800">
-                      <span className="w-2.5 h-2.5 rounded-full" style={{ background: row.color }} />
+                      <span className="w-2 h-2 rounded-full" style={{ background: row.color }} />
                       {row.name}
                     </span>
                   </td>
-                  <td className="py-3 tabular-nums">{row.total}</td>
-                  <td className="py-3 tabular-nums text-emerald-700">{row.closed}</td>
-                  <td className="py-3 tabular-nums text-rose-600">{row.late}</td>
-                  <td className="py-3 min-w-[120px]">
-                    <div className="text-xs tabular-nums mb-1">{row.rate}%</div>
-                    <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden max-w-[100px]">
-                      <div className="h-full rounded-full" style={{ width: `${row.rate}%`, background: row.color }} />
-                    </div>
-                  </td>
-                  <td className="py-3">
+                  <td className="py-1.5 tabular-nums text-right">{row.total}</td>
+                  <td className="py-1.5 tabular-nums text-right text-emerald-700">{row.closed}</td>
+                  <td className="py-1.5 tabular-nums text-right text-rose-600">{row.late}</td>
+                  <td className="py-1.5 tabular-nums text-right font-semibold">{row.rate}%</td>
+                  <td className="py-1.5 pl-4">
                     <MiniSparkline data={row.spark} color={row.color} />
                   </td>
                 </tr>
@@ -699,6 +576,46 @@ export default function AdminCapaIndicators() {
           </table>
         </div>
       </div>
+
+      {/* Heatmap: detail, collapsed by default */}
+      <details className="bg-white border border-slate-200 rounded-xl p-4">
+        <summary className="cursor-pointer text-sm font-semibold text-slate-800">{t('indicators.heatmapTitle')}</summary>
+        <p className="text-xs text-slate-500 mt-2 mb-3">{t('indicators.heatmapHint')}</p>
+        {heatmap.matrix.length === 0 ? (
+          <p className="text-sm text-slate-400">{t('indicators.noData')}</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs min-w-[640px]">
+              <thead>
+                <tr>
+                  <th className="text-left font-semibold text-slate-500 py-2 pr-3">{t('dashboard.colProcess')}</th>
+                  {weeks.map((w) => (
+                    <th key={w.key} className="font-semibold text-slate-500 py-2 px-1 text-center">{w.label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {heatmap.matrix.map((row) => (
+                  <tr key={row.process}>
+                    <td className="py-1.5 pr-3 font-medium text-slate-700 whitespace-nowrap">{row.process}</td>
+                    {row.cells.map((v, i) => (
+                      <td key={weeks[i].key} className="px-1 py-1">
+                        <div
+                          title={`${row.process} · ${weeks[i].label}: ${v}`}
+                          className="h-7 rounded-md flex items-center justify-center font-semibold tabular-nums border border-white/40"
+                          style={{ background: heatColor(v, heatmap.max), color: v > heatmap.max * 0.5 ? '#0f172a' : '#475569' }}
+                        >
+                          {v > 0 ? v : ''}
+                        </div>
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </details>
     </div>
   );
 }
