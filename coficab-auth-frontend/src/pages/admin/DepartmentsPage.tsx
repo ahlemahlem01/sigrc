@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { departmentService } from "../../services/departmentService";
 import type { Department, Organization } from "../../types/department";
 import { fetchStructure } from "../../services/organizationStructureService";
+import { useOrganizationScope } from "../../context/OrganizationScopeContext";
 import { ACTION_PLAN_API_URL as BASE_URL } from "../../config/apiEnv";
 import { useTranslation } from "react-i18next";
 import i18n from "../../i18n";
@@ -13,6 +14,7 @@ import i18n from "../../i18n";
 export default function DepartmentsPage() {
   const { t } = useTranslation();
   const { accessToken } = useAuth(); 
+  const { selectedIds: scopeIds } = useOrganizationScope();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   // ?organizationId= preselects the filter (organizations list "Gérer" button).
@@ -56,11 +58,11 @@ export default function DepartmentsPage() {
       });
       if (!res.ok) throw new Error(`Failed: ${res.status}`);
       const data = await res.json();
-      setOrganizations(data);
+      setOrganizations(scopeIds.length > 0 ? data.filter((o: Organization) => scopeIds.includes(o.id)) : data);
     } catch (e) {
       console.error('Failed to fetch organizations', e);
     }
-  }, [accessToken]); 
+  }, [accessToken, scopeIds]); 
 
   const loadDepartments = useCallback(async (orgId: string) => {
     setIsLoading(true);

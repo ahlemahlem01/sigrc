@@ -5,6 +5,7 @@ import type {
 } from "../types/department";
 
 import { ACTION_PLAN_API_URL } from '../config/apiEnv';
+import { getScopeParam } from './organizationScopeStore';
 
 const BASE_URL = `${ACTION_PLAN_API_URL}/department`;
 
@@ -31,7 +32,10 @@ async function request<T>(url: string, token: string | null, options: RequestIni
 }
 
 export const departmentService = {
-  getAll: (token: string | null) => request<Department[]>(BASE_URL, token),
+  getAll: (token: string | null) => {
+    const scope = getScopeParam();
+    return request<Department[]>(scope ? `${BASE_URL}?organizationIds=${scope}` : BASE_URL, token);
+  },
 
   getById: (id: string, token: string | null) => request<Department>(`${BASE_URL}/${id}`, token),
 

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { scopeParams } from './organizationScopeStore';
 
 import { ACTION_PLAN_API_URL } from '../config/apiEnv';
 
@@ -64,11 +65,11 @@ const mapActivitySummary = (raw: any): EmployeeActivitySummary => ({
 
 export const adminEmployeeService = {
   getAllProfiles: (token: string) =>
-    axios.get(`${API_URL}/profiles`, h(token)).then(r => unwrap(r.data)),
+    axios.get(`${API_URL}/profiles`, { ...h(token), params: scopeParams() }).then(r => unwrap(r.data)),
 
   getActivitySummary: (token: string, force = false) =>
     axios
-      .get(`${API_URL}/activity`, { ...h(token), params: force ? { force: true } : undefined })
+      .get(`${API_URL}/activity`, { ...h(token), params: { ...(force ? { force: true } : {}), ...scopeParams() } })
       .then(r => mapActivitySummary(r.data)),
 
   recalculateActivity: (token: string) =>
@@ -106,7 +107,7 @@ export const adminEmployeeService = {
   // ── Aggregation : 1 requête SQL au lieu de N requêtes HTTP ──────────
 
   getAllBadges: (token: string) =>
-    axios.get(`${API_URL}/badges`, h(token)).then(r => unwrap(r.data)),
+    axios.get(`${API_URL}/badges`, { ...h(token), params: scopeParams() }).then(r => unwrap(r.data)),
 
   getUserBadges: (token: string, userId: string) =>
     axios.get(`${API_URL}/badges/${userId}`, h(token)).then(r => unwrap(r.data)),
@@ -126,7 +127,7 @@ export const adminEmployeeService = {
   },
 
   getAllTimeline: (token: string) =>
-    axios.get(`${API_URL}/timeline`, h(token)).then(r =>
+    axios.get(`${API_URL}/timeline`, { ...h(token), params: scopeParams() }).then(r =>
       unwrap(r.data).sort((a: any, b: any) =>
         new Date(b.timestamp ?? b.createdAt ?? 0).getTime() -
         new Date(a.timestamp ?? a.createdAt ?? 0).getTime()
@@ -134,7 +135,7 @@ export const adminEmployeeService = {
     ),
 
   getAllDocuments: (token: string) =>
-    axios.get(`${API_URL}/documents`, h(token)).then(r => unwrap(r.data)),
+    axios.get(`${API_URL}/documents`, { ...h(token), params: scopeParams() }).then(r => unwrap(r.data)),
 
   getUserDocuments: (token: string, userId: string) =>
     axios.get(`${API_URL}/documents/${encodeURIComponent(userId)}`, h(token)).then(r => unwrap(r.data)),

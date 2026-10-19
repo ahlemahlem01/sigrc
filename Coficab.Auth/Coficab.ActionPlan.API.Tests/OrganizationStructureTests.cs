@@ -214,4 +214,34 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal([$"plan-a-{tag}"], await Titles($"/api/ActionPlan?organizationIds={orgA}", "title"));
         Assert.Equal(2, (await Titles("/api/ActionPlan", "title")).Count);
     }
+
+    [Fact]
+    public async Task TheDepartmentAndEmployeeLists_FollowTheOrganizationsChosenBySuperadmin()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var orgA = await OrgAsync(OrganizationType.Corporate);
+        var orgB = await OrgAsync(OrganizationType.Corporate);
+        var deptA = Guid.NewGuid();
+        var deptB = Guid.NewGuid();
+        var alice = Guid.NewGuid().ToString();
+        var bob = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            db.Departments.Add(new Department { Id = deptA, Name = $"Prod-A-{tag}", Code = $"A{tag}", OrganizationId = orgA });
+            db.Departments.Add(new Department { Id = deptB, Name = $"Prod-B-{tag}", Code = $"B{tag}", OrganizationId = orgB });
+            db.UserProfiles.Add(new UserProfile { UserId = alice, Name = $"Alice-{tag}", Email = $"alice{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptA });
+            db.UserProfiles.Add(new UserProfile { UserId = bob, Name = $"Bob-{tag}", Email = $"bob{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptB });
+            return Task.CompletedTask;
+        });
+
+        var superadmin = ClientAs("superadmin");
+        async Task<List<string>> Names(string url)
+            => (await superadmin.GetFromJsonAsync<JsonElement>(url, JsonOpts)).EnumerateArray()
+                .Select(x => x.GetProperty("name").GetString() ?? "").Where(n => n.EndsWith(tag)).ToList();
+
+        Assert.Equal(2, (await Names("/api/Department")).Count);
+        Assert.Equal([$"Prod-A-{tag}"], await Names($"/api/Department?organizationIds={orgA}"));
+        Assert.Equal(2, (await Names("/api/admin/employees/profiles")).Count);
+        Assert.Equal([$"Bob-{tag}"], await Names($"/api/admin/employees/profiles?organizationIds={orgB}"));
+    }
 }

@@ -20,9 +20,11 @@ public class DepartmentController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll()
+    public async Task<IActionResult> GetAll([FromQuery] string? organizationIds = null)
     {
         var depts = await _service.GetAllAsync();
+        if (OrganizationFilter.Parse(organizationIds) is { } orgs)
+            depts = depts.Where(d => orgs.Contains(d.OrganizationId)).ToList();
         return Ok(depts);
     }
 

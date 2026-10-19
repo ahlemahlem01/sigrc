@@ -18,6 +18,7 @@ public class AdminEmployeeController : ControllerBase
     private readonly INotificationService _notificationService;
     private readonly IEmployeeActivityService _employeeActivityService;
     private readonly IWebHostEnvironment _environment;
+    private readonly IApplicationDbContext _db;
     private readonly ILogger<AdminEmployeeController> _logger;
 
     public AdminEmployeeController(
@@ -27,6 +28,7 @@ public class AdminEmployeeController : ControllerBase
         IDocumentService documentService,
         INotificationService notificationService,
         IEmployeeActivityService employeeActivityService,
+        IApplicationDbContext db,
         IWebHostEnvironment environment,
         ILogger<AdminEmployeeController> logger)
     {
@@ -37,24 +39,40 @@ public class AdminEmployeeController : ControllerBase
         _notificationService = notificationService;
         _employeeActivityService = employeeActivityService;
         _environment = environment;
+        _db = db;
         _logger = logger;
     }
 
     // ─── Profiles ────────────────────────────────────────────────────────────
 
     [HttpGet("profiles")]
-    public async Task<IActionResult> GetAllProfiles([FromQuery] bool forceActivityRefresh = false)
+    public async Task<IActionResult> GetAllProfiles([FromQuery] bool forceActivityRefresh = false, [FromQuery] string? organizationIds = null)
     {
         // Recalcule si obsolète (ou forcé) — complète le job quotidien
         await _employeeActivityService.GetSummaryAsync(forceRecalculate: forceActivityRefresh);
         var profiles = await _userProfileService.GetAllAsync();
+        if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
+            profiles = profiles.Where(p => people.Contains(p.Id)).ToList();
         return Ok(profiles);
     }
 
     [HttpGet("activity")]
-    public async Task<IActionResult> GetActivityTracking([FromQuery] bool force = false)
+    public async Task<IActionResult> GetActivityTracking([FromQuery] bool force = false, [FromQuery] string? organizationIds = null)
     {
         var summary = await _employeeActivityService.GetSummaryAsync(forceRecalculate: force);
+        if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
+        {
+            var items = summary.Items.Where(i => people.Contains(i.UserId)).ToList();
+            summary = new EmployeeActivitySummaryDto
+            {
+                Total = items.Count,
+                Active = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.Active),
+                LowActivity = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.LowActivity),
+                Inactive = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.Inactive),
+                ComputedAt = summary.ComputedAt,
+                Items = items,
+            };
+        }
         return Ok(summary);
     }
 
@@ -111,9 +129,11 @@ public class AdminEmployeeController : ControllerBase
 
     /// <summary>Agrégation globale — remplace le fan-out N×GetUserBadges côté frontend.</summary>
     [HttpGet("badges")]
-    public async Task<IActionResult> GetAllBadges()
+    public async Task<IActionResult> GetAllBadges([FromQuery] string? organizationIds = null)
     {
         var badges = await _badgeService.GetAllBadgesAsync();
+        if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
+            badges = badges.Where(b => people.Contains(b.UserId)).ToList();
         return Ok(badges);
     }
 
@@ -163,9 +183,11 @@ public class AdminEmployeeController : ControllerBase
 
     /// <summary>Agrégation globale — remplace le fan-out N×GetUserTimeline côté frontend.</summary>
     [HttpGet("timeline")]
-    public async Task<IActionResult> GetAllTimelines()
+    public async Task<IActionResult> GetAllTimelines([FromQuery] string? organizationIds = null)
     {
         var events = await _timelineService.GetAllTimelineAsync(500);
+        if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
+            events = events.Where(e => people.Contains(e.UserId)).ToList();
         return Ok(events);
     }
 
@@ -194,9 +216,11 @@ public class AdminEmployeeController : ControllerBase
 
     /// <summary>Agrégation globale — remplace le fan-out N×GetUserDocuments côté frontend.</summary>
     [HttpGet("documents")]
-    public async Task<IActionResult> GetAllDocuments()
+    public async Task<IActionResult> GetAllDocuments([FromQuery] string? organizationIds = null)
     {
         var docs = await _documentService.GetAllDocumentsAsync();
+        if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
+            docs = docs.Where(d => d.UserId != null && people.Contains(d.UserId)).ToList();
         return Ok(docs);
     }
 
