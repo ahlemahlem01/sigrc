@@ -192,6 +192,7 @@ export default function AdminDashboard() {
   };
 
   const handleCreate = async () => {
+    if (missingOrgDept) { alert(t('usersAdmin.orgDeptRequired')); return; }
     try {
       await createUser(accessToken!, form);
       setShowCreate(false);
@@ -205,6 +206,7 @@ export default function AdminDashboard() {
 
   const handleUpdate = async () => {
     if (!selected) return;
+    if (missingOrgDept) { alert(t('usersAdmin.orgDeptRequired')); return; }
     try {
       await updateUser(accessToken!, selected.id, {
         fullName: form.fullName,
@@ -306,7 +308,10 @@ const handleLock = async (id: string) => {
 
   const displayedActionPlans = showArchivedPlans ? archivedActionPlans : actionPlans;
 
-  const departmentOptions = form.role === 'admin' && form.organizationId
+  // an administrator (admin or superadmin) works for one organization and in one of its departments
+  const needsOrg = form.role === 'admin' || form.role === 'superadmin';
+  const missingOrgDept = needsOrg && (!form.organizationId || !form.department);
+  const departmentOptions = needsOrg && form.organizationId
     ? departments.filter(d => d.organizationId === form.organizationId)
     : departments;
 
@@ -990,8 +995,8 @@ const handleLock = async (id: string) => {
                     setForm(f => ({
                       ...f,
                       role: newRole,
-                      organizationId: newRole === 'admin' ? f.organizationId : '',
-                      department: newRole === 'admin' || newRole === 'user' ? f.department : '',
+                      organizationId: newRole === 'admin' || newRole === 'superadmin' ? f.organizationId : '',
+                      department: f.department,
                       permissions: newRole === 'user' ? f.permissions : [],
                     }));
                   }}
@@ -1002,11 +1007,11 @@ const handleLock = async (id: string) => {
                 </select>
               </div>
 
-              {(form.role === 'admin' || form.role === 'user') && (
+              {(form.role === 'admin' || form.role === 'superadmin' || form.role === 'user') && (
                 <div className="ad-frow">
-                  {form.role === 'admin' && (
+                  {needsOrg && (
                     <div className="ad-fg">
-                      <label className="ad-lbl">{t('usersAdmin.organization')}</label>
+                      <label className="ad-lbl">{t('usersAdmin.organization')} *</label>
                       <select
                         className="ad-sel"
                         value={form.organizationId}
@@ -1021,15 +1026,15 @@ const handleLock = async (id: string) => {
                     </div>
                   )}
                   <div className="ad-fg">
-                    <label className="ad-lbl">{t('planDetail.department')}</label>
+                    <label className="ad-lbl">{t('planDetail.department')}{needsOrg ? ' *' : ''}</label>
                     <select
                       className="ad-sel"
                       value={form.department}
                       onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                      disabled={loadingDepartments || (form.role === 'admin' && !form.organizationId)}
+                      disabled={loadingDepartments || (needsOrg && !form.organizationId)}
                     >
                       <option value="">
-                        {form.role === 'admin' && !form.organizationId
+                        {needsOrg && !form.organizationId
                           ? t('usersAdmin.orgFirst')
                           : t('usersAdmin.pickDept')}
                       </option>
@@ -1151,8 +1156,8 @@ const handleLock = async (id: string) => {
                     setForm(f => ({
                       ...f,
                       role: newRole,
-                      organizationId: newRole === 'admin' ? f.organizationId : '',
-                      department: newRole === 'admin' || newRole === 'user' ? f.department : '',
+                      organizationId: newRole === 'admin' || newRole === 'superadmin' ? f.organizationId : '',
+                      department: f.department,
                       permissions: newRole === 'user' ? f.permissions : [],
                     }));
                   }}
@@ -1163,11 +1168,11 @@ const handleLock = async (id: string) => {
                 </select>
               </div>
 
-              {(form.role === 'admin' || form.role === 'user') && (
+              {(form.role === 'admin' || form.role === 'superadmin' || form.role === 'user') && (
                 <div className="ad-frow">
-                  {form.role === 'admin' && (
+                  {needsOrg && (
                     <div className="ad-fg">
-                      <label className="ad-lbl">{t('usersAdmin.organization')}</label>
+                      <label className="ad-lbl">{t('usersAdmin.organization')} *</label>
                       <select
                         className="ad-sel"
                         value={form.organizationId}
@@ -1182,15 +1187,15 @@ const handleLock = async (id: string) => {
                     </div>
                   )}
                   <div className="ad-fg">
-                    <label className="ad-lbl">{t('planDetail.department')}</label>
+                    <label className="ad-lbl">{t('planDetail.department')}{needsOrg ? ' *' : ''}</label>
                     <select
                       className="ad-sel"
                       value={form.department}
                       onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
-                      disabled={loadingDepartments || (form.role === 'admin' && !form.organizationId)}
+                      disabled={loadingDepartments || (needsOrg && !form.organizationId)}
                     >
                       <option value="">
-                        {form.role === 'admin' && !form.organizationId
+                        {needsOrg && !form.organizationId
                           ? t('usersAdmin.orgFirst')
                           : t('usersAdmin.pickDept')}
                       </option>

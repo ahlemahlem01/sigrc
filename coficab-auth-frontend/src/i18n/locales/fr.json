@@ -3337,6 +3337,7 @@
     "employeeList": "Liste des employés",
     "roleEmployee": "employé",
     "roleEmployeeCap": "Employé",
+    "orgDeptRequired": "Un administrateur (admin ou superadmin) doit appartenir à une organisation et à l'un de ses départements.",
     "organization": "Organisation",
     "pickOrg": "Sélectionner une organisation…",
     "orgFirst": "Choisir d'abord une organisation…",

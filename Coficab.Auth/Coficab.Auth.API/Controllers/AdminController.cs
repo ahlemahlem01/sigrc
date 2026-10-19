@@ -60,14 +60,13 @@ public class AdminController : ControllerBase
 
     private static string? ValidateRoleScoping(string role, Guid? organizationId, string? department)
     {
-        if (role == "superadmin") return null;
-
-        if (role == "admin")
+        // an administrator, whatever the level, works for an organization and in one of its departments
+        if (role is "admin" or "superadmin")
         {
             if (organizationId == null)
-                return "An admin must be assigned to an organization.";
+                return "An administrator must be assigned to an organization.";
             if (string.IsNullOrWhiteSpace(department))
-                return "An admin must have a department set.";
+                return "An administrator must have a department set.";
         }
 
         return null;
@@ -226,9 +225,6 @@ public class AdminController : ControllerBase
         if (string.IsNullOrEmpty(CurrentUserId))
             return BadRequest("Cannot resolve current user ID.");
 
-        if (request.Role == "superadmin")
-            request.OrganizationId = null;
-
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
         if (scopingError != null) return BadRequest(scopingError);
 
@@ -322,9 +318,6 @@ public class AdminController : ControllerBase
     {
         if (string.IsNullOrEmpty(CurrentUserId))
             return new UserCreateOutcome("Cannot resolve current user ID.", null, null, null, null);
-
-        if (request.Role == "superadmin")
-            request.OrganizationId = null;
 
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
         if (scopingError != null)
@@ -469,9 +462,6 @@ public class AdminController : ControllerBase
             if (request.Role is "admin" or "superadmin")
                 return BadRequest("You do not have permission to assign this role.");
         }
-
-        if (request.Role == "superadmin")
-            request.OrganizationId = null;
 
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
         if (scopingError != null) return BadRequest(scopingError);
