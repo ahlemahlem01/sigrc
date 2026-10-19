@@ -30,7 +30,7 @@ const sample = (): OverviewData => ({
     workload: { averagePerPerson: 20.5, people: 31, overloaded: 3, top: [{ name: 'Amine Ben Youssef', openClaims: 35, lateClaims: 25 }], leastLoaded: null },
   },
   simulatedData: true,
-  scope: { organizationId: null, organizationName: null },
+  scope: { organizationIds: [], organizationNames: [] },
   organizations: [
     { organizationId: 'o1', name: 'Coficab Group', employees: 20, openClaims: 561, lateClaims: 425, noDeadline: 136, pendingValidation: 82, onTimeCount: 1, onTimeBase: 2, onTimeRate: 77.6, ppm: 9681, openPlans: 3, latePlans: 0 },
     { organizationId: null, name: '', employees: 0, openClaims: 26, lateClaims: 6, noDeadline: 20, pendingValidation: 2, onTimeCount: 1, onTimeBase: 2, onTimeRate: 76.7, ppm: 16901, openPlans: 0, latePlans: 0 },

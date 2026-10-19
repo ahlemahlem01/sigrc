@@ -198,8 +198,8 @@ export interface OverviewClient {
 }
 
 export interface OverviewScope {
-  organizationId: string | null;
-  organizationName: string | null;
+  organizationIds: string[];
+  organizationNames: string[];
 }
 
 export interface OverviewData {

@@ -33,8 +33,8 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(...GREY);
-  const scope = data.scope.organizationName
-    ? t('overviewPage.pdfScopeOne', { name: data.scope.organizationName })
+  const scope = data.scope.organizationNames.length > 0
+    ? t('overviewPage.pdfScopeOne', { name: data.scope.organizationNames.join(', ') })
     : t('overviewPage.allOrganizations');
   doc.text(`${scope} - ${t('overviewPage.pdfPeriod', { days })}`, 14, y);
   y += 5;

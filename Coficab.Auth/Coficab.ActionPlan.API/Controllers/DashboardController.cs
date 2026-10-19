@@ -27,19 +27,19 @@ public class DashboardController : ControllerBase
     /// <summary>Management overview: headline figures, actions, problems, trend and data health, for the last <paramref name="days"/> days.</summary>
     [HttpGet("overview")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<OverviewDto>> GetOverview([FromQuery] int days = 90, [FromQuery] Guid? organizationId = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<OverviewDto>> GetOverview([FromQuery] int days = 90, [FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var superAdmin = User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
-        return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin, organizationId), cancellationToken));
+        return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin, ParseOrganizations(organizationIds)), cancellationToken));
     }
 
     /// <summary>CAPA indicators computed on the plans (open, late, closed on time, by type, by department, monthly), for the last <paramref name="days"/> days.</summary>
     [HttpGet("capa-indicators")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] Guid? organizationId = null, CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, organizationId), cancellationToken));
+    public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
+        => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, ParseOrganizations(organizationIds)), cancellationToken));
 
     /// <summary>The targets the overview's traffic lights are compared with.</summary>
     [HttpGet("overview/targets")]
@@ -70,17 +70,25 @@ public class DashboardController : ControllerBase
         return Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
     }
 
+    /// <summary>"id1,id2" from the organization selector: the ones that are valid ids; null when nothing is selected (all organizations).</summary>
+    private static IReadOnlyList<Guid>? ParseOrganizations(string? raw)
+    {
+        var ids = (raw ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => Guid.TryParse(x, out var g) ? g : (Guid?)null).Where(g => g != null).Select(g => g!.Value).Distinct().ToList();
+        return ids.Count == 0 ? null : ids;
+    }
+
     private bool IsSuperAdmin() => User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
         .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
 
     /// <summary>Vue globale Claims + Action Plans (KPIs, top retards, courbes, donuts, responsables).</summary>
     [HttpGet("summary")]
-    public async Task<ActionResult<DashboardSummaryDto>> GetSummary(CancellationToken cancellationToken)
+    public async Task<ActionResult<DashboardSummaryDto>> GetSummary([FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var superAdmin = User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
-        var result = await _mediator.Send(new GetDashboardSummaryQuery(userId, superAdmin), cancellationToken);
+        var result = await _mediator.Send(new GetDashboardSummaryQuery(userId, superAdmin, ParseOrganizations(organizationIds)), cancellationToken);
         return Ok(result);
     }
 }

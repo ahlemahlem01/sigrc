@@ -6,6 +6,7 @@ import LanguageSwitcher from '../LanguageSwitcher';
 import UserAvatar from '../UserAvatar';
 import { LogOut, LayoutDashboard, ChevronDown, Search, Calendar } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
+import OrganizationScopePicker from '../OrganizationScopePicker';
 import { useEffect, useRef } from 'react';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 
@@ -692,6 +693,7 @@ export default function AdminLayout() {
               </div>
             </div>
             <div className="al-tb-right">
+              <OrganizationScopePicker />
               {/* Real bell (was a static icon with a permanent red dot) */}
               <div className="al-tb-ico">
                 <NotificationBell />

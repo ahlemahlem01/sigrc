@@ -3,6 +3,7 @@ import AdminLayout from './components/Layout/AdminLayout';
 import ScrollToTop from './components/ScrollToTop';
 import UserLayout from './components/Layout/UserLayout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { OrganizationScopeProvider } from './context/OrganizationScopeContext';
 import { PreferencesProvider } from './context/PreferencesContext';
 import { RealtimeProvider } from './context/RealtimeContext';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
@@ -135,6 +136,7 @@ const AdminRoute = () => {
 const App = () => {
   return (
     <AuthProvider>
+      <OrganizationScopeProvider>
       <PreferencesProvider>
       <RealtimeProvider>
       <BrowserRouter>
@@ -274,6 +276,7 @@ const App = () => {
       </BrowserRouter>
       </RealtimeProvider>
       </PreferencesProvider>
+      </OrganizationScopeProvider>
     </AuthProvider>
   );
 };

@@ -4,6 +4,7 @@ import {
   Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
+import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaIndicators, type CapaFigure, type CapaIndicators } from '../../services/capaIndicatorsService';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
@@ -67,6 +68,7 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 export default function AdminCapaIndicators() {
   const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
+  const { param: scopeParam } = useOrganizationScope();
   const [period, setPeriod] = useState<Period>('3m');
   const [data, setData] = useState<CapaIndicators | null>(null);
   const [error, setError] = useState('');
@@ -77,13 +79,13 @@ export default function AdminCapaIndicators() {
     setLoading(true);
     setError('');
     try {
-      setData(await fetchCapaIndicators(accessToken, PERIOD_DAYS[period]));
+      setData(await fetchCapaIndicators(accessToken, PERIOD_DAYS[period], scopeParam));
     } catch {
       setError(t('indicators.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [accessToken, period, t]);
+  }, [accessToken, period, scopeParam, t]);
 
   useEffect(() => { void load(); }, [load]);
 

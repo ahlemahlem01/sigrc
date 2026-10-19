@@ -196,6 +196,11 @@
     "footerSystem": "Système d'authentification centralisé",
     "footerAccess": "Accès réservé aux collaborateurs autorisés"
   },
+  "orgScope": {
+    "all": "Toutes les organisations",
+    "count": "{{count}} organisations",
+    "title": "Organisations suivies dans toute l'application"
+  },
   "adminNav": {
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",

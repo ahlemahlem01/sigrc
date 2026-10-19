@@ -449,7 +449,7 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
             return Task.CompletedTask;
         });
 
-        var dto = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/dashboard/capa-indicators?days=90&organizationId={orgId}", JsonOpts);
+        var dto = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/dashboard/capa-indicators?days=90&organizationIds={orgId}", JsonOpts);
         var kpis = dto.GetProperty("kpis");
         Assert.Equal(2, kpis.GetProperty("openPlans").GetInt32());
         Assert.Equal(1, kpis.GetProperty("latePlans").GetInt32());
@@ -516,12 +516,17 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(0, b.GetProperty("lateClaims").GetInt32());
 
         // filtering on one organization narrows the headline figures to it
-        var onlyA = await admin.GetFromJsonAsync<JsonElement>($"/api/dashboard/overview?days=90&organizationId={orgA}", JsonOpts);
+        var onlyA = await admin.GetFromJsonAsync<JsonElement>($"/api/dashboard/overview?days=90&organizationIds={orgA}", JsonOpts);
         Assert.Equal(2, onlyA.GetProperty("headline").GetProperty("openClaims").GetInt32());
         Assert.Equal(1, onlyA.GetProperty("actions").GetProperty("lateClaims").GetInt32());
-        Assert.Equal($"OrgA-{tag}", onlyA.GetProperty("scope").GetProperty("organizationName").GetString());
+        Assert.Equal($"OrgA-{tag}", onlyA.GetProperty("scope").GetProperty("organizationNames")[0].GetString());
         // ... while the comparison still lists the other organizations
         Assert.Contains(onlyA.GetProperty("organizations").EnumerateArray(), o => o.GetProperty("name").GetString() == $"OrgB-{tag}");
+
+        // several organizations can be followed together: their figures add up
+        var both = await admin.GetFromJsonAsync<JsonElement>($"/api/dashboard/overview?days=90&organizationIds={orgA},{orgB}", JsonOpts);
+        Assert.Equal(3, both.GetProperty("headline").GetProperty("openClaims").GetInt32());
+        Assert.Equal(2, both.GetProperty("scope").GetProperty("organizationNames").GetArrayLength());
     }
 
     [Fact]

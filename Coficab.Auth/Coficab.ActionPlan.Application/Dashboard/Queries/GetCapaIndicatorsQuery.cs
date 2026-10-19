@@ -35,7 +35,7 @@ public record CapaIndicatorsDto(
     IReadOnlyList<CapaIndicatorOwnerDto> Owners,
     int DetailedActions);
 
-public record GetCapaIndicatorsQuery(int Days = 90, Guid? OrganizationId = null) : IRequest<CapaIndicatorsDto>;
+public record GetCapaIndicatorsQuery(int Days = 90, IReadOnlyList<Guid>? OrganizationIds = null) : IRequest<CapaIndicatorsDto>;
 
 /// <summary>
 /// CAPA indicators computed on the plans (not on their detailed actions, which are often missing): same definition of
@@ -64,7 +64,7 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
 
         var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Include(p => p.Department).Include(p => p.Organization)
             .Where(p => !p.IsArchived);
-        if (request.OrganizationId is { } org) query = query.Where(p => p.OrganizationId == org);
+        if (request.OrganizationIds is { Count: > 0 } orgs) query = query.Where(p => orgs.Contains(p.OrganizationId));
         var plans = await query.ToListAsync(ct);
 
         var open = plans.Where(PlanDeadlines.IsOpen).ToList();

@@ -8,9 +8,10 @@ function unwrap<T>(payload: any): T {
 }
 
 /** GET /api/dashboard/summary */
-export async function fetchDashboardSummary(token: string): Promise<DashboardSummary> {
+export async function fetchDashboardSummary(token: string, organizationIds?: string): Promise<DashboardSummary> {
   const res = await axios.get(`${API_BASE}/dashboard/summary`, {
     headers: { Authorization: `Bearer ${token}` },
+    params: organizationIds ? { organizationIds } : undefined,
   });
   const raw = unwrap<any>(res.data);
 

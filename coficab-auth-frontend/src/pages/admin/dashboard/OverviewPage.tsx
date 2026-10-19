@@ -5,6 +5,7 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
 import { useAuth } from '../../../context/AuthContext';
+import { useOrganizationScope } from '../../../context/OrganizationScopeContext';
 import SegmentedToggle from '../../../components/SegmentedToggle';
 import { fetchDashboardOverview } from '../../../services/dashboardOverviewService';
 import { exportOverviewPdf } from '../../../utils/overviewPdfExport';
@@ -256,9 +257,8 @@ export default function OverviewPage() {
   const [editingTargets, setEditingTargets] = useState(false);
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('90');
-  const [organizationId, setOrganizationId] = useState('');
-  // the comparison table must keep listing every organization while one of them is selected
-  const [knownOrganizations, setKnownOrganizations] = useState<{ id: string; name: string }[]>([]);
+  // the organizations followed are chosen once for the whole console (top bar)
+  const { param: scopeParam, selectedIds, toggle, clear } = useOrganizationScope();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -268,14 +268,8 @@ export default function OverviewPage() {
     setLoading(true);
     setError('');
     try {
-      const result = await fetchDashboardOverview(accessToken, Number(period), organizationId || undefined);
+      const result = await fetchDashboardOverview(accessToken, Number(period), scopeParam);
       setData(result);
-      setKnownOrganizations((previous) => {
-        const fresh = result.organizations.filter((o) => o.organizationId).map((o) => ({ id: o.organizationId as string, name: o.name }));
-        const merged = new Map(previous.map((o) => [o.id, o]));
-        fresh.forEach((o) => merged.set(o.id, o));
-        return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
-      });
     } catch (err: any) {
       const status = err?.response?.status;
       setError(status === 401 || status === 403 ? t('adminDashboard.errorSession') : t('overviewPage.loadFailed'));
@@ -283,7 +277,7 @@ export default function OverviewPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, period, organizationId, t]);
+  }, [accessToken, period, scopeParam, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -360,18 +354,6 @@ export default function OverviewPage() {
             onChange={setPeriod}
             ariaLabel={t('overviewPage.periodLabel')}
           />
-          {knownOrganizations.length > 1 && (
-            <select
-              value={organizationId}
-              onChange={(e) => setOrganizationId(e.target.value)}
-              aria-label={t('overviewPage.organizationLabel')}
-              className="px-3 py-2 text-xs font-semibold rounded-xl border bg-white"
-              style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
-            >
-              <option value="">{t('overviewPage.allOrganizations')}</option>
-              {knownOrganizations.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
-            </select>
-          )}
           {isSuperAdmin && data && (
             <button
               type="button"
@@ -402,10 +384,10 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {data?.scope.organizationId && (
+      {data && data.scope.organizationNames.length > 0 && (
         <div className="mb-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold" style={{ background: COFICAB.light, color: COFICAB.navy }}>
-          {t('overviewPage.scopeBadge', { name: data.scope.organizationName ?? '' })}
-          <button type="button" onClick={() => setOrganizationId('')} className="underline font-bold">{t('overviewPage.clearScope')}</button>
+          {t('overviewPage.scopeBadge', { name: data.scope.organizationNames.join(', ') })}
+          <button type="button" onClick={clear} className="underline font-bold">{t('overviewPage.clearScope')}</button>
         </div>
       )}
 
@@ -498,14 +480,14 @@ export default function OverviewPage() {
                   </thead>
                   <tbody>
                     {data.organizations.map((o) => {
-                      const selected = !!o.organizationId && o.organizationId === organizationId;
+                      const selected = !!o.organizationId && selectedIds.includes(o.organizationId);
                       const rate = o.onTimeRate;
                       const rateTone: Tone = rate == null ? 'neutral' : rate >= targets.onTimeGreen ? 'green' : rate >= targets.onTimeOrange ? 'orange' : 'red';
                       const clickable = !!o.organizationId;
                       return (
                         <tr
                           key={o.organizationId ?? 'none'}
-                          onClick={clickable ? () => setOrganizationId(selected ? '' : (o.organizationId as string)) : undefined}
+                          onClick={clickable ? () => toggle(o.organizationId as string) : undefined}
                           className={clickable ? 'cursor-pointer hover:bg-slate-50' : ''}
                           style={{ borderTop: `1px solid ${COFICAB.line}`, background: selected ? COFICAB.light : undefined }}
                         >

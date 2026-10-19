@@ -88,7 +88,7 @@ public record DashboardSummaryDto(
     ActionPlansDashboardDto ActionPlans
 );
 
-public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true, Guid? OrganizationId = null) : IRequest<DashboardSummaryDto>;
+public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true, IReadOnlyList<Guid>? OrganizationIds = null) : IRequest<DashboardSummaryDto>;
 
 public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
 {
@@ -163,11 +163,11 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
                 || planClaimIds.Contains(c.Id)).ToList();
         }
 
-        if (request.OrganizationId is { } orgFilter)
+        if (request.OrganizationIds is { Count: > 0 } orgFilter)
         {
             var attribution = await OrganizationAttribution.LoadAsync(_context, cancellationToken);
-            claims = claims.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) == orgFilter).ToList();
-            plans = plans.Where(p => p.OrganizationId == orgFilter).ToList();
+            claims = claims.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) is { } o && orgFilter.Contains(o)).ToList();
+            plans = plans.Where(p => orgFilter.Contains(p.OrganizationId)).ToList();
         }
 
         static bool IsClaimClosed(string status) =>

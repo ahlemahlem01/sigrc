@@ -23,10 +23,10 @@ export interface CapaIndicators {
 }
 
 /** GET /api/dashboard/capa-indicators?days= : CAPA indicators computed on the plans (admins only). */
-export async function fetchCapaIndicators(token: string, days: number, organizationId?: string): Promise<CapaIndicators> {
+export async function fetchCapaIndicators(token: string, days: number, organizationIds?: string): Promise<CapaIndicators> {
   const res = await axios.get(`${API_BASE}/dashboard/capa-indicators`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: { days, ...(organizationId ? { organizationId } : {}) },
+    params: { days, ...(organizationIds ? { organizationIds } : {}) },
   });
   return (res.data?.data ?? res.data) as CapaIndicators;
 }

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../context/AuthContext';
+import { useOrganizationScope } from '../../../context/OrganizationScopeContext';
 import { fetchDashboardSummary } from '../../../services/dashboardSummaryService';
 import type { DashboardSummary } from '../../../types/dashboardSummary';
 import DashboardSummaryBar from './DashboardSummaryBar';
@@ -15,6 +16,7 @@ import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
 export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'indicators' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
+  const { param: scopeParam } = useOrganizationScope();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,7 +27,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
     setLoading(true);
     setError('');
     try {
-      const summary = await fetchDashboardSummary(accessToken);
+      const summary = await fetchDashboardSummary(accessToken, scopeParam);
       setData(summary);
     } catch (err: any) {
       const status = err?.response?.status;
@@ -40,7 +42,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
     } finally {
       setLoading(false);
     }
-  }, [accessToken, t]);
+  }, [scopeParam, accessToken, t]);
 
   useEffect(() => { void load(); }, [load]);
 
