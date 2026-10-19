@@ -1,5 +1,6 @@
 // src/services/actionPlanService.ts
 import axios from 'axios';
+import { scopeParams } from './organizationScopeStore';
 import { ACTION_PLAN_API_URL as BASE_URL, AUTH_API_URL as AUTH_API } from '../config/apiEnv';  
 
 const getHeaders = (token: string) => ({
@@ -10,11 +11,11 @@ const getHeaders = (token: string) => ({
 export const getActionPlans = (token: string, includeActions = false) =>
   axios.get(`${BASE_URL}/actionplan`, {
     ...getHeaders(token),
-    params: includeActions ? { includeActions: true } : undefined,
+    params: { ...(includeActions ? { includeActions: true } : {}), ...scopeParams() },
   });
 
 export const getSteeringPlans = (token: string) =>
-  axios.get(`${BASE_URL}/actionplan/steering`, getHeaders(token));
+  axios.get(`${BASE_URL}/actionplan/steering`, { ...getHeaders(token), params: scopeParams() });
 
 export const getActionPlanById = (token: string, id: string) =>
   axios.get(`${BASE_URL}/actionplan/${id}`, getHeaders(token));

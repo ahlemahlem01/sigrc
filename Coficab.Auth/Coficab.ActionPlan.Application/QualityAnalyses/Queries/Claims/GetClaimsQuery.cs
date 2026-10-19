@@ -15,7 +15,9 @@ public record GetClaimsQuery(
     /// <summary>With AssignedToId: exclude claims also created by that same user (admin-assigned only).</summary>
     bool ExcludeSelfCreated = false,
     /// <summary>Admin (not superadmin): restrict to created, assigned, or same department.</summary>
-    string? ScopeUserId = null
+    string? ScopeUserId = null,
+    /// <summary>The organizations followed (superadmin): a claim follows its assignee's organization, else its creator's.</summary>
+    IReadOnlyList<Guid>? OrganizationIds = null
 ) : IRequest<List<Claim>>;
 
 public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>>
@@ -44,6 +46,17 @@ public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>
         var query = context.Claims.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(request.ScopeUserId))
             query = await ClaimVisibility.ApplyAsync(context, query, request.ScopeUserId, cancellationToken);
+
+        if (request.OrganizationIds is { Count: > 0 } orgIds)
+        {
+            var placed = context.UserProfiles.AsNoTracking().Where(p => p.DepartmentId != null && p.Department != null);
+            var inScope = await placed.Where(p => orgIds.Contains(p.Department!.OrganizationId)).Select(p => p.UserId).ToListAsync(cancellationToken);
+            var everyPlaced = await placed.Select(p => p.UserId).ToListAsync(cancellationToken);
+            // same rule as the overview: the assignee's organization, and the creator's only when the assignee has none
+            query = query.Where(c =>
+                (c.AssignedToId != null && inScope.Contains(c.AssignedToId))
+                || ((c.AssignedToId == null || !everyPlaced.Contains(c.AssignedToId)) && c.CreatedById != null && inScope.Contains(c.CreatedById)));
+        }
 
         if (!string.IsNullOrWhiteSpace(request.RelatedToUserId))
         {

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { ACTION_PLAN_API_URL as API_BASE } from '../config/apiEnv';
 import { normalizeRoles } from '../utils/roles';
 import { useAuth } from './AuthContext';
+import { setScopeParam } from '../services/organizationScopeStore';
 
 export interface ScopeOrganization { id: string; name: string }
 
@@ -17,20 +18,27 @@ interface OrganizationScope {
   clear: () => void;
   /** "id1,id2" for the API, or undefined when nothing is selected. */
   param: string | undefined;
+  /** False for a superadmin until the organizations are loaded: the default choice is not known before. */
+  ready: boolean;
 }
 
 const KEY = 'coficab_org_scope';
 const Ctx = createContext<OrganizationScope | null>(null);
 
-function readStored(): string[] {
+/** null: never chosen yet. */
+function readStored(): string[] | null {
   try {
     const raw = localStorage.getItem(KEY);
-    const list = raw ? JSON.parse(raw) : [];
-    return Array.isArray(list) ? list.filter((x) => typeof x === 'string') : [];
+    if (raw == null) return null;
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list.filter((x) => typeof x === 'string') : null;
   } catch {
-    return [];
+    return null;
   }
 }
+
+/** The organization followed until the superadmin chooses otherwise. */
+const DEFAULT_ORGANIZATION = /tunisi/i;
 
 /**
  * The organizations the superadmin follows across the whole console. The choice is remembered in the browser and is
@@ -40,25 +48,32 @@ export function OrganizationScopeProvider({ children }: { children: React.ReactN
   const { accessToken, user } = useAuth();
   const canChoose = normalizeRoles(user as any).includes('superadmin');
   const [organizations, setOrganizations] = useState<ScopeOrganization[]>([]);
-  const [stored, setStored] = useState<string[]>(readStored);
+  const [loaded, setLoaded] = useState(false);
+  const [stored, setStored] = useState<string[] | null>(readStored);
 
   useEffect(() => {
-    if (!canChoose || !accessToken) { setOrganizations([]); return; }
+    if (!canChoose || !accessToken) { setOrganizations([]); setLoaded(false); return; }
     let live = true;
     axios.get(`${API_BASE}/organization`, { headers: { Authorization: `Bearer ${accessToken}` } })
       .then((res) => {
         if (!live) return;
         const rows = (res.data?.data ?? res.data) as { id: string; name: string }[];
         setOrganizations(rows.map((o) => ({ id: o.id, name: o.name })).sort((a, b) => a.name.localeCompare(b.name)));
+        setLoaded(true);
       })
-      .catch(() => { if (live) setOrganizations([]); });
+      .catch(() => { if (live) { setOrganizations([]); setLoaded(true); } });
     return () => { live = false; };
   }, [canChoose, accessToken]);
 
   const selectedIds = useMemo(() => {
     if (!canChoose) return [];
-    // until the list is loaded keep what was stored; afterwards drop the organizations that no longer exist
-    return organizations.length === 0 ? stored : stored.filter((id) => organizations.some((o) => o.id === id));
+    if (organizations.length === 0) return stored ?? [];
+    if (stored === null) {
+      const fallback = organizations.find((o) => DEFAULT_ORGANIZATION.test(o.name));
+      return fallback ? [fallback.id] : [];
+    }
+    // drop the organizations that no longer exist
+    return stored.filter((id) => organizations.some((o) => o.id === id));
   }, [canChoose, organizations, stored]);
 
   const setSelectedIds = useCallback((ids: string[]) => {
@@ -72,6 +87,10 @@ export function OrganizationScopeProvider({ children }: { children: React.ReactN
 
   const clear = useCallback(() => setSelectedIds([]), [setSelectedIds]);
 
+  const param = selectedIds.length > 0 ? selectedIds.join(',') : undefined;
+  // set while rendering so that the children's first requests already carry it
+  setScopeParam(canChoose && (organizations.length > 0 || stored !== null) ? param : undefined);
+
   const value = useMemo<OrganizationScope>(() => ({
     canChoose,
     organizations,
@@ -79,8 +98,9 @@ export function OrganizationScopeProvider({ children }: { children: React.ReactN
     setSelectedIds,
     toggle,
     clear,
-    param: selectedIds.length > 0 ? selectedIds.join(',') : undefined,
-  }), [canChoose, organizations, selectedIds, setSelectedIds, toggle, clear]);
+    param,
+    ready: !canChoose || loaded,
+  }), [canChoose, loaded, organizations, selectedIds, setSelectedIds, toggle, clear, param]);
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

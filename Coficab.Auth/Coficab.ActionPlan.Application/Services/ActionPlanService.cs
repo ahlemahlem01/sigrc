@@ -141,6 +141,7 @@ public class ActionPlanService : IActionPlanService
                 Type = (int)p.Type,
                 Status = (int)p.Status,
                 DepartmentName = p.Department.Name,
+                OrganizationId = p.OrganizationId,
                 Deadline = p.Deadline,
                 Progress = p.Progress,
                 AssignedToId = p.AssignedToId,

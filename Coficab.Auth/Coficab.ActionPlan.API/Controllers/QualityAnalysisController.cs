@@ -157,6 +157,7 @@ public class QualityAnalysisController : ControllerBase
         [FromQuery] string? relatedTo,
         [FromQuery] bool? hasAssignee,
         CancellationToken cancellationToken,
+        [FromQuery] string? organizationIds = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = GetClaimsPageQuery.DefaultPageSize)
     {
@@ -211,7 +212,8 @@ public class QualityAnalysisController : ControllerBase
         var result = await _mediator.Send(
             new GetClaimsPageQuery(
                 new GetClaimsQuery(status, assignedToId, createdById, effectiveHasAssignee, relatedToUserId, excludeSelfCreated,
-                    IsQualityAdmin() && !IsSuperAdmin() ? userId : null),
+                    IsQualityAdmin() && !IsSuperAdmin() ? userId : null,
+                    isAdmin ? OrganizationFilter.Parse(organizationIds) : null),
                 page,
                 pageSize),
             cancellationToken);

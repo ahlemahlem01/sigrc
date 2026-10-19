@@ -85,7 +85,7 @@ public class ActionPlanController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] bool includeActions = false)
+    public async Task<IActionResult> GetAll([FromQuery] bool includeActions = false, [FromQuery] string? organizationIds = null)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -94,6 +94,8 @@ public class ActionPlanController : ControllerBase
         if (IsQualityAdmin())
         {
             var plans = await _actionPlanService.GetVisibleAsync(userId, IsSuperAdmin(), includeActions);
+            if (OrganizationFilter.Parse(organizationIds) is { } orgs)
+                plans = plans.Where(p => orgs.Contains(p.OrganizationId)).ToList();
             return Ok(plans);
         }
 
@@ -102,7 +104,7 @@ public class ActionPlanController : ControllerBase
     }
 
     [HttpGet("steering")]
-    public async Task<IActionResult> GetSteering()
+    public async Task<IActionResult> GetSteering([FromQuery] string? organizationIds = null)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -112,6 +114,8 @@ public class ActionPlanController : ControllerBase
             return Forbid();
 
         var rows = await _actionPlanService.GetSteeringAsync(userId, IsSuperAdmin());
+        if (OrganizationFilter.Parse(organizationIds) is { } orgs)
+            rows = rows.Where(r => orgs.Contains(r.OrganizationId)).ToList();
         return Ok(rows);
     }
 

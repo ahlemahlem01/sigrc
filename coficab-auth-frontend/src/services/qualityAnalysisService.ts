@@ -1,5 +1,6 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { scopeParams } from './organizationScopeStore';
 import {
   Claim,
   UpdateClaimCommand,
@@ -152,7 +153,7 @@ export const qualityAnalysisService = {
     options?: { createdBy?: string; hasAssignee?: boolean; relatedTo?: string }
   ): Promise<Claim[]> => {
     const config = getAuthConfig(token);
-    const params: Record<string, string | boolean> = {};
+    const params: Record<string, string | boolean> = { ...scopeParams() };
     if (status) params.status = status;
     if (assignedTo) params.assignedTo = assignedTo;
     if (options?.createdBy) params.createdBy = options.createdBy;

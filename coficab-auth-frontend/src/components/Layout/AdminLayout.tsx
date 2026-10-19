@@ -6,6 +6,7 @@ import LanguageSwitcher from '../LanguageSwitcher';
 import UserAvatar from '../UserAvatar';
 import { LogOut, LayoutDashboard, ChevronDown, Search, Calendar } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
+import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import OrganizationScopePicker from '../OrganizationScopePicker';
 import { useEffect, useRef } from 'react';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
@@ -200,6 +201,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { param: scopeParam, ready: scopeReady } = useOrganizationScope();
   const navigate  = useNavigate();
   const location  = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
@@ -742,7 +744,7 @@ export default function AdminLayout() {
           </div>
           <main className="al-main">
             <div className="al-page">
-              <Outlet />
+              {scopeReady ? <Outlet key={scopeParam ?? 'all'} /> : null}
             </div>
           </main>
         </div>

@@ -7,6 +7,7 @@ public class SteeringPlanDto
     public int Type { get; set; }
     public int Status { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
+    public Guid OrganizationId { get; set; }
     public DateTime? Deadline { get; set; }
     public int Progress { get; set; }
     public string? AssignedToId { get; set; }

@@ -70,13 +70,7 @@ public class DashboardController : ControllerBase
         return Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
     }
 
-    /// <summary>"id1,id2" from the organization selector: the ones that are valid ids; null when nothing is selected (all organizations).</summary>
-    private static IReadOnlyList<Guid>? ParseOrganizations(string? raw)
-    {
-        var ids = (raw ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(x => Guid.TryParse(x, out var g) ? g : (Guid?)null).Where(g => g != null).Select(g => g!.Value).Distinct().ToList();
-        return ids.Count == 0 ? null : ids;
-    }
+    private static IReadOnlyList<Guid>? ParseOrganizations(string? raw) => OrganizationFilter.Parse(raw);
 
     private bool IsSuperAdmin() => User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
         .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));

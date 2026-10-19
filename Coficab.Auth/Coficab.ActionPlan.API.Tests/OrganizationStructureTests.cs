@@ -173,4 +173,45 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal("department_name_taken", await CodeOf(rename));
         Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/Department/{id}", new { name = "Production", code = "prod" })).StatusCode);   // keeping its own name and code is fine
     }
+
+    [Fact]
+    public async Task TheClaimAndPlanLists_FollowTheOrganizationsChosenBySuperadmin()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var orgA = await OrgAsync(OrganizationType.Corporate);
+        var orgB = await OrgAsync(OrganizationType.Corporate);
+        var deptA = Guid.NewGuid();
+        var deptB = Guid.NewGuid();
+        var alice = Guid.NewGuid().ToString();
+        var bob = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Departments.Add(new Department { Id = deptA, Name = "Prod", Code = $"A{tag}", OrganizationId = orgA });
+            db.Departments.Add(new Department { Id = deptB, Name = "Prod", Code = $"B{tag}", OrganizationId = orgB });
+            db.UserProfiles.Add(new UserProfile { UserId = alice, Name = "Alice", Email = $"alice{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptA });
+            db.UserProfiles.Add(new UserProfile { UserId = bob, Name = "Bob", Email = $"bob{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptB });
+            db.Claims.Add(new Claim { Title = $"a-{tag}", StatusCode = "OUVERTE", AssignedToId = alice, CreatedById = "someone", DetectionDate = now, CreatedAt = now });
+            db.Claims.Add(new Claim { Title = $"b-{tag}", StatusCode = "OUVERTE", AssignedToId = bob, CreatedById = "someone", DetectionDate = now, CreatedAt = now });
+            db.Claims.Add(new Claim { Title = $"b-by-bob-{tag}", StatusCode = "OUVERTE", CreatedById = bob, DetectionDate = now, CreatedAt = now });   // no assignee: follows its creator
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Title = $"plan-a-{tag}", OrganizationId = orgA, DepartmentId = deptA, OwnerId = "x", CreatedBy = "x", Type = ActionPlanType.PAC });
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Title = $"plan-b-{tag}", OrganizationId = orgB, DepartmentId = deptB, OwnerId = "x", CreatedBy = "x", Type = ActionPlanType.PAC });
+            return Task.CompletedTask;
+        });
+
+        var superadmin = ClientAs("superadmin");
+        async Task<List<string>> Titles(string url, string property)
+            => (await superadmin.GetFromJsonAsync<JsonElement>(url, JsonOpts)).EnumerateArray()
+                .Select(x => x.GetProperty(property).GetString() ?? "").Where(t => t.EndsWith(tag)).ToList();
+
+        Assert.Equal(3, (await Titles("/api/QualityAnalysis/claims?pageSize=500", "title")).Count);                       // no selection: everything
+        var onlyA = await Titles($"/api/QualityAnalysis/claims?pageSize=500&organizationIds={orgA}", "title");
+        Assert.Equal([$"a-{tag}"], onlyA);
+        var onlyB = await Titles($"/api/QualityAnalysis/claims?pageSize=500&organizationIds={orgB}", "title");
+        Assert.Equal(2, onlyB.Count);
+        Assert.Equal(3, (await Titles($"/api/QualityAnalysis/claims?pageSize=500&organizationIds={orgA},{orgB}", "title")).Count);
+
+        Assert.Equal([$"plan-a-{tag}"], await Titles($"/api/ActionPlan?organizationIds={orgA}", "title"));
+        Assert.Equal(2, (await Titles("/api/ActionPlan", "title")).Count);
+    }
 }
