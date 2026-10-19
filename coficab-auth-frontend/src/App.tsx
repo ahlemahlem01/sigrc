@@ -36,10 +36,9 @@ import EmployeeActivityTrackingPage from './pages/admin/employees/EmployeeActivi
 import EmployeeOrgChartPage from './pages/admin/employees/EmployeeOrgChartPage';
 import EmployeeAdminProfilePage from './pages/admin/employees/EmployeeAdminProfilePage';
 import HrReportsPage from './pages/admin/employees/reports/HrReportsPage';
-import AdminCapaActionsReport from './pages/admin/AdminCapaActionsReport';
+import CapaReportsPage from './pages/admin/CapaReportsPage';
 import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
-import AdminCapaReportOfPlans from './pages/admin/AdminCapaReportOfPlans';
 import PreferencesPage from './pages/admin/PreferencesPage';
 import CapaBoardPage from './pages/admin/CapaBoardPage';
 import CapaTrackingPage from './pages/admin/CapaTrackingPage';
@@ -189,8 +188,8 @@ const App = () => {
               <Route path="/admin/action-plans/assignments"     element={<Navigate to="/admin/action-plans/tracking?tab=assignments" replace />} />
               <Route path="/admin/action-plans/associated"      element={<Navigate to="/admin/action-plans/tracking?tab=associated" replace />} />
               <Route path="/admin/action-plans/follow-up"       element={<Navigate to="/admin/action-plans/tracking?tab=follow-up" replace />} />
-              <Route path="/admin/action-plans/report"          element={<AdminCapaReportOfPlans />} />
-              <Route path="/admin/action-plans/actions-report"  element={<AdminCapaActionsReport />} />
+              <Route path="/admin/action-plans/report"          element={<CapaReportsPage />} />
+              <Route path="/admin/action-plans/actions-report"  element={<Navigate to="/admin/action-plans/report?tab=actions" replace />} />
               <Route path="/admin/action-plans/archive"         element={<Navigate to="/admin/action-plans?status=4" replace />} />
               <Route path="/admin/preferences"              element={<PreferencesPage />} />
               <Route path="/admin/action-plans/settings"        element={<AdminCapaSettings />} />

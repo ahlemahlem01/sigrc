@@ -3,8 +3,10 @@ import { useTranslation } from 'react-i18next';
 import AssignmentsList from './AssignmentsList';
 import AdminCapaAssociatedActions from './AdminCapaAssociatedActions';
 import ActionFollowUpPage from '../front/ActionFollowUpPage';
+import AdminCapaDashboard from '../front/AdminCapaDashboard';
 
 const TABS = [
+  { id: 'capa', labelKey: 'adminNav.boardAttention' },
   { id: 'assignments', labelKey: 'adminNav.assignments' },
   { id: 'associated', labelKey: 'adminNav.linkedActions' },
   { id: 'follow-up', labelKey: 'adminNav.followUp' },
@@ -13,8 +15,8 @@ const TABS = [
 type TabId = (typeof TABS)[number]['id'];
 
 function currentTab(value: string | null): TabId {
-  if (value === 'associated' || value === 'follow-up') return value;
-  return 'assignments';
+  if (value === 'assignments' || value === 'associated' || value === 'follow-up') return value;
+  return 'capa';
 }
 
 export default function CapaTrackingPage() {
@@ -43,6 +45,7 @@ export default function CapaTrackingPage() {
           </button>
         ))}
       </div>
+      {tab === 'capa' && <AdminCapaDashboard />}
       {tab === 'assignments' && <AssignmentsList />}
       {tab === 'associated' && <AdminCapaAssociatedActions />}
       {tab === 'follow-up' && <ActionFollowUpPage />}
@@ -52,6 +55,7 @@ export default function CapaTrackingPage() {
 
 const TAB_CSS = `
   .ap-tabs-page { display: flex; flex-direction: column; gap: 14px; }
+  .ap-tabs-page .max-w-7xl { max-width: none; margin-left: 0; margin-right: 0; }
   .ap-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
   .ap-tab {
     border: 1px solid #e2e8f0; background: #fff; color: #334155;

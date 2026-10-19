@@ -242,7 +242,7 @@
     "board": "CAPA steering",
     "boardHint": "Overdue items, assignments and indicators for action plans, in one place.",
     "boardAttention": "Needs attention",
-    "boardAssignments": "Assignments",
+    "boardAssignments": "Workload per person",
     "tracking": "Tracking & assignments",
     "reportPlans": "Plans report",
     "reportActions": "Actions report",

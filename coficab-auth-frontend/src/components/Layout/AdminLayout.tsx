@@ -104,7 +104,7 @@ const NAV: NavItem[] = [
       { label: 'adminNav.board', icon: 'ti-layout-dashboard', path: '/admin/action-plans/dashboard' },
       { label: 'adminNav.allPlans', icon: 'ti-list', path: '/admin/action-plans' },
       { label: 'adminNav.tracking', icon: 'ti-list-check', path: '/admin/action-plans/tracking' },
-      { label: 'adminNav.reportPlans', icon: 'ti-report-analytics', path: '/admin/action-plans/report' },
+      { label: 'adminNav.reports', icon: 'ti-report-analytics', path: '/admin/action-plans/report' },
     ],
   },
   {
@@ -122,7 +122,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.actionPlans', icon: 'ti-file-description', path: '/admin/action-plans' },
       { label: 'adminNav.quality', icon: 'ti-clipboard-check', path: '/admin/claims/list' },
-      { label: 'adminNav.reporting', icon: 'ti-chart-bar', path: '/admin/action-plans/actions-report' },
+      { label: 'adminNav.reporting', icon: 'ti-chart-bar', path: '/admin/action-plans/report?tab=actions' },
     ],
   },
   {
@@ -154,7 +154,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/organizations':              { title: 'adminNav.organizations', crumb: 'adminNav.organizations' },
     '/admin/action-plans/dashboard':     { title: 'adminNav.board', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/tracking':      { title: 'adminNav.tracking', crumb: 'adminNav.actionPlans' },
-    '/admin/action-plans/report':        { title: 'adminNav.reportPlans', crumb: 'adminNav.actionPlans' },
+    '/admin/action-plans/report':        { title: 'adminNav.reports', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/actions-report':{ title: 'adminNav.reporting', crumb: 'adminNav.applications' },
     '/admin/action-plans/indicators':    { title: 'adminNav.indicators', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/reference':     { title: 'adminNav.planReference', crumb: 'adminNav.settings' },

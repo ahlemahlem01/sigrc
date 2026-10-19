@@ -1,23 +1,24 @@
+import { Navigate, useSearchParams } from 'react-router-dom';
 import PageTabs, { usePageTab } from '../../components/PageTabs';
-import AdminCapaDashboard from '../front/AdminCapaDashboard';
 import AdminCapaIndicators from './AdminCapaIndicators';
 import AssignmentsOverview from './Assignmentsoverview ';
 
 const TABS = [
-  { id: 'capa', labelKey: 'adminNav.boardAttention' },
-  { id: 'overview', labelKey: 'adminNav.boardAssignments' },
   { id: 'indicators', labelKey: 'adminNav.indicators' },
+  { id: 'overview', labelKey: 'adminNav.boardAssignments' },
 ] as const;
 
 export default function CapaBoardPage() {
   const [tab, setTab] = usePageTab(TABS);
+  const [params] = useSearchParams();
+  // "Needs attention" now lives under Tracking: keep the old links working.
+  if (params.get('tab') === 'capa') return <Navigate to="/admin/action-plans/tracking?tab=capa" replace />;
 
   return (
     <div className="ap-tabs-page">
       <style>{BODY_CSS}</style>
       <PageTabs tabs={TABS} active={tab} onChange={setTab} />
       <div className="ap-tab-body">
-        {tab === 'capa' && <AdminCapaDashboard />}
         {tab === 'overview' && <AssignmentsOverview />}
         {tab === 'indicators' && <AdminCapaIndicators />}
       </div>

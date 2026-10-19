@@ -657,7 +657,7 @@ export default function OverviewPage() {
                 value={num(data.capa.actionsAwaitingValidation)}
                 tone={countTone(data.capa.actionsAwaitingValidation, 'orange')}
                 sub={t('overviewPage.capaAwaitingSub')}
-                to="/admin/action-plans/dashboard"
+                to="/admin/action-plans/tracking?tab=capa"
                 help={t('overviewPage.help.capaAwaiting')}
               />
             </div>
