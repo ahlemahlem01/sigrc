@@ -181,11 +181,12 @@ function RankedList({ title, rows, color, empty }: { title: string; rows: Ranked
 const AGING_COLORS = ['#ca8a04', '#ea580c', '#dc2626'];
 
 /** How long the late items have been late: one compact table, a row per kind of item, a column per age band. */
-function AgingTable({ title, bands, rows, none }: {
+function AgingTable({ title, bands, rows, none, onOpen }: {
   title: string;
   bands: [string, string, string];
-  rows: { label: string; aging: OverviewAging }[];
+  rows: { label: string; aging: OverviewAging; sub?: string; to?: string }[];
   none: string;
+  onOpen: (to: string) => void;
 }) {
   return (
     <div className="mt-3 rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
@@ -207,7 +208,12 @@ function AgingTable({ title, bands, rows, none }: {
             const parts = [r.aging.under30, r.aging.from30To90, r.aging.over90];
             const total = parts.reduce((x, y) => x + y, 0);
             return (
-              <tr key={r.label} style={{ borderTop: `1px solid ${COFICAB.line}` }}>
+              <tr
+                key={r.label}
+                style={{ borderTop: `1px solid ${COFICAB.line}`, cursor: r.to ? 'pointer' : undefined }}
+                className={r.to ? 'hover:bg-slate-50' : undefined}
+                onClick={r.to ? () => onOpen(r.to!) : undefined}
+              >
                 <td className="py-2 font-semibold" style={{ color: COFICAB.ink }}>{r.label}</td>
                 {total === 0 ? (
                   <td colSpan={4} className="py-2 text-right text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</td>
@@ -219,7 +225,10 @@ function AgingTable({ title, bands, rows, none }: {
                         <span className="text-[11px] ml-1" style={{ color: COFICAB.muted }}>({Math.round((n / total) * 100)} %)</span>
                       </td>
                     ))}
-                    <td className="py-2 text-right tabular-nums font-bold" style={{ color: COFICAB.ink }}>{total}</td>
+                    <td className="py-2 text-right tabular-nums font-bold" style={{ color: COFICAB.ink }}>
+                      {total}
+                      {r.sub && <div className="text-[11px] font-normal" style={{ color: COFICAB.muted }}>{r.sub}</div>}
+                    </td>
                   </>
                 )}
               </tr>
@@ -314,11 +323,8 @@ export default function OverviewPage() {
 
   const actionCards = data ? [
     { key: 'validation', label: t('overviewPage.pendingValidation'), n: data.actions.pendingValidation, tone: countTone(data.actions.pendingValidation, 'orange'), to: '/pages/front/validations', help: t('overviewPage.help.pendingValidation') },
-    { key: 'lateClaims', label: t('overviewPage.lateClaims'), n: data.actions.lateClaims, tone: countTone(data.actions.lateClaims), to: '/admin/claims/list?deadline=late', help: t('adminDashboard.help.claimsLate') },
     { key: 'noDeadline', label: t('overviewPage.noDeadline'), n: data.actions.noDeadline, tone: countTone(data.actions.noDeadline, 'orange'), to: '/admin/claims/list?deadline=none', help: t('adminDashboard.help.claimsNoDeadline') },
     { key: 'unassigned', label: t('overviewPage.unassigned'), n: data.actions.unassigned, tone: countTone(data.actions.unassigned, 'orange'), to: '/admin/claims/assignments', help: t('overviewPage.help.unassigned') },
-    { key: 'latePlans', label: t('overviewPage.latePlans'), n: data.actions.latePlans, tone: countTone(data.actions.latePlans), to: '/admin/action-plans/dashboard', help: t('adminDashboard.help.plansLate') },
-    { key: 'alerts', label: t('overviewPage.openAlerts'), n: data.actions.openAlerts, tone: countTone(data.actions.openAlerts), to: '/alerts', help: t('overviewPage.help.alerts') },
   ] : [];
 
   const trend = (data?.months ?? []).map((m) => ({
@@ -582,7 +588,7 @@ export default function OverviewPage() {
                   label={c.label}
                   value={num(c.n)}
                   tone={c.tone}
-                  sub={c.n === 0 ? t('overviewPage.allClear') : c.key === 'lateClaims' ? t('overviewPage.lateOfOpen', { pct: num(share(c.n, h.openClaims), 1) }) : undefined}
+                  sub={c.n === 0 ? t('overviewPage.allClear') : undefined}
                   to={c.to}
                   help={c.help}
                 />
@@ -592,10 +598,11 @@ export default function OverviewPage() {
               title={t('overviewPage.agingTitle')}
               bands={[t('overviewPage.agingUnder30'), t('overviewPage.aging30to90'), t('overviewPage.agingOver90')]}
               rows={[
-                { label: t('overviewPage.agingClaims'), aging: data.claimAging },
-                { label: t('overviewPage.agingPlans'), aging: data.capa.aging },
+                { label: t('overviewPage.agingClaims'), aging: data.claimAging, to: '/admin/claims/list?deadline=late', sub: t('overviewPage.lateOfOpen', { pct: num(share(data.actions.lateClaims, h.openClaims), 1) }) },
+                { label: t('overviewPage.agingPlans'), aging: data.capa.aging, to: '/admin/action-plans/dashboard', sub: t('overviewPage.lateOfOpen', { pct: num(share(data.capa.latePlans, data.capa.openPlans), 1) }) },
               ]}
               none={t('overviewPage.agingNone')}
+              onOpen={(to) => navigate(to)}
             />
             {data.actions.alerts.length > 0 && (
               <ul className="m-0 mt-3 p-0 list-none rounded-xl bg-white overflow-hidden" style={{ border: `1px solid ${COFICAB.line}` }}>
@@ -623,14 +630,6 @@ export default function OverviewPage() {
                 tone="neutral"
                 sub={t('overviewPage.capaOpenPlansSub', { actions: num(data.capa.openActions) })}
                 to="/admin/action-plans/dashboard"
-              />
-              <MetricCard
-                label={t('overviewPage.capaLatePlans')}
-                value={num(data.capa.latePlans)}
-                tone={data.capa.openPlans === 0 ? 'neutral' : countTone(data.capa.latePlans)}
-                sub={t('overviewPage.lateOfOpen', { pct: num(share(data.capa.latePlans, data.capa.openPlans), 1) })}
-                to="/admin/action-plans/dashboard"
-                help={t('overviewPage.help.capaLatePlans')}
               />
               <MetricCard
                 label={t('overviewPage.capaLateActions')}
