@@ -470,6 +470,58 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public async Task CapaWorkload_CountsOpenAndLatePlansPerPerson_AndFollowsTheOrganization()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var orgId = Guid.NewGuid();
+        var deptId = Guid.NewGuid();
+        var alice = Guid.NewGuid().ToString();
+        var bob = Guid.NewGuid().ToString();
+        var idle = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Organizations.Add(new Organization { Id = orgId, Name = $"Org-{tag}" });
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = orgId });
+            db.UserProfiles.Add(new UserProfile { UserId = alice, Name = $"Alice-{tag}", Email = $"a{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptId });
+            db.UserProfiles.Add(new UserProfile { UserId = bob, Name = $"Bob-{tag}", Email = $"b{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptId });
+            db.UserProfiles.Add(new UserProfile { UserId = idle, Name = $"Idle-{tag}", Email = $"i{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptId });
+            Core.Entities.ActionPlan Plan(string name, string? assignee, ActionPlanStatus status, DateTime? deadline, int progress = 0) => new()
+            {
+                Title = $"{name}-{tag}", Type = ActionPlanType.PAC, Status = status, OrganizationId = orgId, DepartmentId = deptId,
+                OwnerId = Me, CreatedBy = Me, CreatedAt = now.AddDays(-60), AssignedToId = assignee, Deadline = deadline, Progress = progress,
+            };
+            db.ActionPlans.Add(Plan("late", alice, ActionPlanStatus.Ongoing, now.AddDays(-45), 30));
+            db.ActionPlans.Add(Plan("fine", alice, ActionPlanStatus.Ongoing, now.AddDays(20), 70));
+            db.ActionPlans.Add(Plan("done", alice, ActionPlanStatus.Closed, null, 100));
+            var shared = Plan("shared", bob, ActionPlanStatus.Ongoing, now.AddDays(5), 10);
+            db.ActionPlans.Add(shared);
+            db.UserActionPlanAssignments.Add(new UserActionPlanAssignment { Id = Guid.NewGuid(), UserId = alice, ActionPlanId = shared.Id, CanView = true, CanEdit = false });   // view only: not her workload
+            return Task.CompletedTask;
+        });
+
+        var dto = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/dashboard/capa-workload?organizationIds={orgId}", JsonOpts);
+        var people = dto.GetProperty("people").EnumerateArray().ToList();
+        JsonElement Person(string name) => people.First(p => p.GetProperty("name").GetString() == name);
+
+        var a = Person($"Alice-{tag}");
+        Assert.Equal(2, a.GetProperty("openPlans").GetInt32());
+        Assert.Equal(1, a.GetProperty("latePlans").GetInt32());
+        Assert.Equal(1, a.GetProperty("closedPlans").GetInt32());
+        Assert.Equal(50, a.GetProperty("avgProgress").GetDouble());
+        Assert.Equal(3, a.GetProperty("plans").GetArrayLength());
+        Assert.Equal($"late-{tag}", a.GetProperty("plans")[0].GetProperty("title").GetString());   // the most late first, finished ones last
+        Assert.Equal(1, Person($"Bob-{tag}").GetProperty("openPlans").GetInt32());
+        Assert.Equal($"Alice-{tag}", people[0].GetProperty("name").GetString());                  // most late people first
+
+        var summary = dto.GetProperty("summary");
+        Assert.Equal(2, summary.GetProperty("people").GetInt32());
+        Assert.Equal(1, summary.GetProperty("withoutOpenPlan").GetInt32());                      // the third person carries nothing
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/capa-workload")).StatusCode);
+    }
+
+    [Fact]
     public async Task Overview_IsForAdminsOnly()
     {
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/overview")).StatusCode);

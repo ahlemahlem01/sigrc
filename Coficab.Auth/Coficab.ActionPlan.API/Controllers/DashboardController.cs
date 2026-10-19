@@ -41,6 +41,12 @@ public class DashboardController : ControllerBase
     public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
         => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, ParseOrganizations(organizationIds)), cancellationToken));
 
+    /// <summary>Who carries the CAPA plans: open and late plans per person, for the followed organizations.</summary>
+    [HttpGet("capa-workload")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<CapaWorkloadDto>> GetCapaWorkload([FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
+        => Ok(await _mediator.Send(new GetCapaWorkloadQuery(ParseOrganizations(organizationIds)), cancellationToken));
+
     /// <summary>The targets the overview's traffic lights are compared with.</summary>
     [HttpGet("overview/targets")]
     [Authorize(Policy = "AdminOnly")]

@@ -201,6 +201,28 @@
     "count": "{{count}} organizations",
     "title": "Organizations followed across the application"
   },
+  "workload": {
+    "loadError": "Could not load the workload",
+    "people": "People in charge",
+    "average": "Open plans per person",
+    "overloaded": "Overloaded",
+    "idle": "Without an open plan",
+    "search": "Search a person…",
+    "allDepartments": "All departments",
+    "lateOnly": "With late plans only",
+    "none": "Nobody matches.",
+    "person": "Person",
+    "open": "Open",
+    "late": "Late",
+    "progress": "Average progress",
+    "next": "Next deadline",
+    "heavy": "Heavy",
+    "closed": "Closed",
+    "lateDays": "{{count}} d late",
+    "showClosed_one": "Show the closed plan",
+    "showClosed_other": "Show the {{count}} closed plans",
+    "hideClosed": "Hide closed plans"
+  },
   "adminNav": {
     "analysesHub": "Analyses & reports",
     "analysesTab": "5 Why / Ishikawa & report",

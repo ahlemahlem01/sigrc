@@ -201,6 +201,28 @@
     "count": "{{count}} organisations",
     "title": "Organisations suivies dans toute l'application"
   },
+  "workload": {
+    "loadError": "Impossible de charger la charge de travail",
+    "people": "Responsables",
+    "average": "Plans ouverts par personne",
+    "overloaded": "Surchargés",
+    "idle": "Sans plan en cours",
+    "search": "Rechercher une personne…",
+    "allDepartments": "Tous les départements",
+    "lateOnly": "Avec des retards seulement",
+    "none": "Aucune personne ne correspond.",
+    "person": "Personne",
+    "open": "Ouverts",
+    "late": "En retard",
+    "progress": "Avancement moyen",
+    "next": "Prochaine échéance",
+    "heavy": "Chargé",
+    "closed": "Clôturé",
+    "lateDays": "{{count}} j de retard",
+    "showClosed_one": "Voir le plan clôturé",
+    "showClosed_other": "Voir les {{count}} plans clôturés",
+    "hideClosed": "Masquer les plans clôturés"
+  },
   "adminNav": {
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",

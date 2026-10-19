@@ -30,3 +30,33 @@ export async function fetchCapaIndicators(token: string, days: number, organizat
   });
   return (res.data?.data ?? res.data) as CapaIndicators;
 }
+
+export interface CapaWorkloadPlan { id: string; title: string; type: string; closed: boolean; deadline: string | null; lateDays: number; progress: number }
+
+export interface CapaWorkloadPerson {
+  userId: string;
+  name: string;
+  email: string;
+  department: string;
+  openPlans: number;
+  latePlans: number;
+  closedPlans: number;
+  avgProgress: number | null;
+  nextDeadline: string | null;
+  plans: CapaWorkloadPlan[];
+}
+
+export interface CapaWorkload {
+  generatedAt: string;
+  summary: { people: number; averageOpen: number; overloaded: number; withoutOpenPlan: number };
+  people: CapaWorkloadPerson[];
+}
+
+/** GET /api/dashboard/capa-workload : who carries the CAPA plans (admins only). */
+export async function fetchCapaWorkload(token: string, organizationIds?: string): Promise<CapaWorkload> {
+  const res = await axios.get(`${API_BASE}/dashboard/capa-workload`, {
+    headers: { Authorization: `Bearer ${token}` },
+    params: organizationIds ? { organizationIds } : undefined,
+  });
+  return (res.data?.data ?? res.data) as CapaWorkload;
+}

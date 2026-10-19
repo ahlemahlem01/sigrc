@@ -1,7 +1,7 @@
 import { Navigate, useSearchParams } from 'react-router-dom';
 import PageTabs, { usePageTab } from '../../components/PageTabs';
 import AdminCapaIndicators from './AdminCapaIndicators';
-import AssignmentsOverview from './Assignmentsoverview ';
+import CapaWorkload from './CapaWorkload';
 
 const TABS = [
   { id: 'indicators', labelKey: 'adminNav.indicators' },
@@ -19,7 +19,7 @@ export default function CapaBoardPage() {
       <style>{BODY_CSS}</style>
       <PageTabs tabs={TABS} active={tab} onChange={setTab} />
       <div className="ap-tab-body">
-        {tab === 'overview' && <AssignmentsOverview />}
+        {tab === 'overview' && <CapaWorkload />}
         {tab === 'indicators' && <AdminCapaIndicators />}
       </div>
     </div>
