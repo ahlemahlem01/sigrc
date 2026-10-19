@@ -61,7 +61,7 @@ export function getHealthStatus(stats: {
     return {
       status: 'healthy',
       labelKey: 'adminDashboard.pulse.healthHealthy',
-      color: '#0f766e',
+      color: '#2f855a',
       bg: '#f0fdfa',
     };
   }

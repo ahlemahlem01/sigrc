@@ -38,7 +38,7 @@ export default function TrendBadge({ delta, invert = false, percent = false, cla
   const flat = delta === 0;
   const rawUp = delta > 0;
   const good = flat ? null : invert ? !rawUp : rawUp;
-  const color = flat ? '#64748b' : good ? '#0f766e' : '#b91c1c';
+  const color = flat ? '#64748b' : good ? '#2f855a' : '#b91c1c';
   const bg = flat ? '#f1f5f9' : good ? '#f0fdfa' : '#fef2f2';
   const icon = flat ? 'ti-minus' : rawUp ? 'ti-trending-up' : 'ti-trending-down';
   const label = `${delta > 0 ? '+' : ''}${percent ? `${delta}%` : delta}`;

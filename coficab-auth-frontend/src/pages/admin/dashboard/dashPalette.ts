@@ -11,7 +11,7 @@ export const COFICAB = {
   dangerSoft: '#fef2f2',
   warn: '#9a3412',
   warnSoft: '#fff7ed',
-  ok: '#0f766e',
+  ok: '#2f855a',
   okSoft: '#f0fdfa',
 } as const;
 
@@ -22,7 +22,7 @@ export const SEV_COLORS: Record<string, string> = {
   CRITICAL: '#b91c1c',
   HIGH: '#9a3412',
   MEDIUM: '#a16207',
-  LOW: '#0f766e',
+  LOW: '#2f855a',
   UNKNOWN: '#94a3b8',
 };
 

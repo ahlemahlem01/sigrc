@@ -35,7 +35,7 @@ export default function EmployeeActivityWidget() {
 
   const total = data?.total ?? 0;
   const rows = [
-    { key: 'active', label: t('adminDashboard.activity.active'), value: data?.active ?? 0, color: '#10b981', hint: t('adminDashboard.activity.activeHint') },
+    { key: 'active', label: t('adminDashboard.activity.active'), value: data?.active ?? 0, color: '#38a169', hint: t('adminDashboard.activity.activeHint') },
     { key: 'low', label: t('adminDashboard.activity.low'), value: data?.lowActivity ?? 0, color: '#f59e0b', hint: t('adminDashboard.activity.lowHint') },
     { key: 'inactive', label: t('adminDashboard.activity.inactive'), value: data?.inactive ?? 0, color: '#94a3b8', hint: t('adminDashboard.activity.inactiveHint') },
   ];

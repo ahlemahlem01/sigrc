@@ -17,7 +17,7 @@ type Period = '7d' | '1m' | '3m' | '1y';
 type NatureKey = UiType | 'critical';
 
 const NATURE_COLORS: Record<NatureKey, string> = {
-  correctif: '#10b981',
+  correctif: '#38a169',
   preventif: '#3b82f6',
   amelioration: '#f59e0b',
   critical: '#ef4444',
@@ -126,7 +126,7 @@ function DeltaBadge({ delta, preferDown }: { delta: number | null; preferDown?: 
   const up = delta > 0;
   const flat = delta === 0;
   const good = preferDown ? !up : up;
-  const color = flat ? '#64748b' : good ? '#059669' : '#dc2626';
+  const color = flat ? '#64748b' : good ? '#2f855a' : '#dc2626';
   const sign = up ? '+' : '';
   return (
     <span className="text-[11px] font-semibold tabular-nums" style={{ color }}>
@@ -210,7 +210,7 @@ export default function AdminCapaIndicators() {
       display: String(kpis.closed),
       delta: pctDelta(kpis.closed, prevKpis.closed),
       tint: '#ecfdf5',
-      color: '#059669',
+      color: '#2f855a',
     },
     {
       key: 'late',
@@ -476,7 +476,7 @@ export default function AdminCapaIndicators() {
                       className="h-full rounded-full"
                       style={{
                         width: `${row.rate}%`,
-                        background: row.rate >= 70 ? '#10b981' : row.rate >= 45 ? '#3b82f6' : row.total === 0 ? '#cbd5e1' : '#ef4444',
+                        background: row.rate >= 70 ? '#38a169' : row.rate >= 45 ? '#3b82f6' : row.total === 0 ? '#cbd5e1' : '#ef4444',
                       }}
                     />
                   </div>
@@ -509,7 +509,7 @@ export default function AdminCapaIndicators() {
                       className="h-full rounded-full"
                       style={{
                         width: `${r.rate}%`,
-                        background: r.rate >= 80 ? '#10b981' : r.rate >= 50 ? '#3b82f6' : '#f59e0b',
+                        background: r.rate >= 80 ? '#38a169' : r.rate >= 50 ? '#3b82f6' : '#f59e0b',
                       }}
                     />
                   </div>
@@ -531,7 +531,7 @@ export default function AdminCapaIndicators() {
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
               <Tooltip />
               <Legend />
-              <Line type="monotone" dataKey="closed" name={t('indicators.seriesClosed')} stroke="#10b981" strokeWidth={2} dot={{ r: 3 }} />
+              <Line type="monotone" dataKey="closed" name={t('indicators.seriesClosed')} stroke="#38a169" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="open" name={t('indicators.seriesOpen')} stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} />
               <Line type="monotone" dataKey="late" name={t('indicators.seriesLate')} stroke="#ef4444" strokeWidth={2} strokeDasharray="4 4" dot={{ r: 3 }} />
             </LineChart>
@@ -564,7 +564,7 @@ export default function AdminCapaIndicators() {
                     </span>
                   </td>
                   <td className="py-1.5 tabular-nums text-right">{row.total}</td>
-                  <td className="py-1.5 tabular-nums text-right text-emerald-700">{row.closed}</td>
+                  <td className="py-1.5 tabular-nums text-right" style={{ color: "#2f855a" }}>{row.closed}</td>
                   <td className="py-1.5 tabular-nums text-right text-rose-600">{row.late}</td>
                   <td className="py-1.5 tabular-nums text-right font-semibold">{row.rate}%</td>
                   <td className="py-1.5 pl-4">

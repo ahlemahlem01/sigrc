@@ -51,7 +51,7 @@ function DeltaArrow({
   const flat = Math.abs(deltaPercent) < 0.05;
   const rawUp = deltaPercent > 0;
   const good = flat ? null : invert ? !rawUp : rawUp;
-  const color = flat ? '#64748b' : good ? '#0f766e' : '#b91c1c';
+  const color = flat ? '#64748b' : good ? '#2f855a' : '#b91c1c';
   const icon = flat ? 'ti-minus' : rawUp ? 'ti-arrow-up' : 'ti-arrow-down';
   const label = `${deltaPercent > 0 ? '+' : ''}${deltaPercent.toFixed(deltaPercent % 1 === 0 ? 0 : 1)}%`;
 
@@ -77,7 +77,7 @@ function NetContextLabel({ total }: { total: number }) {
   }
   if (total < -2) {
     return (
-      <span className="text-[11px] font-semibold" style={{ color: '#0f766e' }}>
+      <span className="text-[11px] font-semibold" style={{ color: '#2f855a' }}>
         {t('adminDashboard.pulse.backlogDown')}
       </span>
     );
