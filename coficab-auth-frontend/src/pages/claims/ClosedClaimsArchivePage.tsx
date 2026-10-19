@@ -1,3 +1,5 @@
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ListSkeleton } from '../../components/TableSkeleton';
 import { Link, useNavigate } from 'react-router-dom';
@@ -105,6 +107,7 @@ export default function ClosedClaimsArchivePage() {
       return hay.includes(q);
     });
   }, [claims, query, yearFilter, timingFilter]);
+  const paged = usePagedList(filtered, 25);
 
   const onTimeCount = claims.filter((c) => c.isOnTime === true || (c as any).IsOnTime === true).length;
   const lateCount = claims.filter((c) => c.isOnTime === false || (c as any).IsOnTime === false).length;
@@ -202,7 +205,7 @@ export default function ClosedClaimsArchivePage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((claim) => {
+              {paged.rows.map((claim) => {
                 const onTime = claim.isOnTime ?? (claim as any).IsOnTime;
                 return (
                   <tr key={claim.id} onClick={() => openInList(claim)}>
@@ -256,6 +259,9 @@ export default function ClosedClaimsArchivePage() {
               })}
             </tbody>
           </table>
+        )}
+        {!loading && filtered.length > paged.pageSize && (
+          <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={false} />
         )}
       </div>
     </div>

@@ -61,7 +61,34 @@ function ListSkeleton({ rows = 8 }: { rows?: number }) {
   );
 }
 
-export { ListSkeleton };
+/** A dashboard-like page while it loads: a row of figures and a few panels, shimmering like the lists. */
+function PageSkeleton({ figures = 4, panels = 2 }: { figures?: number; panels?: number }) {
+  return (
+    <div role="status" aria-label="Chargement" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${figures}, minmax(0, 1fr))`, gap: 12 }}>
+        {Array.from({ length: figures }).map((_, i) => (
+          <div key={i} style={{ background: '#fff', border: '1px solid #e4e8f2', borderRadius: 12, padding: 16 }}>
+            <div className="tbl-skel-bar" style={{ width: '55%', height: 10, animationDelay: `${i * 0.08}s` }} />
+            <div className="tbl-skel-bar" style={{ width: '40%', height: 26, marginTop: 14, animationDelay: `${i * 0.08 + 0.05}s` }} />
+          </div>
+        ))}
+      </div>
+      {Array.from({ length: panels }).map((_, i) => (
+        <div key={i} style={{ background: '#fff', border: '1px solid #e4e8f2', borderRadius: 12, padding: 16 }}>
+          <div className="tbl-skel-bar" style={{ width: '30%', height: 12 }} />
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[78, 64, 86, 52].map((w, j) => (
+              <div key={j} className="tbl-skel-bar" style={{ width: `${w}%`, animationDelay: `${(i + j) * 0.07}s` }} />
+            ))}
+          </div>
+        </div>
+      ))}
+      <style>{SHIMMER_CSS}</style>
+    </div>
+  );
+}
+
+export { ListSkeleton, PageSkeleton };
 
 export function TableLoadingBanner(_props: { label?: string }) {
   return null;

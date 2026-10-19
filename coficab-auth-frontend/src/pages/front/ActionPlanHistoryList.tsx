@@ -1,3 +1,5 @@
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -289,6 +291,7 @@ export default function ActionPlanHistoryList() {
   }, [filtered, t]);
 
   const groupEntries = useMemo(() => Object.entries(groups), [groups]);
+  const paged = usePagedList(groupEntries, 10);
 
   const uniqueTypes = useMemo(
     () => Array.from(new Set(history.map((h) => h.actionType).filter(Boolean))),
@@ -405,7 +408,7 @@ export default function ActionPlanHistoryList() {
           </div>
         ) : (
           <div className="aph-panel">
-            {groupEntries.map(([planId, { title, events }]) => (
+            {paged.rows.map(([planId, { title, events }]) => (
               <div key={planId} className="aph-plan">
                 <div className="aph-plan-head" role="button" tabIndex={0} onClick={() => togglePlan(planId)}
                   onKeyDown={(e) => {
@@ -440,6 +443,9 @@ export default function ActionPlanHistoryList() {
                 )}
               </div>
             ))}
+            {groupEntries.length > paged.pageSize && (
+              <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={false} />
+            )}
           </div>
         )}
       </div>

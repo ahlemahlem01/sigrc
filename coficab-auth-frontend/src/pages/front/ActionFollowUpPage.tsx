@@ -1,3 +1,5 @@
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -309,6 +311,7 @@ export default function ActionFollowUpPage() {
       );
     });
   }, [rows, tab, q, filterProcess, filterFrom, filterTo, filterResponsible]);
+  const paged = usePagedList(filtered, 25);
 
   const statusLabel = (s: FollowStatus | 'notStarted') => {
     if (s === 'notStarted') return t('followUp.statusNotStarted');
@@ -476,7 +479,7 @@ export default function ActionFollowUpPage() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((r) => {
+                  paged.rows.map((r) => {
                     const st = STATUS_BADGE[r.followStatus];
                     const mon = MONITOR_BADGE[r.monitoring];
                     return (
@@ -533,6 +536,9 @@ export default function ActionFollowUpPage() {
               </tbody>
             </table>
           </div>
+          {filtered.length > paged.pageSize && (
+            <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={false} />
+          )}
         </div>
       </div>
     </div>

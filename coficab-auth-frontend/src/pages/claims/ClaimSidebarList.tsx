@@ -1,3 +1,5 @@
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import React from 'react';
 import { ListSkeleton } from '../../components/TableSkeleton';
 import { Search, ShieldAlert } from 'lucide-react';
@@ -63,6 +65,7 @@ export const ClaimSidebarList: React.FC<ClaimSidebarListProps> = ({
   claimScope = 'all',
 }) => {
   const { t } = useTranslation();
+  const paged = usePagedList(claims, 25);
   return (
   <div className="pfe-sidebar">
     <div className="pfe-filter-pane">
@@ -102,7 +105,7 @@ export const ClaimSidebarList: React.FC<ClaimSidebarListProps> = ({
           </span>
         </div>
       ) : (
-        claims.map((claim) => {
+        paged.rows.map((claim) => {
           const isSelected = selectedId === claim.id;
           const sev = getSeverityStyle(claim.severity);
           const status = resolveClaimStatus(claim);
@@ -151,6 +154,9 @@ export const ClaimSidebarList: React.FC<ClaimSidebarListProps> = ({
             </div>
           );
         })
+      )}
+      {!loading && claims.length > paged.pageSize && (
+        <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} />
       )}
     </div>
   </div>

@@ -1,3 +1,4 @@
+import { PageSkeleton } from '../../components/TableSkeleton';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -132,13 +133,7 @@ export default function AdminCapaReportOfPlans() {
     amelioration: t('reportPlans.helpImprovement'),
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#000168] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return <PageSkeleton figures={4} panels={2} />;
 
   return (
     <div className="text-slate-900 max-w-7xl mx-auto">

@@ -1,3 +1,6 @@
+import { usePagedList } from '../../hooks/usePagedList';
+import TablePagination from '../../components/TablePagination';
+import { PageSkeleton } from '../../components/TableSkeleton';
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -57,10 +60,9 @@ export default function CapaWorkload() {
         && (!lateOnly || p.latePlans > 0)
         && (!term || p.name.toLowerCase().includes(term) || p.email.toLowerCase().includes(term)));
   }, [data, search, department, lateOnly]);
+  const paged = usePagedList(rows, 15);
 
-  if (loading && !data) {
-    return <div className="min-h-[30vh] flex items-center justify-center"><div className="w-8 h-8 border-2 border-[#000168] border-t-transparent rounded-full animate-spin" /></div>;
-  }
+  if (loading && !data) return <PageSkeleton figures={4} panels={1} />;
 
   const s = data?.summary;
   const average = s?.averageOpen ?? 0;
@@ -118,7 +120,7 @@ export default function CapaWorkload() {
               </tr>
             </thead>
             <tbody>
-              {rows.map((p) => {
+              {paged.rows.map((p) => {
                 const expanded = openId === p.userId;
                 const heavy = p.openPlans >= 4 && p.openPlans >= 1.5 * average;
                 const withClosed = showClosed.has(p.userId);
@@ -191,6 +193,9 @@ export default function CapaWorkload() {
           </table>
         )}
       </div>
+      {rows.length > paged.pageSize && (
+        <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={loading} />
+      )}
     </div>
   );
 }

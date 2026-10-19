@@ -1,3 +1,5 @@
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ListSkeleton } from "../../components/TableSkeleton";
@@ -92,6 +94,7 @@ export default function DepartmentsPage() {
         d.code.toLowerCase().includes(term)
     );
   }, [departments, searchTerm]);
+  const paged = usePagedList(filteredDepartments, 15);
 
   const stats = useMemo(() => {
     const orgIds = new Set(departments.map((d) => d.organizationId));
@@ -500,7 +503,7 @@ export default function DepartmentsPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredDepartments.map((dept) => (
+                {paged.rows.map((dept) => (
                   <tr key={dept.id}>
                     <td className="dept-name-cell">{dept.name}</td>
                     <td>
@@ -528,6 +531,9 @@ export default function DepartmentsPage() {
                 ))}
               </tbody>
             </table>
+          )}
+          {!isLoading && filteredDepartments.length > paged.pageSize && (
+            <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={false} />
           )}
         </div>
 

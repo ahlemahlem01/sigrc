@@ -1,3 +1,4 @@
+import { PageSkeleton } from '../../components/TableSkeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -89,13 +90,7 @@ export default function AdminCapaIndicators() {
 
   useEffect(() => { void load(); }, [load]);
 
-  if (loading && !data) {
-    return (
-      <div className="min-h-[40vh] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#000168] border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading && !data) return <PageSkeleton figures={3} panels={3} />;
 
   const k = data?.kpis;
   const locale = i18n.language === 'en' ? 'en-GB' : i18n.language === 'it' ? 'it-IT' : 'fr-FR';

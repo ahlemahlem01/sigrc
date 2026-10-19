@@ -1,5 +1,7 @@
 // src/pages/front/FrontActionPlans.tsx
 // Admin CAPA list — notifications live in FrontLayout nav.
+import TablePagination from '../../components/TablePagination';
+import { usePagedList } from '../../hooks/usePagedList';
 import axios from 'axios';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ListSkeleton } from '../../components/TableSkeleton';
@@ -719,6 +721,7 @@ export const FrontActionPlans: React.FC = () => {
     if (filterType !== 'all' && p.type !== filterType) return false;
     return true;
   });
+  const paged = usePagedList(displayed, 20);
 
   const exportCsv = () => {
     const rows = displayed.map((p) => ({
@@ -1048,12 +1051,12 @@ export const FrontActionPlans: React.FC = () => {
           <div className="fap-list"><div className="fap-empty">{emptyLabel}</div></div>
         ) : (
           <div className="fap-list">
-            {displayed.map((plan, i) => (
+            {paged.rows.map((plan, i) => (
               <PlanRow
                 key={plan.id}
                 plan={plan}
                 users={users}
-                index={i}
+                index={(paged.page - 1) * paged.pageSize + i}
                 viewFilter={viewFilter}
                 validating={validatingId === plan.id}
                 onEdit={() => openEdit(plan)}
@@ -1064,6 +1067,9 @@ export const FrontActionPlans: React.FC = () => {
               />
             ))}
           </div>
+        )}
+        {displayed.length > paged.pageSize && (
+          <TablePagination page={paged.page} pageSize={paged.pageSize} total={paged.total} onChange={paged.setPage} loading={false} />
         )}
       </div>
 
