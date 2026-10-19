@@ -35,6 +35,12 @@ public class DashboardController : ControllerBase
         return Ok(await _mediator.Send(new GetOverviewQuery(days, userId, superAdmin, organizationId), cancellationToken));
     }
 
+    /// <summary>CAPA indicators computed on the plans (open, late, closed on time, by type, by department, monthly), for the last <paramref name="days"/> days.</summary>
+    [HttpGet("capa-indicators")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] Guid? organizationId = null, CancellationToken cancellationToken = default)
+        => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, organizationId), cancellationToken));
+
     /// <summary>The targets the overview's traffic lights are compared with.</summary>
     [HttpGet("overview/targets")]
     [Authorize(Policy = "AdminOnly")]

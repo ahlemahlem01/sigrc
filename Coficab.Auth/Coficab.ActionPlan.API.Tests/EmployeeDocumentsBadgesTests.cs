@@ -425,6 +425,51 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public async Task CapaIndicators_AreComputedOnThePlans_ComparedWithThePreviousPeriod_AndFilteredByOrganization()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var orgId = Guid.NewGuid();
+        var deptId = Guid.NewGuid();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Organizations.Add(new Organization { Id = orgId, Name = $"Org-{tag}" });
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = orgId });
+            Core.Entities.ActionPlan Plan(string name, ActionPlanType type, ActionPlanStatus status, int createdDaysAgo, DateTime? deadline = null, int? completedDaysAgo = null, bool? onTime = null) => new()
+            {
+                Title = $"{name}-{tag}", Type = type, Status = status, OrganizationId = orgId, DepartmentId = deptId, OwnerId = Me, CreatedBy = Me,
+                CreatedAt = now.AddDays(-createdDaysAgo), Deadline = deadline,
+                CompletedAt = completedDaysAgo is { } c ? now.AddDays(-c) : null, IsOnTime = onTime,
+            };
+            db.ActionPlans.Add(Plan("late", ActionPlanType.PAC, ActionPlanStatus.Ongoing, 50, now.AddDays(-60)));
+            db.ActionPlans.Add(Plan("fine", ActionPlanType.PA, ActionPlanStatus.Ongoing, 20, now.AddDays(30)));
+            db.ActionPlans.Add(Plan("closed-ok", ActionPlanType.PAC, ActionPlanStatus.Closed, 30, null, 10, true));
+            db.ActionPlans.Add(Plan("closed-late", ActionPlanType.PAC, ActionPlanStatus.Closed, 25, null, 5, false));
+            db.ActionPlans.Add(Plan("closed-before", ActionPlanType.PAC, ActionPlanStatus.Closed, 150, null, 120, true));
+            return Task.CompletedTask;
+        });
+
+        var dto = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/dashboard/capa-indicators?days=90&organizationId={orgId}", JsonOpts);
+        var kpis = dto.GetProperty("kpis");
+        Assert.Equal(2, kpis.GetProperty("openPlans").GetInt32());
+        Assert.Equal(1, kpis.GetProperty("latePlans").GetInt32());
+        Assert.Equal(4, kpis.GetProperty("opened").GetProperty("current").GetInt32());
+        Assert.Equal(1, kpis.GetProperty("opened").GetProperty("previous").GetInt32());
+        Assert.Equal(2, kpis.GetProperty("closed").GetProperty("current").GetInt32());
+        Assert.Equal(1, kpis.GetProperty("closed").GetProperty("previous").GetInt32());
+        Assert.Equal(50, kpis.GetProperty("onTimeRate").GetProperty("current").GetDouble());
+        Assert.Equal(100, kpis.GetProperty("onTimeRate").GetProperty("previous").GetDouble());
+        Assert.Equal(20, kpis.GetProperty("avgClosureDays").GetProperty("current").GetDouble());
+        Assert.Equal(1, dto.GetProperty("aging").GetProperty("from30To90").GetInt32());
+        Assert.Equal(1, dto.GetProperty("byType").EnumerateArray().First(t => t.GetProperty("type").GetString() == "PA").GetProperty("openPlans").GetInt32());
+        Assert.Equal(1, dto.GetProperty("byDepartment").GetArrayLength());
+        Assert.Equal(6, dto.GetProperty("monthly").GetArrayLength());
+        Assert.Equal(0, dto.GetProperty("detailedActions").GetInt32());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/capa-indicators")).StatusCode);
+    }
+
+    [Fact]
     public async Task Overview_IsForAdminsOnly()
     {
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/dashboard/overview")).StatusCode);
