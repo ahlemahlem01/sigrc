@@ -25,6 +25,8 @@ public class ActionPlanDto
     public List<PlanActionDto> PlanActions { get; set; } = new(); // ADD (if you want sub-actions to load too)
     public DateTime CreatedAt { get; set; }
     public string? CreatedBy { get; set; }
+    /// <summary>The creator's current name (a merged account shows the account that replaced it).</summary>
+    public string? CreatedByName { get; set; }
 
     // Validation queue (pending / rejected lists only)
     /// <summary>Evidence files attached to the plan's sub-actions (IATF checklist before D5 validation).</summary>

@@ -223,6 +223,78 @@
     "showClosed_other": "Mostra i {{count}} piani chiusi",
     "hideClosed": "Nascondi i piani chiusi"
   },
+  "planPage": {
+    "notFound": "Piano non trovato",
+    "loadError": "Impossibile caricare il piano",
+    "backToPlans": "Torna ai piani",
+    "back": "Indietro",
+    "openClaim": "Apri il reclamo",
+    "progress": "Avanzamento",
+    "deadline": "Scadenza",
+    "actions": "Azioni concluse",
+    "proofs": "Prove",
+    "proofsHint": "File allegati alle azioni",
+    "noDeadline": "Nessuna scadenza",
+    "daysLate": "{{count}} g di ritardo",
+    "daysLeft": "Tra {{count}} g",
+    "closedOn": "Chiuso il {{date}}",
+    "lateActions_one": "{{count}} azione in ritardo",
+    "lateActions_other": "{{count}} azioni in ritardo",
+    "noLateAction": "Nessuna azione in ritardo",
+    "workTitle": "Lavoro da svolgere",
+    "noActions": "Questo piano non ha ancora azioni dettagliate.",
+    "unassigned": "Non assegnata",
+    "showDone": "Mostra le {{count}} azioni concluse",
+    "hideDone": "Nascondi le azioni concluse",
+    "people": "Responsabilità",
+    "responsible": "Responsabile del piano",
+    "createdBy": "Creato il {{date}}",
+    "organization": "Organizzazione",
+    "department": "Reparto",
+    "origin": "Origine",
+    "description": "Descrizione",
+    "history": "Cronologia",
+    "noHistory": "Nessun evento registrato.",
+    "waitingValidation_one": "{{count}} azione conclusa attende la convalida",
+    "waitingValidation_other": "{{count}} azioni concluse attendono la convalida",
+    "rejected": "Rimandato il {{date}}: {{comment}}",
+    "health": {
+      "late": "In ritardo",
+      "onTrack": "Nei tempi",
+      "noDeadline": "Senza scadenza",
+      "closedOnTime": "Chiuso nei tempi",
+      "closedLate": "Chiuso in ritardo",
+      "closed": "Chiuso"
+    },
+    "status": {
+      "Created": "Creato",
+      "Ongoing": "In corso",
+      "Closed": "Chiuso",
+      "Archived": "Archiviato"
+    },
+    "type": {
+      "PA": "Preventivo (PA)",
+      "PAC": "Correttivo (PAC)",
+      "PAP": "Miglioramento (PAP)"
+    },
+    "state": {
+      "open": "In corso",
+      "waitingValidation": "Da convalidare",
+      "validated": "Convalidata",
+      "cancelled": "Annullata"
+    },
+    "event": {
+      "created": "Piano creato",
+      "status": "Stato: {{from}} → {{to}}",
+      "assigned": "Assegnato a {{name}}",
+      "unassigned": "Assegnazione rimossa",
+      "fields_updated": "Dettagli modificati",
+      "archived": "Archiviato",
+      "restored": "Ripristinato",
+      "rejected": "Rimandato alla convalida",
+      "status_changed": "Stato modificato"
+    }
+  },
   "adminNav": {
     "analysesHub": "Analisi e report",
     "analysesTab": "5 Why / Ishikawa e report",

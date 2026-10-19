@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { parseProgress, toUiStatus, toUiType, type UiStatus, type UiType } from '../admin/capaAnalytics';
 import { Link, useLocation, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -27,7 +28,9 @@ interface ActionPlanDto {
   id: string;
   title: string;
   description?: string;
-  type: number;
+  /** preventif | correctif | amelioration (the server sends PA / PAC / PAP) */
+  type: UiType;
+  /** 1 created, 2 ongoing, 3 closed, 4 archived (the server sends the names) */
   status: number;
   ownerId: string;
   departmentId: string;
@@ -64,11 +67,13 @@ const PRIORITY_MAP: Record<number, { label: string; color: string; bg: string }>
   3: { label: 'planView.priorityLow', color: '#16a34a', bg: '#f0fdf4' },
 };
 
-const TYPE_MAP: Record<number, string> = {
-  0: 'planView.typeCorrective',
-  1: 'planView.typePreventive',
-  2: 'planView.typeImprovement',
+const TYPE_MAP: Record<UiType, string> = {
+  correctif: 'planView.typeCorrective',
+  preventif: 'planView.typePreventive',
+  amelioration: 'planView.typeImprovement',
 };
+
+const STATUS_NUMBER: Record<UiStatus, number> = { created: 1, ongoing: 2, closed: 3, archived: 4 };
 
 const WORKFLOW_STEPS = [
   { key: 'detection', label: 'planView.wfDetection' },
@@ -106,6 +111,9 @@ export default function ActionPlanDetail() {
     try {
       const planRes = await getActionPlanById(accessToken!, id!);
       const planData = planRes.data?.data ?? planRes.data;
+      // the server sends the status and the type by name ("Ongoing", "PA"): read them whatever the form
+      planData.status = STATUS_NUMBER[toUiStatus(planData.status)];
+      planData.type = toUiType(planData.type);
 
       if (planData.departmentId) {
         try {
@@ -117,7 +125,7 @@ export default function ActionPlanDetail() {
         }
       }
 
-      if (planData.createdBy) {
+      if (planData.createdBy && !planData.createdByName) {
         try {
           const response = await fetch(`${AUTH_API_URL}/api/users/${planData.createdBy}`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
@@ -139,7 +147,8 @@ export default function ActionPlanDetail() {
 
       const actionsRes = await getPlanActions(accessToken!, id!);
       const actionsData = actionsRes.data?.data ?? actionsRes.data ?? [];
-      setActions(Array.isArray(actionsData) ? actionsData : []);
+      // the progress of an action also arrives by name ("Hundred", "Validated"): 0-100 for the bars
+      setActions(Array.isArray(actionsData) ? actionsData.map((a: PlanActionDto) => ({ ...a, progress: parseProgress(a.progress) })) : []);
     } catch (err: any) {
       console.error('Load error:', err);
       setError(err.response?.data?.error || err.message);
@@ -376,7 +385,7 @@ export default function ActionPlanDetail() {
           <div className="apd-summary-grid">
             <div className="apd-summary-item">
               <span className="apd-summary-label">{t('planView.type')}</span>
-              <span className="apd-summary-value">{TYPE_MAP[plan.type] ? t(TYPE_MAP[plan.type]) : '—'}</span>
+              <span className="apd-summary-value">{t(TYPE_MAP[plan.type])}</span>
             </div>
             <div className="apd-summary-item">
               <span className="apd-summary-label">{t('planView.department')}</span>
@@ -483,7 +492,7 @@ export default function ActionPlanDetail() {
                 <h4><IconFile /> {t('planView.information')}</h4>
                 <div className="apd-info-row">
                   <span>{t('planView.planType')}</span>
-                  <span>{TYPE_MAP[plan.type] ? t(TYPE_MAP[plan.type]) : '—'}</span>
+                  <span>{t(TYPE_MAP[plan.type])}</span>
                 </div>
                 <div className="apd-info-row">
                   <span>{t('planView.department')}</span>

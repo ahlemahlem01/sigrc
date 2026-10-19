@@ -133,7 +133,14 @@ public class ActionPlanController : ControllerBase
         if (IsQualityAdmin())
         {
             var plan = await _actionPlanService.GetByIdAsync(id);
-            return plan is null ? NotFound() : Ok(plan);
+            if (plan is null) return NotFound();
+            if (!string.IsNullOrWhiteSpace(plan.CreatedBy))
+            {
+                var aliases = await Application.QualityAnalyses.Queries.Claims.ClaimVisibility.AliasesAsync(_db, HttpContext.RequestAborted);
+                var current = aliases.TryGetValue(plan.CreatedBy, out var replacement) ? replacement : plan.CreatedBy;
+                plan.CreatedByName = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == current).Select(p => p.Name).FirstOrDefaultAsync();
+            }
+            return Ok(plan);
         }
 
         var assigned = await _actionPlanService.GetAssignedPlanByIdAsync(id, userId);
@@ -141,6 +148,15 @@ public class ActionPlanController : ControllerBase
             return Ok(assigned);
 
         return Forbid();
+    }
+
+    /// <summary>The whole plan page in one call: people, health, actions and history (quality admins).</summary>
+    [HttpGet("{id:guid}/detail")]
+    public async Task<IActionResult> GetDetail(Guid id, [FromServices] MediatR.IMediator mediator)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        var detail = await mediator.Send(new Application.Dashboard.Queries.GetPlanDetailQuery(id), HttpContext.RequestAborted);
+        return detail is null ? NotFound() : Ok(detail);
     }
 
     [HttpGet("department/{departmentId}")]

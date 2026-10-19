@@ -88,3 +88,29 @@ it('does not renew when the page is reloaded while this tab still holds a good a
   expect(await screen.findByText('token=kept')).toBeInTheDocument();
   expect(mockedRefresh).not.toHaveBeenCalled();          // a reload costs no single-use refresh token
 });
+
+it('keeps the session when the API is down at start-up and recovers once it answers', async () => {
+  localStorage.setItem('refresh_token', 'refresh-0');
+  mockedRefresh
+    .mockRejectedValueOnce(new Error('Network Error'))              // no response: the API is restarting
+    .mockResolvedValueOnce(tokens(1));
+
+  render(<AuthProvider><TokenProbe /></AuthProvider>);
+  // let the first attempt fail, then wait out the pause before the second one
+  for (let i = 0; i < 5; i += 1) await act(async () => { await Promise.resolve(); });
+  await act(async () => { jest.advanceTimersByTime(4100); });
+
+  expect(await screen.findByText('token=access-1')).toBeInTheDocument();
+  expect(localStorage.getItem('refresh_token')).toBe('refresh-1');
+});
+
+it('ends the session at start-up only when the server refuses the refresh token', async () => {
+  localStorage.setItem('refresh_token', 'refresh-0');
+  mockedRefresh.mockRejectedValue({ response: { status: 400 } });
+
+  render(<AuthProvider><TokenProbe /></AuthProvider>);
+  await act(async () => { await Promise.resolve(); });
+
+  expect(await screen.findByText('token=none')).toBeInTheDocument();
+  expect(localStorage.getItem('refresh_token')).toBeNull();
+});

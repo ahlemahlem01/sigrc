@@ -280,4 +280,81 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal($"Nouveau Nom {tag}", CreatedBy("renamed"));       // a rename follows, the stored text is not frozen
         Assert.Equal("Snapshot Only", CreatedBy("unknown"));            // no profile to ask: the stored text stays
     }
+
+    [Fact]
+    public async Task APlanShowsItsCreatorsCurrentName_EvenWhenTheCreatingAccountWasMerged()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var org = await OrgAsync(OrganizationType.Corporate);
+        var deptId = Guid.NewGuid();
+        var oldId = Guid.NewGuid().ToString();
+        var keptId = Guid.NewGuid().ToString();
+        var planId = Guid.NewGuid();
+        await _factory.SeedAsync(db =>
+        {
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = org });
+            db.UserProfiles.Add(new UserProfile { UserId = keptId, Name = $"Ahlem Alaya {tag}", Email = $"k{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptId });
+            db.UserAliases.Add(new UserAlias { OldUserId = oldId, UserId = keptId });
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Id = planId, Title = $"plan-{tag}", OrganizationId = org, DepartmentId = deptId, OwnerId = oldId, CreatedBy = oldId, Type = ActionPlanType.PA, Status = ActionPlanStatus.Ongoing });
+            return Task.CompletedTask;
+        });
+
+        var plan = await ClientAs("superadmin").GetFromJsonAsync<JsonElement>($"/api/ActionPlan/{planId}", JsonOpts);
+        Assert.Equal($"Ahlem Alaya {tag}", plan.GetProperty("createdByName").GetString());
+        Assert.Equal("PA", plan.GetProperty("type").GetString());                 // the type and the status travel by name
+        Assert.Equal("Ongoing", plan.GetProperty("status").GetString());
+    }
+
+    [Fact]
+    public async Task ThePlanPage_GetsHealthPeopleActionsAndHistoryInOneCall()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var org = await OrgAsync(OrganizationType.Corporate);
+        var deptId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var claimId = Guid.NewGuid();
+        var oldId = Guid.NewGuid().ToString();
+        var keptId = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = org });
+            db.UserProfiles.Add(new UserProfile { UserId = keptId, Name = $"Ahlem {tag}", Email = $"k{tag}@t", Role = "user", Poste = "P", Equipe = "A", DepartmentId = deptId });
+            db.UserAliases.Add(new UserAlias { OldUserId = oldId, UserId = keptId });
+            db.Claims.Add(new Claim { Id = claimId, Title = $"claim-{tag}", ClientId = "CLI", Severity = "HIGH", StatusCode = "OUVERTE", DetectionDate = now, CreatedAt = now });
+            var plan = new Core.Entities.ActionPlan
+            {
+                Id = planId, Title = $"plan-{tag}", OrganizationId = org, DepartmentId = deptId, OwnerId = keptId, CreatedBy = oldId, AssignedToId = keptId,
+                Type = ActionPlanType.PAC, Status = ActionPlanStatus.Ongoing, ClaimId = claimId, CreatedAt = now.AddDays(-60), Deadline = now.AddDays(-30), Progress = 40,
+            };
+            plan.PlanActions.Add(new PlanAction { Title = "late", Progress = ActionProgress.Fifty, Deadline = now.AddDays(-20), AssignedToId = keptId, Priority = 1, Order = 1 });
+            plan.PlanActions.Add(new PlanAction { Title = "to-validate", Progress = ActionProgress.Hundred, Deadline = now.AddDays(5), AssignedToId = oldId, Priority = 2, Order = 2 });
+            plan.PlanActions.Add(new PlanAction { Title = "validated", Progress = ActionProgress.Validated, Deadline = now.AddDays(-50), Priority = 3, Order = 3 });
+            db.ActionPlans.Add(plan);
+            db.ActionPlanHistories.Add(new ActionPlanHistory { ActionPlanId = planId, ChangedBy = oldId, ChangedByName = "ahlem alaya", ActionType = "created" });
+            return Task.CompletedTask;
+        });
+
+        var dto = await ClientAs("superadmin").GetFromJsonAsync<JsonElement>($"/api/ActionPlan/{planId}/detail", JsonOpts);
+        Assert.Equal("PAC", dto.GetProperty("type").GetString());
+        Assert.Equal($"Ahlem {tag}", dto.GetProperty("responsible").GetProperty("name").GetString());
+        Assert.Equal($"Ahlem {tag}", dto.GetProperty("createdBy").GetProperty("name").GetString());       // the merged account shows its successor
+        Assert.Equal($"claim-{tag}", dto.GetProperty("claim").GetProperty("title").GetString());
+
+        var health = dto.GetProperty("health");
+        Assert.Equal("late", health.GetProperty("state").GetString());
+        Assert.Equal(20, health.GetProperty("lateDays").GetInt32());                  // the most overdue unfinished action
+        Assert.Equal(2, health.GetProperty("openActions").GetInt32());
+        Assert.Equal(1, health.GetProperty("lateActions").GetInt32());
+        Assert.Equal(1, health.GetProperty("waitingValidation").GetInt32());
+
+        var actions = dto.GetProperty("actions").EnumerateArray().ToList();
+        Assert.Equal(["late", "to-validate", "validated"], actions.Select(a => a.GetProperty("title").GetString()).ToArray());
+        Assert.Equal("waitingValidation", actions[1].GetProperty("state").GetString());
+        Assert.Equal(100, actions[2].GetProperty("progress").GetInt32());
+        Assert.Equal($"Ahlem {tag}", dto.GetProperty("history")[0].GetProperty("by").GetString());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync($"/api/ActionPlan/{planId}/detail")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await ClientAs("superadmin").GetAsync($"/api/ActionPlan/{Guid.NewGuid()}/detail")).StatusCode);
+    }
 }

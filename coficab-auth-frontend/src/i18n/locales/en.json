@@ -223,6 +223,78 @@
     "showClosed_other": "Show the {{count}} closed plans",
     "hideClosed": "Hide closed plans"
   },
+  "planPage": {
+    "notFound": "Plan not found",
+    "loadError": "Could not load the plan",
+    "backToPlans": "Back to plans",
+    "back": "Back",
+    "openClaim": "Open the claim",
+    "progress": "Progress",
+    "deadline": "Deadline",
+    "actions": "Actions done",
+    "proofs": "Evidence",
+    "proofsHint": "Files attached to the actions",
+    "noDeadline": "No deadline",
+    "daysLate": "{{count}} d late",
+    "daysLeft": "In {{count}} d",
+    "closedOn": "Closed on {{date}}",
+    "lateActions_one": "{{count}} action late",
+    "lateActions_other": "{{count}} actions late",
+    "noLateAction": "No late action",
+    "workTitle": "Work to do",
+    "noActions": "This plan has no detailed action yet.",
+    "unassigned": "Unassigned",
+    "showDone": "Show the {{count}} finished actions",
+    "hideDone": "Hide finished actions",
+    "people": "Responsibilities",
+    "responsible": "Plan owner",
+    "createdBy": "Created on {{date}}",
+    "organization": "Organization",
+    "department": "Department",
+    "origin": "Origin",
+    "description": "Description",
+    "history": "History",
+    "noHistory": "No event recorded.",
+    "waitingValidation_one": "{{count}} finished action is waiting for validation",
+    "waitingValidation_other": "{{count}} finished actions are waiting for validation",
+    "rejected": "Sent back on {{date}}: {{comment}}",
+    "health": {
+      "late": "Late",
+      "onTrack": "On track",
+      "noDeadline": "No deadline",
+      "closedOnTime": "Closed on time",
+      "closedLate": "Closed late",
+      "closed": "Closed"
+    },
+    "status": {
+      "Created": "Created",
+      "Ongoing": "In progress",
+      "Closed": "Closed",
+      "Archived": "Archived"
+    },
+    "type": {
+      "PA": "Preventive (PA)",
+      "PAC": "Corrective (PAC)",
+      "PAP": "Improvement (PAP)"
+    },
+    "state": {
+      "open": "In progress",
+      "waitingValidation": "To validate",
+      "validated": "Validated",
+      "cancelled": "Cancelled"
+    },
+    "event": {
+      "created": "Plan created",
+      "status": "Status: {{from}} → {{to}}",
+      "assigned": "Assigned to {{name}}",
+      "unassigned": "Assignment removed",
+      "fields_updated": "Details updated",
+      "archived": "Archived",
+      "restored": "Restored",
+      "rejected": "Sent back at validation",
+      "status_changed": "Status changed"
+    }
+  },
   "adminNav": {
     "analysesHub": "Analyses & reports",
     "analysesTab": "5 Why / Ishikawa & report",

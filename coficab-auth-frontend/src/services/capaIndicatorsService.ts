@@ -60,3 +60,38 @@ export async function fetchCapaWorkload(token: string, organizationIds?: string)
   });
   return (res.data?.data ?? res.data) as CapaWorkload;
 }
+
+export interface PlanPerson { userId: string | null; name: string }
+
+export interface PlanDetail {
+  id: string;
+  title: string;
+  description: string | null;
+  type: string;
+  status: string;
+  organizationId: string;
+  organizationName: string;
+  departmentId: string;
+  departmentName: string;
+  responsible: PlanPerson;
+  createdBy: PlanPerson;
+  createdAt: string;
+  deadline: string | null;
+  completedAt: string | null;
+  progress: number;
+  health: { state: string; lateDays: number; openActions: number; lateActions: number; waitingValidation: number; proofCount: number };
+  claim: { id: string; title: string; clientId: string; severity: string; statusCode: string } | null;
+  actions: {
+    id: string; title: string; description: string | null; priority: number; progress: number;
+    state: 'open' | 'waitingValidation' | 'validated' | 'cancelled'; deadline: string | null; lateDays: number; responsible: PlanPerson;
+  }[];
+  history: { at: string; type: string; by: string; note: string | null; fromStatus: string | null; toStatus: string | null; fromAssignee: string | null; toAssignee: string | null }[];
+  lastRejectedAt: string | null;
+  lastRejectComment: string | null;
+}
+
+/** GET /api/actionplan/{id}/detail : the whole plan page in one call (quality admins). */
+export async function fetchPlanDetail(token: string, id: string): Promise<PlanDetail> {
+  const res = await axios.get(`${API_BASE}/actionplan/${id}/detail`, { headers: { Authorization: `Bearer ${token}` } });
+  return (res.data?.data ?? res.data) as PlanDetail;
+}

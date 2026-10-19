@@ -223,6 +223,78 @@
     "showClosed_other": "Voir les {{count}} plans clôturés",
     "hideClosed": "Masquer les plans clôturés"
   },
+  "planPage": {
+    "notFound": "Plan introuvable",
+    "loadError": "Impossible de charger le plan",
+    "backToPlans": "Retour aux plans",
+    "back": "Retour",
+    "openClaim": "Ouvrir la réclamation",
+    "progress": "Avancement",
+    "deadline": "Échéance",
+    "actions": "Actions terminées",
+    "proofs": "Preuves",
+    "proofsHint": "Fichiers joints aux actions",
+    "noDeadline": "Pas d'échéance",
+    "daysLate": "{{count}} j de retard",
+    "daysLeft": "Dans {{count}} j",
+    "closedOn": "Clôturé le {{date}}",
+    "lateActions_one": "{{count}} action en retard",
+    "lateActions_other": "{{count}} actions en retard",
+    "noLateAction": "Aucune action en retard",
+    "workTitle": "Travail à réaliser",
+    "noActions": "Ce plan n'a pas encore d'action détaillée.",
+    "unassigned": "Non assignée",
+    "showDone": "Voir les {{count}} actions terminées",
+    "hideDone": "Masquer les actions terminées",
+    "people": "Responsabilités",
+    "responsible": "Responsable du plan",
+    "createdBy": "Créé le {{date}}",
+    "organization": "Organisation",
+    "department": "Département",
+    "origin": "Origine",
+    "description": "Description",
+    "history": "Historique",
+    "noHistory": "Aucun événement enregistré.",
+    "waitingValidation_one": "{{count}} action terminée attend sa validation",
+    "waitingValidation_other": "{{count}} actions terminées attendent leur validation",
+    "rejected": "Renvoyé le {{date}} : {{comment}}",
+    "health": {
+      "late": "En retard",
+      "onTrack": "Dans les délais",
+      "noDeadline": "Sans échéance",
+      "closedOnTime": "Clôturé dans les délais",
+      "closedLate": "Clôturé en retard",
+      "closed": "Clôturé"
+    },
+    "status": {
+      "Created": "Créé",
+      "Ongoing": "En cours",
+      "Closed": "Clôturé",
+      "Archived": "Archivé"
+    },
+    "type": {
+      "PA": "Préventif (PA)",
+      "PAC": "Correctif (PAC)",
+      "PAP": "Amélioration (PAP)"
+    },
+    "state": {
+      "open": "En cours",
+      "waitingValidation": "À valider",
+      "validated": "Validée",
+      "cancelled": "Annulée"
+    },
+    "event": {
+      "created": "Plan créé",
+      "status": "Statut : {{from}} → {{to}}",
+      "assigned": "Assigné à {{name}}",
+      "unassigned": "Assignation retirée",
+      "fields_updated": "Informations modifiées",
+      "archived": "Archivé",
+      "restored": "Restauré",
+      "rejected": "Renvoyé à la validation",
+      "status_changed": "Statut modifié"
+    }
+  },
   "adminNav": {
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",

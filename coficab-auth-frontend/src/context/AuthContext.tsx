@@ -133,48 +133,65 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    /** The server answered and said no (revoked, expired, already used): the session is over. Anything else is a hiccup. */
+    const refused = (err: any) => [400, 401, 403].includes(Number(err?.response?.status));
+
+    const restore = async (storedRefreshToken: string) => {
+      // a reload keeps the access token of this tab: nothing to renew, so nothing to lose
+      const kept = loadAccessToken();
+      if (kept) {
+        try {
+          const fullUser = await fetchFullUserProfile(kept.token);
+          if (cancelled) return;
+          setAccessToken(kept.token);
+          expiresAtRef.current = kept.expiresAt;
+          setUser(fullUser);
+          return;
+        } catch {
+          clearAccessToken();   // refused or unreachable: renew below
+        }
+      }
+
+      // one renewal at a time across tabs, with the newest refresh token
+      const data = await withRefreshLock(async () => {
+        const latest = localStorage.getItem('refresh_token') ?? storedRefreshToken;
+        const result = await refreshTokenService(latest);
+        localStorage.setItem('refresh_token', result.refresh_token);
+        return result;
+      });
+      if (cancelled) return;
+      applyTokens(data);
+      const fullUser = await fetchFullUserProfile(data.access_token);
+      if (!cancelled) setUser(fullUser);
+    };
+
     const initAuth = async () => {
       const storedRefreshToken = localStorage.getItem('refresh_token');
       if (storedRefreshToken) {
-        try {
-          // a reload keeps the access token of this tab: nothing to renew, so nothing to lose
-          const kept = loadAccessToken();
-          if (kept) {
-            try {
-              const fullUser = await fetchFullUserProfile(kept.token);
-              setAccessToken(kept.token);
-              expiresAtRef.current = kept.expiresAt;
-              setUser(fullUser);
-              setIsLoading(false);
-              return;
-            } catch {
-              clearAccessToken();   // refused (e.g. the server restarted): renew below
+        // An API that is restarting must not end the session: try again for about half a minute.
+        for (let attempt = 0; attempt < 8 && !cancelled; attempt += 1) {
+          try {
+            await restore(storedRefreshToken);
+            break;
+          } catch (err) {
+            if (refused(err)) {
+              console.error('Échec de la connexion automatique:', err);
+              localStorage.removeItem('refresh_token');
+              clearAccessToken();
+              setAccessToken(null);
+              setUser(null);
+              break;
             }
+            await new Promise((resolve) => setTimeout(resolve, 4000));
           }
-
-          // one renewal at a time across tabs, with the newest refresh token
-          const data = await withRefreshLock(async () => {
-            const latest = localStorage.getItem('refresh_token') ?? storedRefreshToken;
-            const result = await refreshTokenService(latest);
-            localStorage.setItem('refresh_token', result.refresh_token);
-            return result;
-          });
-          applyTokens(data);
-
-          const fullUser = await fetchFullUserProfile(data.access_token);
-          setUser(fullUser);
-        } catch (err) {
-          console.error('Échec de la connexion automatique:', err);
-          localStorage.removeItem('refresh_token');
-          clearAccessToken();
-          setAccessToken(null);
-          setUser(null);
         }
       }
-      setIsLoading(false);
+      if (!cancelled) setIsLoading(false);
     };
 
     void initAuth();
+    return () => { cancelled = true; };
   }, [applyTokens]);
 
   // Keep the session alive: renew the access token a minute before it expires, and right away when the

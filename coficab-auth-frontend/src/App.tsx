@@ -10,6 +10,7 @@ import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
+import PlanPage from './pages/action-plan/PlanPage';
 import ActionPlanDetail from './pages/action-plan/ActionPlanDetail';
 import ActionPlanList from './pages/action-plan/ActionPlanList';
 import CreateActionPlan from './pages/action-plan/CreateActionPlan';
@@ -198,7 +199,7 @@ const App = () => {
               <Route path="/admin/action-plans/reference"       element={<AdminCapaPlanReference />} />
               <Route path="/admin/action-plans/history"         element={<HistoryRedirect />} />
               <Route path="/admin/action-plans/create"          element={<CreateActionPlan />} />
-              <Route path="/admin/action-plans/:id"             element={<ActionPlanDetail />} />
+              <Route path="/admin/action-plans/:id"             element={<PlanPage />} />
               <Route path="/admin/claims/dashboard"             element={<ClaimsBoardPage />} />
               <Route path="/admin/claims/indicators"            element={<Navigate to="/admin/claims/dashboard?tab=indicators" replace />} />
               <Route path="/admin/claims/list"                  element={<AdminClaimsList />} />
