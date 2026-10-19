@@ -189,18 +189,17 @@ function AgingTable({ title, bands, rows, none, onOpen }: {
   onOpen: (to: string) => void;
 }) {
   return (
-    <div className="mt-3 rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
-      <h3 className="text-sm font-semibold m-0 mb-2" style={{ color: COFICAB.ink }}>{title}</h3>
-      <table className="w-full text-sm">
+    <div className="mt-3 rounded-xl bg-white shadow-sm px-4 py-1.5" style={{ border: `1px solid ${COFICAB.line}` }}>
+      <table className="w-full text-xs">
         <thead>
           <tr className="text-[11px]" style={{ color: COFICAB.muted }}>
-            <th className="text-left font-semibold pb-1" />
+            <th className="text-left font-semibold py-1">{title}</th>
             {bands.map((b, i) => (
-              <th key={b} className="text-right font-semibold pb-1">
+              <th key={b} className="text-right font-semibold py-1">
                 <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ background: AGING_COLORS[i] }} />{b}
               </th>
             ))}
-            <th className="text-right font-semibold pb-1">Total</th>
+            <th className="text-right font-semibold py-1">Total</th>
           </tr>
         </thead>
         <tbody>
@@ -214,20 +213,20 @@ function AgingTable({ title, bands, rows, none, onOpen }: {
                 className={r.to ? 'hover:bg-slate-50' : undefined}
                 onClick={r.to ? () => onOpen(r.to!) : undefined}
               >
-                <td className="py-2 font-semibold" style={{ color: COFICAB.ink }}>{r.label}</td>
+                <td className="py-1.5 font-semibold" style={{ color: COFICAB.ink }}>{r.label}</td>
                 {total === 0 ? (
-                  <td colSpan={4} className="py-2 text-right text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</td>
+                  <td colSpan={4} className="py-1.5 text-right text-xs font-semibold" style={{ color: COFICAB.ok }}>{none}</td>
                 ) : (
                   <>
                     {parts.map((n, i) => (
-                      <td key={i} className="py-2 text-right tabular-nums">
+                      <td key={i} className="py-1.5 text-right tabular-nums">
                         <b style={{ color: n > 0 ? AGING_COLORS[i] : COFICAB.muted }}>{n}</b>
                         <span className="text-[11px] ml-1" style={{ color: COFICAB.muted }}>({Math.round((n / total) * 100)} %)</span>
                       </td>
                     ))}
-                    <td className="py-2 text-right tabular-nums font-bold" style={{ color: COFICAB.ink }}>
+                    <td className="py-1.5 text-right tabular-nums font-bold" style={{ color: COFICAB.ink }}>
                       {total}
-                      {r.sub && <div className="text-[11px] font-normal" style={{ color: COFICAB.muted }}>{r.sub}</div>}
+                      {r.sub && <span className="text-[11px] font-normal ml-1" style={{ color: COFICAB.muted }}>· {r.sub}</span>}
                     </td>
                   </>
                 )}
