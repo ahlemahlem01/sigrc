@@ -93,9 +93,9 @@ function Section({ title, hint, children, aside }: { title: string; hint?: strin
   return (
     <section className="mb-6">
       <div className="flex items-center justify-between gap-2 mb-2.5">
-        <div>
-          <h2 className="text-sm font-bold uppercase tracking-wide m-0" style={{ color: COFICAB.navy }}>{title}</h2>
-          {hint ? <p className="text-[12px] m-0 mt-0.5" style={{ color: COFICAB.muted }}>{hint}</p> : null}
+        <div className="flex items-center gap-2">
+          <h2 className="text-base font-semibold m-0" style={{ color: COFICAB.ink }}>{title}</h2>
+          {hint ? <DashInfoTip text={hint} title={title} side="bottom" /> : null}
         </div>
         {aside}
       </div>
@@ -189,7 +189,7 @@ function AgingTable({ title, bands, rows, none }: {
 }) {
   return (
     <div className="mt-3 rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: `1px solid ${COFICAB.line}` }}>
-      <h3 className="text-xs font-bold uppercase tracking-wide m-0 mb-2" style={{ color: COFICAB.ink }}>{title}</h3>
+      <h3 className="text-sm font-semibold m-0 mb-2" style={{ color: COFICAB.ink }}>{title}</h3>
       <table className="w-full text-sm">
         <thead>
           <tr className="text-[11px]" style={{ color: COFICAB.muted }}>
