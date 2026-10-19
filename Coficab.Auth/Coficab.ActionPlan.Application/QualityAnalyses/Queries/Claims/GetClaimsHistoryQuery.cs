@@ -477,9 +477,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
 
         var profiles = await _context.UserProfiles.AsNoTracking().Include(p => p.Department).ToListAsync(cancellationToken);
         var departments = await _context.Departments.AsNoTracking().ToListAsync(cancellationToken);
+        var aliases = await ClaimVisibility.AliasesAsync(_context, cancellationToken);
         foreach (var row in pageClaims)
         {
-            row.CreatedBy = ClaimVisibility.PersonName(profiles, row.CreatedById, row.CreatedBy);
+            row.CreatedBy = ClaimVisibility.PersonName(profiles, row.CreatedById, row.CreatedBy, aliases);
             row.ProductionLine = ClaimVisibility.PlaceName(departments, row.ProductionLine);
         }
         facets.ProductionLines = facets.ProductionLines

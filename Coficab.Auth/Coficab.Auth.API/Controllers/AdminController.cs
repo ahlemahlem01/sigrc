@@ -244,6 +244,57 @@ public class AdminController : ControllerBase
         return Ok(new { total, page, pageSize, logs });
     }
 
+    // ─── POST /api/admin/users/{id}/merge-into/{targetId} ─────
+
+    /// <summary>
+    /// Two accounts of the same person: the work (plans, actions, claims, 8D, plan permissions, badges, timeline) moves to
+    /// the kept account, the other one is locked for good (never deleted) and linked to it, so that the history it
+    /// signed ("created by", "modified by") shows the kept account's name.
+    /// </summary>
+    [HttpPost("users/{id}/merge-into/{targetId}")]
+    [Authorize(Roles = "superadmin",
+        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> MergeUsers(string id, string targetId)
+    {
+        if (string.Equals(id, targetId, StringComparison.OrdinalIgnoreCase))
+            return BadRequest("An account cannot be merged into itself.");
+        var old = await _userManager.FindByIdAsync(id);
+        var kept = await _userManager.FindByIdAsync(targetId);
+        if (old == null || kept == null) return NotFound();
+        if (await _userManager.IsLockedOutAsync(kept))
+            return BadRequest("The account to keep must be active.");
+
+        await using var tx = await _db.Database.BeginTransactionAsync();
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.ActionPlans SET AssignedToId = {targetId} WHERE AssignedToId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.ActionPlans SET OwnerId = {targetId} WHERE OwnerId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.PlanActions SET AssignedToId = {targetId} WHERE AssignedToId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.Claims SET AssignedToId = {targetId} WHERE AssignedToId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.EightDDossiers SET ChampionId = {targetId} WHERE ChampionId = {id}");
+        // plan permissions: unless the kept account already has a row for that plan
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"UPDATE a SET UserId = {targetId} FROM actionplan.UserActionPlanAssignments a
+            WHERE a.UserId = {id} AND NOT EXISTS (SELECT 1 FROM actionplan.UserActionPlanAssignments b WHERE b.UserId = {targetId} AND b.ActionPlanId = a.ActionPlanId)");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.Badges SET UserId = {targetId} WHERE UserId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.TimelineEvents SET UserId = {targetId} WHERE UserId = {id}");
+        // the old id stays in the history it signed; the alias makes every screen show the kept account's name for it
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"IF EXISTS (SELECT 1 FROM actionplan.UserAliases WHERE OldUserId = {id})
+            UPDATE actionplan.UserAliases SET UserId = {targetId}, MergedAt = SYSUTCDATETIME(), MergedBy = {CurrentUserId} WHERE OldUserId = {id}
+            ELSE INSERT INTO actionplan.UserAliases (OldUserId, UserId, MergedAt, MergedBy) VALUES ({id}, {targetId}, SYSUTCDATETIME(), {CurrentUserId})");
+        // accounts that were already merged into the old one now point to the kept one
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.UserAliases SET UserId = {targetId} WHERE UserId = {id}");
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.UserProfiles SET Status = 'inactive', UpdatedAt = SYSUTCDATETIME() WHERE UserId = {id}");
+        await _userManager.SetLockoutEnabledAsync(old, true);
+        await _userManager.SetLockoutEndDateAsync(old, DateTimeOffset.MaxValue);
+        await tx.CommitAsync();
+
+        await _auditService.LogAsync(
+            action: "MERGE",
+            targetEmail: old.Email!,
+            actorId: CurrentUserId,
+            actorEmail: CurrentUserEmail,
+            detail: $"Merged into {kept.Email}");
+        return Ok(new { mergedInto = kept.Email });
+    }
+
     // ─── POST /api/admin/users ────────────────────────────────
 
     [HttpPost("users")]

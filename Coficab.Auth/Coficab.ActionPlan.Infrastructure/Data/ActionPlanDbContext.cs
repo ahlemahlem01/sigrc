@@ -29,6 +29,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
 
     // ─── Employee Dashboard ────────────────────────────────────────────
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserAlias> UserAliases => Set<UserAlias>();
     public DbSet<Badge> Badges => Set<Badge>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentFavorite> DocumentFavorites => Set<DocumentFavorite>();
@@ -84,6 +85,16 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.UserId, e.ActionPlanId }).IsUnique();
+        });
+
+        // ─── UserAlias: merged accounts ───────────────────────────────────
+        modelBuilder.Entity<UserAlias>(entity =>
+        {
+            entity.HasKey(e => e.OldUserId);
+            entity.Property(e => e.OldUserId).HasMaxLength(450);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.MergedBy).HasMaxLength(450);
+            entity.HasIndex(e => e.UserId);
         });
 
         // ─── UserProfile ─────────────────────────────────────────────────

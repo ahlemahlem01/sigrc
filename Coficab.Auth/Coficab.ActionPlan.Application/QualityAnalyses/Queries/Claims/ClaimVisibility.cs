@@ -37,28 +37,39 @@ public static class ClaimVisibility
                 p.ClaimId == c.Id && !p.IsArchived && p.DepartmentId == deptId)));
     }
 
+    /// <summary>Merged accounts: old user id to the account that replaced it.</summary>
+    public static async Task<Dictionary<string, string>> AliasesAsync(IApplicationDbContext db, CancellationToken cancellationToken)
+        => await db.UserAliases.AsNoTracking().ToDictionaryAsync(a => a.OldUserId, a => a.UserId, StringComparer.OrdinalIgnoreCase, cancellationToken);
+
     public static async Task FillAsync(IApplicationDbContext db, IList<Claim> claims, CancellationToken cancellationToken)
     {
         if (claims.Count == 0) return;
+        var aliases = await AliasesAsync(db, cancellationToken);
         var profiles = await db.UserProfiles.AsNoTracking().Include(p => p.Department).ToListAsync(cancellationToken);
         var departments = await db.Departments.AsNoTracking().ToListAsync(cancellationToken);
         foreach (var claim in claims)
         {
-            claim.AssignedToName = PersonName(profiles, claim.AssignedToId, claim.AssignedToName);
-            claim.CreatedBy = PersonName(profiles, claim.CreatedById, claim.CreatedBy);
+            claim.AssignedToName = PersonName(profiles, claim.AssignedToId, claim.AssignedToName, aliases);
+            claim.CreatedBy = PersonName(profiles, claim.CreatedById, claim.CreatedBy, aliases);
             claim.ProductionLine = PlaceName(departments, claim.ProductionLine);
         }
     }
 
-    public static string PersonName(IEnumerable<UserProfile> profiles, string? userId, string? current)
+    /// <summary>
+    /// The name of a person: by id (following a merge to the account that replaced it), the profile's current name first,
+    /// so a rename or a merge shows everywhere; the text stored with the record is only the fallback.
+    /// </summary>
+    public static string PersonName(IEnumerable<UserProfile> profiles, string? userId, string? current, IReadOnlyDictionary<string, string>? aliases = null)
     {
-        if (!string.IsNullOrWhiteSpace(current) && !LooksLikeId(current))
-            return current.Trim();
+        var stored = !string.IsNullOrWhiteSpace(current) && !LooksLikeId(current) ? current.Trim() : null;
         if (string.IsNullOrWhiteSpace(userId))
-            return string.IsNullOrWhiteSpace(current) ? string.Empty : current.Trim();
-        var profile = profiles.FirstOrDefault(p => string.Equals(p.UserId, userId, StringComparison.OrdinalIgnoreCase));
+            return stored ?? (string.IsNullOrWhiteSpace(current) ? string.Empty : current.Trim());
+
+        var id = aliases != null && aliases.TryGetValue(userId, out var replacement) ? replacement : userId;
+        var profile = profiles.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase));
+        if (profile != null && !string.IsNullOrWhiteSpace(profile.Name) && !LooksLikeId(profile.Name)) return profile.Name.Trim();
+        if (stored != null) return stored;
         if (profile == null) return "Non assigné";
-        if (!string.IsNullOrWhiteSpace(profile.Name) && !LooksLikeId(profile.Name)) return profile.Name.Trim();
         return string.IsNullOrWhiteSpace(profile.Email) ? "Non assigné" : profile.Email;
     }
 

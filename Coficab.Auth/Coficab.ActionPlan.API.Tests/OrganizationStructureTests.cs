@@ -251,4 +251,33 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(2, (await Names("/api/admin/employees/profiles")).Count);
         Assert.Equal([$"Bob-{tag}"], await Names($"/api/admin/employees/profiles?organizationIds={orgB}"));
     }
+
+    [Fact]
+    public async Task ClaimNames_FollowTheCurrentProfile_AndAMergedAccountShowsTheAccountThatReplacedIt()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var oldId = Guid.NewGuid().ToString();
+        var keptId = Guid.NewGuid().ToString();
+        var renamedId = Guid.NewGuid().ToString();
+        await _factory.SeedAsync(db =>
+        {
+            var now = DateTime.UtcNow;
+            db.UserProfiles.Add(new UserProfile { UserId = oldId, Name = $"ahlem alaya {tag}", Email = $"old{tag}@t", Role = "user", Poste = "P", Equipe = "A" });
+            db.UserProfiles.Add(new UserProfile { UserId = keptId, Name = $"Ahlem Alaya {tag}", Email = $"kept{tag}@t", Role = "user", Poste = "P", Equipe = "A" });
+            db.UserProfiles.Add(new UserProfile { UserId = renamedId, Name = $"Nouveau Nom {tag}", Email = $"ren{tag}@t", Role = "user", Poste = "P", Equipe = "A" });
+            db.UserAliases.Add(new UserAlias { OldUserId = oldId, UserId = keptId });
+            // the text stored with the claim is the name at the time it was written
+            db.Claims.Add(new Claim { Title = $"merged-{tag}", StatusCode = "OUVERTE", CreatedById = oldId, CreatedBy = $"ahlem alaya {tag}", DetectionDate = now, CreatedAt = now });
+            db.Claims.Add(new Claim { Title = $"renamed-{tag}", StatusCode = "OUVERTE", CreatedById = renamedId, CreatedBy = "Ancien Nom", DetectionDate = now, CreatedAt = now });
+            db.Claims.Add(new Claim { Title = $"unknown-{tag}", StatusCode = "OUVERTE", CreatedById = Guid.NewGuid().ToString(), CreatedBy = "Snapshot Only", DetectionDate = now, CreatedAt = now });
+            return Task.CompletedTask;
+        });
+
+        var list = await ClientAs("superadmin").GetFromJsonAsync<JsonElement>($"/api/QualityAnalysis/claims?pageSize=500", JsonOpts);
+        string CreatedBy(string title) => list.EnumerateArray().First(c => c.GetProperty("title").GetString() == $"{title}-{tag}").GetProperty("createdBy").GetString()!;
+
+        Assert.Equal($"Ahlem Alaya {tag}", CreatedBy("merged"));        // the old account shows the person it was merged into
+        Assert.Equal($"Nouveau Nom {tag}", CreatedBy("renamed"));       // a rename follows, the stored text is not frozen
+        Assert.Equal("Snapshot Only", CreatedBy("unknown"));            // no profile to ask: the stored text stays
+    }
 }

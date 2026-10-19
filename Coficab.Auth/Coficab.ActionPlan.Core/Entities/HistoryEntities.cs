@@ -46,3 +46,15 @@ public class D4Override
     public string? ByUserName { get; set; }
     public DateTime At { get; set; } = DateTime.UtcNow;
 }
+
+/// <summary>
+/// An account that was merged into another one (same person, two accounts). History keeps the old id in its
+/// "created by / modified by" fields; this link lets every screen show the person's current name for it.
+/// </summary>
+public class UserAlias
+{
+    public string OldUserId { get; set; } = string.Empty;
+    public string UserId { get; set; } = string.Empty;
+    public DateTime MergedAt { get; set; } = DateTime.UtcNow;
+    public string? MergedBy { get; set; }
+}

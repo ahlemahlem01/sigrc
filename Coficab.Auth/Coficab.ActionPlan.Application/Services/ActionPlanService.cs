@@ -976,10 +976,12 @@ public class ActionPlanService : IActionPlanService
             .Where(id => id.Length > 0)
             .Distinct()
             .ToList();
+        var aliases = await _context.UserAliases.AsNoTracking().ToDictionaryAsync(a => a.OldUserId, a => a.UserId, StringComparer.OrdinalIgnoreCase);
         var userNames = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         foreach (var uid in userIds)
         {
-            var name = await _userRepo.GetUserNameByIdAsync(uid);
+            // a merged account shows the name of the account that replaced it
+            var name = await _userRepo.GetUserNameByIdAsync(aliases.TryGetValue(uid, out var current) ? current : uid);
             if (name != null) userNames[uid] = name;
         }
 
@@ -1002,13 +1004,12 @@ public class ActionPlanService : IActionPlanService
         });
     }
 
+    /// <summary>The person's current name when the id is known, else the text stored with the record.</summary>
     private static string? ResolveDisplayName(string? storedName, string? userId, Dictionary<string, string> userNames)
     {
-        if (!string.IsNullOrWhiteSpace(storedName) && !Guid.TryParse(storedName, out _))
-            return storedName;
         if (!string.IsNullOrEmpty(userId) && userNames.TryGetValue(userId, out var resolved))
             return resolved;
-        return storedName ?? userId;
+        return storedName;
     }
 
     public async Task<IEnumerable<ActionPlanHistory>> GetPlanHistoryAsync(Guid actionPlanId)

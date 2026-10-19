@@ -2341,6 +2341,31 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.ToTable("UserActionPlanAssignments", "actionplan");
                 });
 
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.UserAlias", b =>
+                {
+                    b.Property<string>("OldUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("MergedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MergedBy")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("OldUserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserAliases", "actionplan");
+                });
+
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.UserFunction", b =>
                 {
                     b.Property<Guid>("Id")
