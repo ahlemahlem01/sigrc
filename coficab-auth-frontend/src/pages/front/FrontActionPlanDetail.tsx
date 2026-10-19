@@ -29,6 +29,7 @@ interface ActionPlanDto {
   status: number;
   ownerId?: string;
   ownerName?: string;
+  createdByName?: string;
   departmentId?: string;
   departmentName?: string;
   createdAt: string;
@@ -261,6 +262,7 @@ export default function FrontActionPlanDetail() {
           // the progress of an action arrives by name ("Hundred", "Fifty"): 0-100
           progress: parseProgress(a.progress ?? a.Progress),
           assignedToId: a.assignedToId || a.AssignedToId,
+          assignedToName: a.assignedToName || a.AssignedToName,
           status: { created: 1, ongoing: 2, closed: 3, archived: 4 }[toUiStatus(a.status ?? a.Status)],
           documentCount: Number(a.documentCount ?? a.DocumentCount ?? 0),
         })));
@@ -617,7 +619,7 @@ export default function FrontActionPlanDetail() {
               </div>
             )}
             <div className="cofi-apd-meta-item">
-              <User size={15} />{labelOrId(plan.createdBy ?? plan.ownerName, plan.ownerId)}
+              <User size={15} />{labelOrId(plan.createdByName ?? plan.ownerName, plan.ownerId)}
             </div>
           </div>
         </div>

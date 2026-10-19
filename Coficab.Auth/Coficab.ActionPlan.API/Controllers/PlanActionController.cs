@@ -5,6 +5,7 @@ using Coficab.ActionPlan.Core.Enums;
 using Coficab.ActionPlan.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using OpenIddict.Abstractions;
 using System.Security.Claims;
 
@@ -77,7 +78,7 @@ public class PlanActionController : ControllerBase
     }
 
     [HttpGet("by-plan/{actionPlanId}")]
-    public async Task<IActionResult> GetByActionPlan(Guid actionPlanId)
+    public async Task<IActionResult> GetByActionPlan(Guid actionPlanId, [FromServices] IApplicationDbContext db)
     {
         var userId = CurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -86,7 +87,12 @@ public class PlanActionController : ControllerBase
         if (!await CanAccessPlanAsync(actionPlanId, userId))
             return Forbid();
 
-        var actions = await _service.GetByActionPlanAsync(actionPlanId);
+        var actions = (await _service.GetByActionPlanAsync(actionPlanId)).ToList();
+        // the people's current names, a merged account showing the account that replaced it
+        var profiles = await db.UserProfiles.AsNoTracking().ToListAsync(HttpContext.RequestAborted);
+        var aliases = await Application.QualityAnalyses.Queries.Claims.ClaimVisibility.AliasesAsync(db, HttpContext.RequestAborted);
+        foreach (var a in actions.Where(a => !string.IsNullOrWhiteSpace(a.AssignedToId)))
+            a.AssignedToName = Application.QualityAnalyses.Queries.Claims.ClaimVisibility.PersonName(profiles, a.AssignedToId, null, aliases);
         return Ok(actions);
     }
 

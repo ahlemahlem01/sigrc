@@ -140,6 +140,8 @@ public class ActionPlanController : ControllerBase
                 var current = aliases.TryGetValue(plan.CreatedBy, out var replacement) ? replacement : plan.CreatedBy;
                 plan.CreatedByName = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == current).Select(p => p.Name).FirstOrDefaultAsync();
             }
+            if (string.IsNullOrWhiteSpace(plan.DepartmentName))
+                plan.DepartmentName = await _db.Departments.AsNoTracking().Where(d => d.Id == plan.DepartmentId).Select(d => d.Name).FirstOrDefaultAsync() ?? string.Empty;
             return Ok(plan);
         }
 

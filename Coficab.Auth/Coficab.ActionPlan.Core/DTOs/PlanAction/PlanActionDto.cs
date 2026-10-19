@@ -11,6 +11,8 @@ public class PlanActionDto
     public DateTime? Deadline { get; set; }
     public int Priority { get; set; }
     public string? AssignedToId { get; set; }
+    /// <summary>The assignee's current name (filled by the plan's action list).</summary>
+    public string? AssignedToName { get; set; }
     // AssignedTo (full User object) removed — no backend fetch capability yet.
     // Frontend already resolves the user via its own `users` list using AssignedToId.
     public Guid ActionPlanId { get; set; }
