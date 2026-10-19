@@ -69,7 +69,10 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
         var profiles = await _context.UserProfiles.AsNoTracking().Include(u => u.Department).ToListAsync(ct);
         var profileById = profiles.GroupBy(p => p.UserId, StringComparer.OrdinalIgnoreCase).ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
 
-        var people = responsible.Select(kv =>
+        // a deactivated account (locked, profile inactive) no longer carries work
+        bool Inactive(string id) => profileById.TryGetValue(id, out var pr) && string.Equals(pr.Status, "inactive", StringComparison.OrdinalIgnoreCase);
+
+        var people = responsible.Where(kv => !Inactive(kv.Key)).Select(kv =>
         {
             profileById.TryGetValue(kv.Key, out var profile);
             var open = kv.Value.Where(PlanDeadlines.IsOpen).ToList();
@@ -100,6 +103,7 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
         // people of the followed organizations who carry nothing right now
         var inScope = profiles.Where(p => p.Department != null
                 && (request.OrganizationIds is not { Count: > 0 } o || o.Contains(p.Department.OrganizationId))
+                && !string.Equals(p.Status, "inactive", StringComparison.OrdinalIgnoreCase)
                 && !(p.Role ?? string.Empty).Contains("admin", StringComparison.OrdinalIgnoreCase))
             .Select(p => p.UserId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var busy = people.Where(p => p.OpenPlans > 0).Select(p => p.UserId).ToHashSet(StringComparer.OrdinalIgnoreCase);
