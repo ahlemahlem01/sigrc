@@ -64,8 +64,8 @@ interface QualityActivity {
 // ── Constants ──
 const STATUS_MAP: Record<number, { label: string; color: string; bg: string; border: string }> = {
   0: { label: 'Brouillon',  color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
-  1: { label: 'Actif',      color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
-  2: { label: 'En pause',   color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
+  1: { label: 'Créé',       color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+  2: { label: 'En cours',   color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
   3: { label: 'Terminé',    color: '#15803d', bg: '#f0fdf4', border: '#86efac' },
   4: { label: 'Archivé',    color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
 };

@@ -206,10 +206,8 @@ public class ActionPlanService : IActionPlanService
 
         if (superAdmin)
         {
-            var orgId = profile?.Department?.OrganizationId;
-            if (orgId.HasValue && orgId.Value != Guid.Empty)
-                plans = plans.Where(p => p.OrganizationId == orgId.Value);
-
+            // the platform superadmin sees every organization, whichever one their own account belongs to;
+            // narrowing to some organizations is the job of the organization selector (organizationIds)
             return (await plans.Select(p => p.Id).ToListAsync()).ToHashSet();
         }
 
@@ -639,6 +637,7 @@ public class ActionPlanService : IActionPlanService
                 Id = a.ActionPlanId.ToString(),
                 Title = a.ActionPlan.Title,
                 Description = a.ActionPlan.Description,
+                Type = (int)a.ActionPlan.Type,
                 Status = (int)a.ActionPlan.Status,
                 Progress = ComputeProgress(a.ActionPlan),
                 AssignedToId = a.UserId,
@@ -679,6 +678,7 @@ public class ActionPlanService : IActionPlanService
                 Id = plan.Id.ToString(),
                 Title = plan.Title,
                 Description = plan.Description,
+                Type = (int)plan.Type,
                 Status = (int)plan.Status,
                 Progress = ComputeProgress(plan),
                 AssignedToId = plan.AssignedToId ?? uid,
@@ -727,6 +727,7 @@ public class ActionPlanService : IActionPlanService
             Id = plan.Id.ToString(),
             Title = plan.Title,
             Description = plan.Description,
+            Type = (int)plan.Type,
             Status = (int)plan.Status,
             Progress = ComputeProgress(plan),
             AssignedToId = assignment?.UserId ?? plan.AssignedToId ?? uid,

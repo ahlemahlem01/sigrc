@@ -357,4 +357,55 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync($"/api/ActionPlan/{planId}/detail")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await ClientAs("superadmin").GetAsync($"/api/ActionPlan/{Guid.NewGuid()}/detail")).StatusCode);
     }
+
+    [Fact]
+    public async Task TheSuperadminSeesEveryOrganizationsPlans_EvenWithTheirOwnDepartment()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var mine = await OrgAsync(OrganizationType.Corporate);
+        var other = await OrgAsync(OrganizationType.Corporate);
+        var myDept = Guid.NewGuid();
+        var otherDept = Guid.NewGuid();
+        var me = TestAuthHandler.TestUserId.ToString();
+        await _factory.SeedAsync(db =>
+        {
+            db.Departments.Add(new Department { Id = myDept, Name = "Qualite", Code = $"M{tag}", OrganizationId = mine });
+            db.Departments.Add(new Department { Id = otherDept, Name = "Qualite", Code = $"O{tag}", OrganizationId = other });
+            // the superadmin works in one organization (they now belong to one)...
+            if (!db.UserProfiles.Any(p => p.UserId == me))
+                db.UserProfiles.Add(new UserProfile { UserId = me, Name = "Super", Email = $"s{tag}@t", Role = "superadmin", Poste = "P", Equipe = "A", DepartmentId = myDept });
+            else
+                db.UserProfiles.First(p => p.UserId == me).DepartmentId = myDept;
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Title = $"here-{tag}", OrganizationId = mine, DepartmentId = myDept, OwnerId = "x", CreatedBy = "x", Type = ActionPlanType.PA });
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Title = $"elsewhere-{tag}", OrganizationId = other, DepartmentId = otherDept, OwnerId = "x", CreatedBy = "x", Type = ActionPlanType.PA });
+            return Task.CompletedTask;
+        });
+
+        // ...and still sees the plans of the others: the selector narrows, the account does not
+        var plans = (await ClientAs("superadmin").GetFromJsonAsync<JsonElement>("/api/ActionPlan", JsonOpts)).EnumerateArray()
+            .Select(p => p.GetProperty("title").GetString() ?? "").Where(n => n.EndsWith(tag)).ToList();
+        Assert.Equal(2, plans.Count);
+    }
+
+    [Fact]
+    public async Task AnEmployeesPlanCarriesItsTypeAndStatusAsNumbers()
+    {
+        var tag = Guid.NewGuid().ToString("N")[..6];
+        var org = await OrgAsync(OrganizationType.Corporate);
+        var deptId = Guid.NewGuid();
+        var planId = Guid.NewGuid();
+        var me = TestAuthHandler.TestUserId.ToString();
+        await _factory.SeedAsync(db =>
+        {
+            db.Departments.Add(new Department { Id = deptId, Name = "Qualite", Code = $"Q{tag}", OrganizationId = org });
+            db.ActionPlans.Add(new Core.Entities.ActionPlan { Id = planId, Title = $"mine-{tag}", OrganizationId = org, DepartmentId = deptId, OwnerId = "x", CreatedBy = "x", AssignedToId = me, Type = ActionPlanType.PAC, Status = ActionPlanStatus.Ongoing });
+            db.UserActionPlanAssignments.Add(new UserActionPlanAssignment { Id = Guid.NewGuid(), UserId = me, ActionPlanId = planId, CanView = true, CanEdit = true });
+            return Task.CompletedTask;
+        });
+
+        var plans = await ClientAs("user").GetFromJsonAsync<JsonElement>("/api/ActionPlan/user/assigned", JsonOpts);
+        var mine = plans.EnumerateArray().First(p => p.GetProperty("title").GetString() == $"mine-{tag}");
+        Assert.Equal(2, mine.GetProperty("type").GetInt32());      // 1 PA, 2 PAC, 3 PAP
+        Assert.Equal(2, mine.GetProperty("status").GetInt32());    // 2 = Ongoing: the employee pages show "In progress", not "Paused"
+    }
 }

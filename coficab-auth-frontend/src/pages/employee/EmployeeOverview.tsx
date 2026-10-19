@@ -24,8 +24,8 @@ const initials = (name: string) => name.split(' ').map(w => w[0]).join('').toUpp
 /** label = i18n key */
 const STATUS_MAP: Record<number, { label: string; color: string; bg: string; border: string }> = {
   0: { label: 'planView.statusDraft', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
-  1: { label: 'activity.active',     color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
-  2: { label: 'employeeOverview.paused',  color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
+  1: { label: 'planView.statusCreated', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+  2: { label: 'planView.statusOngoing', color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
   3: { label: 'employeeOverview.finished',   color: '#15803d', bg: '#f0fdf4', border: '#86efac' },
   4: { label: 'status.archived',   color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
 };

@@ -20,6 +20,8 @@ public class AssignedActionPlanDto
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
+    /// <summary>1 PA (preventive), 2 PAC (corrective), 3 PAP (improvement)</summary>
+    public int Type { get; set; }
     public int Status { get; set; }
     public int Progress { get; set; }
     public string AssignedToId { get; set; } = string.Empty;

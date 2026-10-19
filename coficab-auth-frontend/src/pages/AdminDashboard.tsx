@@ -1,4 +1,5 @@
 // src/pages/AdminDashboard.tsx
+import { toUiStatus, toUiType } from './admin/capaAnalytics';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -140,7 +141,10 @@ export default function AdminDashboard() {
     setLoadingPlans(true);
     try {
       const response = await getActionPlans(accessToken!);
-      const all = response.data;
+      // the server sends the status and the type by name ("Ongoing", "PA"): numbers for the table below
+      const statusNumber = { created: 1, ongoing: 2, closed: 3, archived: 4 } as const;
+      const typeNumber = { preventif: 1, correctif: 2, amelioration: 3 } as const;
+      const all = (response.data as any[]).map((p) => ({ ...p, status: statusNumber[toUiStatus(p.status)], type: typeNumber[toUiType(p.type)] }));
       setActionPlans(all.filter((p: any) => p.status !== 4));
       setArchivedActionPlans(all.filter((p: any) => p.status === 4));
     } catch (error) {

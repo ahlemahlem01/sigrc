@@ -1,3 +1,4 @@
+import { parseProgress, toUiStatus } from '../admin/capaAnalytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -237,15 +238,14 @@ export default function FrontActionPlanDetail() {
         throw new Error(lastError || t('planDetailFront.notFoundOrDenied'));
       }
       const claimId = pickClaimId(planData);
+      // the server sends the status by name ("Ongoing") to admins and by number to employees: read both
+      const statusNumber = { created: 1, ongoing: 2, closed: 3, archived: 4 }[toUiStatus((planData as any).status ?? (planData as any).Status)];
       setPlan({
         ...planData,
         id: String((planData as any).id ?? (planData as any).Id ?? id),
         claimId,
-        progress:
-          Number((planData as any).status ?? (planData as any).Status) === 3 ||
-          Number((planData as any).status ?? (planData as any).Status) === 4
-            ? 100
-            : planData.progress,
+        status: statusNumber as any,
+        progress: statusNumber === 3 || statusNumber === 4 ? 100 : planData.progress,
       });
 
       try {
@@ -258,9 +258,10 @@ export default function FrontActionPlanDetail() {
           description: a.description || a.Description,
           deadline: a.deadline || a.Deadline,
           priority: typeof a.priority === 'number' ? a.priority : Number(a.Priority ?? 2),
-          progress: typeof a.progress === 'number' ? a.progress : Number(a.Progress ?? 0),
+          // the progress of an action arrives by name ("Hundred", "Fifty"): 0-100
+          progress: parseProgress(a.progress ?? a.Progress),
           assignedToId: a.assignedToId || a.AssignedToId,
-          status: typeof a.status === 'number' ? a.status : Number(a.Status ?? 0),
+          status: { created: 1, ongoing: 2, closed: 3, archived: 4 }[toUiStatus(a.status ?? a.Status)],
           documentCount: Number(a.documentCount ?? a.DocumentCount ?? 0),
         })));
       } catch {

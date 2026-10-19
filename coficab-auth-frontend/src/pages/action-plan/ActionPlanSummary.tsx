@@ -1,3 +1,4 @@
+import { parseProgress } from '../admin/capaAnalytics';
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -55,8 +56,8 @@ interface UserDto {
 // ── Constants ──
 const STATUS_MAP: Record<number, { label: string; color: string; bg: string; border: string }> = {
   0: { label: 'planView.statusDraft', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
-  1: { label: 'planView.statusActive', color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
-  2: { label: 'planView.statusPaused', color: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
+  1: { label: 'planView.statusCreated', color: '#64748b', bg: '#f1f5f9', border: '#e2e8f0' },
+  2: { label: 'planView.statusOngoing', color: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
   3: { label: 'planView.statusDone', color: '#15803d', bg: '#f0fdf4', border: '#86efac' },
   4: { label: 'planView.statusArchived', color: '#b91c1c', bg: '#fef2f2', border: '#fca5a5' },
 };
@@ -67,10 +68,11 @@ const PRIORITY_MAP: Record<number, { label: string; color: string; bg: string }>
   3: { label: 'planView.priorityLow', color: '#16a34a', bg: '#f0fdf4' },
 };
 
+// 1 PA (preventive), 2 PAC (corrective), 3 PAP (improvement): the numbering of the server
 const TYPE_MAP: Record<number, string> = {
-  0: 'planView.typeCorrective',
   1: 'planView.typePreventive',
-  2: 'planView.typeImprovement',
+  2: 'planView.typeCorrective',
+  3: 'planView.typeImprovement',
 };
 
 const WORKFLOW_STEPS = [
@@ -110,7 +112,8 @@ export default function ActionPlanSummary() {
       setPlan(planRes.data);
 
       const actionsRes = await getPlanActions(accessToken!, id!);
-      setActions(actionsRes.data);
+      // the progress of an action arrives by name ("Hundred", "Fifty"): 0-100
+      setActions((actionsRes.data ?? []).map((a: PlanActionDto) => ({ ...a, progress: parseProgress(a.progress) })));
 
       const usersRes = await getUsersForAssignment(accessToken!);
       setUsers(usersRes.data);
@@ -140,15 +143,15 @@ export default function ActionPlanSummary() {
   const currentPhase = getWorkflowPhase(plan?.status || 0);
   const isClosed = plan?.status === 3 || plan?.status === 4;
 
-  const completedActions = actions.filter(a => a.progress === 3).length;
-  const inProgressActions = actions.filter(a => a.progress === 1).length;
+  const completedActions = actions.filter(a => a.progress >= 100).length;
+  const inProgressActions = actions.filter(a => a.progress > 0 && a.progress < 100).length;
   const notStartedActions = actions.filter(a => a.progress === 0).length;
-  const globalProgress = actions.length > 0 ? Math.round((completedActions / actions.length) * 100) : 0;
+  const globalProgress = actions.length > 0 ? Math.round(actions.reduce((sum, a) => sum + a.progress, 0) / actions.length) : 0;
 
 const currentUserId = (user as any)?.sub || (user as any)?.id;
   const myActions = actions.filter(a => a.assignedToId === currentUserId);
   const upcomingDeadlines = [...actions]
-    .filter(a => a.progress !== 3)
+    .filter(a => a.progress < 100)
     .sort((a, b) => new Date(a.deadline).getTime() - new Date(b.deadline).getTime())
     .slice(0, 3);
 
@@ -541,9 +544,9 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
                           </td>
                           <td>
                             <span className={`aps-progress-pill ${
-                              action.progress === 3 ? 'done' : action.progress === 1 ? 'in-progress' : 'todo'
+                              action.progress >= 100 ? 'done' : action.progress > 0 ? 'in-progress' : 'todo'
                             }`}>
-                              {action.progress === 3 ? t('planView.statusDone') : action.progress === 1 ? t('planView.statusOngoing') : t('planView.notStarted')}
+                              {action.progress >= 100 ? t('planView.statusDone') : action.progress > 0 ? t('planView.statusOngoing') : t('planView.notStarted')}
                             </span>
                           </td>
                         </tr>
@@ -560,11 +563,11 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
               <div className="aps-timeline">
                 {actions.map(action => (
                   <div key={action.id} className="aps-tl-item">
-                    <div className={`aps-tl-dot ${action.progress === 3 ? 'completed' : ''}`} />
+                    <div className={`aps-tl-dot ${action.progress >= 100 ? 'completed' : ''}`} />
                     <div className="aps-tl-content">
                       <span className="aps-tl-title">{action.title}</span>
                       <span className="aps-tl-meta">
-                        {action.progress === 3 ? t('planView.statusDone') : action.progress === 1 ? t('planView.statusOngoing') : t('planView.notStarted')} · {t('planView.deadlineMeta', { date: fmtDate(action.deadline) })}
+                        {action.progress >= 100 ? t('planView.statusDone') : action.progress > 0 ? t('planView.statusOngoing') : t('planView.notStarted')} · {t('planView.deadlineMeta', { date: fmtDate(action.deadline) })}
                       </span>
                     </div>
                   </div>
