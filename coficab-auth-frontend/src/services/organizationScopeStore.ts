@@ -17,3 +17,8 @@ export function getScopeParam(): string | undefined {
 export function scopeParams(): { organizationIds?: string } {
   return current ? { organizationIds: current } : {};
 }
+
+/** The URL with the followed organizations added to its query string. */
+export function withScope(url: string): string {
+  return current ? `${url}${url.includes('?') ? '&' : '?'}organizationIds=${current}` : url;
+}

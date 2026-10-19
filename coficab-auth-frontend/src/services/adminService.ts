@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ACTION_PLAN_API_URL as ACTIONPLAN_API, AUTH_API_URL as AUTH_API } from '../config/apiEnv';
+import { scopeParams } from './organizationScopeStore';
 
 // Departments AND Organizations live on the Action Plan API, not the Auth API.
 
@@ -43,7 +44,7 @@ export interface OrganizationDto {
 }
 
 export const getUsers = async (token: string): Promise<UserDto[]> => {
-  const res = await axios.get(`${AUTH_API}/api/admin/users`, authHeader(token));
+  const res = await axios.get(`${AUTH_API}/api/admin/users`, { ...authHeader(token), params: scopeParams() });
   return res.data;
 };
 

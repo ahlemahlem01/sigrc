@@ -40,6 +40,8 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? RelatedToUserId { get; set; }
     /// <summary>Admin (not superadmin): created, assigned, or same department.</summary>
     public string? ScopeUserId { get; set; }
+    /// <summary>"id1,id2": the organizations the superadmin follows (empty: all).</summary>
+    public string? OrganizationIds { get; set; }
 }
 
 public class ClaimsHistoryRowDto
@@ -144,6 +146,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             claims = claims.Where(c => c.StatusCode != "DRAFT");
         if (!string.IsNullOrWhiteSpace(request.ScopeUserId))
             claims = await ClaimVisibility.ApplyAsync(_context, claims, request.ScopeUserId, cancellationToken);
+        if (ClaimOrganizations.Parse(request.OrganizationIds) is { } followed)
+            claims = await ClaimOrganizations.ApplyAsync(_context, claims, followed, cancellationToken);
         var facetSource = claims;
 
         if (!string.IsNullOrWhiteSpace(request.RelatedToUserId))

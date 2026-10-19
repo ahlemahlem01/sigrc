@@ -1,3 +1,4 @@
+using Coficab.ActionPlan.Application.QualityAnalyses;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.Workflow;
 using Coficab.ActionPlan.Core.DTOs.Claims;
@@ -26,9 +27,14 @@ public class EightDController : ControllerBase
 
     [HttpGet("pending")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<IActionResult> GetPending(CancellationToken ct)
+    public async Task<IActionResult> GetPending([FromQuery] string? organizationIds = null, CancellationToken ct = default)
     {
         var list = await _service.GetPendingAsync(ct);
+        if (ClaimOrganizations.Parse(organizationIds) is { } followed)
+        {
+            var ids = await (await ClaimOrganizations.ApplyAsync(_db, _db.Claims.AsNoTracking(), followed, ct)).Select(c => c.Id).ToListAsync(ct);
+            list = list.Where(d => ids.Contains(d.ClaimId)).ToList();
+        }
         return Ok(list);
     }
 

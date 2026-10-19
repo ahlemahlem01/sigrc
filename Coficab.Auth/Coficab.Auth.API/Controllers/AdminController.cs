@@ -112,7 +112,7 @@ public class AdminController : ControllerBase
     // ─── GET /api/admin/users ─────────────────────────────────
 
     [HttpGet("users")]
-    public async Task<IActionResult> GetUsers()
+    public async Task<IActionResult> GetUsers([FromQuery] string? organizationIds = null)
     {
         IQueryable<ApplicationUser> query = _userManager.Users;
 
@@ -121,6 +121,11 @@ public class AdminController : ControllerBase
             var callerOrgId = await GetCallerOrgIdAsync();
             if (callerOrgId == null) return Forbid();
             query = query.Where(u => u.OrganizationId == callerOrgId);
+        }
+        else if (ParseOrganizations(organizationIds) is { } followed)
+        {
+            // the superadmin follows some organizations: their people only
+            query = query.Where(u => u.OrganizationId != null && followed.Contains(u.OrganizationId.Value));
         }
 
         var users = await query.ToListAsync();
@@ -177,13 +182,32 @@ public class AdminController : ControllerBase
         return Ok(permissions);
     }
 
+    /// <summary>"id1,id2" from the organization selector; null when empty or invalid (every organization).</summary>
+    private static IReadOnlyList<Guid>? ParseOrganizations(string? raw)
+    {
+        var ids = (raw ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(x => Guid.TryParse(x, out var g) ? g : (Guid?)null).Where(g => g != null).Select(g => g!.Value).Distinct().ToList();
+        return ids.Count == 0 ? null : ids;
+    }
+
     // ─── GET /api/admin/audit-logs ────────────────────────────
 
     [HttpGet("audit-logs")]
-    public async Task<IActionResult> GetAuditLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 50)
+    public async Task<IActionResult> GetAuditLogs([FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? organizationIds = null)
     {
-        var total = await _db.AuditLogs.CountAsync();
-        var logs = await _db.AuditLogs
+        IQueryable<AuditLog> source = _db.AuditLogs;
+        if (CallerIsSuperadmin && ParseOrganizations(organizationIds) is { } followed)
+        {
+            // an entry belongs to an organization through the person who did it or the person it is about
+            var people = await _userManager.Users.Where(u => u.OrganizationId != null && followed.Contains(u.OrganizationId.Value))
+                .Select(u => new { u.Id, u.Email }).ToListAsync();
+            var ids = people.Select(p => p.Id).ToList();
+            var emails = people.Where(p => p.Email != null).Select(p => p.Email!.ToLower()).ToList();
+            source = source.Where(a => (a.ActorId != null && ids.Contains(a.ActorId)) || emails.Contains(a.TargetEmail.ToLower()) || emails.Contains(a.ActorEmail.ToLower()));
+        }
+
+        var total = await source.CountAsync();
+        var logs = await source
             .OrderByDescending(a => a.Timestamp)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

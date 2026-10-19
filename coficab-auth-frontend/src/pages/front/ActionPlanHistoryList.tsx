@@ -5,6 +5,7 @@ import { ACTION_PLAN_API_URL, AUTH_API_URL } from '../../config/apiEnv';
 import './ActionPlanHistoryList.styles.css';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import { withScope } from '../../services/organizationScopeStore';
 
 interface FieldChange {
   field: string;
@@ -233,7 +234,7 @@ export default function ActionPlanHistoryList() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`${ACTION_PLAN_API_URL}/actionplan/history`, {
+      const res = await fetch(withScope(`${ACTION_PLAN_API_URL}/actionplan/history`), {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,

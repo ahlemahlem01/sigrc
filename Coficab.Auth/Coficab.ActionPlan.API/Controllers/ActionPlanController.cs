@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.Services;
@@ -23,6 +24,7 @@ public class ActionPlanController : ControllerBase
     private readonly IUserService _userService;
     private readonly ILogger<ActionPlanController> _logger;
     private readonly INotificationService _notificationService;
+    private readonly IApplicationDbContext _db;
 
     public ActionPlanController(
         IActionPlanService actionPlanService,
@@ -30,8 +32,10 @@ public class ActionPlanController : ControllerBase
         IPlanActionService planActionService,
         IDepartmentService departmentService,
         INotificationService notificationService,
+        IApplicationDbContext db,
         ILogger<ActionPlanController> logger)
     {
+        _db = db;
         _planActionService = planActionService;
         _actionPlanService = actionPlanService;
         _departmentService = departmentService;
@@ -658,11 +662,17 @@ public class ActionPlanController : ControllerBase
     }
 
     [HttpGet("history")]
-    public async Task<IActionResult> GetAllHistory()
+    public async Task<IActionResult> GetAllHistory([FromQuery] string? organizationIds = null)
     {
         if (!IsQualityAdmin())
             return Forbid();
         var history = await _actionPlanService.GetAllHistoryAsync();
+        if (OrganizationFilter.Parse(organizationIds) is { } orgs)
+        {
+            var planIds = (await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(
+                _db.ActionPlans.IgnoreQueryFilters().Where(p => orgs.Contains(p.OrganizationId)).Select(p => p.Id))).Select(i => i.ToString()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            history = history.Where(h => planIds.Contains(h.ActionPlanId)).ToList();
+        }
         return Ok(history);
     }
 

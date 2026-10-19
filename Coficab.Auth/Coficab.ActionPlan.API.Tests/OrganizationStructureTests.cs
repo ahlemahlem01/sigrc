@@ -212,6 +212,13 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(3, (await Titles($"/api/QualityAnalysis/claims?pageSize=500&organizationIds={orgA},{orgB}", "title")).Count);
 
         Assert.Equal([$"plan-a-{tag}"], await Titles($"/api/ActionPlan?organizationIds={orgA}", "title"));
+
+        // the claims history (used by the analyses hub and the audit page) follows the same choice
+        async Task<List<string>> HistoryTitles(string suffix)
+            => (await superadmin.GetFromJsonAsync<JsonElement>($"/api/QualityAnalysis/claims/history?pageSize=100&search={tag}{suffix}", JsonOpts))
+                .GetProperty("items").EnumerateArray().Select(x => x.GetProperty("title").GetString() ?? "").ToList();
+        Assert.Equal(3, (await HistoryTitles("")).Count);
+        Assert.Equal([$"a-{tag}"], await HistoryTitles($"&organizationIds={orgA}"));
         Assert.Equal(2, (await Titles("/api/ActionPlan", "title")).Count);
     }
 

@@ -5,6 +5,7 @@ import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { AUTH_API_URL as AUTH_API } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { withScope } from '../../services/organizationScopeStore';
 const PAGE_SIZE = 25;
 
 type LoginEvent = {
@@ -97,7 +98,7 @@ export default function LoginLogsPage() {
     const started = Date.now();
     const MIN_VISIBLE_MS = 700;
     try {
-      const res = await fetch(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`, {
+      const res = await fetch(withScope(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`), {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) throw new Error('HTTP ' + res.status);

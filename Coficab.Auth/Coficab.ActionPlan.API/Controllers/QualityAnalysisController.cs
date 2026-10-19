@@ -1,3 +1,4 @@
+using Coficab.ActionPlan.Application.QualityAnalyses;
 using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Claims.Commands.StartClaimAnalysis;
 using Coficab.ActionPlan.Application.Interfaces;
@@ -213,7 +214,7 @@ public class QualityAnalysisController : ControllerBase
             new GetClaimsPageQuery(
                 new GetClaimsQuery(status, assignedToId, createdById, effectiveHasAssignee, relatedToUserId, excludeSelfCreated,
                     IsQualityAdmin() && !IsSuperAdmin() ? userId : null,
-                    isAdmin ? OrganizationFilter.Parse(organizationIds) : null),
+                    isAdmin ? ClaimOrganizations.Parse(organizationIds) : null),
                 page,
                 pageSize),
             cancellationToken);
@@ -233,9 +234,15 @@ public class QualityAnalysisController : ControllerBase
             return Unauthorized(new { message = "Utilisateur non authentifié." });
 
         if (!IsQualityAdmin())
+        {
             query.RelatedToUserId = userId;
+            query.OrganizationIds = null;
+        }
         else if (!IsSuperAdmin())
+        {
             query.ScopeUserId = userId;
+            query.OrganizationIds = null;
+        }
 
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);

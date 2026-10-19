@@ -211,7 +211,7 @@ export const qualityAnalysisService = {
 
   getClaimsHistory: async (query: ClaimsHistoryQuery, token?: string): Promise<ClaimsHistoryPage> => {
     const config = getAuthConfig(token);
-    const params: Record<string, string | number | boolean> = {};
+    const params: Record<string, string | number | boolean> = { ...scopeParams() };
     Object.entries(query).forEach(([key, value]) => {
       if (value === undefined || value === null || value === '') return;
       params[key] = value as string | number | boolean;
@@ -575,7 +575,7 @@ export const eightDService = {
     return res.data;
   },
   pending: async (token?: string): Promise<EightDDossier[]> => {
-    const res = await eightDApi.get<EightDDossier[]>('/pending', getAuthConfig(token));
+    const res = await eightDApi.get<EightDDossier[]>('/pending', { ...getAuthConfig(token), params: scopeParams() });
     return res.data;
   },
   downloadPdf: async (claimId: string, token?: string): Promise<Blob> => {

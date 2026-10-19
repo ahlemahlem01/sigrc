@@ -48,15 +48,7 @@ public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>
             query = await ClaimVisibility.ApplyAsync(context, query, request.ScopeUserId, cancellationToken);
 
         if (request.OrganizationIds is { Count: > 0 } orgIds)
-        {
-            var placed = context.UserProfiles.AsNoTracking().Where(p => p.DepartmentId != null && p.Department != null);
-            var inScope = await placed.Where(p => orgIds.Contains(p.Department!.OrganizationId)).Select(p => p.UserId).ToListAsync(cancellationToken);
-            var everyPlaced = await placed.Select(p => p.UserId).ToListAsync(cancellationToken);
-            // same rule as the overview: the assignee's organization, and the creator's only when the assignee has none
-            query = query.Where(c =>
-                (c.AssignedToId != null && inScope.Contains(c.AssignedToId))
-                || ((c.AssignedToId == null || !everyPlaced.Contains(c.AssignedToId)) && c.CreatedById != null && inScope.Contains(c.CreatedById)));
-        }
+            query = await ClaimOrganizations.ApplyAsync(context, query, orgIds, cancellationToken);
 
         if (!string.IsNullOrWhiteSpace(request.RelatedToUserId))
         {

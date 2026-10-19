@@ -5,6 +5,7 @@ import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { ACTION_PLAN_API_URL as ACTION_API, AUTH_API_URL as AUTH_API } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { withScope } from '../../services/organizationScopeStore';
 
 /** Page unique de traçabilité : IAM + workflow (CAPA, claims, RH, orgs…). */
 const PAGE_SIZE = 25;
@@ -563,12 +564,12 @@ export default function AuditLogPage() {
 
     try {
       const [iamRes, wfRes, usersRes, claimsRes, claimsHistRes] = await Promise.allSettled([
-        fetch(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`, { headers: hdrs }),
-        fetch(`${ACTION_API}/actionplan/history`, { headers: hdrs }),
+        fetch(withScope(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`), { headers: hdrs }),
+        fetch(withScope(`${ACTION_API}/actionplan/history`), { headers: hdrs }),
         fetch(`${AUTH_API}/api/admin/users`, { headers: hdrs }),
         // Sans status : le backend filtre déjà hors DRAFT. `status=all` matchait StatusCode=="ALL" → 0 résultats.
-        fetch(`${ACTION_API}/QualityAnalysis/claims`, { headers: hdrs }),
-        fetch(`${ACTION_API}/QualityAnalysis/claims/history?page=1&pageSize=100&sort=updatedAt&dir=desc`, { headers: hdrs }),
+        fetch(withScope(`${ACTION_API}/QualityAnalysis/claims`), { headers: hdrs }),
+        fetch(withScope(`${ACTION_API}/QualityAnalysis/claims/history?page=1&pageSize=100&sort=updatedAt&dir=desc`), { headers: hdrs }),
       ]);
 
       let userIndex: UserIndex = { byId: {}, byEmail: {} };

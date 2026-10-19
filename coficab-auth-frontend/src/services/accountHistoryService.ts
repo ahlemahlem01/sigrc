@@ -1,5 +1,6 @@
 import { AUTH_API_URL as AUTH_API, ACTION_PLAN_API_URL as ACTION_API } from '../config/apiEnv';
 import i18n from '../i18n';
+import { withScope } from './organizationScopeStore';
 
 export type AccountEventType =
   | 'creation'
@@ -297,8 +298,8 @@ export async function fetchAccountHistory(
   authUsers.filter((u) => !isAdminRole(u.roles)).forEach(registerEmployee);
 
   const [iamRes, wfRes] = await Promise.allSettled([
-    fetch(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`, { headers: hdrs }),
-    fetch(`${ACTION_API}/actionplan/history`, { headers: hdrs }),
+    fetch(withScope(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`), { headers: hdrs }),
+    fetch(withScope(`${ACTION_API}/actionplan/history`), { headers: hdrs }),
   ]);
 
   const rows: AccountHistoryRow[] = [];
