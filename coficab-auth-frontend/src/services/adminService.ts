@@ -126,6 +126,7 @@ export const createUser = async (token: string, data: {
   email: string;
   fullName: string;
   department: string;
+  departmentId?: string;
   organizationId?: string;
   role: string;
   permissions: string[];
@@ -149,6 +150,7 @@ export const importUsersCsv = async (token: string, file: File) => {
 export const updateUser = async (token: string, id: string, data: {
   fullName: string;
   department: string;
+  departmentId?: string;
   organizationId?: string;
   role: string;
   permissions: string[];

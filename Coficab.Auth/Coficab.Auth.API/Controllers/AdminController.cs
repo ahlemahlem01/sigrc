@@ -58,18 +58,47 @@ public class AdminController : ControllerBase
         return caller?.OrganizationId;
     }
 
-    private static string? ValidateRoleScoping(string role, Guid? organizationId, string? department)
+    private static string? ValidateRoleScoping(string role, Guid? organizationId, Guid? departmentId)
     {
         // an administrator, whatever the level, works for an organization and in one of its departments
         if (role is "admin" or "superadmin")
         {
             if (organizationId == null)
                 return "An administrator must be assigned to an organization.";
-            if (string.IsNullOrWhiteSpace(department))
-                return "An administrator must have a department set.";
+            if (departmentId == null)
+                return "An administrator must belong to a department of that organization.";
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// The department of the organization the person belongs to: it must exist (and not be archived) and, when an
+    /// organization is given, belong to it. Returns its name, which is kept in Department for display.
+    /// </summary>
+    private async Task<(string? Name, string? Error)> ResolveDepartmentAsync(Guid? organizationId, Guid? departmentId, string fallbackName)
+    {
+        if (departmentId == null) return (fallbackName, null);
+
+        // the departments live in the action plan schema of the same database
+        var name = organizationId is { } org
+            ? await _db.Database.SqlQuery<string>($"SELECT Name AS Value FROM actionplan.Departments WHERE Id = {departmentId} AND IsArchived = 0 AND OrganizationId = {org}").FirstOrDefaultAsync()
+            : await _db.Database.SqlQuery<string>($"SELECT Name AS Value FROM actionplan.Departments WHERE Id = {departmentId} AND IsArchived = 0").FirstOrDefaultAsync();
+        return name == null ? (null, "This department does not exist in the chosen organization.") : (name, null);
+    }
+
+    /// <summary>Keeps the person's profile (used by the organization scope) in the same department as the account.</summary>
+    private async Task SyncProfileDepartmentAsync(ApplicationUser user, string role, Guid? departmentId)
+    {
+        if (departmentId == null) return;
+        await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.UserProfiles SET DepartmentId = {departmentId}, UpdatedAt = SYSUTCDATETIME() WHERE UserId = {user.Id}");
+        if (role is "admin" or "superadmin")
+        {
+            await _db.Database.ExecuteSqlInterpolatedAsync($@"
+                INSERT INTO actionplan.UserProfiles (Id, UserId, Name, Email, Role, Poste, Equipe, DepartmentId, HireDate, Status, ActivityStatus, CreatedAt)
+                SELECT NEWID(), {user.Id}, {user.FullName}, {user.Email}, {role}, 'Administrateur', {user.Department}, {departmentId}, SYSUTCDATETIME(), 'active', 0, SYSUTCDATETIME()
+                WHERE NOT EXISTS (SELECT 1 FROM actionplan.UserProfiles WHERE UserId = {user.Id})");
+        }
     }
 
     /// <summary>
@@ -225,9 +254,6 @@ public class AdminController : ControllerBase
         if (string.IsNullOrEmpty(CurrentUserId))
             return BadRequest("Cannot resolve current user ID.");
 
-        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
-        if (scopingError != null) return BadRequest(scopingError);
-
         var created = await TryCreateUserAsync(request);
         if (created.Error != null)
             return BadRequest(created.Error);
@@ -319,16 +345,20 @@ public class AdminController : ControllerBase
         if (string.IsNullOrEmpty(CurrentUserId))
             return new UserCreateOutcome("Cannot resolve current user ID.", null, null, null, null);
 
-        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
+        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.DepartmentId);
         if (scopingError != null)
             return new UserCreateOutcome(scopingError, null, null, null, null);
+        var (departmentName, departmentError) = await ResolveDepartmentAsync(request.OrganizationId, request.DepartmentId, request.Department);
+        if (departmentError != null)
+            return new UserCreateOutcome(departmentError, null, null, null, null);
 
         var user = new ApplicationUser
         {
             UserName = request.Email,
             Email = request.Email,
             FullName = request.FullName,
-            Department = request.Department,
+            Department = departmentName ?? string.Empty,
+            DepartmentId = request.DepartmentId,
             OrganizationId = request.OrganizationId
         };
 
@@ -339,6 +369,7 @@ public class AdminController : ControllerBase
 
         if (!string.IsNullOrEmpty(request.Role))
             await _userManager.AddToRoleAsync(user, request.Role);
+        await SyncProfileDepartmentAsync(user, request.Role, request.DepartmentId);
 
         if (request.Permissions?.Any() == true)
         {
@@ -463,8 +494,11 @@ public class AdminController : ControllerBase
                 return BadRequest("You do not have permission to assign this role.");
         }
 
-        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.Department);
+        var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.DepartmentId);
         if (scopingError != null) return BadRequest(scopingError);
+        var (departmentName, departmentError) = await ResolveDepartmentAsync(request.OrganizationId, request.DepartmentId, request.Department);
+        if (departmentError != null) return BadRequest(departmentError);
+        request.Department = departmentName ?? string.Empty;
 
         // Build detail string before overwriting
         var changes = new List<string>();
@@ -477,8 +511,10 @@ public class AdminController : ControllerBase
 
         user.FullName = request.FullName;
         user.Department = request.Department;
+        user.DepartmentId = request.DepartmentId;
         user.OrganizationId = request.OrganizationId;
         await _userManager.UpdateAsync(user);
+        await SyncProfileDepartmentAsync(user, request.Role, request.DepartmentId);
 
         await _userManager.RemoveFromRolesAsync(user, oldRoles);
         if (!string.IsNullOrEmpty(request.Role))
@@ -665,6 +701,8 @@ public class AdminCreateUserRequest
     public string Email { get; set; } = "";
     public string FullName { get; set; } = "";
     public string Department { get; set; } = "";
+    /// <summary>The department (of the organization) the person belongs to; its name is then stored in Department.</summary>
+    public Guid? DepartmentId { get; set; }
     // Password removed — generated on the backend
     public string Role { get; set; } = "";
     public Guid? OrganizationId { get; set; }
@@ -675,6 +713,7 @@ public class AdminUpdateUserRequest
 {
     public string FullName { get; set; } = "";
     public string Department { get; set; } = "";
+    public Guid? DepartmentId { get; set; }
     public string Role { get; set; } = "";
     public Guid? OrganizationId { get; set; }
     public List<string>? Permissions { get; set; }

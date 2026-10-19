@@ -87,7 +87,7 @@ export default function AdminDashboard() {
   const [selected, setSelected] = useState<UserDto | null>(null);
 
   // password removed — backend generates it
-  const emptyForm = { email: '', fullName: '', department: '', organizationId: '', role: 'user', permissions: [] as string[] };
+  const emptyForm = { email: '', fullName: '', department: '', departmentId: '', organizationId: '', role: 'user', permissions: [] as string[] };
   const [form, setForm] = useState(emptyForm);
   const [newPassword, setNewPassword] = useState('');
 
@@ -211,6 +211,7 @@ export default function AdminDashboard() {
       await updateUser(accessToken!, selected.id, {
         fullName: form.fullName,
         department: form.department,
+        departmentId: form.departmentId || undefined,
         organizationId: form.organizationId,
         role: form.role,
         permissions: form.permissions,
@@ -280,7 +281,8 @@ const handleLock = async (id: string) => {
 
   const openEdit = (u: UserDto) => {
     setSelected(u);
-    setForm({ email: u.email, fullName: u.fullName, department: u.department, organizationId: u.organizationId ?? '', role: u.roles[0] ?? 'user', permissions: u.permissions });
+    const linked = u.departmentId ?? departments.find(d => d.name === u.department && d.organizationId === u.organizationId)?.id ?? '';
+    setForm({ email: u.email, fullName: u.fullName, department: u.department, departmentId: linked, organizationId: u.organizationId ?? '', role: u.roles[0] ?? 'user', permissions: u.permissions });
     setShowEdit(true);
   };
 
@@ -310,7 +312,7 @@ const handleLock = async (id: string) => {
 
   // an administrator (admin or superadmin) works for one organization and in one of its departments
   const needsOrg = form.role === 'admin' || form.role === 'superadmin';
-  const missingOrgDept = needsOrg && (!form.organizationId || !form.department);
+  const missingOrgDept = needsOrg && (!form.organizationId || !form.departmentId);
   const departmentOptions = needsOrg && form.organizationId
     ? departments.filter(d => d.organizationId === form.organizationId)
     : departments;
@@ -1015,7 +1017,7 @@ const handleLock = async (id: string) => {
                       <select
                         className="ad-sel"
                         value={form.organizationId}
-                        onChange={e => setForm(f => ({ ...f, organizationId: e.target.value, department: '' }))}
+                        onChange={e => setForm(f => ({ ...f, organizationId: e.target.value, department: '', departmentId: '' }))}
                         disabled={loadingOrganizations}
                       >
                         <option value="">{t('usersAdmin.pickOrg')}</option>
@@ -1029,8 +1031,8 @@ const handleLock = async (id: string) => {
                     <label className="ad-lbl">{t('planDetail.department')}{needsOrg ? ' *' : ''}</label>
                     <select
                       className="ad-sel"
-                      value={form.department}
-                      onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+                      value={form.departmentId}
+                      onChange={e => setForm(f => ({ ...f, departmentId: e.target.value, department: departments.find(d => d.id === e.target.value)?.name ?? '' }))}
                       disabled={loadingDepartments || (needsOrg && !form.organizationId)}
                     >
                       <option value="">
@@ -1039,7 +1041,7 @@ const handleLock = async (id: string) => {
                           : t('usersAdmin.pickDept')}
                       </option>
                       {departmentOptions.map(dept => (
-                        <option key={dept.id} value={dept.name}>{dept.name}</option>
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
                       ))}
                     </select>
                   </div>
@@ -1176,7 +1178,7 @@ const handleLock = async (id: string) => {
                       <select
                         className="ad-sel"
                         value={form.organizationId}
-                        onChange={e => setForm(f => ({ ...f, organizationId: e.target.value, department: '' }))}
+                        onChange={e => setForm(f => ({ ...f, organizationId: e.target.value, department: '', departmentId: '' }))}
                         disabled={loadingOrganizations}
                       >
                         <option value="">{t('usersAdmin.pickOrg')}</option>
@@ -1190,8 +1192,8 @@ const handleLock = async (id: string) => {
                     <label className="ad-lbl">{t('planDetail.department')}{needsOrg ? ' *' : ''}</label>
                     <select
                       className="ad-sel"
-                      value={form.department}
-                      onChange={e => setForm(f => ({ ...f, department: e.target.value }))}
+                      value={form.departmentId}
+                      onChange={e => setForm(f => ({ ...f, departmentId: e.target.value, department: departments.find(d => d.id === e.target.value)?.name ?? '' }))}
                       disabled={loadingDepartments || (needsOrg && !form.organizationId)}
                     >
                       <option value="">
@@ -1200,7 +1202,7 @@ const handleLock = async (id: string) => {
                           : t('usersAdmin.pickDept')}
                       </option>
                       {departmentOptions.map(dept => (
-                        <option key={dept.id} value={dept.name}>{dept.name}</option>
+                        <option key={dept.id} value={dept.id}>{dept.name}</option>
                       ))}
                     </select>
                   </div>
