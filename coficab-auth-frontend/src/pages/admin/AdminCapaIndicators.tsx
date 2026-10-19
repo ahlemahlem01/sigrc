@@ -101,6 +101,7 @@ export default function AdminCapaIndicators() {
     const [y, mo] = m.month.split('-').map(Number);
     return { ...m, label: new Date(y, mo - 1, 1).toLocaleDateString(locale, { month: 'short' }) };
   });
+  const multiOrg = new Set((data?.byDepartment ?? []).map((d) => d.organization)).size > 1;
   const lateShare = (late: number, open: number) => (open === 0 ? '' : ` · ${Math.round((100 * late) / open)} %`);
 
   const exportPdf = () => {
@@ -124,7 +125,7 @@ export default function AdminCapaIndicators() {
         { key: 'onTime', label: t('indicators.colOnTime') },
       ],
       rows: data.byDepartment.map((d) => ({
-        name: d.name, open: d.openPlans, late: d.latePlans, closed: d.closedInPeriod,
+        name: multiOrg ? `${d.name} · ${d.organization}` : d.name, open: d.openPlans, late: d.latePlans, closed: d.closedInPeriod,
         onTime: d.onTimeRate == null ? '—' : `${fmt(d.onTimeRate, 1)} %`,
       })),
     });
@@ -235,7 +236,10 @@ export default function AdminCapaIndicators() {
                 <tbody>
                   {data.byDepartment.map((r) => (
                     <tr key={r.name} className="border-t border-slate-50">
-                      <td className="py-1.5 font-semibold text-slate-800">{r.name}</td>
+                      <td className="py-1.5 font-semibold text-slate-800">
+                        {r.name}
+                        {multiOrg && <span className="font-normal text-slate-400"> · {r.organization}</span>}
+                      </td>
                       <td className={td}>{r.openPlans}</td>
                       <td className={td} style={{ color: r.latePlans > 0 ? BAD : undefined }}>
                         {r.latePlans}<span className="text-slate-400 font-normal">{lateShare(r.latePlans, r.openPlans)}</span>

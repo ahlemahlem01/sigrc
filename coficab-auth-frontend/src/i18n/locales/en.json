@@ -3767,6 +3767,12 @@
     "site": "Site",
     "region": "Region",
     "notAttached": "Not attached",
+    "err": {
+      "department_name_taken": "A department with this name already exists in this organization (accents and capitals are ignored).",
+      "department_code_taken": "This code is already used by another department of this organization.",
+      "site_not_in_organization": "This site does not belong to this organization.",
+      "region_not_in_organization": "This region does not belong to this organization."
+    },
     "selectOrg": "Select an organization",
     "create": "Create department"
   },

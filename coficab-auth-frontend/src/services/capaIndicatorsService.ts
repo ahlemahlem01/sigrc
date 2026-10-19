@@ -16,7 +16,7 @@ export interface CapaIndicators {
   };
   aging: { under30: number; from30To90: number; over90: number };
   byType: { type: string; openPlans: number; latePlans: number; closedInPeriod: number; onTimeRate: number | null }[];
-  byDepartment: { name: string; openPlans: number; latePlans: number; closedInPeriod: number; onTimeRate: number | null }[];
+  byDepartment: { name: string; organization: string; openPlans: number; latePlans: number; closedInPeriod: number; onTimeRate: number | null }[];
   monthly: { month: string; opened: number; closed: number }[];
   owners: { name: string; openPlans: number; latePlans: number }[];
   detailedActions: number;

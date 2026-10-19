@@ -3767,6 +3767,12 @@
     "site": "Site",
     "region": "Région",
     "notAttached": "Non rattaché",
+    "err": {
+      "department_name_taken": "Un département de ce nom existe déjà dans cette organisation (les accents et les majuscules ne comptent pas).",
+      "department_code_taken": "Ce code est déjà utilisé par un autre département de cette organisation.",
+      "site_not_in_organization": "Ce site n'appartient pas à cette organisation.",
+      "region_not_in_organization": "Cette région n'appartient pas à cette organisation."
+    },
     "selectOrg": "Sélectionner une organisation",
     "create": "Créer le département"
   },

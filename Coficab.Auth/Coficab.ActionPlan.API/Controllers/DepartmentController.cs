@@ -46,7 +46,7 @@ public class DepartmentController : ControllerBase
         var createdBy = User.FindFirst("sub")?.Value ?? "system";
         Core.DTOs.Department.DepartmentDto dept;
         try { dept = await _service.CreateAsync(dto, createdBy); }
-        catch (Application.Services.DepartmentLocationException e) { return BadRequest(new { code = e.Code }); }
+        catch (Application.Services.DepartmentRuleException e) { return e.Code.EndsWith("_taken") ? Conflict(new { code = e.Code }) : BadRequest(new { code = e.Code }); }
         return CreatedAtAction(nameof(GetById), new { id = dept.Id }, dept);
     }
 
@@ -55,7 +55,7 @@ public class DepartmentController : ControllerBase
     {
         var updatedBy = User.FindFirst("sub")?.Value ?? "system";
         try { return Ok(await _service.UpdateAsync(id, dto, updatedBy)); }
-        catch (Application.Services.DepartmentLocationException e) { return BadRequest(new { code = e.Code }); }
+        catch (Application.Services.DepartmentRuleException e) { return e.Code.EndsWith("_taken") ? Conflict(new { code = e.Code }) : BadRequest(new { code = e.Code }); }
     }
 
     [HttpDelete("{id}")]

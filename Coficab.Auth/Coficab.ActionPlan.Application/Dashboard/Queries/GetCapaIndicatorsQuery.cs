@@ -18,7 +18,7 @@ public record CapaIndicatorKpisDto(
 
 public record CapaIndicatorTypeDto(string Type, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
 
-public record CapaIndicatorDepartmentDto(string Name, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
+public record CapaIndicatorDepartmentDto(string Name, string Organization, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
 
 public record CapaIndicatorMonthDto(string Month, int Opened, int Closed);
 
@@ -62,7 +62,7 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var start = today.AddDays(-days);
         var prevStart = start.AddDays(-days);
 
-        var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Include(p => p.Department)
+        var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Include(p => p.Department).Include(p => p.Organization)
             .Where(p => !p.IsArchived);
         if (request.OrganizationId is { } org) query = query.Where(p => p.OrganizationId == org);
         var plans = await query.ToListAsync(ct);
@@ -108,13 +108,14 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
             .ToList();
 
         var byDepartment = plans
-            .GroupBy(p => p.Department?.Name ?? "—")
+            .GroupBy(p => p.DepartmentId)
             .Select(g => new CapaIndicatorDepartmentDto(
-                g.Key,
+                g.First().Department?.Name ?? "—",
+                g.First().Organization?.Name ?? "—",
                 g.Count(PlanDeadlines.IsOpen),
-                late.Count(p => (p.Department?.Name ?? "—") == g.Key),
-                closedNow.Count(p => (p.Department?.Name ?? "—") == g.Key),
-                OnTime(closedNow.Where(p => (p.Department?.Name ?? "—") == g.Key).ToList())))
+                late.Count(p => p.DepartmentId == g.Key),
+                closedNow.Count(p => p.DepartmentId == g.Key),
+                OnTime(closedNow.Where(p => p.DepartmentId == g.Key).ToList())))
             .Where(d => d.OpenPlans > 0 || d.ClosedInPeriod > 0)
             .OrderByDescending(d => d.LatePlans).ThenByDescending(d => d.OpenPlans)
             .ToList();

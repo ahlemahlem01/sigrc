@@ -3767,6 +3767,12 @@
     "site": "Sito",
     "region": "Regione",
     "notAttached": "Non collegato",
+    "err": {
+      "department_name_taken": "Esiste già un reparto con questo nome in questa organizzazione (accenti e maiuscole sono ignorati).",
+      "department_code_taken": "Questo codice è già usato da un altro reparto di questa organizzazione.",
+      "site_not_in_organization": "Questo sito non appartiene a questa organizzazione.",
+      "region_not_in_organization": "Questa regione non appartiene a questa organizzazione."
+    },
     "selectOrg": "Seleziona un’organizzazione",
     "create": "Crea reparto"
   },

@@ -148,4 +148,29 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.OK, detached.StatusCode);
         Assert.Equal(JsonValueKind.Null, (await detached.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("siteId").ValueKind);
     }
+
+    [Fact]
+    public async Task ADepartmentNameAndCodeAreUsedOnlyOncePerOrganization()
+    {
+        var mine = await OrgAsync(OrganizationType.Corporate);
+        var other = await OrgAsync(OrganizationType.Corporate);
+        var admin = ClientAs("admin");
+
+        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/Department", new { name = "Qualité", code = "qa", organizationId = mine })).StatusCode);
+
+        var sameName = await admin.PostAsJsonAsync("/api/Department", new { name = "  QUALITE ", code = "QX", organizationId = mine });
+        Assert.Equal(HttpStatusCode.Conflict, sameName.StatusCode);                               // accents, case and spacing do not make a new department
+        Assert.Equal("department_name_taken", await CodeOf(sameName));
+
+        var sameCode = await admin.PostAsJsonAsync("/api/Department", new { name = "Qualité produit", code = "QA", organizationId = mine });
+        Assert.Equal("department_code_taken", await CodeOf(sameCode));
+
+        Assert.Equal(HttpStatusCode.Created, (await admin.PostAsJsonAsync("/api/Department", new { name = "Qualité", code = "QA", organizationId = other })).StatusCode);   // another organization is free to use it
+
+        var production = await admin.PostAsJsonAsync("/api/Department", new { name = "Production", code = "PROD", organizationId = mine });
+        var id = (await production.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("id").GetGuid();
+        var rename = await admin.PutAsJsonAsync($"/api/Department/{id}", new { name = "qualite", code = "PROD" });
+        Assert.Equal("department_name_taken", await CodeOf(rename));
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/Department/{id}", new { name = "Production", code = "prod" })).StatusCode);   // keeping its own name and code is fine
+    }
 }

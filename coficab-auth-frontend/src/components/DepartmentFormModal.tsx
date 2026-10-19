@@ -100,11 +100,13 @@ export default function DepartmentFormModal({
       });
       onClose();
     } catch (err) {
+      // the server answers { code } for a refused name, code, site or region
+      let code = "";
+      try { code = JSON.parse(err instanceof Error ? err.message : "").code ?? ""; } catch { /* not a coded error */ }
       setErrors({
-        form:
-          err instanceof Error
-            ? err.message
-            : t("deptForm.genericError"),
+        form: code
+          ? t(`deptForm.err.${code}`, { defaultValue: t("deptForm.genericError") })
+          : t("deptForm.genericError"),
       });
     } finally {
       setIsSubmitting(false);
