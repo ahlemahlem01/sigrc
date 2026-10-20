@@ -279,6 +279,14 @@ export const updatePlanActionProgress = async (
 export const validatePlanAction = (token: string, planActionId: string, note?: string) =>
   axios.post(`${BASE_URL}/planaction/${planActionId}/validate`, { note }, getHeaders(token));
 
+/** Administrators: sends a finished sub-action back to its assignee, with the reason. */
+export const rejectPlanAction = (token: string, planActionId: string, message: string) =>
+  axios.post(`${BASE_URL}/planaction/${planActionId}/reject`, { message }, getHeaders(token));
+
+/** Administrators: warns the person in charge of a sub-action. */
+export const warnPlanAction = (token: string, planActionId: string, message: string) =>
+  axios.post(`${BASE_URL}/planaction/${planActionId}/warn`, { message }, getHeaders(token));
+
 export const getPendingValidation = (token: string) =>
   axios.get(`${BASE_URL}/actionplan/pending-validation`, getHeaders(token));
 

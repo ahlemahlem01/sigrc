@@ -205,6 +205,71 @@ public class PlanActionService : IPlanActionService
         }
     }
 
+    public async Task RejectAsync(Guid id, string rejectedBy, string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException("Indiquez le motif du rejet.");
+
+        var action = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"PlanAction {id} not found");
+
+        if (action.Progress == ActionProgress.Validated)
+            throw new InvalidOperationException("Cette sous-action est déjà validée : elle est verrouillée.");
+        if (action.Progress != ActionProgress.Hundred)
+            throw new InvalidOperationException("Seule une sous-action terminée à 100 % peut être rejetée.");
+
+        var now = DateTime.UtcNow;
+        var history = new PlanActionHistory
+        {
+            Id = Guid.NewGuid(),
+            PlanActionId = id,
+            ChangedBy = rejectedBy,
+            OldProgress = ActionProgress.Hundred,
+            NewProgress = ActionProgress.SeventyFive,
+            Note = $"Rejetée : {reason.Trim()}",
+            CreatedAt = now,
+            CreatedBy = rejectedBy,
+            UpdatedAt = now,
+            UpdatedBy = rejectedBy
+        };
+
+        action.Progress = ActionProgress.SeventyFive;
+        action.UpdatedBy = rejectedBy;
+        action.UpdatedAt = now;
+
+        await _repo.UpdateAsync(action);
+        await _repo.AddHistoryAsync(history);
+
+        if (!string.IsNullOrEmpty(action.AssignedToId) && action.AssignedToId != rejectedBy)
+        {
+            await _notificationService.NotifyAsync(
+                action.AssignedToId,
+                "action_rejected",
+                "Sous-action rejetée",
+                $"La sous-action « {action.Title} » a été renvoyée en cours. Motif : {reason.Trim()}",
+                action.ActionPlanId);
+        }
+    }
+
+    public async Task WarnAsync(Guid id, string warnedBy, string message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            throw new InvalidOperationException("Écrivez le message d'avertissement.");
+
+        var action = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"PlanAction {id} not found");
+
+        if (string.IsNullOrEmpty(action.AssignedToId))
+            throw new InvalidOperationException("Cette sous-action n'a pas de responsable à prévenir.");
+
+        await _notificationService.NotifyAsync(
+            action.AssignedToId,
+            "action_warning",
+            "Avertissement",
+            $"À propos de la sous-action « {action.Title} » : {message.Trim()}",
+            action.ActionPlanId);
+    }
+
     public async Task ArchiveAsync(Guid id, string archivedBy)
         => await _repo.ArchiveAsync(id, archivedBy);
 

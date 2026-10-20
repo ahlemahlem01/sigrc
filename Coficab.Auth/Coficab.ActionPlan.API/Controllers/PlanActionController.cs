@@ -185,6 +185,39 @@ public class PlanActionController : ControllerBase
         }
     }
 
+    /// <summary>Administrators only: sends a finished sub-action back to its assignee, with the reason.</summary>
+    [HttpPost("{id}/reject")]
+    public async Task<IActionResult> Reject(Guid id, [FromBody] PlanActionMessageDto dto)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        return await RunAdminActionAsync(() => _service.RejectAsync(id, CurrentUserId() ?? "system", dto.Message), "Sous-action rejetée.");
+    }
+
+    /// <summary>Administrators only: warns the person in charge of a sub-action.</summary>
+    [HttpPost("{id}/warn")]
+    public async Task<IActionResult> Warn(Guid id, [FromBody] PlanActionMessageDto dto)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        return await RunAdminActionAsync(() => _service.WarnAsync(id, CurrentUserId() ?? "system", dto.Message), "Avertissement envoyé.");
+    }
+
+    private async Task<IActionResult> RunAdminActionAsync(Func<Task> run, string done)
+    {
+        try
+        {
+            await run();
+            return Ok(new { message = done });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Sous-action non trouvée." });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Archive(Guid id)
     {

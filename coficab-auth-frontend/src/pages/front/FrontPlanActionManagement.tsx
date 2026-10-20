@@ -11,6 +11,8 @@ import {
   getUsersForAssignment,
   getActionPlanById,
   validatePlanAction,
+  rejectPlanAction,
+  warnPlanAction,
 } from '../../services/actionPlanService';
 import { PlanAction, ActionPlanStatus, User, PlanActionPriority } from './action-plan.types';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
@@ -70,6 +72,10 @@ export const FrontPlanActionManagement: React.FC = () => {
   const { accessToken, hasRole } = useAuth();
   const canValidate = hasRole('admin') || hasRole('superadmin');
   const [validatingId, setValidatingId] = useState<string | null>(null);
+  const [menuId, setMenuId] = useState<string | null>(null);
+  const [msgModal, setMsgModal] = useState<{ kind: 'reject' | 'warn'; action: PlanAction } | null>(null);
+  const [msgText, setMsgText] = useState('');
+  const [msgBusy, setMsgBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [planActions, setPlanActions] = useState<PlanAction[]>([]);
@@ -133,6 +139,46 @@ export const FrontPlanActionManagement: React.FC = () => {
       setNotice({ ok: false, text: e?.response?.data?.error || 'La validation a échoué.' });
     } finally {
       setValidatingId(null);
+    }
+  };
+
+  const handleArchive = async (action: PlanAction) => {
+    if (!accessToken) return;
+    if (!window.confirm(`Archiver « ${action.title} » ? Elle sera retirée des listes actives ; l'archive la conserve et elle peut être restaurée.`)) return;
+    try {
+      await archivePlanAction(accessToken, action.id);
+      setPlanActions((prev) => prev.filter((pa) => pa.id !== action.id));
+      setNotice({ ok: true, text: `« ${action.title} » archivée.` });
+    } catch {
+      setNotice({ ok: false, text: "L'archivage a échoué." });
+    }
+  };
+
+  const addWorkFor = (action: PlanAction) => {
+    resetForm();
+    setFormData({ title: '', description: '', assignedToId: action.assignedToId || '', deadline: '', priority: 'medium' });
+    setIsCreating(true);
+    setEditingId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const submitMessage = async () => {
+    if (!accessToken || !msgModal || msgText.trim().length < 3) return;
+    setMsgBusy(true);
+    setNotice(null);
+    try {
+      if (msgModal.kind === 'reject') await rejectPlanAction(accessToken, msgModal.action.id, msgText.trim());
+      else await warnPlanAction(accessToken, msgModal.action.id, msgText.trim());
+      setNotice({ ok: true, text: msgModal.kind === 'reject' ? `« ${msgModal.action.title} » renvoyée en cours ; la personne a été prévenue.` : 'Avertissement envoyé.' });
+      const wasReject = msgModal.kind === 'reject';
+      setMsgModal(null);
+      setMsgText('');
+      if (wasReject) await loadData();
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.response?.data?.error || "L'envoi a échoué." });
+      setMsgModal(null);
+    } finally {
+      setMsgBusy(false);
     }
   };
 
@@ -607,6 +653,39 @@ export const FrontPlanActionManagement: React.FC = () => {
                       >
                         Dans le plan
                       </Link>
+                      {canValidate ? (
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setMenuId(menuId === action.id ? null : action.id)}
+                            aria-haspopup="menu"
+                            aria-expanded={menuId === action.id}
+                            className="px-2 py-1 text-xs font-semibold text-slate-700 border border-slate-300 rounded-lg hover:bg-slate-50"
+                          >
+                            Gérer ▾
+                          </button>
+                          {menuId === action.id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setMenuId(null)} />
+                              <div role="menu" className="absolute right-0 mt-1 w-56 z-20 bg-white border border-gray-200 rounded-xl shadow-lg py-1 text-sm">
+                                <button role="menuitem" type="button" disabled={(action.progressRaw ?? 0) !== 100} onClick={() => { setMenuId(null); setMsgText(''); setMsgModal({ kind: 'reject', action }); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                                  Rejeter (renvoyer en cours)
+                                </button>
+                                <button role="menuitem" type="button" disabled={!action.assignedToId || (action.progressRaw ?? 0) >= 101} onClick={() => { setMenuId(null); setMsgText(''); setMsgModal({ kind: 'warn', action }); }} className="w-full text-left px-3 py-2 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
+                                  Avertir la personne
+                                </button>
+                                <button role="menuitem" type="button" onClick={() => { setMenuId(null); addWorkFor(action); }} className="w-full text-left px-3 py-2 hover:bg-gray-50">
+                                  Ajouter du travail
+                                </button>
+                                <div className="my-1 border-t border-gray-100" />
+                                <button role="menuitem" type="button" onClick={() => { setMenuId(null); void handleArchive(action); }} className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50">
+                                  Archiver
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : (
                       <button
                         onClick={() => handleDelete(action.id)}
                         className="p-1 text-red-600 hover:text-red-800 transition-colors"
@@ -617,6 +696,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -654,6 +734,34 @@ export const FrontPlanActionManagement: React.FC = () => {
           )}
         </div>
       </div>
+
+      {msgModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !msgBusy && setMsgModal(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-gray-900 m-0">{msgModal.kind === 'reject' ? 'Rejeter la sous-action' : 'Avertir la personne'}</h3>
+            <p className="text-sm text-gray-500 mt-1 mb-3">
+              {msgModal.kind === 'reject'
+                ? `« ${msgModal.action.title} » repasse en cours (75 %). Indiquez le motif : la personne le recevra.`
+                : `Un message sera envoyé à ${msgModal.action.assignedToName || 'la personne responsable'} à propos de « ${msgModal.action.title} ».`}
+            </p>
+            <textarea
+              autoFocus
+              value={msgText}
+              onChange={(e) => setMsgText(e.target.value)}
+              rows={4}
+              maxLength={500}
+              placeholder={msgModal.kind === 'reject' ? 'Motif du rejet…' : "Message d'avertissement…"}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a237e] outline-none"
+            />
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" disabled={msgBusy} onClick={() => setMsgModal(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+              <button type="button" disabled={msgBusy || msgText.trim().length < 3} onClick={() => void submitMessage()} className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#1a237e] text-white hover:bg-[#0d1642] disabled:opacity-50">
+                {msgBusy ? 'Envoi…' : msgModal.kind === 'reject' ? 'Rejeter' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {historyActionId && accessToken && (
         <PlanActionHistoryModal
