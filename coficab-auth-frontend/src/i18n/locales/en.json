@@ -308,8 +308,8 @@
     "noActionPlans": "Plans without a detailed action",
     "noActionPlansHint": "Their delay is the plan's own",
     "viewHint": {
-      "plans": "All plans and their health (number of actions, delays, etc.)",
-      "actions": "Each detailed action, with responsible person, deadline and surveillance status."
+      "plans": "Open plans to handle: late, with an action to validate, or with no detailed action.",
+      "actions": "Actions to handle: late, finished and waiting for validation, or due within 3 days."
     }
   },
   "adminNav": {

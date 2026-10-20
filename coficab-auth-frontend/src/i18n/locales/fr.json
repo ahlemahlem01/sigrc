@@ -308,8 +308,8 @@
     "noActionPlans": "Plans sans action détaillée",
     "noActionPlansHint": "Leur retard est celui du plan",
     "viewHint": {
-      "plans": "Tous les plans et leur santé (nombre d'actions, retards, etc.)",
-      "actions": "Chaque action détaillée, avec responsable, deadline et statut de surveillance."
+      "plans": "Les plans ouverts à traiter : en retard, avec une action à valider ou sans action détaillée.",
+      "actions": "Les actions à traiter : en retard, terminées à valider, ou à échéance dans 3 jours."
     }
   },
   "adminNav": {

@@ -17,7 +17,7 @@ const btnPrimary =
   'inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#000168] text-white border border-[#000168] hover:bg-[#00009e]';
 
 type FollowStatus = 'inProgress' | 'belated' | 'realized' | 'validated' | 'cancelled';
-type TabKey = 'all' | FollowStatus;
+type TabKey = 'all' | FollowStatus | 'watch';
 type ViewMode = 'monitoring' | 'realization';
 type MonitorLevel = 'onTrack' | 'watch' | 'belated' | 'done' | 'cancelled';
 
@@ -246,49 +246,78 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
 
   useEffect(() => { void load(); }, [load]);
 
+  // "To handle": late actions, finished ones waiting for validation, and those due within 3 days
+  const isTodo = (r: ActionRow) => r.followStatus === 'belated' || r.followStatus === 'realized' || r.monitoring === 'watch';
+  const base = useMemo(() => (embedded ? rows.filter(isTodo) : rows), [rows, embedded]);
+  const todoCounts = useMemo(() => ({
+    all: base.length,
+    belated: base.filter((r) => r.followStatus === 'belated').length,
+    realized: base.filter((r) => r.followStatus === 'realized').length,
+    watch: base.filter((r) => r.followStatus !== 'belated' && r.followStatus !== 'realized' && r.monitoring === 'watch').length,
+  }), [base]);
+  const analysis = useMemo(() => {
+    const now = Date.now();
+    const late = base.filter((r) => r.followStatus === 'belated' && r.dateTo)
+      .map((r) => ({ r, days: Math.max(0, Math.floor((now - new Date(r.dateTo as string).getTime()) / 86400000)) }))
+      .sort((a, b) => b.days - a.days);
+    const avg = late.length ? Math.round(late.reduce((n, x) => n + x.days, 0) / late.length) : 0;
+    const byPerson = new Map<string, number>();
+    base.forEach((r) => byPerson.set(r.responsibleName, (byPerson.get(r.responsibleName) || 0) + 1));
+    const topPeople = Array.from(byPerson.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    return { avg, oldest: late[0], topPeople };
+  }, [base]);
+
   useEffect(() => {
+    if (embedded) return;
     if (view === 'realization') setTab('realized');
     else setTab('all');
-  }, [view]);
+  }, [view, embedded]);
 
-  const tabs: { key: TabKey; label: string }[] = useMemo(() => [
+  const tabs: { key: TabKey; label: string }[] = useMemo(() => embedded ? [
+    { key: 'all', label: 'À traiter' },
+    { key: 'belated', label: t('followUp.tabBelated') },
+    { key: 'realized', label: 'À valider' },
+    { key: 'watch', label: 'Échéance proche' },
+  ] : [
     { key: 'all', label: t('followUp.tabAll') },
     { key: 'inProgress', label: t('followUp.tabInProgress') },
     { key: 'belated', label: t('followUp.tabBelated') },
     { key: 'realized', label: t('followUp.tabRealized') },
     { key: 'validated', label: t('followUp.tabValidated') },
     { key: 'cancelled', label: t('followUp.tabCancelled') },
-  ], [t]);
+  ], [t, embedded]);
 
   const counts = useMemo(() => {
     const c: Record<TabKey, number> = {
-      all: rows.length, inProgress: 0, belated: 0, realized: 0, validated: 0, cancelled: 0,
+      all: rows.length, inProgress: 0, belated: 0, realized: 0, validated: 0, cancelled: 0, watch: 0,
     };
     for (const r of rows) {
       if (r.followStatus === 'notStarted') {
         // counted in All only; also surface under In Progress in monitoring
         continue;
       }
-      c[r.followStatus] += 1;
+      c[r.followStatus as FollowStatus] += 1;
     }
     c.inProgress += rows.filter((r) => r.followStatus === 'notStarted').length;
     return c;
   }, [rows]);
 
   const processes = useMemo(
-    () => Array.from(new Set(rows.map((r) => r.process).filter((p) => p && p !== '—'))).sort(),
-    [rows]
+    () => Array.from(new Set(base.map((r) => r.process).filter((p) => p && p !== '—'))).sort(),
+    [base]
   );
   const responsibles = useMemo(() => {
     const m = new Map<string, string>();
-    rows.forEach((r) => { if (r.responsibleId) m.set(r.responsibleId, r.responsibleName); });
+    base.forEach((r) => { if (r.responsibleId) m.set(r.responsibleId, r.responsibleName); });
     return Array.from(m.entries()).sort((a, b) => a[1].localeCompare(b[1]));
-  }, [rows]);
+  }, [base]);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
-    return rows.filter((r) => {
-      if (tab === 'inProgress') {
+    return base.filter((r) => {
+      if (tab === 'watch') {
+        if (r.followStatus === 'belated' || r.followStatus === 'realized' || r.monitoring !== 'watch') return false;
+      } else if (tab === 'inProgress') {
         if (r.followStatus !== 'inProgress' && r.followStatus !== 'notStarted') return false;
       } else if (tab !== 'all' && r.followStatus !== tab) return false;
 
@@ -310,7 +339,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
         r.responsibleName.toLowerCase().includes(term)
       );
     });
-  }, [rows, tab, q, filterProcess, filterFrom, filterTo, filterResponsible]);
+  }, [base, tab, q, filterProcess, filterFrom, filterTo, filterResponsible]);
   const paged = usePagedList(filtered, 25);
 
   const statusLabel = (s: FollowStatus | 'notStarted') => {
@@ -371,7 +400,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}
 
-        <div className="inline-flex p-0.5 rounded-lg bg-white border border-slate-200 mb-3">
+        {!embedded && <div className="inline-flex p-0.5 rounded-lg bg-white border border-slate-200 mb-3">
           {(['monitoring', 'realization'] as ViewMode[]).map((mode) => (
             <button
               key={mode}
@@ -387,14 +416,29 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
               {mode === 'monitoring' ? t('followUp.viewMonitoring') : t('followUp.viewRealization')}
             </button>
           ))}
-        </div>
+        </div>}
+
+        {embedded && base.length > 0 && (
+          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+            <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
+              <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Retard moyen</div>
+              <div className="mt-1 text-slate-800"><span className="text-lg font-bold tabular-nums">{analysis.avg} j</span>
+                {analysis.oldest && <span className="text-slate-500"> · le plus ancien : {analysis.oldest.r.title} ({analysis.oldest.days} j)</span>}</div>
+            </div>
+            <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
+              <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Responsables les plus sollicités</div>
+              <div className="mt-1 text-slate-800">{analysis.topPeople.map(([n, c]) => `${n} (${c})`).join(' · ')}</div>
+            </div>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-1.5 mb-3">
           {tabs.map((tb) => {
             const badgeCount = (() => {
+              if (embedded) return todoCounts[tb.key as 'all' | 'belated' | 'realized' | 'watch'];
               if (tb.key === 'all') return rows.length;
               if (tb.key === 'inProgress') return counts.inProgress;
-              return counts[tb.key];
+              return counts[tb.key as FollowStatus];
             })();
             const active = tab === tb.key;
             return (
