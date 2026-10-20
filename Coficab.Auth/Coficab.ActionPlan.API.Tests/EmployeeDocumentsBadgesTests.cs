@@ -453,6 +453,8 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         var kpis = dto.GetProperty("kpis");
         Assert.Equal(2, kpis.GetProperty("openPlans").GetInt32());
         Assert.Equal(1, kpis.GetProperty("latePlans").GetInt32());
+        Assert.Equal(0, kpis.GetProperty("lateActions").GetInt32());          // these plans have no detailed action: the delay is the plan's own
+        Assert.Equal(2, kpis.GetProperty("plansWithoutActions").GetInt32());
         Assert.Equal(4, kpis.GetProperty("opened").GetProperty("current").GetInt32());
         Assert.Equal(1, kpis.GetProperty("opened").GetProperty("previous").GetInt32());
         Assert.Equal(2, kpis.GetProperty("closed").GetProperty("current").GetInt32());

@@ -295,6 +295,25 @@
       "status_changed": "Status changed"
     }
   },
+  "tracking": {
+    "todo": "To handle",
+    "viewAll": "Plans and actions",
+    "viewPlans": "By plan",
+    "viewActions": "Detailed actions",
+    "latePlans": "Late plans",
+    "latePlansHint": "of {{open}} open plans",
+    "lateActions": "Late actions",
+    "lateActionsHint": "Detailed actions past deadline",
+    "toValidate": "Actions to validate",
+    "toValidateHint": "Done, waiting for validation",
+    "noActionPlans": "Plans without a detailed action",
+    "noActionPlansHint": "Their delay is the plan's own",
+    "viewHint": {
+      "all": "Every late plan and every late action in one list.",
+      "plans": "Actions grouped under their plan.",
+      "actions": "Detailed actions only, one per line."
+    }
+  },
   "adminNav": {
     "analysesHub": "Analyses & reports",
     "analysesTab": "5 Why / Ishikawa & report",
@@ -1113,7 +1132,7 @@
     "viewDashboard": "Dashboard",
     "deadline": "Deadline: {{date}}",
     "more": "+{{count}} more",
-    "bannerTitle": "{{count}} overdue action(s)",
+    "bannerTitle": "{{count}} late item(s): plans and actions",
     "bannerHint": "Use the list below, or open action follow-up, to clear past deadlines.",
     "bannerCta": "Show overdue"
   },

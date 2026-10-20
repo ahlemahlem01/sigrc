@@ -11,6 +11,12 @@ public record CapaFigureDto(double? Current, double? Previous);
 public record CapaIndicatorKpisDto(
     int OpenPlans,
     int LatePlans,
+    /// <summary>Unfinished detailed actions past their deadline, in open plans (a late plan without any is not counted here).</summary>
+    int LateActions,
+    /// <summary>Actions done at 100 % that wait for a validation.</summary>
+    int ActionsToValidate,
+    /// <summary>Open plans that have no detailed action at all: their delay is carried by the plan itself.</summary>
+    int PlansWithoutActions,
     CapaFigureDto Opened,
     CapaFigureDto Closed,
     CapaFigureDto OnTimeRate,
@@ -86,9 +92,13 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var openedNow = plans.Count(p => p.CreatedAt >= start && p.CreatedAt < end);
         var openedPrev = plans.Count(p => p.CreatedAt >= prevStart && p.CreatedAt < start);
 
+        var openActions = open.SelectMany(p => p.PlanActions.Where(a => !a.IsArchived)).ToList();
         var kpis = new CapaIndicatorKpisDto(
             open.Count,
             late.Count,
+            openActions.Count(a => !PlanDeadlines.IsFinished(a) && a.Deadline.HasValue && a.Deadline.Value.Date < today),
+            openActions.Count(a => a.Progress == ActionProgress.Hundred),
+            open.Count(p => !p.PlanActions.Any(a => !a.IsArchived)),
             new CapaFigureDto(openedNow, openedPrev),
             new CapaFigureDto(closedNow.Count, closedPrev.Count),
             new CapaFigureDto(OnTime(closedNow), OnTime(closedPrev)),

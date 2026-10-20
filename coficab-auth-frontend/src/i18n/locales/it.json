@@ -295,6 +295,25 @@
       "status_changed": "Stato modificato"
     }
   },
+  "tracking": {
+    "todo": "Da gestire",
+    "viewAll": "Piani e azioni",
+    "viewPlans": "Per piano",
+    "viewActions": "Azioni dettagliate",
+    "latePlans": "Piani in ritardo",
+    "latePlansHint": "su {{open}} piani aperti",
+    "lateActions": "Azioni in ritardo",
+    "lateActionsHint": "Azioni dettagliate scadute",
+    "toValidate": "Azioni da convalidare",
+    "toValidateHint": "Concluse, in attesa di convalida",
+    "noActionPlans": "Piani senza azione dettagliata",
+    "noActionPlansHint": "Il loro ritardo è quello del piano",
+    "viewHint": {
+      "all": "Ogni piano e ogni azione in ritardo in un unico elenco.",
+      "plans": "Le azioni raggruppate sotto il loro piano.",
+      "actions": "Solo azioni dettagliate, una per riga."
+    }
+  },
   "adminNav": {
     "analysesHub": "Analisi e report",
     "analysesTab": "5 Why / Ishikawa e report",
@@ -1113,7 +1132,7 @@
     "viewDashboard": "Cruscotto",
     "deadline": "Scadenza: {{date}}",
     "more": "+{{count}} altre",
-    "bannerTitle": "{{count}} azioni in ritardo",
+    "bannerTitle": "{{count}} elemento/i in ritardo: piani e azioni",
     "bannerHint": "Usa l'elenco sotto, oppure il monitoraggio azioni, per chiudere le scadenze superate.",
     "bannerCta": "Vedi i ritardi"
   },

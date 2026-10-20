@@ -9,6 +9,9 @@ export interface CapaIndicators {
   kpis: {
     openPlans: number;
     latePlans: number;
+    lateActions: number;
+    actionsToValidate: number;
+    plansWithoutActions: number;
     opened: CapaFigure;
     closed: CapaFigure;
     onTimeRate: CapaFigure;

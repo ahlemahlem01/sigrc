@@ -295,6 +295,25 @@
       "status_changed": "Statut modifié"
     }
   },
+  "tracking": {
+    "todo": "À traiter",
+    "viewAll": "Plans et actions",
+    "viewPlans": "Par plan",
+    "viewActions": "Actions détaillées",
+    "latePlans": "Plans en retard",
+    "latePlansHint": "sur {{open}} plans ouverts",
+    "lateActions": "Actions en retard",
+    "lateActionsHint": "Actions détaillées dépassées",
+    "toValidate": "Actions à valider",
+    "toValidateHint": "Terminées, en attente de validation",
+    "noActionPlans": "Plans sans action détaillée",
+    "noActionPlansHint": "Leur retard est celui du plan",
+    "viewHint": {
+      "all": "Chaque plan en retard et chaque action en retard, sur une seule liste.",
+      "plans": "Les actions regroupées sous leur plan.",
+      "actions": "Seulement les actions détaillées, une par ligne."
+    }
+  },
   "adminNav": {
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",
@@ -1113,7 +1132,7 @@
     "viewDashboard": "Tableau de bord",
     "deadline": "Échéance : {{date}}",
     "more": "+{{count}} autres",
-    "bannerTitle": "{{count}} action(s) en retard",
+    "bannerTitle": "{{count}} élément(s) en retard : plans et actions",
     "bannerHint": "Consultez le dashboard ou le follow-up pour traiter les échéances dépassées.",
     "bannerCta": "Voir les retards"
   },
