@@ -31,7 +31,7 @@ function formatDate(iso?: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-export default function AdminCapaAssociatedActions() {
+export default function AdminCapaAssociatedActions({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -190,6 +190,11 @@ export default function AdminCapaAssociatedActions() {
 
   return (
     <div className="text-slate-900 w-full min-w-0 max-w-full">
+      {embedded ? (
+        <div className="flex justify-end mb-3">
+          <button type="button" onClick={exportPdf} className={btn}>{t('common.exportPdf')}</button>
+        </div>
+      ) : (
       <CapaPageHeader
         eyebrow={t('associatedActions.eyebrow')}
         title={t('associatedActions.title')}
@@ -205,12 +210,13 @@ export default function AdminCapaAssociatedActions() {
           </>
         }
       />
+      )}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
+      {!embedded && <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-5">
         {[
           { label: t('associatedActions.kpiPlans'), value: totals.plans },
           { label: t('associatedActions.kpiActions'), value: totals.actions },
@@ -222,7 +228,7 @@ export default function AdminCapaAssociatedActions() {
             <div className="text-[10px] uppercase tracking-wide text-white/70 font-semibold mt-0.5">{s.label}</div>
           </div>
         ))}
-      </div>
+      </div>}
 
       <div className="bg-white border border-slate-200 rounded-2xl px-3 py-2.5 mb-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 items-end">
         <label className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide lg:col-span-2">

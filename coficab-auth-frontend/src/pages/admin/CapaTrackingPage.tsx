@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
@@ -59,14 +59,16 @@ export default function CapaTrackingPage() {
   const { param: scopeParam } = useOrganizationScope();
   const [params, setParams] = useSearchParams();
   const { tab, view } = resolve(params.get('tab'), params.get('view'));
+  const navigate = useNavigate();
   const [figures, setFigures] = useState<CapaIndicators['kpis'] | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken || tab !== 'todo') return;
     let live = true;
     fetchCapaIndicators(accessToken, 90, scopeParam).then((d) => { if (live) setFigures(d.kpis); }).catch(() => { if (live) setFigures(null); });
     return () => { live = false; };
-  }, [accessToken, scopeParam, tab]);
+  }, [accessToken, scopeParam, tab, refreshKey]);
 
   const go = (next: Record<string, string>) => {
     const p = new URLSearchParams(params);
@@ -92,13 +94,17 @@ export default function CapaTrackingPage() {
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <SegmentedToggle options={VIEWS.map((v) => ({ id: v.id, labelKey: v.labelKey }))} value={view} onChange={(id) => go({ tab: 'todo', view: id })} />
-            <span className="text-xs text-slate-500">{t(`tracking.viewHint.${view}`)}</span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setRefreshKey((k) => k + 1)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{t('dashboard.refresh')}</button>
+              <button type="button" onClick={() => navigate('/admin/action-plans/create')} className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white" style={{ background: NAVY }}>+ {t('admin.newPlan')}</button>
+            </div>
           </div>
+          <p className="text-xs text-slate-500 -mt-2 mb-0">{t(`tracking.viewHint.${view}`)}</p>
 
           <div className="ap-tab-body" style={{ width: '100%', minWidth: 0 }}>
-            {view === 'all' && <AdminCapaDashboard />}
-            {view === 'plans' && <AdminCapaAssociatedActions />}
-            {view === 'actions' && <ActionFollowUpPage />}
+            {view === 'all' && <AdminCapaDashboard key={refreshKey} embedded />}
+            {view === 'plans' && <AdminCapaAssociatedActions key={refreshKey} embedded />}
+            {view === 'actions' && <ActionFollowUpPage key={refreshKey} embedded />}
           </div>
         </>
       )}

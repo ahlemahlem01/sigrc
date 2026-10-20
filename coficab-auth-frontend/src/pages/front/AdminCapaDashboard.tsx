@@ -147,7 +147,8 @@ const NATURE_STYLE: Record<ActionPlanType, { bg: string; color: string }> = {
   amelioration: { bg: '#f0fdfa', color: '#0f766e' },
 };
 
-export default function AdminCapaDashboard() {
+/** `embedded`: inside the tracking page, which already shows the title, the figures and the buttons. */
+export default function AdminCapaDashboard({ embedded = false }: { embedded?: boolean }) {
   const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -461,7 +462,7 @@ export default function AdminCapaDashboard() {
 
       <div className="w-full min-w-0">
         <div className="acd-top">
-        {kpis.delayed > 0 && (
+        {!embedded && kpis.delayed > 0 && (
           <div className="acd-alert">
             <div>
               <div className="text-sm font-semibold text-rose-800">
@@ -479,7 +480,7 @@ export default function AdminCapaDashboard() {
           </div>
         )}
 
-          <div className="acd-actions">
+          {!embedded && <div className="acd-actions">
             <button type="button" onClick={() => void load()} className="acd-btn">
               {t('dashboard.refresh')}
             </button>
@@ -497,13 +498,28 @@ export default function AdminCapaDashboard() {
             >
               + {t('admin.newPlan')}
             </button>
-          </div>
+          </div>}
         </div>
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
         )}
 
+        {embedded ? (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {cardDefs.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setActiveKpi((prev) => (prev === c.key ? 'all' : c.key))}
+                className="px-3 py-1.5 rounded-full text-xs font-semibold border"
+                style={activeKpi === c.key ? { background: c.accent, borderColor: c.accent, color: '#fff' } : { background: '#fff', borderColor: '#e2e8f0', color: '#334155' }}
+              >
+                {c.label} · <span className="tabular-nums">{c.value}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
         <div className="acd-kpis">
           {cardDefs.map((c) => (
             <button
@@ -527,6 +543,7 @@ export default function AdminCapaDashboard() {
             </button>
           ))}
         </div>
+        )}
 
         <div id="acd-overdue-table" className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">

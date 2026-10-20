@@ -138,7 +138,7 @@ const MONITOR_BADGE: Record<MonitorLevel, { bg: string; color: string }> = {
   cancelled: { bg: '#f1f5f9', color: '#64748b' },
 };
 
-export default function ActionFollowUpPage() {
+export default function ActionFollowUpPage({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -338,6 +338,7 @@ export default function ActionFollowUpPage() {
   return (
     <div className="text-slate-900">
       <div className="max-w-7xl mx-auto">
+        {!embedded && (
         <CapaPageHeader
           eyebrow={t('followUp.eyebrow')}
           title={t('followUp.title')}
@@ -364,6 +365,7 @@ export default function ActionFollowUpPage() {
             </>
           }
         />
+        )}
 
         {error && (
           <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>
