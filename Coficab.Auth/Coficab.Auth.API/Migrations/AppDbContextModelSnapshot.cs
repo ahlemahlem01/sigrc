@@ -832,7 +832,7 @@ namespace Coficab.Auth.API.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid>("CountryId")
+                    b.Property<Guid?>("CountryId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
@@ -1679,14 +1679,12 @@ namespace Coficab.Auth.API.Migrations
                 {
                     b.HasOne("Coficab.ActionPlan.Core.Entities.Country", "Country")
                         .WithMany("Sites")
-                        .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("CountryId");
 
                     b.HasOne("Coficab.ActionPlan.Core.Entities.Organization", "Organization")
                         .WithMany("Sites")
                         .HasForeignKey("OrganizationId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Country");
