@@ -9,6 +9,7 @@ import {
   archivePlanAction,
   reorderPlanActions,
   getUsersForAssignment,
+  getActionPlanById,
 } from '../../services/actionPlanService';
 import { PlanAction, ActionPlanStatus, User, PlanActionPriority } from './action-plan.types';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
@@ -72,6 +73,8 @@ export const FrontPlanActionManagement: React.FC = () => {
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [isCreating, setIsCreating]   = useState(false);
   const [historyActionId, setHistoryActionId] = useState<string | null>(null);
+  const [plan, setPlan] = useState<{ title: string; code?: string; department?: string; deadline?: string; status?: string } | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     title:        '',
@@ -101,6 +104,18 @@ export const FrontPlanActionManagement: React.FC = () => {
     if (actionPlanId && accessToken) loadData();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the listed values change
   }, [actionPlanId, accessToken]);
+
+  useEffect(() => {
+    if (!actionPlanId || !accessToken) return;
+    getActionPlanById(accessToken, actionPlanId)
+      .then((res) => {
+        const p: any = res.data?.data ?? res.data;
+        setPlan({ title: String(p.title ?? p.Title ?? ''), code: p.code ?? p.Code, department: p.departmentName ?? p.DepartmentName, deadline: p.deadline ?? p.Deadline, status: String(p.status ?? p.Status ?? '') });
+      })
+      .catch(() => setPlan(null));
+  }, [actionPlanId, accessToken]);
+
+  const toggleDetails = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
   const loadData = async () => {
     if (!accessToken) return;
@@ -274,7 +289,16 @@ export const FrontPlanActionManagement: React.FC = () => {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t('planActionsMgmt.title')}</h1>
-              <p className="mt-1 text-sm text-gray-500">{t('planActionsMgmt.planId')} : {actionPlanId}</p>
+              {plan ? (
+                <p className="mt-1 text-sm text-gray-600" title={`${t('planActionsMgmt.planId')} : ${actionPlanId}`}>
+                  <span className="font-semibold text-gray-800">{plan.title}</span>
+                  {plan.code ? ` · ${plan.code}` : ''}
+                  {plan.department ? ` · ${plan.department}` : ''}
+                  {plan.deadline ? ` · échéance ${new Date(plan.deadline).toLocaleDateString('fr-FR')}` : ''}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-gray-500">{t('planActionsMgmt.planId')} : {actionPlanId}</p>
+              )}
             </div>
             {!isCreating && (
               <button
@@ -519,6 +543,14 @@ export const FrontPlanActionManagement: React.FC = () => {
                         {t('planView.tabHistory')}
                       </button>
                       <button
+                        onClick={() => toggleDetails(action.id)}
+                        aria-expanded={openId === action.id}
+                        className="px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                        type="button"
+                      >
+                        {openId === action.id ? 'Masquer' : 'Détails'}
+                      </button>
+                      <button
                         onClick={() => handleDelete(action.id)}
                         className="p-1 text-red-600 hover:text-red-800 transition-colors"
                         title={t('common.delete')}
@@ -531,6 +563,35 @@ export const FrontPlanActionManagement: React.FC = () => {
                     </div>
                   </div>
                 </div>
+                {openId === action.id && (() => {
+                  const u = users.find((x) => String(x.id) === String(action.assignedToId));
+                  const who = action.assignedToName || u?.fullName || `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || t('claimDetail.unassigned');
+                  const statusText = ({ created: t('planDetailFront.statusAwaitingAssignment'), ongoing: t('status.ongoing'), closed: t('plansAdmin.statusPending'), archived: t('status.archived') } as Record<string, string>)[action.status ?? 'created'];
+                  const rows: [string, React.ReactNode][] = [
+                    ['Responsable', who],
+                    ['Priorité', t(priorityConfig[action.priority].label)],
+                    ['Statut', statusText],
+                    ['Avancement', (action.progressRaw ?? 0) === 101 ? 'Validée' : (action.progressRaw ?? 0) === 102 ? 'Annulée' : `${action.progress ?? 0} %`],
+                    ['Échéance', action.deadline ? new Date(action.deadline).toLocaleDateString('fr-FR') : '—'],
+                    ['Créée le', action.createdAt ? new Date(action.createdAt).toLocaleDateString('fr-FR') : '—'],
+                  ];
+                  return (
+                    <div className="mt-4 pt-4 border-t border-gray-100 grid gap-4 sm:grid-cols-2">
+                      <div>
+                        <div className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-1">Description</div>
+                        <p className="text-sm text-gray-700 m-0 whitespace-pre-wrap">{action.description || <span className="text-gray-400">Aucune description.</span>}</p>
+                      </div>
+                      <dl className="m-0 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                        {rows.map(([k, v]) => (
+                          <div key={k}>
+                            <dt className="text-[11px] font-bold uppercase tracking-wide text-gray-400">{k}</dt>
+                            <dd className="m-0 text-gray-800">{v}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  );
+                })()}
               </div>
             ))
           )}
