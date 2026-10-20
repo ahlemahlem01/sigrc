@@ -17,6 +17,7 @@ import {
 import { PlanAction, ActionPlanStatus, User, PlanActionPriority } from './action-plan.types';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { parseProgress, parseProgressRaw } from '../admin/capaAnalytics';
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -73,6 +74,8 @@ export const FrontPlanActionManagement: React.FC = () => {
   const canValidate = hasRole('admin') || hasRole('superadmin');
   const [validatingId, setValidatingId] = useState<string | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [ask, setAsk] = useState<{ title: string; text: string; label: string; danger?: boolean; run: () => Promise<void> } | null>(null);
+  const [askBusy, setAskBusy] = useState(false);
   const [msgModal, setMsgModal] = useState<{ kind: 'reject' | 'warn'; action: PlanAction } | null>(null);
   const [msgText, setMsgText] = useState('');
   const [msgBusy, setMsgBusy] = useState(false);
@@ -126,9 +129,16 @@ export const FrontPlanActionManagement: React.FC = () => {
       .catch(() => setPlan(null));
   }, [actionPlanId, accessToken]);
 
-  const handleValidate = async (action: PlanAction) => {
+  const handleValidate = (action: PlanAction) =>
+    setAsk({
+      title: 'Valider la sous-action',
+      text: `« ${action.title} » sera verrouillée : son avancement ne pourra plus être modifié.`,
+      label: 'Valider',
+      run: () => doValidate(action),
+    });
+
+  const doValidate = async (action: PlanAction) => {
     if (!accessToken) return;
-    if (!window.confirm(`Valider la sous-action « ${action.title} » ? Elle sera verrouillée : son avancement ne pourra plus être modifié.`)) return;
     setValidatingId(action.id);
     setNotice(null);
     try {
@@ -142,9 +152,17 @@ export const FrontPlanActionManagement: React.FC = () => {
     }
   };
 
-  const handleArchive = async (action: PlanAction) => {
+  const handleArchive = (action: PlanAction) =>
+    setAsk({
+      title: "Archiver l'action",
+      text: `« ${action.title} » sera retirée des listes actives. L'archive la conserve et elle peut être restaurée.`,
+      label: 'Archiver',
+      danger: true,
+      run: () => doArchive(action),
+    });
+
+  const doArchive = async (action: PlanAction) => {
     if (!accessToken) return;
-    if (!window.confirm(`Archiver « ${action.title} » ? Elle sera retirée des listes actives ; l'archive la conserve et elle peut être restaurée.`)) return;
     try {
       await archivePlanAction(accessToken, action.id);
       setPlanActions((prev) => prev.filter((pa) => pa.id !== action.id));
@@ -179,6 +197,17 @@ export const FrontPlanActionManagement: React.FC = () => {
       setMsgModal(null);
     } finally {
       setMsgBusy(false);
+    }
+  };
+
+  const confirmAsk = async () => {
+    if (!ask) return;
+    setAskBusy(true);
+    try {
+      await ask.run();
+    } finally {
+      setAskBusy(false);
+      setAsk(null);
     }
   };
 
@@ -258,8 +287,17 @@ export const FrontPlanActionManagement: React.FC = () => {
   };
 
   // ── Delete ────────────────────────────────────────────────────────────────
-  const handleDelete = async (id: string) => {
-    if (!window.confirm(t('planActionsMgmt.confirmDelete')) || !accessToken) return;
+  const handleDelete = (id: string) =>
+    setAsk({
+      title: t('common.delete'),
+      text: t('planActionsMgmt.confirmDelete'),
+      label: t('common.delete'),
+      danger: true,
+      run: () => doDelete(id),
+    });
+
+  const doDelete = async (id: string) => {
+    if (!accessToken) return;
     try {
       await archivePlanAction(accessToken, id);
       setPlanActions(prev => prev.filter(pa => pa.id !== id));
@@ -734,6 +772,10 @@ export const FrontPlanActionManagement: React.FC = () => {
           )}
         </div>
       </div>
+
+      {ask && (
+        <ConfirmDialog title={ask.title} text={ask.text} confirmLabel={ask.label} danger={ask.danger} busy={askBusy} onConfirm={() => void confirmAsk()} onCancel={() => setAsk(null)} />
+      )}
 
       {msgModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !msgBusy && setMsgModal(null)}>

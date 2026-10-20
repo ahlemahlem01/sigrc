@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { bulkAssignPlans, getUsersForAssignment } from '../../services/actionPlanService';
 import { FlatAction, loadCapaDataset, PlanRow, UiType } from './capaAnalytics';
 import { fixMojibake } from '../../utils/textEncoding';
@@ -61,6 +62,7 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
   const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
   const [assignee, setAssignee] = useState('');
   const [busy, setBusy] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
@@ -174,10 +176,12 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
     }).catch(() => setPeople([]));
   }, [selected.size, people.length, accessToken]);
 
+  const assigneeName = people.find((p) => p.id === assignee)?.name ?? '';
+
   const assignSelected = async () => {
     if (!accessToken || !assignee || selected.size === 0) return;
-    const name = people.find((p) => p.id === assignee)?.name ?? '';
-    if (!window.confirm(`Assigner ${selected.size} plan(s) à ${name} ? L'ancien responsable sera conservé dans l'historique de chaque plan.`)) return;
+    const name = assigneeName;
+    setConfirming(false);
     setBusy(true);
     setNotice(null);
     try {
@@ -338,6 +342,16 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
         </label>
       </div>
 
+      {confirming && (
+        <ConfirmDialog
+          title="Assigner ces plans"
+          text={`${selected.size} plan(s) seront assignés à ${assigneeName}. L'ancien responsable est conservé dans l'historique de chaque plan.`}
+          confirmLabel="Assigner"
+          busy={busy}
+          onConfirm={() => void assignSelected()}
+          onCancel={() => setConfirming(false)}
+        />
+      )}
       {notice && (
         <div className={`mb-3 px-3 py-2 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
       )}
@@ -348,7 +362,7 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
             <option value="">Assigner à…</option>
             {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
-          <button type="button" disabled={!assignee || busy} onClick={() => void assignSelected()} className={`${btnPrimary} disabled:opacity-40`}>{busy ? 'Assignation…' : 'Assigner'}</button>
+          <button type="button" disabled={!assignee || busy} onClick={() => setConfirming(true)} className={`${btnPrimary} disabled:opacity-40`}>{busy ? 'Assignation…' : 'Assigner'}</button>
           <button type="button" onClick={() => setSelected(new Set())} className="text-xs font-semibold text-slate-600 underline">Tout désélectionner</button>
         </div>
       )}
