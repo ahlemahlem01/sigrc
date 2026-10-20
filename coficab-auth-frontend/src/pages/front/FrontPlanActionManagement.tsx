@@ -13,6 +13,7 @@ import {
 import { PlanAction, ActionPlanStatus, User, PlanActionPriority } from './action-plan.types';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import { useTranslation } from 'react-i18next';
+import { parseProgress, parseProgressRaw } from '../admin/capaAnalytics';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 /** label = i18n key */
@@ -114,6 +115,8 @@ export const FrontPlanActionManagement: React.FC = () => {
       const mappedActions = actionsRes.data.map((a: any) => ({
         ...a,
         status:   numberToStatus(a.status),
+        progress: parseProgress(a.progress),
+        progressRaw: parseProgressRaw(a.progress),
         priority: numberToPriority(a.priority),
       }));
 
@@ -406,19 +409,26 @@ export const FrontPlanActionManagement: React.FC = () => {
                       <p className="text-sm text-gray-600 mb-2">{action.description}</p>
                     )}
                     <div className="flex items-center gap-3 text-xs text-gray-500">
-                      {action.assignedTo && (
-                        <span className="flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                          </svg>
-                          {action.assignedTo.fullName ||
-                            `${action.assignedTo.firstName || ''} ${action.assignedTo.lastName || ''}`.trim()}
-                        </span>
-                      )}
+                      {(() => {
+                        const u = users.find((x) => String(x.id) === String(action.assignedToId));
+                        const name = action.assignedToName
+                          || u?.fullName
+                          || `${u?.firstName || ''} ${u?.lastName || ''}`.trim()
+                          || action.assignedTo?.fullName
+                          || '';
+                        return (
+                          <span className={`flex items-center gap-1 ${name ? 'text-gray-700 font-medium' : 'text-gray-400'}`}>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            {name || t('claimDetail.unassigned')}
+                          </span>
+                        );
+                      })()}
                       {action.deadline && (
                         <span className={`flex items-center gap-1 ${
                           (() => {
-                            const prog = typeof action.progress === 'number' ? action.progress : 0;
+                            const prog = action.progressRaw ?? 0;
                             if (prog >= 100 || action.status === 'closed' || action.status === 'archived') return false;
                             const d = new Date(action.deadline);
                             d.setHours(0, 0, 0, 0);
@@ -432,7 +442,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                           </svg>
                           {new Date(action.deadline).toLocaleDateString('fr-FR')}
                           {(() => {
-                            const prog = typeof action.progress === 'number' ? action.progress : 0;
+                            const prog = action.progressRaw ?? 0;
                             if (prog >= 100 || action.status === 'closed' || action.status === 'archived') return null;
                             const d = new Date(action.deadline);
                             d.setHours(0, 0, 0, 0);
@@ -443,6 +453,17 @@ export const FrontPlanActionManagement: React.FC = () => {
                           })()}
                         </span>
                       )}
+                      {action.createdAt && (
+                        <span>Créée le {new Date(action.createdAt).toLocaleDateString('fr-FR')}</span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center gap-2 max-w-xs">
+                      <div className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, action.progress ?? 0)}%`, background: (action.progressRaw ?? 0) >= 100 ? '#2f855a' : '#1a237e' }} />
+                      </div>
+                      <span className="text-[11px] tabular-nums text-gray-600">
+                        {(action.progressRaw ?? 0) === 101 ? 'Validée' : (action.progressRaw ?? 0) === 102 ? 'Annulée' : `${action.progress ?? 0} %`}
+                      </span>
                     </div>
                   </div>
 

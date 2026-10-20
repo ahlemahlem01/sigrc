@@ -35,7 +35,10 @@ export interface PlanAction {
   deadline?: string;
   priority: PlanActionPriority;
   assignedToId?: string;
+  assignedToName?: string;
   assignedTo?: User;
+  /** Raw progress: 0-100, 101 validated, 102 cancelled. */
+  progressRaw?: number;
   actionPlanId?: string;
   createdAt?: string;
   order?: number; 
