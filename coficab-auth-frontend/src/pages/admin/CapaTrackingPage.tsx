@@ -9,6 +9,8 @@ import SegmentedToggle from '../../components/SegmentedToggle';
 import AssignmentsList from './AssignmentsList';
 import AdminCapaAssociatedActions from './AdminCapaAssociatedActions';
 import ActionFollowUpPage from '../front/ActionFollowUpPage';
+import CapaFlowOverview from './CapaFlowOverview';
+import CapaAssigneeGlance from './CapaAssigneeGlance';
 
 const TABS = [
   { id: 'todo', labelKey: 'tracking.todo' },
@@ -99,8 +101,8 @@ export default function CapaTrackingPage() {
           <p className="text-xs text-slate-500 -mt-2 mb-0">{t(`tracking.viewHint.${view}`)}</p>
 
           <div className="ap-tab-body" style={{ width: '100%', minWidth: 0 }}>
-            {view === 'plans' && <AdminCapaAssociatedActions key={refreshKey} embedded />}
-            {view === 'actions' && <ActionFollowUpPage key={refreshKey} embedded />}
+            {view === 'plans' && <><CapaFlowOverview key={refreshKey} /><AdminCapaAssociatedActions key={refreshKey} embedded /></>}
+            {view === 'actions' && <><CapaAssigneeGlance key={refreshKey} /><ActionFollowUpPage key={refreshKey} embedded /></>}
           </div>
         </>
       )}

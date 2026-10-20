@@ -308,8 +308,8 @@
     "noActionPlans": "Piani senza azione dettagliata",
     "noActionPlansHint": "Il loro ritardo è quello del piano",
     "viewHint": {
-      "plans": "Piani aperti da gestire: in ritardo, con un'azione da convalidare o senza azione dettagliata.",
-      "actions": "Azioni da gestire: in ritardo, concluse da convalidare o in scadenza entro 3 giorni."
+      "plans": "Come avanzano i piani, cosa è successo in 90 giorni e i piani da gestire.",
+      "actions": "Come se la cavano gli assegnatari e le azioni da gestire."
     }
   },
   "adminNav": {

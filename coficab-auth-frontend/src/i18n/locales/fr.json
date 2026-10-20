@@ -308,8 +308,8 @@
     "noActionPlans": "Plans sans action détaillée",
     "noActionPlansHint": "Leur retard est celui du plan",
     "viewHint": {
-      "plans": "Les plans ouverts à traiter : en retard, avec une action à valider ou sans action détaillée.",
-      "actions": "Les actions à traiter : en retard, terminées à valider, ou à échéance dans 3 jours."
+      "plans": "Comment avancent les plans, ce qui s'est passé sur 90 jours, et les plans à traiter.",
+      "actions": "Comment s'en sortent les assignés, et les actions à traiter."
     }
   },
   "adminNav": {

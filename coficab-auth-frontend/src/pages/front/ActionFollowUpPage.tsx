@@ -257,18 +257,6 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
     realized: base.filter((r) => r.followStatus === 'realized').length,
     watch: base.filter((r) => r.followStatus !== 'belated' && r.followStatus !== 'realized' && r.monitoring === 'watch').length,
   }), [base]);
-  const analysis = useMemo(() => {
-    const now = Date.now();
-    const late = base.filter((r) => r.followStatus === 'belated' && r.dateTo)
-      .map((r) => ({ r, days: Math.max(0, Math.floor((now - new Date(r.dateTo as string).getTime()) / 86400000)) }))
-      .sort((a, b) => b.days - a.days);
-    const avg = late.length ? Math.round(late.reduce((n, x) => n + x.days, 0) / late.length) : 0;
-    const byPerson = new Map<string, number>();
-    base.forEach((r) => byPerson.set(r.responsibleName, (byPerson.get(r.responsibleName) || 0) + 1));
-    const topPeople = Array.from(byPerson.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { avg, oldest: late[0], topPeople };
-  }, [base]);
-
   useEffect(() => {
     if (embedded) return;
     if (view === 'realization') setTab('realized');
@@ -419,20 +407,6 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
             </button>
           ))}
         </div>}
-
-        {embedded && base.length > 0 && (
-          <div className="mb-3 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
-              <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Retard moyen</div>
-              <div className="mt-1 text-slate-800"><span className="text-lg font-bold tabular-nums">{analysis.avg} j</span>
-                {analysis.oldest && <span className="text-slate-500"> · le plus ancien : {analysis.oldest.r.title} ({analysis.oldest.days} j)</span>}</div>
-            </div>
-            <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
-              <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Responsables les plus sollicités</div>
-              <div className="mt-1 text-slate-800">{analysis.topPeople.map(([n, c]) => `${n} (${c})`).join(' · ')}</div>
-            </div>
-          </div>
-        )}
 
         <div className="flex flex-wrap gap-1.5 mb-3">
           {tabs.map((tb) => {

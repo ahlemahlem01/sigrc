@@ -308,8 +308,8 @@
     "noActionPlans": "Plans without a detailed action",
     "noActionPlansHint": "Their delay is the plan's own",
     "viewHint": {
-      "plans": "Open plans to handle: late, with an action to validate, or with no detailed action.",
-      "actions": "Actions to handle: late, finished and waiting for validation, or due within 3 days."
+      "plans": "How the plans move, what happened over 90 days, and the plans to handle.",
+      "actions": "How the assignees are doing, and the actions to handle."
     }
   },
   "adminNav": {

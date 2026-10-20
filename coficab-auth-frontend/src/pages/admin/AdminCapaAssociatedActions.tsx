@@ -151,15 +151,6 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
       .sort((a, b) => b.daysLate - a.daysLate || b.toValidate - a.toValidate);
   }, [filteredActions, plans, q, filterPlan, filterProcess, lateOnly]);
 
-  const analysis = useMemo(() => {
-    const lateRows = groups.filter((g) => g.daysLate > 0);
-    const avg = lateRows.length ? Math.round(lateRows.reduce((n, g) => n + g.daysLate, 0) / lateRows.length) : 0;
-    const byDept = new Map<string, number>();
-    lateRows.forEach((g) => byDept.set(g.plan.process, (byDept.get(g.plan.process) || 0) + 1));
-    const topDepts = Array.from(byDept.entries()).sort((a, b) => b[1] - a[1]).slice(0, 3);
-    return { avg, oldest: lateRows[0], topDepts, validate: groups.filter((g) => g.toValidate > 0).length };
-  }, [groups]);
-
   const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const pageGroups = groups.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -301,24 +292,6 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
         </label>
       </div>
 
-      {groups.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
-            <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Retard moyen</div>
-            <div className="mt-1 text-slate-800"><span className="text-lg font-bold tabular-nums">{analysis.avg} j</span>
-              {analysis.oldest && <span className="text-slate-500"> · le plus ancien : {fixMojibake(analysis.oldest.plan.title)} ({analysis.oldest.daysLate} j)</span>}</div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
-            <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">Départements les plus touchés</div>
-            <div className="mt-1 text-slate-800">{analysis.topDepts.length ? analysis.topDepts.map(([d, n]) => `${d} (${n})`).join(' · ') : '—'}</div>
-          </div>
-          <div className="bg-white border border-slate-200 rounded-xl px-3 py-2.5">
-            <div className="font-semibold uppercase tracking-wide text-slate-500 text-[10px]">À valider</div>
-            <div className="mt-1 text-slate-800"><span className="text-lg font-bold tabular-nums">{analysis.validate}</span> plan(s) avec une action terminée en attente de validation</div>
-          </div>
-        </div>
-      )}
-
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 flex items-baseline justify-between gap-3">
           <h2 className="text-base font-semibold text-slate-900">Plans à traiter</h2>
@@ -331,6 +304,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
                 <th className="px-4 py-3 font-semibold">Plan</th>
                 <th className="px-4 py-3 font-semibold">Type</th>
                 <th className="px-4 py-3 font-semibold">Département</th>
+                <th className="px-4 py-3 font-semibold">Responsable</th>
                 <th className="px-4 py-3 font-semibold">Actions</th>
                 <th className="px-4 py-3 font-semibold">En retard</th>
                 <th className="px-4 py-3 font-semibold">À valider</th>
@@ -341,7 +315,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
             <tbody>
               {groups.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-slate-400">{t('associatedActions.empty')}</td>
+                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">{t('associatedActions.empty')}</td>
                 </tr>
               ) : (
                 pageGroups.map((g) => (
@@ -361,6 +335,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{g.plan.process}</td>
+                      <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{g.plan.assignedToName || g.plan.ownerName || <span className="text-slate-400">Non assigné</span>}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex min-w-[28px] justify-center px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 text-slate-700">{g.actions.length}</span>
                       </td>
@@ -392,7 +367,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
                     </tr>
                     {expanded === g.plan.id && (
                       <tr className="bg-slate-50/70">
-                        <td colSpan={8} className="px-4 py-3">
+                        <td colSpan={9} className="px-4 py-3">
                           <table className="w-full text-sm bg-white border border-slate-200 rounded-lg overflow-hidden">
                             <thead>
                               <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
