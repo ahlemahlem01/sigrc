@@ -34,6 +34,7 @@ type ActionRow = {
   progress: number;
   followStatus: FollowStatus | 'notStarted';
   monitoring: MonitorLevel;
+  planOpen: boolean;
 };
 
 function unwrapList(payload: unknown): any[] {
@@ -224,6 +225,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
             progress: progress === 101 ? 100 : progress === 102 ? 0 : Math.max(0, Math.min(100, progress)),
             followStatus: follow,
             monitoring: monitor,
+            planOpen: planStatus !== 'closed' && planStatus !== '3',
           });
         }
       }
@@ -247,7 +249,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
   useEffect(() => { void load(); }, [load]);
 
   // "To handle": late actions, finished ones waiting for validation, and those due within 3 days
-  const isTodo = (r: ActionRow) => r.followStatus === 'belated' || r.followStatus === 'realized' || r.monitoring === 'watch';
+  const isTodo = (r: ActionRow) => r.planOpen && (r.followStatus === 'belated' || r.followStatus === 'realized' || r.monitoring === 'watch');
   const base = useMemo(() => (embedded ? rows.filter(isTodo) : rows), [rows, embedded]);
   const todoCounts = useMemo(() => ({
     all: base.length,
