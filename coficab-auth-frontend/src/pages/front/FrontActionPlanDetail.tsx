@@ -1,4 +1,4 @@
-import { parseProgress, toUiStatus } from '../admin/capaAnalytics';
+import { parseProgress, parseProgressRaw, toUiStatus } from '../admin/capaAnalytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -49,6 +49,8 @@ interface PlanActionDto {
   deadline?: string;
   priority: number;
   progress: number;
+  /** 0-100, 101 validated by an admin, 102 cancelled. */
+  progressRaw?: number;
   assignedToId?: string;
   assignedToName?: string;
   status: number;
@@ -261,6 +263,7 @@ export default function FrontActionPlanDetail() {
           priority: typeof a.priority === 'number' ? a.priority : Number(a.Priority ?? 2),
           // the progress of an action arrives by name ("Hundred", "Fifty"): 0-100
           progress: parseProgress(a.progress ?? a.Progress),
+          progressRaw: parseProgressRaw(a.progress ?? a.Progress),
           assignedToId: a.assignedToId || a.AssignedToId,
           assignedToName: a.assignedToName || a.AssignedToName,
           status: { created: 1, ongoing: 2, closed: 3, archived: 4 }[toUiStatus(a.status ?? a.Status)],
@@ -693,13 +696,18 @@ export default function FrontActionPlanDetail() {
                         className="cofi-apd-action-name"
                         style={isLate ? { color: '#b91c1c' } : undefined}
                       >
-                        {isDone ? '✓ ' : ''}{action.title}
+                        {action.progressRaw === 101 ? '✓ ' : ''}{action.title}
                         {isLate ? ` · ${t('planDetail.late')}` : ''}
                       </div>
                       {action.description?.trim() && (
                         <div className="cofi-apd-action-desc-text">{action.description}</div>
                       )}
                     </div>
+                    {action.progressRaw === 101 ? (
+                      <span className="cofi-apd-priority-pill" style={{ background: '#dcfce7', color: '#15803d' }}>Validée</span>
+                    ) : isDone ? (
+                      <span className="cofi-apd-priority-pill" style={{ background: '#fef3c7', color: '#b45309' }}>À valider</span>
+                    ) : null}
                     <span className="cofi-apd-priority-pill"
                       style={{ background: pColor.bg, color: pColor.text }}>
                       {PRIORITY_LABELS[action.priority] ? t(PRIORITY_LABELS[action.priority]) : `P${action.priority}`}

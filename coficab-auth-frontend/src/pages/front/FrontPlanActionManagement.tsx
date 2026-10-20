@@ -28,15 +28,16 @@ const priorityConfig: Record<PlanActionPriority, { label: string; color: string;
 // ── Enum converters ───────────────────────────────────────────────────────────
 // Aligned with backend enum: Created=1, Ongoing=2, Closed=3, Archived=4
 const priorityToNumber = (p: PlanActionPriority): number => {
-  const map: Record<PlanActionPriority, number> = { low: 0, medium: 1, high: 2 };
+  // backend convention: 1 = High, 2 = Medium, 3 = Low
+  const map: Record<PlanActionPriority, number> = { high: 1, medium: 2, low: 3 };
   return map[p];
 };
 
 // The API sends enum names ("High", "Closed"); numbers are still accepted.
 const numberToPriority = (n: number | string): PlanActionPriority => {
   const v = String(n).trim().toLowerCase();
-  if (v === '0' || v === 'low') return 'low';
-  if (v === '2' || v === 'high') return 'high';
+  if (v === '1' || v === 'high') return 'high';
+  if (v === '3' || v === 'low' || v === '0') return 'low';
   return 'medium';
 };
 
