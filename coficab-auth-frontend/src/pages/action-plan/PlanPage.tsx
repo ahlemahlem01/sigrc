@@ -5,6 +5,26 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { fetchPlanDetail, type PlanDetail } from '../../services/capaIndicatorsService';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import {
+  archiveActionPlan,
+  createPlanAction,
+  getUsersForAssignment,
+  rejectActionPlan,
+  rejectPlanAction,
+  validatePlanAction,
+  warnActionPlan,
+  warnPlanAction,
+} from '../../services/actionPlanService';
+
+type Dialog =
+  | { kind: 'warnPlan' }
+  | { kind: 'work' }
+  | { kind: 'rejectPlan' }
+  | { kind: 'warnAction'; id: string; title: string; to: string }
+  | { kind: 'rejectAction'; id: string; title: string };
+
+type Ask = { title: string; text: string; label: string; danger?: boolean; run: () => Promise<void> };
 
 const NAVY = '#000168';
 const GOOD = '#2f855a';
@@ -58,6 +78,17 @@ export default function PlanPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [showDone, setShowDone] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [dialog, setDialog] = useState<Dialog | null>(null);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
+  const [fTo, setFTo] = useState('');
+  const [fText, setFText] = useState('');
+  const [fTitle, setFTitle] = useState('');
+  const [fDeadline, setFDeadline] = useState('');
+  const [fPriority, setFPriority] = useState(2);
 
   const load = useCallback(async () => {
     if (!accessToken || !id) return;
@@ -75,6 +106,19 @@ export default function PlanPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // the people list is only needed once a dialog needs it
+  useEffect(() => {
+    if (!dialog || people.length > 0 || !accessToken) return;
+    getUsersForAssignment(accessToken).then((res) => {
+      const payload: any = res.data;
+      const list: any[] = Array.isArray(payload) ? payload : payload?.data ?? payload?.items ?? payload?.['$values'] ?? [];
+      setPeople(list
+        .map((u) => ({ id: String(u.id ?? u.Id ?? ''), name: String(u.fullName ?? u.FullName ?? u.email ?? u.Email ?? '') }))
+        .filter((u) => u.id && u.name)
+        .sort((a, b) => a.name.localeCompare(b.name)));
+    }).catch(() => setPeople([]));
+  }, [dialog, people.length, accessToken]);
+
   const locale = i18n.language === 'en' ? 'en-GB' : i18n.language === 'it' ? 'it-IT' : 'fr-FR';
   const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
   const dateTime = (iso: string) => new Date(iso).toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -90,6 +134,92 @@ export default function PlanPage() {
   }
 
   const h = plan.health;
+  const canReject = plan.status === 'Ongoing' && plan.progress >= 100;
+
+  const fail = (e: any, fallback: string) => setNotice({ ok: false, text: e?.response?.data?.error || fallback });
+
+  const openDialog = (d: Dialog) => {
+    setMenuOpen(false);
+    setFText('');
+    setFTitle('');
+    setFDeadline('');
+    setFPriority(2);
+    setFTo(d.kind === 'warnAction' ? d.to : plan.responsible.userId ?? '');
+    setDialog(d);
+  };
+
+  const submitDialog = async () => {
+    if (!accessToken || !dialog || !id) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      if (dialog.kind === 'warnPlan') {
+        await warnActionPlan(accessToken, id, fTo, fText.trim());
+        setNotice({ ok: true, text: `Avertissement envoyé à ${people.find((p) => p.id === fTo)?.name ?? 'la personne'}.` });
+      } else if (dialog.kind === 'warnAction') {
+        await warnPlanAction(accessToken, dialog.id, fText.trim());
+        setNotice({ ok: true, text: 'Avertissement envoyé.' });
+      } else if (dialog.kind === 'rejectPlan') {
+        await rejectActionPlan(accessToken, id, fText.trim());
+        setNotice({ ok: true, text: 'Plan renvoyé pour correction ; le responsable a été prévenu.' });
+      } else if (dialog.kind === 'rejectAction') {
+        await rejectPlanAction(accessToken, dialog.id, fText.trim());
+        setNotice({ ok: true, text: `« ${dialog.title} » renvoyée en cours ; la personne a été prévenue.` });
+      } else {
+        await createPlanAction(accessToken, {
+          title: fTitle.trim(),
+          description: fText.trim() || undefined,
+          deadline: fDeadline || undefined,
+          priority: fPriority,
+          assignedToId: fTo || undefined,
+          actionPlanId: id,
+        });
+        setNotice({ ok: true, text: `« ${fTitle.trim()} » ajoutée au plan.` });
+      }
+      setDialog(null);
+      await load();
+    } catch (e: any) {
+      fail(e, "L'opération a échoué.");
+      setDialog(null);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const askValidate = (a: PlanDetail['actions'][number]) => setAsk({
+    title: 'Valider la sous-action',
+    text: `« ${a.title} » sera verrouillée : son avancement ne pourra plus être modifié.`,
+    label: 'Valider',
+    run: async () => {
+      try { await validatePlanAction(accessToken!, a.id); setNotice({ ok: true, text: `« ${a.title} » validée.` }); await load(); }
+      catch (e: any) { fail(e, 'La validation a échoué.'); }
+    },
+  });
+
+  const askArchive = () => {
+    setMenuOpen(false);
+    setAsk({
+      title: 'Archiver le plan',
+      text: `« ${plan.title} » sera retiré des listes actives. L'archive le conserve et il peut être restauré.`,
+      label: 'Archiver',
+      danger: true,
+      run: async () => {
+        try { await archiveActionPlan(accessToken!, id!); navigate('/admin/action-plans'); }
+        catch (e: any) { fail(e, "L'archivage a échoué."); }
+      },
+    });
+  };
+
+  const runAsk = async () => {
+    if (!ask) return;
+    setBusy(true);
+    try { await ask.run(); } finally { setBusy(false); setAsk(null); }
+  };
+
+  const dialogReady = !dialog ? false
+    : dialog.kind === 'work' ? fTitle.trim().length >= 3
+    : dialog.kind === 'warnPlan' ? !!fTo && fText.trim().length >= 3
+    : fText.trim().length >= 3;
   const closed = plan.status === 'Closed' || plan.status === 'Archived';
   const healthTone = h.state === 'late' ? BAD : h.state === 'closedLate' ? ORANGE : h.state === 'noDeadline' ? MUTED : GOOD;
   const healthText = h.state === 'late' ? t('planPage.health.late', { count: h.lateDays })
@@ -133,8 +263,29 @@ export default function PlanPage() {
             <Link to={`/admin/claims/eight-d/${encodeURIComponent(plan.claim.id)}`} className={capaBtnSecondary}>{t('planPage.openClaim')}</Link>
           )}
           <button type="button" onClick={() => void load()} className={capaBtnSecondary}>{t('dashboard.refresh')}</button>
+          {plan.status !== 'Archived' && (
+            <div className="relative">
+              <button type="button" onClick={() => setMenuOpen((v) => !v)} aria-haspopup="menu" aria-expanded={menuOpen} className={capaBtnSecondary}>Gérer ▾</button>
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div role="menu" className="absolute right-0 mt-1 w-60 z-20 bg-white border border-slate-200 rounded-xl shadow-lg py-1 text-sm">
+                    <button role="menuitem" type="button" disabled={plan.status === 'Closed'} onClick={() => openDialog({ kind: 'warnPlan' })} className="w-full text-left px-3 py-2 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">Avertir la personne</button>
+                    <button role="menuitem" type="button" disabled={plan.status === 'Closed'} onClick={() => openDialog({ kind: 'work' })} className="w-full text-left px-3 py-2 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed">Ajouter du travail</button>
+                    <button role="menuitem" type="button" disabled={!canReject} onClick={() => openDialog({ kind: 'rejectPlan' })} className="w-full text-left px-3 py-2 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed" title={canReject ? undefined : 'Seul un plan terminé, en attente de validation, peut être rejeté'}>Rejeter (renvoyer pour correction)</button>
+                    <div className="my-1 border-t border-slate-100" />
+                    <button role="menuitem" type="button" onClick={askArchive} className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50">Archiver</button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
       </div>
+
+      {notice && (
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
+      )}
 
       {/* what blocks it */}
       {(h.waitingValidation > 0 || plan.lastRejectComment) && (
@@ -172,6 +323,19 @@ export default function PlanPage() {
                         </div>
                       </div>
                       <div className="shrink-0 text-right">
+                        {(a.state === 'waitingValidation' || a.state === 'open') && !closed && (
+                          <div className="flex justify-end gap-1.5 mb-1.5">
+                            {a.state === 'waitingValidation' && (
+                              <>
+                                <button type="button" onClick={() => askValidate(a)} className="px-2 py-0.5 text-[11px] font-semibold rounded-md text-white" style={{ background: NAVY }}>Valider</button>
+                                <button type="button" onClick={() => openDialog({ kind: 'rejectAction', id: a.id, title: a.title })} className="px-2 py-0.5 text-[11px] font-semibold rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50">Rejeter</button>
+                              </>
+                            )}
+                            {a.state === 'open' && a.responsible.userId && (
+                              <button type="button" onClick={() => openDialog({ kind: 'warnAction', id: a.id, title: a.title, to: a.responsible.userId ?? '' })} className="px-2 py-0.5 text-[11px] font-semibold rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50">Avertir</button>
+                            )}
+                          </div>
+                        )}
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
                           style={a.state === 'waitingValidation' ? { background: '#fff7ed', color: ORANGE }
                             : a.state === 'validated' ? { background: '#f0fdf4', color: GOOD }
@@ -239,6 +403,80 @@ export default function PlanPage() {
           </ul>
         )}
       </Card>
+
+      {ask && (
+        <ConfirmDialog title={ask.title} text={ask.text} confirmLabel={ask.label} danger={ask.danger} busy={busy} onConfirm={() => void runAsk()} onCancel={() => setAsk(null)} />
+      )}
+
+      {dialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !busy && setDialog(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-slate-900 m-0">
+              {dialog.kind === 'warnPlan' ? 'Avertir une personne'
+                : dialog.kind === 'warnAction' ? 'Avertir le responsable'
+                : dialog.kind === 'rejectPlan' ? 'Rejeter le plan'
+                : dialog.kind === 'rejectAction' ? 'Rejeter la sous-action'
+                : 'Ajouter du travail'}
+            </h3>
+            <p className="text-sm text-slate-500 mt-1 mb-3">
+              {dialog.kind === 'warnPlan' ? `Notification envoyée et gardée dans l'historique du plan « ${plan.title} ».`
+                : dialog.kind === 'warnAction' ? `À propos de « ${dialog.title} ».`
+                : dialog.kind === 'rejectPlan' ? `Le plan repasse en cours (90 %). Indiquez le motif : le responsable le recevra.`
+                : dialog.kind === 'rejectAction' ? `« ${dialog.title} » repasse en cours (75 %). Indiquez le motif : la personne le recevra.`
+                : `Une nouvelle sous-action est créée dans « ${plan.title} ».`}
+            </p>
+
+            {dialog.kind === 'work' && (
+              <>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Travail à réaliser</label>
+                <input value={fTitle} onChange={(e) => setFTitle(e.target.value)} maxLength={200} placeholder="Intitulé de la sous-action" className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-3" />
+              </>
+            )}
+
+            {(dialog.kind === 'warnPlan' || dialog.kind === 'work') && (
+              <>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">{dialog.kind === 'work' ? 'Responsable' : 'Destinataire'}</label>
+                <select value={fTo} onChange={(e) => setFTo(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm mb-3 bg-white">
+                  <option value="">{dialog.kind === 'work' ? 'Non assigné' : 'Choisir une personne…'}</option>
+                  {plan.responsible.userId && !people.some((p) => p.id === plan.responsible.userId) && (
+                    <option value={plan.responsible.userId}>{plan.responsible.name}</option>
+                  )}
+                  {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              </>
+            )}
+
+            {dialog.kind === 'work' && (
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Échéance</label>
+                  <input type="date" value={fDeadline} onChange={(e) => setFDeadline(e.target.value)} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Priorité</label>
+                  <select value={fPriority} onChange={(e) => setFPriority(Number(e.target.value))} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white">
+                    <option value={1}>Haute</option>
+                    <option value={2}>Moyenne</option>
+                    <option value={3}>Basse</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              {dialog.kind === 'work' ? 'Consignes (facultatif)' : dialog.kind.startsWith('reject') ? 'Motif' : 'Message'}
+            </label>
+            <textarea value={fText} onChange={(e) => setFText(e.target.value)} rows={4} maxLength={500} className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" />
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button type="button" disabled={busy} onClick={() => setDialog(null)} className="px-4 py-2 text-sm rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50">Annuler</button>
+              <button type="button" disabled={busy || !dialogReady} onClick={() => void submitDialog()} className="px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-50" style={{ background: NAVY }}>
+                {busy ? 'En cours…' : dialog.kind === 'work' ? 'Ajouter' : dialog.kind.startsWith('reject') ? 'Rejeter' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
