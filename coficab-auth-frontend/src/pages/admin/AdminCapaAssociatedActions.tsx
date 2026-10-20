@@ -40,7 +40,7 @@ function formatDate(iso?: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-export default function AdminCapaAssociatedActions({ embedded = false }: { embedded?: boolean }) {
+export default function AdminCapaAssociatedActions({ embedded = false, focus }: { embedded?: boolean; focus?: 'late' | 'noActions' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -52,7 +52,8 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
   const [q, setQ] = useState('');
   const [filterProcess, setFilterProcess] = useState('all');
   const [filterPlan, setFilterPlan] = useState(searchParams.get('planId') || 'all');
-  const [lateOnly, setLateOnly] = useState(false);
+  const [lateOnly, setLateOnly] = useState(focus === 'late');
+  const [noActionsOnly, setNoActionsOnly] = useState(focus === 'noActions');
   const [expanded, setExpanded] = useState<string | null>(searchParams.get('planId'));
   const [page, setPage] = useState(1);
 
@@ -147,9 +148,10 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
     });
     // "To handle": open plans that are late, have an action to validate, or have no detailed action
     return rows
+      .filter((g) => !noActionsOnly || g.actions.length === 0)
       .filter((g) => !g.plan.archived && g.plan.status !== 'closed' && (g.late > 0 || g.toValidate > 0 || g.actions.length === 0))
       .sort((a, b) => b.daysLate - a.daysLate || b.toValidate - a.toValidate);
-  }, [filteredActions, plans, q, filterPlan, filterProcess, lateOnly]);
+  }, [filteredActions, plans, q, filterPlan, filterProcess, lateOnly, noActionsOnly]);
 
   const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -217,7 +219,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
   }
 
   return (
-    <div className="text-slate-900 w-full min-w-0 max-w-full">
+    <div id="capa-focus-list" className="text-slate-900 w-full min-w-0 max-w-full">
       {embedded ? (
         <div className="flex justify-end mb-3">
           <button type="button" onClick={exportPdf} className={btn}>{t('common.exportPdf')}</button>
@@ -289,6 +291,10 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
         <label className="flex items-center gap-2 text-xs text-slate-700 pb-1 cursor-pointer select-none">
           <input type="checkbox" checked={lateOnly} onChange={(e) => { setLateOnly(e.target.checked); setPage(1); }} className="rounded border-slate-300" />
           {t('associatedActions.lateOnly')}
+        </label>
+        <label className="flex items-center gap-2 text-xs text-slate-700 pb-1 cursor-pointer select-none">
+          <input type="checkbox" checked={noActionsOnly} onChange={(e) => { setNoActionsOnly(e.target.checked); setPage(1); }} className="rounded border-slate-300" />
+          Sans action détaillée
         </label>
       </div>
 

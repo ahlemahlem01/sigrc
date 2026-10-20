@@ -139,7 +139,7 @@ const MONITOR_BADGE: Record<MonitorLevel, { bg: string; color: string }> = {
   cancelled: { bg: '#f1f5f9', color: '#64748b' },
 };
 
-export default function ActionFollowUpPage({ embedded = false }: { embedded?: boolean }) {
+export default function ActionFollowUpPage({ embedded = false, focus }: { embedded?: boolean; focus?: 'belated' | 'realized' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -148,7 +148,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
   const [error, setError] = useState<string | null>(null);
   const [rows, setRows] = useState<ActionRow[]>([]);
   const [view, setView] = useState<ViewMode>('monitoring');
-  const [tab, setTab] = useState<TabKey>('all');
+  const [tab, setTab] = useState<TabKey>(embedded && focus ? focus : 'all');
   const [q, setQ] = useState('');
   const [filterProcess, setFilterProcess] = useState('all');
   const [filterFrom, setFilterFrom] = useState('');
@@ -355,7 +355,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
   }
 
   return (
-    <div className="text-slate-900">
+    <div id="capa-focus-list" className="text-slate-900">
       <div className="max-w-7xl mx-auto">
         {!embedded && (
         <CapaPageHeader
@@ -408,7 +408,16 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
           ))}
         </div>}
 
-        <div className="flex flex-wrap gap-1.5 mb-3">
+        {embedded && tab !== 'all' && (
+          <div className="mb-3 flex items-center gap-2 text-xs">
+            <span className="text-slate-500">Filtre :</span>
+            <button type="button" onClick={() => setTab('all')} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold border" style={{ background: COFICAB, color: '#fff', borderColor: COFICAB }}>
+              {tabs.find((x) => x.key === tab)?.label} <span aria-hidden>×</span>
+            </button>
+          </div>
+        )}
+
+        <div className={embedded ? 'hidden' : 'flex flex-wrap gap-1.5 mb-3'}>
           {tabs.map((tb) => {
             const badgeCount = (() => {
               if (embedded) return todoCounts[tb.key as 'all' | 'belated' | 'realized' | 'watch'];
@@ -446,14 +455,14 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
         </div>
 
         <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-4 py-2.5 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+          <div className={`px-4 py-2.5 border-b border-slate-100 grid grid-cols-1 sm:grid-cols-2 ${embedded ? '' : 'lg:grid-cols-5'} gap-2`}>
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder={t('followUp.searchPlaceholder')}
               className={selectCls}
             />
-            <select value={filterProcess} onChange={(e) => setFilterProcess(e.target.value)} className={selectCls} aria-label={t('planDetail.department')}>
+            <select value={filterProcess} onChange={(e) => setFilterProcess(e.target.value)} className={embedded ? 'hidden' : selectCls} aria-label={t('planDetail.department')}>
               <option value="all">{t('audit.allDepartments')}</option>
               {processes.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
@@ -467,7 +476,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
               onChange={(e) => setFilterFrom(e.target.value)}
               aria-label={t('capaDash.dueFrom')}
               title={t('capaDash.dueFrom')}
-              className={selectCls}
+              className={embedded ? 'hidden' : selectCls}
             />
             <input
               type="date"
@@ -475,7 +484,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
               onChange={(e) => setFilterTo(e.target.value)}
               aria-label={t('capaDash.dueTo')}
               title={t('capaDash.dueTo')}
-              className={selectCls}
+              className={embedded ? 'hidden' : selectCls}
             />
           </div>
 
@@ -485,18 +494,18 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
                 <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
                   <th className="px-4 py-3 font-semibold">{t('followUp.colTitle')}</th>
                   <th className="px-4 py-3 font-semibold">{t('followUp.colResponsible')}</th>
-                  <th className="px-4 py-3 font-semibold">{t('followUp.colProcess')}</th>
-                  <th className="px-4 py-3 font-semibold">{t('followUp.colFrom')}</th>
+                  <th className={embedded ? 'hidden' : 'px-4 py-3 font-semibold'}>{t('followUp.colProcess')}</th>
+                  <th className={embedded ? 'hidden' : 'px-4 py-3 font-semibold'}>{t('followUp.colFrom')}</th>
                   <th className="px-4 py-3 font-semibold">{t('followUp.colTo')}</th>
                   <th className="px-4 py-3 font-semibold">{t('followUp.colStatus')}</th>
-                  <th className="px-4 py-3 font-semibold">{t('followUp.colMonitoring')}</th>
+                  <th className={embedded ? 'hidden' : 'px-4 py-3 font-semibold'}>{t('followUp.colMonitoring')}</th>
                   <th className="px-4 py-3 font-semibold text-right">{t('dashboard.colActions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-4 py-14 text-center text-slate-400">
+                    <td colSpan={embedded ? 5 : 8} className="px-4 py-14 text-center text-slate-400">
                       {t('followUp.empty')}
                     </td>
                   </tr>
@@ -515,12 +524,15 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
                           </div>
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-slate-700">{r.responsibleName}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-700">{r.process}</td>
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-600">{formatDate(r.dateFrom)}</td>
+                        <td className={embedded ? 'hidden' : 'px-4 py-3 whitespace-nowrap text-slate-700'}>{r.process}</td>
+                        <td className={embedded ? 'hidden' : 'px-4 py-3 whitespace-nowrap text-slate-600'}>{formatDate(r.dateFrom)}</td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           <span className={r.followStatus === 'belated' ? 'text-red-700 font-medium' : 'text-slate-700'}>
                             {formatDate(r.dateTo)}
                           </span>
+                          {embedded && r.followStatus === 'belated' && r.dateTo && (
+                            <div className="text-[11px] text-red-600 font-semibold">{Math.max(0, Math.floor((Date.now() - new Date(r.dateTo).getTime()) / 86400000))} j de retard</div>
+                          )}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -534,7 +546,7 @@ export default function ActionFollowUpPage({ embedded = false }: { embedded?: bo
                             )}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className={embedded ? 'hidden' : 'px-4 py-3'}>
                           <span
                             className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold"
                             style={{ background: mon.bg, color: mon.color }}
