@@ -29,20 +29,21 @@ const priorityToNumber = (p: PlanActionPriority): number => {
   return map[p];
 };
 
-const numberToPriority = (n: number): PlanActionPriority => {
-  const map: Record<number, PlanActionPriority> = { 0: 'low', 1: 'medium', 2: 'high' };
-  return map[n] || 'medium';
+// The API sends enum names ("High", "Closed"); numbers are still accepted.
+const numberToPriority = (n: number | string): PlanActionPriority => {
+  const v = String(n).trim().toLowerCase();
+  if (v === '0' || v === 'low') return 'low';
+  if (v === '2' || v === 'high') return 'high';
+  return 'medium';
 };
 
 // Backend numeric status -> frontend string status
-const numberToStatus = (n: number): ActionPlanStatus => {
-  const map: Record<number, ActionPlanStatus> = {
-    1: 'created',   // Created — not yet assigned
-    2: 'ongoing',   // Ongoing — in progress
-    3: 'closed',    // Closed — 100% but waiting for admin validation
-    4: 'archived',  // Archived
-  };
-  return map[n] || 'created';
+const numberToStatus = (n: number | string): ActionPlanStatus => {
+  const v = String(n).trim().toLowerCase();
+  if (v === '2' || v === 'ongoing') return 'ongoing';
+  if (v === '3' || v === 'closed') return 'closed';     // 100 % done, waiting for admin validation
+  if (v === '4' || v === 'archived') return 'archived';
+  return 'created';                                       // not yet assigned
 };
 
 // Frontend string status -> backend numeric status
