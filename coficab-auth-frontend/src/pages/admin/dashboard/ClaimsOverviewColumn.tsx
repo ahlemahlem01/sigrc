@@ -9,6 +9,7 @@ import type { ClaimsDashboard } from '../../../types/dashboardSummary';
 import KpiMiniCard from './KpiMiniCard';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, SEV_COLORS } from './dashPalette';
+import { severityKey } from '../../../utils/overviewSeverity';
 
 function severityBadge(sev: string) {
   const key = sev.toUpperCase();
@@ -48,9 +49,9 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
     closed: r.closed,
   }));
   const donut = (data?.severityDonut ?? []).map((d) => ({
-    name: d.name,
+    name: t(`overviewPage.severity.${severityKey(d.name)}`),
     value: d.count,
-    fill: SEV_COLORS[d.name.toUpperCase()] || '#64748b',
+    fill: SEV_COLORS[d.name.toUpperCase()] || SEV_COLORS[severityKey(d.name).toUpperCase()] || '#64748b',
   }));
 
   const tipStyle = { borderRadius: 10, fontSize: 12, border: `1px solid ${COFICAB.line}` };
@@ -175,7 +176,7 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0"
                         style={{ background: badge.bg, color: badge.color }}
                       >
-                        {row.severity}
+                        {t(`overviewPage.severity.${severityKey(row.severity)}`)}
                       </span>
                       <span className="text-[11px] font-bold tabular-nums shrink-0 w-12 text-right" style={{ color: COFICAB.danger }}>
                         {t('adminDashboard.daysLate', { count: row.overdueDays })}

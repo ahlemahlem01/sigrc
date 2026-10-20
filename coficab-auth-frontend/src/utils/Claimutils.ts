@@ -31,14 +31,14 @@ export function resolveClaimStatus(claim: any): string {
     if (c.includes('CLOTUREE') || c.includes('CLOSED') || c.includes('CLOTUR')) {
       return 'CLOTUREE';
     }
+    if (pendingKeywords.some(k => c.includes(k))) {
+      return 'PENDING_VALIDATION';
+    }
     if (c.includes('VALIDAT') || c.includes('VALIDE')) {
       return 'VALIDATED';
     }
     if (c.includes('REJECT') || c.includes('REJET')) {
       return 'REJECTED';
-    }
-    if (pendingKeywords.some(k => c.includes(k))) {
-      return 'PENDING_VALIDATION';
     }
   }
 

@@ -13,6 +13,7 @@ import {
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
+import { severityKey, type SeverityKey } from '../../utils/overviewSeverity';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 
@@ -28,6 +29,9 @@ const STATUSES: Record<string, { label: string; color: string }> = {
   OUVERTE: { label: 'claimStatus.open', color: 'bg-sky-50 text-sky-700' },
   ASSIGNED: { label: 'claimStatus.assigned', color: 'bg-indigo-50 text-indigo-700' },
   EN_ANALYSE: { label: 'claimStatus.inAnalysis', color: 'bg-blue-50 text-blue-700' },
+  PENDING_VALIDATION: { label: 'claimStatus.pendingValidation', color: 'bg-amber-50 text-amber-700' },
+  VALIDATED: { label: 'claimStatus.validated', color: 'bg-teal-50 text-teal-700' },
+  REJECTED: { label: 'claimStatus.rejected', color: 'bg-rose-50 text-rose-700' },
   CLOTUREE: { label: 'claimStatus.closed', color: 'bg-emerald-50 text-emerald-700' },
 };
 
@@ -95,7 +99,7 @@ export default function AdminClaimsList() {
     return claims.filter((claim) => {
       const status = resolveClaimStatus(claim);
       if (filterStatus !== 'all' && status !== filterStatus) return false;
-      if (filterSeverity !== 'all' && String(claim.severity || '').toLowerCase() !== filterSeverity) return false;
+      if (filterSeverity !== 'all' && severityKey(claim.severity) !== filterSeverity) return false;
       if (filterDeadline !== 'all') {
         const open = status !== 'CLOTUREE' && status !== 'DRAFT';
         const deadline = dayStamp(claim.deadline);
@@ -128,7 +132,12 @@ export default function AdminClaimsList() {
   const rangeStart = filtered.length === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
   const rangeEnd = Math.min(currentPage * PAGE_SIZE, filtered.length);
   const shimmer = 'ap-shimmer rounded-md';
-  const severities = Array.from(new Set(claims.map((c) => String(c.severity || '').trim()).filter(Boolean)));
+  const severities: { key: SeverityKey; label: string }[] = [
+    { key: 'critical', label: t('claimStatus.severityCritical') },
+    { key: 'high', label: t('claimStatus.severityHigh') },
+    { key: 'medium', label: t('claimStatus.severityMedium') },
+    { key: 'low', label: t('claimStatus.severityLow') },
+  ];
 
   return (
     <CapaPageShell>
@@ -190,7 +199,7 @@ export default function AdminClaimsList() {
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('claimEdit.severity')}</span>
             <select className={capaSelectCls} value={filterSeverity} onChange={(e) => { setFilterSeverity(e.target.value); setPage(1); }}>
               <option value="all">{t('claimFilters.allSeverities')}</option>
-              {severities.map((value) => <option key={value} value={value.toLowerCase()}>{value}</option>)}
+              {severities.map((sev) => <option key={sev.key} value={sev.key}>{sev.label}</option>)}
             </select>
           </label>
           <label className="block">
