@@ -89,10 +89,11 @@ export default function AdminCapaReportOfPlans() {
   }, [plans, t]);
 
   const attention = useMemo(() => {
-    const items: { key: string; label: string; plans: number; late: number; rate: number }[] = [];
+    const items: { key: string; label: string; plans: number; late: number; rate: number; depts: string[]; noActions: boolean }[] = [];
+    const deptsOf = (list: PlanRow[]) => Array.from(new Set(list.map((p) => (p.process && p.process !== '—' ? p.process : t('reportPlans.noDepartment'))))).sort();
     for (const dept of byDepartment) {
       if (dept.plans > 0 && dept.rate < 50) {
-        items.push({ key: `dept-${dept.name}`, label: dept.name, plans: dept.plans, late: dept.late, rate: dept.rate });
+        items.push({ key: `dept-${dept.name}`, label: dept.name, plans: dept.plans, late: dept.late, rate: dept.rate, depts: [dept.name], noActions: dept.actions === 0 });
       }
     }
     const types: { type: UiType; label: string; rate: number; late: number; plans: number }[] = [
@@ -120,7 +121,8 @@ export default function AdminCapaReportOfPlans() {
     ];
     for (const kind of types) {
       if (kind.plans > 0 && kind.rate < 50) {
-        items.push({ key: `type-${kind.type}`, label: kind.label, plans: kind.plans, late: kind.late, rate: kind.rate });
+        const ofType = plans.filter((p) => p.type === kind.type);
+        items.push({ key: `type-${kind.type}`, label: kind.label, plans: kind.plans, late: kind.late, rate: kind.rate, depts: deptsOf(ofType), noActions: ofType.every((p) => p.actions.length === 0) });
       }
     }
     return items.sort((a, b) => a.rate - b.rate || b.late - a.late);
@@ -316,7 +318,14 @@ export default function AdminCapaReportOfPlans() {
               attention.map((item) => (
                 <div key={item.key} className="border border-rose-200 bg-rose-50/60 rounded-2xl p-4">
                   <div className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate" title={item.label}>{item.label}</div>
-                  <div className="text-3xl font-bold text-rose-800 mt-1 tabular-nums">{item.rate}%</div>
+                  {item.noActions ? (
+                    <div className="mt-2 text-sm font-semibold text-rose-800">Aucune action détaillée</div>
+                  ) : (
+                    <div className="text-3xl font-bold text-rose-800 mt-1 tabular-nums">{item.rate}%</div>
+                  )}
+                  <div className="mt-2 text-[11px] text-slate-600" title={item.depts.join(', ')}>
+                    {t('planDetail.department')} : <span className="font-semibold text-slate-800">{item.depts.slice(0, 3).join(', ')}{item.depts.length > 3 ? ` +${item.depts.length - 3}` : ''}</span>
+                  </div>
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white text-slate-700">{t('reportPlans.plansCount', { count: item.plans })}</span>
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-white text-rose-700">{t('reportPlans.lateCount', { count: item.late })}</span>
