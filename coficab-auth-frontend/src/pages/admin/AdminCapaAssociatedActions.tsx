@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
+import { bulkAssignPlans, getUsersForAssignment } from '../../services/actionPlanService';
 import { FlatAction, loadCapaDataset, PlanRow, UiType } from './capaAnalytics';
 import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
@@ -56,6 +57,11 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
   const [noActionsOnly, setNoActionsOnly] = useState(focus === 'noActions');
   const [expanded, setExpanded] = useState<string | null>(searchParams.get('planId'));
   const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [people, setPeople] = useState<{ id: string; name: string }[]>([]);
+  const [assignee, setAssignee] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -152,6 +158,40 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
       .filter((g) => !g.plan.archived && g.plan.status !== 'closed' && (g.late > 0 || g.toValidate > 0 || g.actions.length === 0))
       .sort((a, b) => b.daysLate - a.daysLate || b.toValidate - a.toValidate);
   }, [filteredActions, plans, q, filterPlan, filterProcess, lateOnly, noActionsOnly]);
+
+  const toggle = (id: string) => setSelected((prev) => { const n = new Set(prev); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+
+  // the people list is only needed once someone starts selecting
+  useEffect(() => {
+    if (selected.size === 0 || people.length > 0 || !accessToken) return;
+    getUsersForAssignment(accessToken).then((res) => {
+      const payload: any = res.data;
+      const list: any[] = Array.isArray(payload) ? payload : payload?.data ?? payload?.items ?? payload?.['$values'] ?? [];
+      setPeople(list
+        .map((u) => ({ id: String(u.id ?? u.Id ?? ''), name: String(u.fullName ?? u.FullName ?? u.email ?? u.Email ?? '') }))
+        .filter((u) => u.id && u.name)
+        .sort((a, b) => a.name.localeCompare(b.name)));
+    }).catch(() => setPeople([]));
+  }, [selected.size, people.length, accessToken]);
+
+  const assignSelected = async () => {
+    if (!accessToken || !assignee || selected.size === 0) return;
+    const name = people.find((p) => p.id === assignee)?.name ?? '';
+    if (!window.confirm(`Assigner ${selected.size} plan(s) à ${name} ? L'ancien responsable sera conservé dans l'historique de chaque plan.`)) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      const { data } = await bulkAssignPlans(accessToken, Array.from(selected), assignee);
+      setNotice({ ok: true, text: `${data.assigned} plan(s) assigné(s) à ${name}${data.skipped ? `, ${data.skipped} ignoré(s) (déjà à cette personne ou clôturés)` : ''}.` });
+      setSelected(new Set());
+      setAssignee('');
+      await load();
+    } catch {
+      setNotice({ ok: false, text: "L'assignation a échoué. Aucun plan n'a été modifié ou une partie seulement : actualisez pour vérifier." });
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -298,6 +338,21 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
         </label>
       </div>
 
+      {notice && (
+        <div className={`mb-3 px-3 py-2 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
+      )}
+      {selected.size > 0 && (
+        <div className="mb-3 px-4 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50 flex flex-wrap items-center gap-3 text-sm">
+          <span className="font-semibold text-slate-800">{selected.size} plan(s) sélectionné(s)</span>
+          <select value={assignee} onChange={(e) => setAssignee(e.target.value)} className="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white text-xs" aria-label="Nouveau responsable">
+            <option value="">Assigner à…</option>
+            {people.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+          </select>
+          <button type="button" disabled={!assignee || busy} onClick={() => void assignSelected()} className={`${btnPrimary} disabled:opacity-40`}>{busy ? 'Assignation…' : 'Assigner'}</button>
+          <button type="button" onClick={() => setSelected(new Set())} className="text-xs font-semibold text-slate-600 underline">Tout désélectionner</button>
+        </div>
+      )}
+
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="px-5 py-3 border-b border-slate-100 flex items-baseline justify-between gap-3">
           <h2 className="text-base font-semibold text-slate-900">Plans à traiter</h2>
@@ -307,6 +362,15 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
+                <th className="pl-4 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    aria-label="Sélectionner les plans de la page"
+                    checked={pageGroups.length > 0 && pageGroups.every((g) => selected.has(g.plan.id))}
+                    onChange={(e) => setSelected((prev) => { const n = new Set(prev); pageGroups.forEach((g) => (e.target.checked ? n.add(g.plan.id) : n.delete(g.plan.id))); return n; })}
+                    className="rounded border-slate-300"
+                  />
+                </th>
                 <th className="px-4 py-3 font-semibold">Plan</th>
                 <th className="px-4 py-3 font-semibold">Type</th>
                 <th className="px-4 py-3 font-semibold">Département</th>
@@ -321,12 +385,15 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
             <tbody>
               {groups.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-slate-400">{t('associatedActions.empty')}</td>
+                  <td colSpan={10} className="px-4 py-12 text-center text-slate-400">{t('associatedActions.empty')}</td>
                 </tr>
               ) : (
                 pageGroups.map((g) => (
                   <React.Fragment key={g.plan.id}>
                     <tr className="border-t border-slate-100 hover:bg-slate-50/80">
+                      <td className="pl-4 py-3 w-8">
+                        <input type="checkbox" aria-label="Sélectionner ce plan" checked={selected.has(g.plan.id)} onChange={() => toggle(g.plan.id)} className="rounded border-slate-300" />
+                      </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-slate-900 truncate" title={fixMojibake(g.plan.title)}>
                           {fixMojibake(g.plan.title)}
@@ -373,7 +440,7 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
                     </tr>
                     {expanded === g.plan.id && (
                       <tr className="bg-slate-50/70">
-                        <td colSpan={9} className="px-4 py-3">
+                        <td colSpan={10} className="px-4 py-3">
                           <table className="w-full text-sm bg-white border border-slate-200 rounded-lg overflow-hidden">
                             <thead>
                               <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">

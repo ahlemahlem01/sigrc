@@ -392,6 +392,46 @@ public class ActionPlanController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Gives the same responsible to several plans at once; each plan goes through the normal update, so it is logged in its history.</summary>
+    [HttpPost("bulk-assign")]
+    public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        var by = GetCurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+        if (string.IsNullOrWhiteSpace(dto.UserId) || dto.PlanIds is not { Count: > 0 and <= 200 })
+            return BadRequest(new { error = "Choisissez un responsable et entre 1 et 200 plans." });
+
+        var visible = await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin());
+        var assigned = 0;
+        var skipped = 0;
+        foreach (var id in dto.PlanIds.Distinct())
+        {
+            var plan = visible.Contains(id) ? await _actionPlanService.GetByIdAsync(id) : null;
+            if (plan is null || plan.Status is ActionPlanStatus.Closed or ActionPlanStatus.Archived
+                || string.Equals(plan.AssignedToId, dto.UserId, StringComparison.OrdinalIgnoreCase))
+            {
+                skipped++;
+                continue;
+            }
+
+            await _actionPlanService.UpdateAsync(id, new UpdateActionPlanDto
+            {
+                Title = plan.Title,
+                Description = plan.Description,
+                Status = plan.Status,
+                Type = plan.Type,
+                OrganizationId = plan.OrganizationId,
+                DepartmentId = plan.DepartmentId,
+                AssignedToId = dto.UserId,
+                Deadline = plan.Deadline,
+            }, by);
+            assigned++;
+        }
+
+        return Ok(new { assigned, skipped });
+    }
+
     // ============================================================
     // ASSIGNATION
     // ============================================================

@@ -54,6 +54,9 @@ export const updateActionPlan = (token: string, id: string, data: {
   claimId?: string;
 }) => axios.put(`${BASE_URL}/actionplan/${id}`, data, getHeaders(token));
 
+export const bulkAssignPlans = (token: string, planIds: string[], userId: string) =>
+  axios.post<{ assigned: number; skipped: number }>(`${BASE_URL}/actionplan/bulk-assign`, { planIds, userId }, getHeaders(token));
+
 export const archiveActionPlan = (token: string, id: string) =>
   axios.delete(`${BASE_URL}/actionplan/${id}`, getHeaders(token));
 
