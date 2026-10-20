@@ -21,7 +21,7 @@ function delta(f: CapaFigure, unit = '', goodWhenUp = true) {
   return { text: `${up ? '+' : ''}${d}${unit} vs période précédente`, tone: up === goodWhenUp ? GOOD : BAD };
 }
 
-function Stat({ title, value, unit, f, goodWhenUp = true }: { title: string; value: number | null; unit?: string; f: CapaFigure; goodWhenUp?: boolean }) {
+function Stat({ title, value, unit, f, goodWhenUp = true, days }: { title: string; value: number | null; unit?: string; f: CapaFigure; goodWhenUp?: boolean; days: number }) {
   const d = delta(f, unit, goodWhenUp);
   return (
     <div className={card}>
@@ -29,7 +29,7 @@ function Stat({ title, value, unit, f, goodWhenUp = true }: { title: string; val
       <div className="mt-1.5 text-[26px] font-extrabold leading-none tabular-nums" style={{ color: NAVY }}>
         {value == null ? '—' : `${value}${unit ?? ''}`}
       </div>
-      <div className="text-[11px] mt-1.5" style={{ color: d?.tone ?? GREY }}>{d?.text ?? 'Pas de période précédente'}</div>
+      <div className="text-[11px] mt-1.5" style={{ color: d?.tone ?? GREY }}>{value == null ? `Aucun plan clôturé sur ${days} j` : d?.text ?? 'Pas de période précédente'}</div>
     </div>
   );
 }
@@ -40,14 +40,29 @@ export default function CapaFlowOverview() {
   const { param: scopeParam } = useOrganizationScope();
   const [plans, setPlans] = useState<PlanRow[] | null>(null);
   const [ind, setInd] = useState<CapaIndicators | null>(null);
+  const [days, setDays] = useState(90);
+  const [chosen, setChosen] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
     let live = true;
     loadCapaDataset(accessToken).then((d) => { if (live) setPlans(d.plans); }).catch(() => { if (live) setPlans([]); });
-    fetchCapaIndicators(accessToken, 90, scopeParam).then((d) => { if (live) setInd(d); }).catch(() => { if (live) setInd(null); });
     return () => { live = false; };
   }, [accessToken, scopeParam]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let live = true;
+    fetchCapaIndicators(accessToken, days, scopeParam)
+      .then((d) => {
+        if (!live) return;
+        // nothing closed over 90 days: show the year instead of empty figures, unless the user picked the period
+        if (days === 90 && !chosen && d.kpis.avgClosureDays.current == null && d.kpis.onTimeRate.current == null) setDays(365);
+        else setInd(d);
+      })
+      .catch(() => { if (live) setInd(null); });
+    return () => { live = false; };
+  }, [accessToken, scopeParam, days, chosen]);
 
   const funnel = useMemo(() => {
     const list = plans ?? [];
@@ -61,6 +76,7 @@ export default function CapaFlowOverview() {
   if (!plans || !ind) return <div className="h-40 rounded-2xl bg-slate-100 animate-pulse" />;
 
   const k = ind.kpis;
+  const periodLabel = days >= 365 ? '12 mois' : `${days} j`;
   const months = ind.monthly.slice(-6);
   const maxMonth = Math.max(1, ...months.flatMap((m) => [m.opened, m.closed]));
   const depts = [...ind.byDepartment].filter((d) => d.latePlans > 0).sort((a, b) => b.latePlans - a.latePlans).slice(0, 5);
@@ -79,7 +95,14 @@ export default function CapaFlowOverview() {
   return (
     <div className="flex flex-col gap-4 mb-4">
       <div className={card}>
-        <div className={label}>Déroulement des plans</div>
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className={label}>Déroulement des plans</div>
+          <div className="inline-flex p-0.5 rounded-lg bg-slate-100 text-xs" role="group" aria-label="Période des indicateurs">
+            {[[30, '30 j'], [90, '90 j'], [365, '12 mois']].map(([v, l]) => (
+              <button key={v} type="button" aria-pressed={days === v} onClick={() => { setChosen(true); setDays(Number(v)); }} className="px-2.5 py-1 rounded-md font-semibold" style={days === v ? { background: '#fff', color: NAVY, boxShadow: '0 1px 2px rgba(0,0,0,.08)' } : { color: '#64748b' }}>{l}</button>
+            ))}
+          </div>
+        </div>
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
           {stages.map((s, i) => (
             <div key={s.name} className="relative rounded-xl border border-slate-200 px-4 py-3" style={{ borderLeft: `4px solid ${s.tone}` }}>
@@ -96,10 +119,10 @@ export default function CapaFlowOverview() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat title="Ouverts (90 j)" value={k.opened.current} f={k.opened} />
-        <Stat title="Clôturés (90 j)" value={k.closed.current} f={k.closed} />
-        <Stat title="Délai moyen de clôture" value={k.avgClosureDays.current} unit=" j" f={k.avgClosureDays} goodWhenUp={false} />
-        <Stat title="Clôturés dans les délais" value={k.onTimeRate.current} unit=" %" f={k.onTimeRate} />
+        <Stat days={days} title={`Ouverts (${periodLabel})`} value={k.opened.current} f={k.opened} />
+        <Stat days={days} title={`Clôturés (${periodLabel})`} value={k.closed.current} f={k.closed} />
+        <Stat days={days} title="Délai moyen de clôture" value={k.avgClosureDays.current} unit=" j" f={k.avgClosureDays} goodWhenUp={false} />
+        <Stat days={days} title="Clôturés dans les délais" value={k.onTimeRate.current} unit=" %" f={k.onTimeRate} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
