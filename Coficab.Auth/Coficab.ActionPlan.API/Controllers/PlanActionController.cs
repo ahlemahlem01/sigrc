@@ -163,6 +163,28 @@ public class PlanActionController : ControllerBase
         }
     }
 
+    /// <summary>Administrators only: validates a sub-action that was finished at 100 %.</summary>
+    [HttpPost("{id}/validate")]
+    public async Task<IActionResult> Validate(Guid id, [FromBody] ValidatePlanActionDto? dto)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        var userId = CurrentUserId() ?? "system";
+
+        try
+        {
+            await _service.ValidateAsync(id, userId, dto?.Note);
+            return Ok(new { message = "Sous-action validée." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Sous-action non trouvée." });
+        }
+    }
+
     [HttpDelete("{id}")]
     public async Task<IActionResult> Archive(Guid id)
     {

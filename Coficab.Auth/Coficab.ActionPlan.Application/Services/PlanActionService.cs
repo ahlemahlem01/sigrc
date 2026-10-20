@@ -160,6 +160,51 @@ public class PlanActionService : IPlanActionService
         await CheckAndCloseActionPlanAsync(action.ActionPlanId, updatedBy);
     }
 
+    public async Task ValidateAsync(Guid id, string validatedBy, string? note)
+    {
+        var action = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"PlanAction {id} not found");
+
+        if (action.Progress == ActionProgress.Validated)
+            throw new InvalidOperationException("Cette sous-action est déjà validée.");
+        if (action.Progress == ActionProgress.Cancelled)
+            throw new InvalidOperationException("Cette sous-action est annulée.");
+        if (action.Progress != ActionProgress.Hundred)
+            throw new InvalidOperationException("Seule une sous-action terminée à 100 % peut être validée.");
+
+        var now = DateTime.UtcNow;
+        var history = new PlanActionHistory
+        {
+            Id = Guid.NewGuid(),
+            PlanActionId = id,
+            ChangedBy = validatedBy,
+            OldProgress = ActionProgress.Hundred,
+            NewProgress = ActionProgress.Validated,
+            Note = string.IsNullOrWhiteSpace(note) ? "Validée par l'administrateur." : note,
+            CreatedAt = now,
+            CreatedBy = validatedBy,
+            UpdatedAt = now,
+            UpdatedBy = validatedBy
+        };
+
+        action.Progress = ActionProgress.Validated;
+        action.UpdatedBy = validatedBy;
+        action.UpdatedAt = now;
+
+        await _repo.UpdateAsync(action);
+        await _repo.AddHistoryAsync(history);
+
+        if (!string.IsNullOrEmpty(action.AssignedToId) && action.AssignedToId != validatedBy)
+        {
+            await _notificationService.NotifyAsync(
+                action.AssignedToId,
+                "action_validated",
+                "Sous-action validée",
+                $"La sous-action « {action.Title} » a été validée.",
+                action.ActionPlanId);
+        }
+    }
+
     public async Task ArchiveAsync(Guid id, string archivedBy)
         => await _repo.ArchiveAsync(id, archivedBy);
 

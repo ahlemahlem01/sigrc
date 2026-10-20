@@ -16,6 +16,8 @@ public interface IPlanActionService
 
     // SINGLE UpdateProgress - avec DTO pour l'historique
     Task UpdateProgressAsync(Guid id, UpdateProgressDto dto, string updatedBy);
+    /// <summary>An administrator validates a sub-action finished at 100 %; it is then locked.</summary>
+    Task ValidateAsync(Guid id, string validatedBy, string? note);
 
     Task ArchiveAsync(Guid id, string archivedBy);
     Task RestoreAsync(Guid id, string restoredBy);
