@@ -470,13 +470,17 @@ export default function FrontActionPlanDetail() {
         }
         .cofi-apd-action-card:hover { border-color: #e2e8f0; box-shadow: 0 4px 12px rgba(0,0,0,.05); }
         .cofi-apd-action-card:last-child { margin-bottom: 0; }
+        .cofi-apd-action-card.pending { border-color: #fde68a; background: #fffbeb; }
         .cofi-apd-action-card.done { border-color: #bbf7d0; background: #f0fdf4; }
 
         .cofi-apd-action-top {
           display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
         }
         .cofi-apd-action-name { font-size: 14px; font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+        .cofi-apd-action-card.pending .cofi-apd-action-name { color: #b45309; }
         .cofi-apd-action-card.done .cofi-apd-action-name { color: #15803d; }
+        .cofi-apd-action-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+        .cofi-apd-action-title-row .cofi-apd-action-name { margin-bottom: 0; }
         .cofi-apd-action-desc-text { font-size: 13px; color: #64748b; line-height: 1.5; }
         .cofi-apd-priority-pill {
           padding: 4px 12px; border-radius: 100px;
@@ -497,6 +501,8 @@ export default function FrontActionPlanDetail() {
         .cofi-apd-action-prog-fill {
           height: 100%; background: #000168; border-radius: 4px; transition: width .4s;
         }
+        .cofi-apd-action-card.pending .cofi-apd-action-prog-fill { background: #f59e0b; }
+        .cofi-apd-action-card.pending .cofi-apd-action-prog-label { color: #b45309; }
         .cofi-apd-action-card.done .cofi-apd-action-prog-fill { background: #16a34a; }
         .cofi-apd-action-prog-label {
           font-size: 12px; font-weight: 700; color: #000168; min-width: 34px; text-align: right;
@@ -687,27 +693,29 @@ export default function FrontActionPlanDetail() {
               return (
                 <div
                   key={action.id}
-                  className={`cofi-apd-action-card${isDone ? ' done' : ''}`}
+                  className={`cofi-apd-action-card${action.progressRaw === 101 ? ' done' : isDone ? ' pending' : ''}`}
                   style={isLate ? { borderColor: '#fecaca', background: '#fff5f5', borderLeft: '4px solid #dc2626' } : undefined}
                 >
                   <div className="cofi-apd-action-top">
                     <div>
-                      <div
-                        className="cofi-apd-action-name"
-                        style={isLate ? { color: '#b91c1c' } : undefined}
-                      >
-                        {action.progressRaw === 101 ? '✓ ' : ''}{action.title}
-                        {isLate ? ` · ${t('planDetail.late')}` : ''}
+                      <div className="cofi-apd-action-title-row">
+                        <div
+                          className="cofi-apd-action-name"
+                          style={isLate ? { color: '#b91c1c' } : undefined}
+                        >
+                          {action.progressRaw === 101 ? '✓ ' : ''}{action.title}
+                          {isLate ? ` · ${t('planDetail.late')}` : ''}
+                        </div>
+                        {action.progressRaw === 101 ? (
+                      <span className="cofi-apd-priority-pill" style={{ background: '#dcfce7', color: '#15803d' }}>Validée</span>
+                    ) : isDone ? (
+                      <span className="cofi-apd-priority-pill" style={{ background: '#fef3c7', color: '#b45309' }}>À valider</span>
+                    ) : null}
                       </div>
                       {action.description?.trim() && (
                         <div className="cofi-apd-action-desc-text">{action.description}</div>
                       )}
                     </div>
-                    {action.progressRaw === 101 ? (
-                      <span className="cofi-apd-priority-pill" style={{ background: '#dcfce7', color: '#15803d' }}>Validée</span>
-                    ) : isDone ? (
-                      <span className="cofi-apd-priority-pill" style={{ background: '#fef3c7', color: '#b45309' }}>À valider</span>
-                    ) : null}
                     <span className="cofi-apd-priority-pill"
                       style={{ background: pColor.bg, color: pColor.text }}>
                       {PRIORITY_LABELS[action.priority] ? t(PRIORITY_LABELS[action.priority]) : `P${action.priority}`}

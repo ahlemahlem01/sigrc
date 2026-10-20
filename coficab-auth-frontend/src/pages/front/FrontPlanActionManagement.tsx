@@ -520,7 +520,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                     </div>
                     <div className="mt-2 flex items-center gap-2 max-w-xs">
                       <div className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, action.progress ?? 0)}%`, background: (action.progressRaw ?? 0) >= 100 ? '#2f855a' : '#1a237e' }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, action.progress ?? 0)}%`, background: (action.progressRaw ?? 0) === 101 ? '#2f855a' : (action.progressRaw ?? 0) === 100 ? '#f59e0b' : '#1a237e' }} />
                       </div>
                       <span className="text-[11px] tabular-nums text-gray-600">
                         {(action.progressRaw ?? 0) === 101 ? 'Validée' : (action.progressRaw ?? 0) === 102 ? 'Annulée' : `${action.progress ?? 0} %`}
@@ -536,7 +536,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                         type="button"
                         disabled={validatingId === action.id}
                         onClick={() => void handleValidate(action)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#1a237e] text-white hover:bg-[#0d1642] disabled:opacity-50"
                       >
                         {validatingId === action.id ? 'Validation…' : 'Valider'}
                       </button>
