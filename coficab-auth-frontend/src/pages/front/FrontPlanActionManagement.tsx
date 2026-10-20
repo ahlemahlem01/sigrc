@@ -1,6 +1,6 @@
 // src/pages/front/FrontPlanActionManagement.tsx
 import React, { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   getPlanActions,
@@ -10,6 +10,7 @@ import {
   reorderPlanActions,
   getUsersForAssignment,
   getActionPlanById,
+  validatePlanAction,
 } from '../../services/actionPlanService';
 import { PlanAction, ActionPlanStatus, User, PlanActionPriority } from './action-plan.types';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
@@ -65,7 +66,10 @@ const statusToNumber = (status: ActionPlanStatus): number => {
 export const FrontPlanActionManagement: React.FC = () => {
   const { t } = useTranslation();
   const { actionPlanId } = useParams<{ actionPlanId: string }>();
-  const { accessToken } = useAuth();
+  const { accessToken, hasRole } = useAuth();
+  const canValidate = hasRole('admin') || hasRole('superadmin');
+  const [validatingId, setValidatingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const [planActions, setPlanActions] = useState<PlanAction[]>([]);
   const [users, setUsers]             = useState<User[]>([]);
@@ -73,7 +77,7 @@ export const FrontPlanActionManagement: React.FC = () => {
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [isCreating, setIsCreating]   = useState(false);
   const [historyActionId, setHistoryActionId] = useState<string | null>(null);
-  const [plan, setPlan] = useState<{ title: string; code?: string; department?: string; deadline?: string; status?: string } | null>(null);
+  const [plan, setPlan] = useState<{ title: string; code?: string; department?: string; deadline?: string; status?: string; claimId?: string } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -110,10 +114,26 @@ export const FrontPlanActionManagement: React.FC = () => {
     getActionPlanById(accessToken, actionPlanId)
       .then((res) => {
         const p: any = res.data?.data ?? res.data;
-        setPlan({ title: String(p.title ?? p.Title ?? ''), code: p.code ?? p.Code, department: p.departmentName ?? p.DepartmentName, deadline: p.deadline ?? p.Deadline, status: String(p.status ?? p.Status ?? '') });
+        setPlan({ title: String(p.title ?? p.Title ?? ''), code: p.code ?? p.Code, department: p.departmentName ?? p.DepartmentName, deadline: p.deadline ?? p.Deadline, status: String(p.status ?? p.Status ?? ''), claimId: p.claimId ?? p.ClaimId ?? undefined });
       })
       .catch(() => setPlan(null));
   }, [actionPlanId, accessToken]);
+
+  const handleValidate = async (action: PlanAction) => {
+    if (!accessToken) return;
+    if (!window.confirm(`Valider la sous-action « ${action.title} » ? Elle sera verrouillée : son avancement ne pourra plus être modifié.`)) return;
+    setValidatingId(action.id);
+    setNotice(null);
+    try {
+      await validatePlanAction(accessToken, action.id);
+      setNotice({ ok: true, text: `Sous-action « ${action.title} » validée.` });
+      await loadData();
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.response?.data?.error || 'La validation a échoué.' });
+    } finally {
+      setValidatingId(null);
+    }
+  };
 
   const toggleDetails = (id: string) => setOpenId((cur) => (cur === id ? null : id));
 
@@ -300,6 +320,17 @@ export const FrontPlanActionManagement: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-500">{t('planActionsMgmt.planId')} : {actionPlanId}</p>
               )}
             </div>
+            <div className="flex items-center gap-2 flex-wrap justify-end">
+            {actionPlanId && (
+              <Link to={`/pages/front/action-plans/${actionPlanId}`} className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+                Ouvrir le plan
+              </Link>
+            )}
+            {plan?.claimId && (
+              <Link to={`/pages/front/quality-analyses/8d/${encodeURIComponent(String(plan.claimId))}`} className="px-3 py-2 text-sm font-medium rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+                Dossier qualité
+              </Link>
+            )}
             {!isCreating && (
               <button
                 onClick={startCreate}
@@ -311,11 +342,16 @@ export const FrontPlanActionManagement: React.FC = () => {
                 {t('planActionsMgmt.addAction')}
               </button>
             )}
+            </div>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        {notice && (
+          <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
+        )}
 
         {/* Create / Edit Form */}
         {(isCreating || editingId) && (
@@ -420,8 +456,8 @@ export const FrontPlanActionManagement: React.FC = () => {
                 key={action.id}
                 className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex-1 min-w-[260px]">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
                       <h4 className="font-medium text-gray-900">{action.title}</h4>
@@ -491,11 +527,24 @@ export const FrontPlanActionManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(action.progressRaw ?? 0) === 101 ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Validée</span>
+                    ) : (action.progressRaw ?? 0) === 100 && canValidate ? (
+                      <button
+                        type="button"
+                        disabled={validatingId === action.id}
+                        onClick={() => void handleValidate(action)}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50"
+                      >
+                        {validatingId === action.id ? 'Validation…' : 'Valider'}
+                      </button>
+                    ) : null}
                     <select
+                      disabled={(action.progressRaw ?? 0) === 101}
                       value={action.status}
                       onChange={(e) => handleStatusChange(action.id, e.target.value as ActionPlanStatus)}
-                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none"
+                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none disabled:opacity-60"
                     >
                       <option value="created">{t('planDetailFront.statusAwaitingAssignment')}</option>
                       <option value="ongoing">{t('status.ongoing')}</option>
@@ -550,6 +599,13 @@ export const FrontPlanActionManagement: React.FC = () => {
                       >
                         {openId === action.id ? 'Masquer' : 'Détails'}
                       </button>
+                      <Link
+                        to={`/pages/front/action-plans/${actionPlanId}`}
+                        className="px-2 py-1 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors"
+                        title="Voir cette sous-action dans la page du plan"
+                      >
+                        Dans le plan
+                      </Link>
                       <button
                         onClick={() => handleDelete(action.id)}
                         className="p-1 text-red-600 hover:text-red-800 transition-colors"

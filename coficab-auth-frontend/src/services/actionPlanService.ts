@@ -275,6 +275,10 @@ export const updatePlanActionProgress = async (
   );
 };
 
+/** Administrators: validates a sub-action finished at 100 % (it is then locked). */
+export const validatePlanAction = (token: string, planActionId: string, note?: string) =>
+  axios.post(`${BASE_URL}/planaction/${planActionId}/validate`, { note }, getHeaders(token));
+
 export const getPendingValidation = (token: string) =>
   axios.get(`${BASE_URL}/actionplan/pending-validation`, getHeaders(token));
 
