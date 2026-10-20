@@ -951,8 +951,8 @@
   },
   "reportPlans": {
     "eyebrow": "Analytics & reporting",
-    "title": "Plans report",
-    "subtitle": "Consolidated view of all action plans",
+    "title": "Action plans report",
+    "subtitle": "Summary of the plans and their sub-actions, then the sub-action detail on demand.",
     "export": "Export",
     "loadError": "Could not load the report",
     "totalPlans": "Total plans",
@@ -1017,6 +1017,7 @@
   },
   "actionsReport": {
     "eyebrow": "Analytics & reporting",
+    "sectionTitle": "Sub-action detail",
     "title": "Actions report",
     "subtitle": "On-demand report generator — period, filters and grouping",
     "loadError": "Could not load the actions report",

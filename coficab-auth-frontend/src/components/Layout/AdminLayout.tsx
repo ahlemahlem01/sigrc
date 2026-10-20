@@ -124,7 +124,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.actionPlans', icon: 'ti-file-description', path: '/admin/action-plans' },
       { label: 'adminNav.quality', icon: 'ti-clipboard-check', path: '/admin/claims/list' },
-      { label: 'adminNav.reporting', icon: 'ti-chart-bar', path: '/admin/action-plans/report?tab=actions' },
+      { label: 'adminNav.reporting', icon: 'ti-chart-bar', path: '/admin/action-plans/report' },
     ],
   },
   {

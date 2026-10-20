@@ -83,7 +83,7 @@ function defaultCriteria(): Criteria {
   };
 }
 
-export default function AdminCapaActionsReport() {
+export default function AdminCapaActionsReport({ embedded = false }: { embedded?: boolean }) {
   const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -349,11 +349,13 @@ export default function AdminCapaActionsReport() {
   if (loading) {
     return (
       <div className="text-slate-900">
-        <CapaPageHeader
-          eyebrow={t('actionsReport.eyebrow')}
-          title={t('actionsReport.title')}
-          subtitle={t('actionsReport.subtitle')}
-        />
+        {!embedded && (
+          <CapaPageHeader
+            eyebrow={t('actionsReport.eyebrow')}
+            title={t('actionsReport.title')}
+            subtitle={t('actionsReport.subtitle')}
+          />
+        )}
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <ListSkeleton rows={8} />
         </div>
@@ -361,14 +363,8 @@ export default function AdminCapaActionsReport() {
     );
   }
 
-  return (
-    <div className="text-slate-900 max-w-7xl mx-auto">
-      <CapaPageHeader
-        eyebrow={t('actionsReport.eyebrow')}
-        title={t('actionsReport.title')}
-        subtitle={t('actionsReport.subtitle')}
-        actions={
-          <>
+  const headerButtons = (
+    <>
             <button type="button" onClick={() => void load()} className={capaBtnSecondary}>
               {t('dashboard.refresh')}
             </button>
@@ -389,8 +385,26 @@ export default function AdminCapaActionsReport() {
               {t('common.exportPdf')}
             </button>
           </>
-        }
-      />
+  );
+
+  return (
+    <div className={embedded ? 'text-slate-900' : 'text-slate-900 max-w-7xl mx-auto'}>
+      {embedded ? (
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-lg font-bold text-[#000168] m-0">{t('actionsReport.sectionTitle')}</h2>
+            <p className="text-sm text-slate-500 mt-1 mb-0">{t('actionsReport.subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap">{headerButtons}</div>
+        </div>
+      ) : (
+        <CapaPageHeader
+          eyebrow={t('actionsReport.eyebrow')}
+          title={t('actionsReport.title')}
+          subtitle={t('actionsReport.subtitle')}
+          actions={headerButtons}
+        />
+      )}
 
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>

@@ -951,8 +951,8 @@
   },
   "reportPlans": {
     "eyebrow": "Analyses & rapports",
-    "title": "Rapport des plans",
-    "subtitle": "Vue consolidée de tous les plans d'action",
+    "title": "Rapport des plans d'action",
+    "subtitle": "Synthèse des plans et de leurs sous-actions, puis détail des sous-actions à la demande.",
     "export": "Exporter",
     "loadError": "Impossible de charger le rapport",
     "totalPlans": "Total des plans",
@@ -1017,6 +1017,7 @@
   },
   "actionsReport": {
     "eyebrow": "Analyses & rapports",
+    "sectionTitle": "Détail des sous-actions",
     "title": "Rapport d’actions",
     "subtitle": "Générateur de rapport à la demande — période, filtres et groupement",
     "loadError": "Impossible de charger le rapport d'actions",

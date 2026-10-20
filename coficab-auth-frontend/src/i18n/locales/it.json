@@ -951,8 +951,8 @@
   },
   "reportPlans": {
     "eyebrow": "Analisi e report",
-    "title": "Report piani",
-    "subtitle": "Vista consolidata di tutti i piani d’azione",
+    "title": "Report dei piani d'azione",
+    "subtitle": "Sintesi dei piani e delle loro sotto-azioni, poi dettaglio delle sotto-azioni su richiesta.",
     "export": "Esporta",
     "loadError": "Impossibile caricare il report",
     "totalPlans": "Piani totali",
@@ -1017,6 +1017,7 @@
   },
   "actionsReport": {
     "eyebrow": "Analisi e report",
+    "sectionTitle": "Dettaglio delle sotto-azioni",
     "title": "Report azioni",
     "subtitle": "Generatore di report su richiesta — periodo, filtri e raggruppamento",
     "loadError": "Impossibile caricare il report azioni",
