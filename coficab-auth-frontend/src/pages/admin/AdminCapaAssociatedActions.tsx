@@ -100,6 +100,18 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
       byPlan.get(a.planId)!.push(a);
     }
     const rows: PlanGroup[] = [];
+    // A plan without any detailed action is still a plan to follow: its delay is the plan's own deadline.
+    const term = q.trim().toLowerCase();
+    const now = Date.now();
+    plans.forEach((p) => {
+      if (byPlan.has(p.id) || p.archived || p.status === 'closed') return;
+      if (filterPlan !== 'all' && p.id !== filterPlan) return;
+      if (filterProcess !== 'all' && p.process !== filterProcess) return;
+      const planLate = !!p.deadline && new Date(p.deadline).getTime() < now;
+      if (lateOnly && !planLate) return;
+      if (term && ![p.title, p.code, p.process, p.claimId, p.assignedToName].some((v) => (v || '').toLowerCase().includes(term))) return;
+      rows.push({ plan: p, actions: [], late: planLate ? 1 : 0, open: 0, closed: 0 });
+    });
     Array.from(byPlan.entries()).forEach(([planId, list]) => {
       const plan = planMap.get(planId) || {
         id: planId,
@@ -121,7 +133,7 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
       });
     });
     return rows.sort((a, b) => b.late - a.late || b.open - a.open || b.actions.length - a.actions.length);
-  }, [filteredActions, plans]);
+  }, [filteredActions, plans, q, filterPlan, filterProcess, lateOnly]);
 
   const pageCount = Math.max(1, Math.ceil(groups.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -347,6 +359,9 @@ export default function AdminCapaAssociatedActions({ embedded = false }: { embed
                               </tr>
                             </thead>
                             <tbody>
+                              {g.actions.length === 0 && (
+                                <tr><td colSpan={5} className="px-3 py-3 text-slate-500">Aucune action détaillée : le retard est celui du plan.</td></tr>
+                              )}
                               {g.actions.map((a) => (
                                 <tr key={a.id} className="border-t border-slate-100">
                                   <td className="px-3 py-2 font-medium text-slate-900 max-w-[240px] truncate">{fixMojibake(a.title)}</td>
