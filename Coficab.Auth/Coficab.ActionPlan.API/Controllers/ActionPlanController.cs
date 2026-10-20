@@ -392,6 +392,30 @@ public class ActionPlanController : ControllerBase
         return NoContent();
     }
 
+    /// <summary>Administrators: sends a warning about a plan to one person; it is kept in the plan history.</summary>
+    [HttpPost("{id:guid}/warn")]
+    public async Task<IActionResult> Warn(Guid id, [FromBody] WarnPlanDto dto)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        var by = GetCurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+        if (string.IsNullOrWhiteSpace(dto.UserId) || string.IsNullOrWhiteSpace(dto.Message) || dto.Message.Length > 500)
+            return BadRequest(new { error = "Choisissez un destinataire et un message de 500 caractères maximum." });
+
+        var visible = await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin());
+        if (!visible.Contains(id)) return NotFound(new { error = "Plan non trouvé." });
+
+        try
+        {
+            await _actionPlanService.WarnAsync(id, dto.UserId.Trim(), dto.Message.Trim(), by);
+            return Ok(new { message = "Avertissement envoyé." });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { error = "Plan non trouvé." });
+        }
+    }
+
     /// <summary>Gives the same responsible to several plans at once; each plan goes through the normal update, so it is logged in its history.</summary>
     [HttpPost("bulk-assign")]
     public async Task<IActionResult> BulkAssign([FromBody] BulkAssignDto dto)

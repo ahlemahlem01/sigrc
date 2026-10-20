@@ -345,6 +345,28 @@ public class ActionPlanService : IActionPlanService
         return _mapper.Map<ActionPlanDto>(plan);
     }
 
+    public async Task WarnAsync(Guid planId, string toUserId, string message, string sentBy)
+    {
+        var plan = await _repo.GetWithActionsAsync(planId)
+            ?? throw new KeyNotFoundException($"ActionPlan {planId} not found");
+
+        await _notificationService.NotifyAsync(
+            toUserId,
+            "plan_warning",
+            $"Avertissement : {plan.Title}",
+            message,
+            plan.Id);
+
+        await _historyRepo.AddAsync(new ActionPlanHistory
+        {
+            ActionPlanId = planId,
+            ChangedBy = sentBy,
+            ActionType = "warning_sent",
+            NewAssignedToId = toUserId,
+            Note = message
+        });
+    }
+
     public async Task<ActionPlanDto> UpdateAsync(Guid id, UpdateActionPlanDto dto, string updatedBy)
     {
         var plan = await _repo.GetWithActionsAsync(id)

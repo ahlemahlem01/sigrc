@@ -44,6 +44,7 @@ const ACTION_LABELS: Record<string, string> = {
   restored: 'capaHistory.restored',
   progress_updated: 'audit.action.progress_updated',
   marked_completed: 'capaHistory.markedCompleted',
+  warning_sent: 'capaHistory.warningSent',
 };
 
 /** Values are i18n keys. */
@@ -76,6 +77,7 @@ const DOT_COLORS: Record<string, string> = {
   assigned: '#7c3aed',
   unassigned: '#dc2626',
   archived: '#dc2626',
+  warning_sent: '#d97706',
 };
 
 function pad(n: number) {

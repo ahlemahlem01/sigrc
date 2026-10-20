@@ -15,6 +15,8 @@ public interface IActionPlanService
     Task<ActionPlanDto?> GetByIdAsync(Guid id);
     Task<ActionPlanDto> CreateAsync(CreateActionPlanDto dto, string createdBy);
     Task<ActionPlanDto> UpdateAsync(Guid id, UpdateActionPlanDto dto, string updatedBy);
+    /// <summary>Sends a warning about a plan to one person (notification) and keeps it in the plan history.</summary>
+    Task WarnAsync(Guid planId, string toUserId, string message, string sentBy);
     Task ArchiveAsync(Guid id, string archivedBy);
     Task<IEnumerable<ActionPlanDto>> GetByDepartmentAsync(Guid departmentId);
     Task<IEnumerable<ActionPlanDto>> GetByOwnerAsync(string ownerId);

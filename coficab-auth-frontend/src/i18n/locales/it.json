@@ -4165,6 +4165,7 @@
     "moveDown": "Sposta giù"
   },
   "capaHistory": {
+    "warningSent": "Avviso inviato",
     "restored": "Ripristinato",
     "markedCompleted": "Segnato come completato",
     "statusWaiting": "In attesa",

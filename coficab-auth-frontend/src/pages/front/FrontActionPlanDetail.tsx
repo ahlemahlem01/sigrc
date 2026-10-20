@@ -10,6 +10,7 @@ import {
   getPlanActions,
   uploadPlanActionDocument,
   getUsersForAssignment,
+  warnActionPlan,
 } from '../../services/actionPlanService';
 import {
   ArrowLeft, Calendar, Building2, Tag, User,
@@ -29,6 +30,7 @@ interface ActionPlanDto {
   status: number;
   ownerId?: string;
   ownerName?: string;
+  assignedToId?: string;
   createdByName?: string;
   departmentId?: string;
   departmentName?: string;
@@ -162,7 +164,8 @@ export default function FrontActionPlanDetail() {
   const { t } = useTranslation();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { accessToken } = useAuth();
+  const { accessToken, hasRole } = useAuth();
+  const isAdmin = hasRole('admin') || hasRole('superadmin');
 
   const [plan, setPlan]       = useState<ActionPlanDto | null>(null);
   const [actions, setActions] = useState<PlanActionDto[]>([]);
@@ -171,6 +174,32 @@ export default function FrontActionPlanDetail() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [historyActionId, setHistoryActionId] = useState<string | null>(null);
   const [nameById, setNameById] = useState<Record<string, string>>({});
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [warnTo, setWarnTo] = useState('');
+  const [warnText, setWarnText] = useState('');
+  const [warnBusy, setWarnBusy] = useState(false);
+  const [warnNotice, setWarnNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const openWarn = () => {
+    setWarnTo(String((plan as any)?.assignedToId ?? (plan as any)?.AssignedToId ?? ''));
+    setWarnText('');
+    setWarnOpen(true);
+  };
+
+  const sendWarn = async () => {
+    if (!accessToken || !id || !warnTo || warnText.trim().length < 3) return;
+    setWarnBusy(true);
+    setWarnNotice(null);
+    try {
+      await warnActionPlan(accessToken, id, warnTo, warnText.trim());
+      setWarnNotice({ ok: true, text: `Avertissement envoyé à ${nameById[warnTo] || 'la personne'}.` });
+      setWarnOpen(false);
+    } catch (e: any) {
+      setWarnNotice({ ok: false, text: e?.response?.data?.error || "L'envoi a échoué." });
+    } finally {
+      setWarnBusy(false);
+    }
+  };
 
   useEffect(() => {
     if (id && accessToken) loadData();
@@ -589,7 +618,22 @@ export default function FrontActionPlanDetail() {
                 {t('planDetailFront.linkedFile')} →
               </Link>
             )}
+            {isAdmin && !isArchived && !isClosed && (
+              <button
+                type="button"
+                onClick={openWarn}
+                className="cofi-apd-badge"
+                style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a', cursor: 'pointer', marginLeft: 'auto' }}
+              >
+                Avertir
+              </button>
+            )}
           </div>
+          {warnNotice && (
+            <div style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, fontSize: 13, border: `1px solid ${warnNotice.ok ? '#a7f3d0' : '#fecaca'}`, background: warnNotice.ok ? '#ecfdf5' : '#fef2f2', color: warnNotice.ok ? '#065f46' : '#b91c1c' }}>
+              {warnNotice.text}
+            </div>
+          )}
 
           <h1 className={`cofi-apd-title${isArchived ? ' archived' : ''}${isClosed ? ' closed' : ''}`}>{plan.title}</h1>
           <p className="cofi-apd-desc">{plan.description?.trim() || t('planDetailFront.noDescription')}</p>
@@ -778,6 +822,40 @@ export default function FrontActionPlanDetail() {
           )}
         </div>
       </div>
+
+      {warnOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !warnBusy && setWarnOpen(false)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a' }}>Avertir une personne</h3>
+            <p style={{ margin: '4px 0 12px', fontSize: 13, color: '#64748b' }}>Le message sera envoyé en notification et gardé dans l'historique du plan « {plan.title} ».</p>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>Destinataire</label>
+            <select value={warnTo} onChange={(e) => setWarnTo(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, marginBottom: 12, background: '#fff' }}>
+              <option value="">Choisir une personne…</option>
+              {Object.entries(nameById).sort((a, b) => a[1].localeCompare(b[1])).map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+            </select>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>Message</label>
+            <textarea
+              value={warnText}
+              onChange={(e) => setWarnText(e.target.value)}
+              rows={4}
+              maxLength={500}
+              placeholder="Message d'avertissement…"
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, resize: 'vertical' }}
+            />
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" disabled={warnBusy} onClick={() => setWarnOpen(false)} style={{ padding: '8px 16px', fontSize: 14, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer' }}>Annuler</button>
+              <button
+                type="button"
+                disabled={warnBusy || !warnTo || warnText.trim().length < 3}
+                onClick={() => void sendWarn()}
+                style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderRadius: 8, border: 0, background: '#000168', color: '#fff', cursor: 'pointer', opacity: warnBusy || !warnTo || warnText.trim().length < 3 ? 0.5 : 1 }}
+              >
+                {warnBusy ? 'Envoi…' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {historyActionId && accessToken && (
         <PlanActionHistoryModal

@@ -287,6 +287,10 @@ export const rejectPlanAction = (token: string, planActionId: string, message: s
 export const warnPlanAction = (token: string, planActionId: string, message: string) =>
   axios.post(`${BASE_URL}/planaction/${planActionId}/warn`, { message }, getHeaders(token));
 
+/** Administrators: warns one person about a plan; kept in the plan history. */
+export const warnActionPlan = (token: string, planId: string, userId: string, message: string) =>
+  axios.post(`${BASE_URL}/actionplan/${planId}/warn`, { userId, message }, getHeaders(token));
+
 export const getPendingValidation = (token: string) =>
   axios.get(`${BASE_URL}/actionplan/pending-validation`, getHeaders(token));
 
