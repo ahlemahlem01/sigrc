@@ -297,9 +297,8 @@
   },
   "tracking": {
     "todo": "Da gestire",
-    "viewAll": "Piani e azioni",
-    "viewPlans": "Per piano",
-    "viewActions": "Azioni dettagliate",
+    "viewOverview": "Panoramica",
+    "viewOperational": "Monitoraggio operativo",
     "latePlans": "Piani in ritardo",
     "latePlansHint": "su {{open}} piani aperti",
     "lateActions": "Azioni in ritardo",
@@ -309,9 +308,8 @@
     "noActionPlans": "Piani senza azione dettagliata",
     "noActionPlansHint": "Il loro ritardo è quello del piano",
     "viewHint": {
-      "all": "Ogni piano e ogni azione in ritardo in un unico elenco.",
-      "plans": "Le azioni raggruppate sotto il loro piano.",
-      "actions": "Solo azioni dettagliate, una per riga."
+      "plans": "Tutti i piani e la loro salute (numero di azioni, ritardi, ecc.)",
+      "actions": "Ogni azione dettagliata, con responsabile, scadenza e stato di sorveglianza."
     }
   },
   "adminNav": {

@@ -297,9 +297,8 @@
   },
   "tracking": {
     "todo": "À traiter",
-    "viewAll": "Plans et actions",
-    "viewPlans": "Par plan",
-    "viewActions": "Actions détaillées",
+    "viewOverview": "Aperçu",
+    "viewOperational": "Suivi opérationnel",
     "latePlans": "Plans en retard",
     "latePlansHint": "sur {{open}} plans ouverts",
     "lateActions": "Actions en retard",
@@ -309,9 +308,8 @@
     "noActionPlans": "Plans sans action détaillée",
     "noActionPlansHint": "Leur retard est celui du plan",
     "viewHint": {
-      "all": "Chaque plan en retard et chaque action en retard, sur une seule liste.",
-      "plans": "Les actions regroupées sous leur plan.",
-      "actions": "Seulement les actions détaillées, une par ligne."
+      "plans": "Tous les plans et leur santé (nombre d'actions, retards, etc.)",
+      "actions": "Chaque action détaillée, avec responsable, deadline et statut de surveillance."
     }
   },
   "adminNav": {

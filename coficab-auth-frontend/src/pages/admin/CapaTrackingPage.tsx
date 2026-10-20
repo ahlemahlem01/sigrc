@@ -9,7 +9,6 @@ import SegmentedToggle from '../../components/SegmentedToggle';
 import AssignmentsList from './AssignmentsList';
 import AdminCapaAssociatedActions from './AdminCapaAssociatedActions';
 import ActionFollowUpPage from '../front/ActionFollowUpPage';
-import AdminCapaDashboard from '../front/AdminCapaDashboard';
 
 const TABS = [
   { id: 'todo', labelKey: 'tracking.todo' },
@@ -17,9 +16,8 @@ const TABS = [
 ] as const;
 
 const VIEWS = [
-  { id: 'all', labelKey: 'tracking.viewAll' },
-  { id: 'plans', labelKey: 'tracking.viewPlans' },
-  { id: 'actions', labelKey: 'tracking.viewActions' },
+  { id: 'plans', labelKey: 'tracking.viewOverview' },
+  { id: 'actions', labelKey: 'tracking.viewOperational' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -27,10 +25,10 @@ type ViewId = (typeof VIEWS)[number]['id'];
 
 /** The four old tabs became two; their links (tab=capa, associated, follow-up) still open the right view. */
 function resolve(tab: string | null, view: string | null): { tab: TabId; view: ViewId } {
-  if (tab === 'assignments') return { tab: 'assignments', view: 'all' };
+  if (tab === 'assignments') return { tab: 'assignments', view: 'plans' };
   if (tab === 'associated') return { tab: 'todo', view: 'plans' };
   if (tab === 'follow-up') return { tab: 'todo', view: 'actions' };
-  const v = VIEWS.find((x) => x.id === view)?.id ?? 'all';
+  const v = VIEWS.find((x) => x.id === view)?.id ?? 'plans';
   return { tab: 'todo', view: v };
 }
 
@@ -50,8 +48,7 @@ function Figure({ label, value, hint, tone }: { label: string; value: number; hi
 }
 
 /**
- * Follow-up of the CAPA work in two tabs: what to handle (one set of figures on top, then the same items seen as a mix of
- * plans and actions, by plan, or as detailed actions) and who may see or edit which plan.
+ * Follow-up of the CAPA work in two tabs: what to handle (overview of plans, or detailed actions) and who may see or edit which plan.
  */
 export default function CapaTrackingPage() {
   const { t } = useTranslation();
@@ -102,7 +99,6 @@ export default function CapaTrackingPage() {
           <p className="text-xs text-slate-500 -mt-2 mb-0">{t(`tracking.viewHint.${view}`)}</p>
 
           <div className="ap-tab-body" style={{ width: '100%', minWidth: 0 }}>
-            {view === 'all' && <AdminCapaDashboard key={refreshKey} embedded />}
             {view === 'plans' && <AdminCapaAssociatedActions key={refreshKey} embedded />}
             {view === 'actions' && <ActionFollowUpPage key={refreshKey} embedded />}
           </div>

@@ -297,9 +297,8 @@
   },
   "tracking": {
     "todo": "To handle",
-    "viewAll": "Plans and actions",
-    "viewPlans": "By plan",
-    "viewActions": "Detailed actions",
+    "viewOverview": "Overview",
+    "viewOperational": "Operational tracking",
     "latePlans": "Late plans",
     "latePlansHint": "of {{open}} open plans",
     "lateActions": "Late actions",
@@ -309,9 +308,8 @@
     "noActionPlans": "Plans without a detailed action",
     "noActionPlansHint": "Their delay is the plan's own",
     "viewHint": {
-      "all": "Every late plan and every late action in one list.",
-      "plans": "Actions grouped under their plan.",
-      "actions": "Detailed actions only, one per line."
+      "plans": "All plans and their health (number of actions, delays, etc.)",
+      "actions": "Each detailed action, with responsible person, deadline and surveillance status."
     }
   },
   "adminNav": {
