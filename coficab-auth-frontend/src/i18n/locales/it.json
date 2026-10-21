@@ -779,6 +779,8 @@
       "pulseNet": "Carico netto = aperti − chiusi. Positivo = backlog in crescita; negativo = backlog in calo."
     },
     "activity": {
+      "helpClaims": "Basato solo sull'attività dei reclami: creazione o aggiornamento di un reclamo. Piani d'azione, analisi e accessi non contano. Attivo: ≤ 15 giorni, poco attivo: ≤ 60 giorni.",
+      "subtitleClaims": "Solo attività sui reclami",
       "helpPlans": "Basato solo sull'attività dei piani d'azione: creazione o aggiornamento di un piano o di un'azione, o nuova assegnazione. Reclami, analisi e accessi non contano. Attivo: ≤ 15 giorni, poco attivo: ≤ 60 giorni.",
       "subtitlePlans": "Solo attività sui piani d'azione",
       "title": "Attività dei dipendenti",
@@ -3777,6 +3779,7 @@
     "axis": "Asse"
   },
   "activityTracking": {
+    "subtitleClaims": "Stato in base all’ultima attività sui reclami; piani d’azione e accessi non contano. Volume = azioni negli ultimi 60 giorni.",
     "loadFailed": "Impossibile caricare il monitoraggio delle attività.",
     "title": "Monitoraggio attività",
     "subtitle": "Stato in base all’ultima attività sui piani d’azione (piani, azioni, assegnazioni); reclami e accessi non contano. Volume = azioni negli ultimi 60 giorni.",

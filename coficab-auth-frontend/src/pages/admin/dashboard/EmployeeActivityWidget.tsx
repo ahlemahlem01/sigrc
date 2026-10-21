@@ -6,7 +6,7 @@ import { adminEmployeeService, type EmployeeActivitySummary } from '../../../ser
 import { COFICAB } from './dashPalette';
 import DashInfoTip from './DashInfoTip';
 
-export default function EmployeeActivityWidget({ scope }: { scope?: 'plans' }) {
+export default function EmployeeActivityWidget({ scope }: { scope?: 'plans' | 'claims' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -52,18 +52,18 @@ export default function EmployeeActivityWidget({ scope }: { scope?: 'plans' }) {
               {t('adminDashboard.activity.title')}
             </h2>
             <DashInfoTip
-              text={t(scope === 'plans' ? 'adminDashboard.activity.helpPlans' : 'adminDashboard.activity.help')}
+              text={t(scope === 'plans' ? 'adminDashboard.activity.helpPlans' : scope === 'claims' ? 'adminDashboard.activity.helpClaims' : 'adminDashboard.activity.help')}
               title={t('adminDashboard.activity.helpTitle')}
               side="bottom"
             />
           </div>
           <p className="text-xs mt-1 mb-0" style={{ color: COFICAB.muted }}>
-            {t(scope === 'plans' ? 'adminDashboard.activity.subtitlePlans' : 'adminDashboard.activity.subtitle')}
+            {t(scope === 'plans' ? 'adminDashboard.activity.subtitlePlans' : scope === 'claims' ? 'adminDashboard.activity.subtitleClaims' : 'adminDashboard.activity.subtitle')}
           </p>
         </div>
         <button
           type="button"
-          onClick={() => navigate('/admin/employees/activity')}
+          onClick={() => navigate(scope === 'claims' ? '/admin/employees/activity?scope=claims' : '/admin/employees/activity')}
           className="inline-flex items-center gap-1 text-xs font-semibold hover:underline shrink-0"
           style={{ color: COFICAB.navy }}
         >

@@ -779,6 +779,8 @@
       "pulseNet": "Net load = opened − closed. Positive = growing backlog; negative = shrinking backlog."
     },
     "activity": {
+      "helpClaims": "Based only on claim activity: creating or updating a claim. Action plans, analyses and logins do not count. Active: ≤ 15 days, low: ≤ 60 days.",
+      "subtitleClaims": "Claim activity only",
       "helpPlans": "Based only on action-plan activity: creating or updating a plan or sub-action, or a new assignment. Claims, analyses and logins do not count. Active: ≤ 15 days, low: ≤ 60 days.",
       "subtitlePlans": "Action-plan activity only",
       "title": "Employee activity",
@@ -3777,6 +3779,7 @@
     "axis": "Axis"
   },
   "activityTracking": {
+    "subtitleClaims": "Status based on the last claim activity; action plans and sign-ins do not count. Volume = actions over 60 days.",
     "loadFailed": "Could not load activity tracking.",
     "title": "Activity tracking",
     "subtitle": "Status based on the last action-plan activity (plans, sub-actions, assignments); claims and sign-ins do not count. Volume = actions over 60 days.",

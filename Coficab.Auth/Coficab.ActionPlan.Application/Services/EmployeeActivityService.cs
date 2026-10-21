@@ -107,13 +107,13 @@ public class EmployeeActivityService : IEmployeeActivityService
     }
 
     /// <summary>
-    /// Activity on action plans only: plans, their sub-actions and assignments. Claims, analyses and logins do not count,
-    /// and the stored (global) status of the profiles is left untouched.
+    /// Activity of one stream only: "plans" (plans, their sub-actions and assignments) or "claims" (claims). Analyses,
+    /// timeline and logins do not count, and the stored (global) status of the profiles is left untouched.
     /// </summary>
-    public async Task<EmployeeActivitySummaryDto> GetPlanSummaryAsync(CancellationToken ct = default)
+    public async Task<EmployeeActivitySummaryDto> GetScopedSummaryAsync(string scope, CancellationToken ct = default)
     {
         var profiles = await _db.UserProfiles.AsNoTracking().ToListAsync(ct);
-        var metrics = await GetBusinessActivityMetricsAsync(profiles.Select(p => p.UserId).Distinct().ToList(), ct, plansOnly: true);
+        var metrics = await GetBusinessActivityMetricsAsync(profiles.Select(p => p.UserId).Distinct().ToList(), ct, scope);
         var now = DateTime.UtcNow;
 
         var deptIds = profiles.Where(p => p.DepartmentId != null).Select(p => p.DepartmentId!.Value).Distinct().ToList();
@@ -237,7 +237,7 @@ public class EmployeeActivityService : IEmployeeActivityService
     private async Task<Dictionary<string, BusinessActivityMetric>> GetBusinessActivityMetricsAsync(
         IReadOnlyCollection<string> userIds,
         CancellationToken ct,
-        bool plansOnly = false)
+        string? scope = null)
     {
         var set = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var map = set.ToDictionary(id => id, _ => new BusinessActivityMetric(), StringComparer.OrdinalIgnoreCase);
@@ -270,35 +270,40 @@ public class EmployeeActivityService : IEmployeeActivityService
                 m.RecentCount++;
         }
 
-        var plans = await _db.ActionPlans.AsNoTracking().Where(p => !p.IsArchived)
-            .Select(p => new { p.OwnerId, p.CreatedBy, p.UpdatedBy, p.CreatedAt, p.UpdatedAt })
-            .ToListAsync(ct);
-        foreach (var p in plans)
+        var plansScope = string.Equals(scope, "plans", StringComparison.OrdinalIgnoreCase);
+        var claimsScope = string.Equals(scope, "claims", StringComparison.OrdinalIgnoreCase);
+
+        if (!claimsScope)
         {
-            Consider(p.OwnerId, MaxDate(p.CreatedAt, p.UpdatedAt));
-            Consider(p.CreatedBy, p.CreatedAt);
-            Consider(p.UpdatedBy, p.UpdatedAt);
+            var plans = await _db.ActionPlans.AsNoTracking().Where(p => !p.IsArchived)
+                .Select(p => new { p.OwnerId, p.CreatedBy, p.UpdatedBy, p.CreatedAt, p.UpdatedAt })
+                .ToListAsync(ct);
+            foreach (var p in plans)
+            {
+                Consider(p.OwnerId, MaxDate(p.CreatedAt, p.UpdatedAt));
+                Consider(p.CreatedBy, p.CreatedAt);
+                Consider(p.UpdatedBy, p.UpdatedAt);
+            }
+
+            var planActions = await _db.PlanActions.AsNoTracking().Where(a => !a.IsArchived)
+                .Select(a => new { a.AssignedToId, a.CreatedBy, a.UpdatedBy, a.CreatedAt, a.UpdatedAt })
+                .ToListAsync(ct);
+            foreach (var a in planActions)
+            {
+                Consider(a.CreatedBy, a.CreatedAt);
+                Consider(a.UpdatedBy, a.UpdatedAt);
+                if (!string.IsNullOrWhiteSpace(a.UpdatedBy) &&
+                    string.Equals(a.UpdatedBy, a.AssignedToId, StringComparison.OrdinalIgnoreCase))
+                    Consider(a.AssignedToId, a.UpdatedAt);
+            }
+
+            var assignments = await _db.UserActionPlanAssignments.AsNoTracking()
+                .Select(a => new { a.UserId, a.CreatedAt }).ToListAsync(ct);
+            foreach (var a in assignments)
+                Consider(a.UserId, a.CreatedAt);
         }
 
-        var planActions = await _db.PlanActions.AsNoTracking().Where(a => !a.IsArchived)
-            .Select(a => new { a.AssignedToId, a.CreatedBy, a.UpdatedBy, a.CreatedAt, a.UpdatedAt })
-            .ToListAsync(ct);
-        foreach (var a in planActions)
-        {
-            Consider(a.CreatedBy, a.CreatedAt);
-            Consider(a.UpdatedBy, a.UpdatedAt);
-            if (!string.IsNullOrWhiteSpace(a.UpdatedBy) &&
-                string.Equals(a.UpdatedBy, a.AssignedToId, StringComparison.OrdinalIgnoreCase))
-                Consider(a.AssignedToId, a.UpdatedAt);
-        }
-
-        var assignments = await _db.UserActionPlanAssignments.AsNoTracking()
-            .Select(a => new { a.UserId, a.CreatedAt }).ToListAsync(ct);
-        foreach (var a in assignments)
-            Consider(a.UserId, a.CreatedAt);
-
-        // everything below concerns claims and their analyses, not action plans
-        if (plansOnly) return map;
+        if (plansScope) return map;
 
         var claims = await _db.Claims.AsNoTracking().Where(c => !c.IsArchived)
             .Select(c => new { c.CreatedById, c.UpdatedById, c.CreatedBy, c.CreatedAt, c.UpdatedAt })
@@ -309,6 +314,9 @@ public class EmployeeActivityService : IEmployeeActivityService
             Consider(c.CreatedBy, c.CreatedAt);
             Consider(c.UpdatedById, c.UpdatedAt);
         }
+
+        // the rest concerns claim analyses and logs, which neither stream counts
+        if (claimsScope) return map;
 
         var eightD = await _db.EightDDossiers.AsNoTracking().Where(d => !d.IsArchived)
             .Select(d => new

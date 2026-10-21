@@ -147,7 +147,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
 
       {focus !== 'indicators' && (
       <div className="mt-4">
-        <EmployeeActivityWidget />
+        <EmployeeActivityWidget scope="claims" />
       </div>
       )}
 

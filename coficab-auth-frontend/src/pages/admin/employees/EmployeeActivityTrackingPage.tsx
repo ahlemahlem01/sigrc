@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import TablePagination from '../../../components/TablePagination';
 import TableSkeleton, { TableLoadingBanner } from '../../../components/TableSkeleton';
@@ -40,6 +40,8 @@ export default function EmployeeActivityTrackingPage() {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const scope: 'plans' | 'claims' = params.get('scope') === 'claims' ? 'claims' : 'plans';
   const [summary, setSummary] = useState<EmployeeActivitySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -55,7 +57,7 @@ export default function EmployeeActivityTrackingPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await adminEmployeeService.getActivitySummary(accessToken, true, 'plans');
+      const data = await adminEmployeeService.getActivitySummary(accessToken, true, scope);
       setSummary(data);
     } catch {
       setError(i18n.t('activityTracking.loadFailed'));
@@ -67,7 +69,7 @@ export default function EmployeeActivityTrackingPage() {
       }
       setLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, scope]);
 
   useEffect(() => {
     void load();
@@ -278,7 +280,7 @@ export default function EmployeeActivityTrackingPage() {
           <p className="eat-eyebrow">{t('frontNav.footerEmployees')}</p>
           <h1 className="eat-title">{t('activityTracking.title')}</h1>
           <p className="eat-sub">
-            {t('activityTracking.subtitle')}
+            {t(scope === 'claims' ? 'activityTracking.subtitleClaims' : 'activityTracking.subtitle')}
           </p>
         </div>
         <button type="button" className="eat-btn" onClick={() => void load()} disabled={loading}>

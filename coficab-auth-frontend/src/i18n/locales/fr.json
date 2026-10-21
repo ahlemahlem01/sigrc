@@ -779,6 +779,8 @@
       "pulseNet": "Charge nette = ouverts − clôturés. Positif = backlog qui grossit ; négatif = backlog qui diminue."
     },
     "activity": {
+      "helpClaims": "Basé uniquement sur l'activité liée aux réclamations : création ou mise à jour d'une réclamation. Les plans d'actions, analyses et connexions ne comptent pas. Actif : ≤ 15 jours, peu actif : ≤ 60 jours.",
+      "subtitleClaims": "Activité sur les réclamations uniquement",
       "helpPlans": "Basé uniquement sur l'activité liée aux plans d'actions : création ou mise à jour d'un plan, d'une sous-action, ou nouvelle assignation. Les réclamations, analyses et connexions ne comptent pas. Actif : ≤ 15 jours, peu actif : ≤ 60 jours.",
       "subtitlePlans": "Activité sur les plans d'actions uniquement",
       "title": "Suivi d'activité des employés",
@@ -3777,6 +3779,7 @@
     "axis": "Axe"
   },
   "activityTracking": {
+    "subtitleClaims": "Statut selon la dernière activité sur les réclamations ; les plans d'actions et connexions ne comptent pas. Volume = actions sur 60 jours.",
     "loadFailed": "Impossible de charger le suivi d’activité.",
     "title": "Suivi d'activité",
     "subtitle": "Statut selon la dernière activité sur les plans d'actions (plans, sous-actions, assignations) ; les réclamations et connexions ne comptent pas. Volume = actions sur 60 jours.",

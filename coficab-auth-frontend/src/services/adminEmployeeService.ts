@@ -67,7 +67,7 @@ export const adminEmployeeService = {
   getAllProfiles: (token: string) =>
     axios.get(`${API_URL}/profiles`, { ...h(token), params: scopeParams() }).then(r => unwrap(r.data)),
 
-  getActivitySummary: (token: string, force = false, scope?: 'plans') =>
+  getActivitySummary: (token: string, force = false, scope?: 'plans' | 'claims') =>
     axios
       .get(`${API_URL}/activity`, { ...h(token), params: { ...(force ? { force: true } : {}), ...(scope ? { scope } : {}), ...scopeParams() } })
       .then(r => mapActivitySummary(r.data)),
