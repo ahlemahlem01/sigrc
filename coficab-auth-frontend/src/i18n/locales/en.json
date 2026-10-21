@@ -1,5 +1,30 @@
 {
   "reportClaims": {
+    "gen": {
+      "sectionTitle": "Report generator",
+      "subtitle": "On-demand report: period, filters and grouping, with CSV and PDF export.",
+      "loadError": "Could not load the claims",
+      "unassigned": "Unassigned",
+      "generatedSubtitle": "Claims report generated on demand",
+      "dateDetection": "Detection date",
+      "searchPh": "Title, client, defect, lot…",
+      "sourceCount": "{{count}} claim(s) available as source",
+      "firstOnly": "First {{shown}} claims of {{total}} (the export contains them all).",
+      "colClaim": "Claim",
+      "colClient": "Client",
+      "colDefect": "Defect",
+      "colSeverity": "Severity",
+      "colDeadline": "Deadline",
+      "colResponsible": "Responsible",
+      "colState": "State",
+      "by": {
+        "severity": "Severity",
+        "responsible": "Responsible",
+        "status": "Status",
+        "defect": "Defect",
+        "client": "Client"
+      }
+    },
     "eyebrow": "Analyses & reports",
     "title": "Claims report",
     "subtitle": "Summary of the claims by severity, department and defect, then the analyses to handle.",

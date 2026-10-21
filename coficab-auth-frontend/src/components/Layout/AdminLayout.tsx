@@ -170,6 +170,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/list':                { title: 'adminNav.allClaims', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/assignments':         { title: 'adminNav.claimAssignments', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/analyses':            { title: 'adminNav.analysesHub', crumb: 'adminNav.claimsQuality' },
+    '/admin/claims/eight-d':             { title: 'adminNav.eightD', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/create':              { title: 'adminNav.newClaim', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/import-history':      { title: 'adminNav.importHistory', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/reference-lists':     { title: 'adminNav.referenceLists', crumb: 'adminNav.settings' },

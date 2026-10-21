@@ -1,5 +1,30 @@
 {
   "reportClaims": {
+    "gen": {
+      "sectionTitle": "Generatore di rapporti",
+      "subtitle": "Rapporto su richiesta: periodo, filtri e raggruppamento, con esportazione CSV e PDF.",
+      "loadError": "Impossibile caricare i reclami",
+      "unassigned": "Non assegnato",
+      "generatedSubtitle": "Rapporto dei reclami generato su richiesta",
+      "dateDetection": "Data di rilevamento",
+      "searchPh": "Titolo, cliente, difetto, lotto…",
+      "sourceCount": "{{count}} reclamo/i disponibili",
+      "firstOnly": "Primi {{shown}} reclami su {{total}} (l'esportazione li contiene tutti).",
+      "colClaim": "Reclamo",
+      "colClient": "Cliente",
+      "colDefect": "Difetto",
+      "colSeverity": "Gravità",
+      "colDeadline": "Scadenza",
+      "colResponsible": "Responsabile",
+      "colState": "Stato",
+      "by": {
+        "severity": "Gravità",
+        "responsible": "Responsabile",
+        "status": "Stato",
+        "defect": "Difetto",
+        "client": "Cliente"
+      }
+    },
     "eyebrow": "Analisi e rapporti",
     "title": "Rapporto dei reclami",
     "subtitle": "Sintesi dei reclami per gravità, reparto e difetto, poi le analisi da trattare.",

@@ -1,5 +1,30 @@
 {
   "reportClaims": {
+    "gen": {
+      "sectionTitle": "Générateur de rapport",
+      "subtitle": "Rapport à la demande : période, filtres et groupement, avec export CSV et PDF.",
+      "loadError": "Impossible de charger les réclamations",
+      "unassigned": "Non assignée",
+      "generatedSubtitle": "Rapport des réclamations généré à la demande",
+      "dateDetection": "Date de détection",
+      "searchPh": "Titre, client, défaut, lot…",
+      "sourceCount": "{{count}} réclamation(s) disponibles en source",
+      "firstOnly": "{{shown}} premières réclamations sur {{total}} (l'export les contient toutes).",
+      "colClaim": "Réclamation",
+      "colClient": "Client",
+      "colDefect": "Défaut",
+      "colSeverity": "Gravité",
+      "colDeadline": "Échéance",
+      "colResponsible": "Responsable",
+      "colState": "État",
+      "by": {
+        "severity": "Gravité",
+        "responsible": "Responsable",
+        "status": "Statut",
+        "defect": "Défaut",
+        "client": "Client"
+      }
+    },
     "eyebrow": "Analyses & rapports",
     "title": "Rapport des réclamations",
     "subtitle": "Synthèse des réclamations par gravité, par département et par défaut, puis analyses à traiter.",

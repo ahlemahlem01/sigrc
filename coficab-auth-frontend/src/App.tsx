@@ -43,6 +43,7 @@ import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
 import PreferencesPage from './pages/admin/PreferencesPage';
 import CapaBoardPage from './pages/admin/CapaBoardPage';
+import AdminEightDList from './pages/admin/AdminEightDList';
 import CapaAssignmentsPage from './pages/admin/CapaAssignmentsPage';
 import CapaTrackingPage from './pages/admin/CapaTrackingPage';
 import { EmployeeDocuments } from './pages/employee/EmployeeDocuments';
@@ -207,7 +208,7 @@ const App = () => {
               <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage scope="all" />} />
               <Route path="/admin/claims/analyses"              element={<ClaimsAnalysesHubPage />} />
               <Route path="/admin/claims/eight-d/:claimId"      element={<EightDPage />} />
-              <Route path="/admin/claims/eight-d"               element={<Navigate to="/admin/claims/analyses?tab=eightd" replace />} />
+              <Route path="/admin/claims/eight-d"               element={<AdminEightDList />} />
               <Route path="/admin/claims/report"                element={<Navigate to="/admin/claims/analyses" replace />} />
               <Route path="/admin/claims/create"                element={<CreateClaimPage />} />
               <Route path="/admin/claims/import-history"        element={<HistoryImportPage />} />
