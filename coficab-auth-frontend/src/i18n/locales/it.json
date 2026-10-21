@@ -3779,6 +3779,8 @@
     "axis": "Asse"
   },
   "activityTracking": {
+    "scopeWorkload": "Carico per persona",
+    "subtitleWorkload": "Piani e azioni aperti di ogni persona, con i ritardi.",
     "scopePlans": "Piani d'azione",
     "scopeClaims": "Reclami",
     "scopeAria": "Fonte di attività",

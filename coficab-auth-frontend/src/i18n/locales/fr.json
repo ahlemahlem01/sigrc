@@ -3779,6 +3779,8 @@
     "axis": "Axe"
   },
   "activityTracking": {
+    "scopeWorkload": "Charge par personne",
+    "subtitleWorkload": "Plans et sous-actions en cours de chaque personne, avec les retards.",
     "scopePlans": "Plans d'actions",
     "scopeClaims": "Réclamations",
     "scopeAria": "Source d'activité",

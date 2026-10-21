@@ -3779,6 +3779,8 @@
     "axis": "Axis"
   },
   "activityTracking": {
+    "scopeWorkload": "Workload per person",
+    "subtitleWorkload": "Each person's open plans and sub-actions, with the late ones.",
     "scopePlans": "Action plans",
     "scopeClaims": "Claims",
     "scopeAria": "Activity source",

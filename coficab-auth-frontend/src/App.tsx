@@ -186,7 +186,7 @@ const App = () => {
               <Route path="/admin/action-plans"                 element={<ActionPlanList />} />
               <Route path="/admin/action-plans/dashboard"       element={<CapaBoardPage />} />
               <Route path="/admin/action-plans/indicators"      element={<Navigate to="/admin/action-plans/dashboard?tab=indicators" replace />} />
-              <Route path="/admin/action-plans/assign"          element={<Navigate to="/admin/action-plans/dashboard?tab=overview" replace />} />
+              <Route path="/admin/action-plans/assign"          element={<Navigate to="/admin/employees/activity?scope=workload" replace />} />
               <Route path="/admin/action-plans/tracking"        element={<CapaTrackingPage />} />
               <Route path="/admin/action-plans/assignments"     element={<Navigate to="/admin/action-plans/tracking?tab=assignments" replace />} />
               <Route path="/admin/action-plans/associated"      element={<Navigate to="/admin/action-plans/tracking?tab=associated" replace />} />

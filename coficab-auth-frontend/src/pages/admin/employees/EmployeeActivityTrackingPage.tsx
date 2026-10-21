@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import CapaWorkload from '../CapaWorkload';
 import SegmentedToggle from '../../../components/SegmentedToggle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
@@ -42,7 +43,8 @@ export default function EmployeeActivityTrackingPage() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
-  const scope: 'plans' | 'claims' = params.get('scope') === 'claims' ? 'claims' : 'plans';
+  const view: 'plans' | 'claims' | 'workload' = params.get('scope') === 'claims' ? 'claims' : params.get('scope') === 'workload' ? 'workload' : 'plans';
+  const scope: 'plans' | 'claims' = view === 'claims' ? 'claims' : 'plans';
   const [summary, setSummary] = useState<EmployeeActivitySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -53,7 +55,7 @@ export default function EmployeeActivityTrackingPage() {
   const [page, setPage] = useState(1);
 
   const load = useCallback(async () => {
-    if (!accessToken) return;
+    if (!accessToken || view === 'workload') return;
     const startedAt = Date.now();
     setLoading(true);
     setError('');
@@ -70,7 +72,7 @@ export default function EmployeeActivityTrackingPage() {
       }
       setLoading(false);
     }
-  }, [accessToken, scope]);
+  }, [accessToken, scope, view]);
 
   useEffect(() => {
     void load();
@@ -281,23 +283,29 @@ export default function EmployeeActivityTrackingPage() {
           <p className="eat-eyebrow">{t('frontNav.footerEmployees')}</p>
           <h1 className="eat-title">{t('activityTracking.title')}</h1>
           <p className="eat-sub">
-            {t(scope === 'claims' ? 'activityTracking.subtitleClaims' : 'activityTracking.subtitle')}
+            {t(view === 'workload' ? 'activityTracking.subtitleWorkload' : view === 'claims' ? 'activityTracking.subtitleClaims' : 'activityTracking.subtitle')}
           </p>
         </div>
         <SegmentedToggle
           options={[
             { id: 'plans', labelKey: 'activityTracking.scopePlans' },
             { id: 'claims', labelKey: 'activityTracking.scopeClaims' },
+            { id: 'workload', labelKey: 'activityTracking.scopeWorkload' },
           ] as const}
-          value={scope}
-          onChange={(id) => { setParams(id === 'claims' ? { scope: 'claims' } : {}, { replace: true }); setPage(1); }}
+          value={view}
+          onChange={(id) => { setParams(id === 'plans' ? {} : { scope: id }, { replace: true }); setPage(1); }}
           ariaLabel={t('activityTracking.scopeAria')}
         />
-        <button type="button" className="eat-btn" onClick={() => void load()} disabled={loading}>
-          <i className={`ti ${loading ? 'ti-loader-2 eat-spin' : 'ti-refresh'}`} />
-          {t('qualityHistory.refresh')}
-        </button>
+        {view !== 'workload' && (
+          <button type="button" className="eat-btn" onClick={() => void load()} disabled={loading}>
+            <i className={`ti ${loading ? 'ti-loader-2 eat-spin' : 'ti-refresh'}`} />
+            {t('qualityHistory.refresh')}
+          </button>
+        )}
       </div>
+
+      {view === 'workload' ? <CapaWorkload /> : (
+      <>
 
       <div className="eat-cards">
         {cards.map((c) => (
@@ -409,6 +417,8 @@ export default function EmployeeActivityTrackingPage() {
 
       {summary?.computedAt && !loading && (
         <p className="eat-meta">Dernier calcul : {fmtDate(summary.computedAt)}</p>
+      )}
+      </>
       )}
     </div>
   );
