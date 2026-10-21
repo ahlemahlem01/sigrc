@@ -89,12 +89,14 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
         </div>
       )}
 
-      <DashboardSummaryBar
-        data={data?.global}
-        loading={loading}
-        claimsMonthly={data?.claims.monthlyOpenClosed}
-        fixedScope="claims"
-      />
+      {focus !== 'indicators' && (
+        <DashboardSummaryBar
+          data={data?.global}
+          loading={loading}
+          claimsMonthly={data?.claims.monthlyOpenClosed}
+          fixedScope="claims"
+        />
+      )}
 
       {focus !== 'claims' && (
       <WorkflowEvolutionSection
