@@ -14,11 +14,14 @@ type Props = {
   loading?: boolean;
 };
 
-export default function TopResponsiblesSection({ claims = [], actions = [], loading }: Props) {
+export default function TopResponsiblesSection({ claims = [], actions: actionsProp, loading }: Props) {
   const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>('claims');
-  const rows = tab === 'claims' ? claims : actions;
-  const accent = tab === 'claims' ? CLAIMS_ACCENT : PLANS_ACCENT;
+  // without action data (the claims board) the section is about claims only: no switch
+  const withActions = actionsProp !== undefined;
+  const actions = actionsProp ?? [];
+  const rows = tab === 'claims' || !withActions ? claims : actions;
+  const accent = tab === 'claims' || !withActions ? CLAIMS_ACCENT : PLANS_ACCENT;
 
   return (
     <section
@@ -44,14 +47,16 @@ export default function TopResponsiblesSection({ claims = [], actions = [], load
             {t('adminDashboard.topResponsibles.subtitle')}
           </p>
         </div>
-        <SegmentedToggle
-          options={[
-            { id: 'claims' as const, labelKey: 'adminDashboard.topResponsibles.tabClaims' },
-            { id: 'actions' as const, labelKey: 'adminDashboard.topResponsibles.tabActions' },
-          ]}
-          value={tab}
-          onChange={setTab}
-        />
+        {withActions && (
+          <SegmentedToggle
+            options={[
+              { id: 'claims' as const, labelKey: 'adminDashboard.topResponsibles.tabClaims' },
+              { id: 'actions' as const, labelKey: 'adminDashboard.topResponsibles.tabActions' },
+            ]}
+            value={tab}
+            onChange={setTab}
+          />
+        )}
       </div>
 
       <div className="p-4">

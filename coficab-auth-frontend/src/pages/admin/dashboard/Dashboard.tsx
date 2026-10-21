@@ -111,7 +111,6 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
       {focus !== 'indicators' && (
       <TopResponsiblesSection
         claims={data?.claims.topResponsibles}
-        actions={focus === 'claims' ? undefined : data?.actionPlans.topResponsibles}
         loading={loading}
       />
       )}
