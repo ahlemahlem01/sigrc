@@ -211,6 +211,13 @@
     "title": "Organizzazioni seguite in tutta l'applicazione"
   },
   "workload": {
+    "splitTitle": "Distribuzione delle persone",
+    "splitSub": "{{count}} persone seguite",
+    "topTitle": "Persone più cariche",
+    "topSub": "Piani aperti, compresi quelli in ritardo (prime 10 persone).",
+    "onTimePlans": "Piani nei tempi",
+    "latePlans": "Piani in ritardo",
+    "split": {"heavy": "Sovraccariche", "normal": "Carico normale", "idle": "Senza carico"},
     "byDepartment": "Carico per reparto",
     "byDepartmentSub": "Clicca su un reparto per filtrare l'elenco delle persone.",
     "busyPeople": "Con lavoro",

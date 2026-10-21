@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaWorkload, type CapaWorkload as Workload } from '../../services/capaIndicatorsService';
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 
 const NAVY = '#000168';
@@ -93,6 +94,23 @@ export default function CapaWorkload() {
     }
     return Array.from(map.values()).sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
   }, [data]);
+  const split = useMemo(() => {
+    const people = data?.people ?? [];
+    const heavy = people.filter(isHeavy).length;
+    const idle = people.filter(isIdle).length;
+    return [
+      { key: 'heavy', value: heavy, color: ORANGE },
+      { key: 'normal', value: people.length - heavy - idle, color: NAVY },
+      { key: 'idle', value: idle, color: '#cbd5e1' },
+    ].filter((r) => r.value > 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, average]);
+  const topLoad = useMemo(() => (data?.people ?? [])
+    .filter((p) => p.openPlans > 0)
+    .slice()
+    .sort((a, b) => b.openPlans - a.openPlans || b.latePlans - a.latePlans)
+    .slice(0, 10)
+    .map((p) => ({ name: p.name, onTime: p.openPlans - p.latePlans, late: p.latePlans })), [data]);
   const maxOpen = Math.max(1, ...(data?.people ?? []).map((p) => p.openPlans));
   const paged = usePagedList(rows, 15);
 
@@ -119,6 +137,51 @@ export default function CapaWorkload() {
               <div className="mt-1.5 text-[28px] font-extrabold leading-none tabular-nums" style={{ color: NAVY }}>{value}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {data && data.people.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+          <div className="rounded-xl bg-white border border-slate-200 px-4 py-4">
+            <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.splitTitle')}</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5 mb-2">{t('workload.splitSub', { count: data.people.length })}</p>
+            <ResponsiveContainer width="100%" height={170}>
+              <PieChart>
+                <Pie data={split.map((r) => ({ ...r, name: t(`workload.split.${r.key}`) }))} dataKey="value" nameKey="name" innerRadius={42} outerRadius={68} paddingAngle={2}>
+                  {split.map((r) => <Cell key={r.key} fill={r.color} />)}
+                </Pie>
+                <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+              </PieChart>
+            </ResponsiveContainer>
+            <ul className="m-0 p-0 list-none space-y-1">
+              {split.map((r) => (
+                <li key={r.key} className="flex items-center gap-2 text-xs">
+                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: r.color }} />
+                  <span className="flex-1 text-slate-700">{t(`workload.split.${r.key}`)}</span>
+                  <span className="tabular-nums font-bold text-slate-800">{r.value}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-xl bg-white border border-slate-200 px-4 py-4 lg:col-span-2">
+            <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.topTitle')}</h3>
+            <p className="text-[11px] text-slate-500 mt-0.5 mb-2">{t('workload.topSub')}</p>
+            {topLoad.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center text-xs text-slate-400">{t('workload.none')}</div>
+            ) : (
+              <ResponsiveContainer width="100%" height={Math.max(160, topLoad.length * 30 + 40)}>
+                <BarChart data={topLoad} layout="vertical" margin={{ left: 8, right: 16 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+                  <Legend />
+                  <Bar dataKey="onTime" stackId="a" name={t('workload.onTimePlans')} fill={NAVY} />
+                  <Bar dataKey="late" stackId="a" name={t('workload.latePlans')} fill={BAD} radius={[0, 3, 3, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
         </div>
       )}
 

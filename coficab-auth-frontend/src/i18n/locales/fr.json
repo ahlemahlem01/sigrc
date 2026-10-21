@@ -211,6 +211,13 @@
     "title": "Organisations suivies dans toute l'application"
   },
   "workload": {
+    "splitTitle": "Répartition des personnes",
+    "splitSub": "{{count}} personnes suivies",
+    "topTitle": "Personnes les plus chargées",
+    "topSub": "Plans ouverts, dont ceux en retard (10 premières personnes).",
+    "onTimePlans": "Plans dans les délais",
+    "latePlans": "Plans en retard",
+    "split": {"heavy": "Surchargées", "normal": "Charge normale", "idle": "Sans charge"},
     "byDepartment": "Charge par département",
     "byDepartmentSub": "Cliquez sur un département pour filtrer la liste des personnes.",
     "busyPeople": "Avec du travail",

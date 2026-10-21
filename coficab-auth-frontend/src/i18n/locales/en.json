@@ -211,6 +211,13 @@
     "title": "Organizations followed across the application"
   },
   "workload": {
+    "splitTitle": "People distribution",
+    "splitSub": "{{count}} people followed",
+    "topTitle": "Most loaded people",
+    "topSub": "Open plans, including late ones (top 10 people).",
+    "onTimePlans": "Plans on time",
+    "latePlans": "Late plans",
+    "split": {"heavy": "Overloaded", "normal": "Normal load", "idle": "No workload"},
     "byDepartment": "Workload by department",
     "byDepartmentSub": "Click a department to filter the list of people.",
     "busyPeople": "With work",
