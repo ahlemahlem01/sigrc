@@ -7,7 +7,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaWorkload, type CapaWorkload as Workload } from '../../services/capaIndicatorsService';
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 
 const NAVY = '#000168';
@@ -105,13 +104,6 @@ export default function CapaWorkload() {
     ].filter((r) => r.value > 0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, average]);
-  const topLoad = useMemo(() => (data?.people ?? [])
-    .filter((p) => p.openPlans > 0)
-    .slice()
-    .sort((a, b) => b.openPlans - a.openPlans || b.latePlans - a.latePlans)
-    .slice(0, 10)
-    .map((p) => ({ name: p.name, onTime: p.openPlans - p.latePlans, late: p.latePlans })), [data]);
-  const topMax = Math.max(1, ...topLoad.map((r) => r.onTime + r.late));
   const maxOpen = Math.max(1, ...(data?.people ?? []).map((p) => p.openPlans));
   const paged = usePagedList(rows, 15);
 
@@ -142,50 +134,25 @@ export default function CapaWorkload() {
       )}
 
       {data && data.people.length > 0 && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
-          <div className="rounded-xl bg-white border border-slate-200 px-4 py-4">
-            <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.splitTitle')}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5 mb-2">{t('workload.splitSub', { count: data.people.length })}</p>
-            <ResponsiveContainer width="100%" height={170}>
-              <PieChart>
-                <Pie data={split.map((r) => ({ ...r, name: t(`workload.split.${r.key}`) }))} dataKey="value" nameKey="name" innerRadius={42} outerRadius={68} paddingAngle={2}>
-                  {split.map((r) => <Cell key={r.key} fill={r.color} />)}
-                </Pie>
-                <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
-              </PieChart>
-            </ResponsiveContainer>
-            <ul className="m-0 p-0 list-none space-y-1">
-              {split.map((r) => (
-                <li key={r.key} className="flex items-center gap-2 text-xs">
-                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: r.color }} />
-                  <span className="flex-1 text-slate-700">{t(`workload.split.${r.key}`)}</span>
-                  <span className="tabular-nums font-bold text-slate-800">{r.value}</span>
-                </li>
-              ))}
-            </ul>
+        <div className="rounded-xl bg-white border border-slate-200 px-5 py-4 mb-4">
+          <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.splitTitle')}</h3>
+          <p className="text-[11px] text-slate-500 mt-0.5 mb-4">{t('workload.splitSub', { count: data.people.length })}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+            {(['heavy', 'normal', 'idle'] as const).map((k) => {
+              const row = split.find((r) => r.key === k);
+              const color = k === 'heavy' ? ORANGE : k === 'normal' ? NAVY : '#94a3b8';
+              return (
+                <div key={k} className="flex items-baseline gap-3">
+                  <span className="text-[32px] font-extrabold leading-none tabular-nums" style={{ color }}>{row?.value ?? 0}</span>
+                  <span className="text-sm text-slate-600">{t(`workload.split.${k}`)}</span>
+                </div>
+              );
+            })}
           </div>
-          <div className="rounded-xl bg-white border border-slate-200 px-4 py-4 lg:col-span-2">
-            <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.topTitle')}</h3>
-            <p className="text-[11px] text-slate-500 mt-0.5 mb-2">{t('workload.topSub')}</p>
-            {topLoad.length === 0 ? (
-              <div className="h-[200px] flex items-center justify-center text-xs text-slate-400">{t('workload.none')}</div>
-            ) : (
-              <ul className="m-0 p-0 list-none space-y-3">
-                {topLoad.map((r) => (
-                  <li key={r.name} className="flex items-center gap-3">
-                    <span className="w-36 shrink-0 truncate text-xs font-semibold text-slate-700">{r.name}</span>
-                    <div className="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden flex">
-                      <div style={{ width: `${(100 * r.onTime) / topMax}%`, background: NAVY }} />
-                      <div style={{ width: `${(100 * r.late) / topMax}%`, background: BAD }} />
-                    </div>
-                    <span className="w-40 shrink-0 text-xs tabular-nums text-slate-700">
-                      <b>{t('workload.plansCount', { count: r.onTime + r.late })}</b>
-                      {r.late > 0 && <span style={{ color: BAD }}> · {t('workload.lateCount', { count: r.late })}</span>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="h-3 rounded-full overflow-hidden flex bg-slate-100">
+            {split.map((r) => (
+              <div key={r.key} title={`${t(`workload.split.${r.key}`)}: ${r.value}`} style={{ width: `${(100 * r.value) / data.people.length}%`, background: r.color }} />
+            ))}
           </div>
         </div>
       )}
@@ -196,32 +163,32 @@ export default function CapaWorkload() {
             <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.byDepartment')}</h3>
             <p className="text-[11px] text-slate-500 mt-0.5 mb-0">{t('workload.byDepartmentSub')}</p>
           </div>
-          <table className="w-full text-xs">
+          <div className="overflow-x-auto"><table className="w-full text-xs min-w-[56rem]">
             <thead>
               <tr className="text-[11px] text-slate-500 bg-slate-50">
-                <th className="text-left font-semibold px-4 py-2">{t('planDetail.department')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.person')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.busyPeople')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.open')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.late')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.lateActionsShort')}</th>
-                <th className="text-right font-semibold px-4 py-2">{t('workload.toValidateShort')}</th>
+                <th className="text-left font-semibold px-4 py-3 whitespace-nowrap">{t('planDetail.department')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.person')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.busyPeople')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colOpenPlans')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colLatePlans')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colLateActions')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colToValidate')}</th>
               </tr>
             </thead>
             <tbody>
               {byDepartment.map((d) => (
                 <tr key={d.name} className="border-t border-slate-100 cursor-pointer hover:bg-slate-50" onClick={() => setDepartment(d.name === '—' ? '' : d.name)}>
                   <td className="px-4 py-2 font-semibold text-slate-800">{d.name}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{d.people}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{d.busy}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold">{d.open}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: d.late > 0 ? BAD : '#94a3b8' }}>{d.late}</td>
-                  <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: d.lateActions > 0 ? BAD : '#94a3b8' }}>{d.lateActions}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{d.people}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{d.busy}</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold">{d.open}</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: d.late > 0 ? BAD : '#94a3b8' }}>{d.late}</td>
+                  <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: d.lateActions > 0 ? BAD : '#94a3b8' }}>{d.lateActions}</td>
                   <td className="px-4 py-2 text-right tabular-nums font-semibold" style={{ color: d.toValidate > 0 ? ORANGE : '#94a3b8' }}>{d.toValidate}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </div>
       )}
 
@@ -257,18 +224,18 @@ export default function CapaWorkload() {
         {rows.length === 0 ? (
           <p className="text-sm text-slate-400 m-0 p-6 text-center">{t('workload.none')}</p>
         ) : (
-          <table className="w-full text-xs">
+          <div className="overflow-x-auto"><table className="w-full text-xs min-w-[56rem]">
             <thead>
               <tr className="text-[11px] text-slate-500 bg-slate-50">
-                <th className="text-left font-semibold px-4 py-2">{t('workload.person')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.open')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.late')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.openActions')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.lateActionsShort')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.toValidateShort')}</th>
-                <th className="text-right font-semibold px-3 py-2">{t('workload.done30')}</th>
-                <th className="font-semibold px-3 py-2 text-left w-40">{t('workload.progress')}</th>
-                <th className="text-right font-semibold px-4 py-2">{t('workload.next')}</th>
+                <th className="text-left font-semibold px-4 py-3 whitespace-nowrap">{t('workload.person')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colOpenPlans')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colLatePlans')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colOpenActions')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colLateActions')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colToValidate')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.colDone30')}</th>
+                <th className="font-semibold px-4 py-3 text-left whitespace-nowrap min-w-[10rem]">{t('workload.progress')}</th>
+                <th className="text-right font-semibold px-4 py-3 whitespace-nowrap">{t('workload.next')}</th>
               </tr>
             </thead>
             <tbody>
@@ -292,18 +259,18 @@ export default function CapaWorkload() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <div className="h-1.5 w-14 rounded-full bg-slate-100 overflow-hidden" title={t('workload.loadBar')}><div className="h-full rounded-full" style={{ width: `${(100 * p.openPlans) / maxOpen}%`, background: heavy ? ORANGE : NAVY }} /></div>
                           <span className="tabular-nums font-semibold w-5 text-right">{p.openPlans}</span>
                         </div>
                       </td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.latePlans > 0 ? BAD : '#94a3b8' }}>{p.latePlans}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold">{p.openActions}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.lateActions > 0 ? BAD : '#94a3b8' }}>{p.lateActions}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.actionsToValidate > 0 ? ORANGE : '#94a3b8' }}>{p.actionsToValidate}</td>
-                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">{p.actionsDoneLast30Days}</td>
-                      <td className="px-3 py-2.5">
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: p.latePlans > 0 ? BAD : '#94a3b8' }}>{p.latePlans}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold">{p.openActions}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: p.lateActions > 0 ? BAD : '#94a3b8' }}>{p.lateActions}</td>
+                      <td className="px-4 py-3 text-right tabular-nums font-semibold" style={{ color: p.actionsToValidate > 0 ? ORANGE : '#94a3b8' }}>{p.actionsToValidate}</td>
+                      <td className="px-4 py-3 text-right tabular-nums text-slate-600">{p.actionsDoneLast30Days}</td>
+                      <td className="px-4 py-3">
                         {p.avgProgress == null ? <span className="text-slate-400">—</span> : (
                           <div className="flex items-center gap-2">
                             <div className="h-1.5 flex-1 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${p.avgProgress}%`, background: '#38a169' }} /></div>
@@ -385,7 +352,7 @@ export default function CapaWorkload() {
                 );
               })}
             </tbody>
-          </table>
+          </table></div>
         )}
       </div>
       {rows.length > paged.pageSize && (

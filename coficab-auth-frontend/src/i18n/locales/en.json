@@ -211,6 +211,12 @@
     "title": "Organizations followed across the application"
   },
   "workload": {
+    "colOpenPlans": "Open plans",
+    "colLatePlans": "Late plans",
+    "colOpenActions": "Open sub-actions",
+    "colLateActions": "Late sub-actions",
+    "colToValidate": "To validate",
+    "colDone30": "Done (30 d)",
     "plansCount_one": "{{count}} plan",
     "plansCount_other": "{{count}} plans",
     "lateCount": "{{count}} late",

@@ -211,6 +211,12 @@
     "title": "Organisations suivies dans toute l'application"
   },
   "workload": {
+    "colOpenPlans": "Plans ouverts",
+    "colLatePlans": "Plans en retard",
+    "colOpenActions": "Sous-actions ouvertes",
+    "colLateActions": "Sous-actions en retard",
+    "colToValidate": "À valider",
+    "colDone30": "Faites (30 j)",
     "plansCount_one": "{{count}} plan",
     "plansCount_other": "{{count}} plans",
     "lateCount": "{{count}} en retard",

@@ -211,6 +211,12 @@
     "title": "Organizzazioni seguite in tutta l'applicazione"
   },
   "workload": {
+    "colOpenPlans": "Piani aperti",
+    "colLatePlans": "Piani in ritardo",
+    "colOpenActions": "Azioni aperte",
+    "colLateActions": "Azioni in ritardo",
+    "colToValidate": "Da convalidare",
+    "colDone30": "Fatte (30 g)",
     "plansCount_one": "{{count}} piano",
     "plansCount_other": "{{count}} piani",
     "lateCount": "{{count}} in ritardo",
