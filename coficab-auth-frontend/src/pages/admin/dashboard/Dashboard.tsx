@@ -11,7 +11,7 @@ import TopResponsiblesSection from './TopResponsiblesSection';
 import WorkflowEvolutionSection from './WorkflowEvolutionSection';
 import EmployeeActivityWidget from './EmployeeActivityWidget';
 import DashInfoTip from './DashInfoTip';
-import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
+import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
 
 export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'indicators' }) {
   const { t } = useTranslation();
@@ -123,25 +123,6 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
         className="mt-5 rounded-xl bg-white shadow-sm px-4 py-3.5 flex flex-wrap items-center gap-3 hover:shadow-md transition-shadow"
         style={{ border: `1px solid ${COFICAB.line}` }}
       >
-        <button
-          type="button"
-          onClick={() => navigate('/admin/action-plans/create')}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold rounded-xl text-white shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
-          style={{ background: PLANS_ACCENT }}
-        >
-          {t('adminDashboard.footer.newPlan')}
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/admin/audit-logs?module=capa')}
-          className="text-xs font-semibold hover:underline"
-          style={{ color: PLANS_ACCENT }}
-        >
-          {t('adminDashboard.footer.auditCapa')}
-        </button>
-
-        <div className="flex-1 min-w-[8px]" />
-
         <button
           type="button"
           onClick={() => navigate('/pages/front/quality-analyses/create')}

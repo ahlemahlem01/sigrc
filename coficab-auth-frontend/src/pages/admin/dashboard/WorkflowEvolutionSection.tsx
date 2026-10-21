@@ -206,7 +206,7 @@ function StreamCard({
   );
 }
 
-/** Comparaison détaillée Claims / Action Plans (Pulse Global est dans DashboardSummaryBar). */
+/** Comparaison mois courant / mois précédent des réclamations, et des plans d'action si leur série est fournie. */
 export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, loading }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language || 'fr';
@@ -232,7 +232,7 @@ export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, 
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+      <div className={`grid grid-cols-1 gap-3 ${plansMonthly !== undefined ? 'lg:grid-cols-2' : ''}`}>
         <StreamCard
           title={t('adminDashboard.claims.title')}
           accent={COFICAB.navy}
@@ -240,13 +240,15 @@ export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, 
           loading={loading}
           locale={locale}
         />
-        <StreamCard
-          title={t('adminDashboard.actionPlans.title')}
-          accent={COFICAB.mid}
-          evo={plansEvo}
-          loading={loading}
-          locale={locale}
-        />
+        {plansMonthly !== undefined && (
+          <StreamCard
+            title={t('adminDashboard.actionPlans.title')}
+            accent={COFICAB.mid}
+            evo={plansEvo}
+            loading={loading}
+            locale={locale}
+          />
+        )}
       </div>
     </section>
   );
