@@ -160,13 +160,15 @@ public class QualityAnalysisController : ControllerBase
         CancellationToken cancellationToken,
         [FromQuery] string? organizationIds = null,
         [FromQuery] int page = 1,
-        [FromQuery] int pageSize = GetClaimsPageQuery.DefaultPageSize)
+        [FromQuery] int pageSize = GetClaimsPageQuery.DefaultPageSize,
+        [FromQuery] bool archived = false)
     {
         var userId = CurrentUserId();
         if (string.IsNullOrWhiteSpace(userId))
             return Unauthorized(new { message = "Utilisateur non authentifié." });
 
         var isAdmin = IsQualityAdmin();
+        if (archived && !isAdmin) return Forbid();
         string? relatedToUserId = null;
         string? assignedToId = null;
         string? createdById = null;
@@ -214,7 +216,8 @@ public class QualityAnalysisController : ControllerBase
             new GetClaimsPageQuery(
                 new GetClaimsQuery(status, assignedToId, createdById, effectiveHasAssignee, relatedToUserId, excludeSelfCreated,
                     IsQualityAdmin() && !IsSuperAdmin() ? userId : null,
-                    isAdmin ? ClaimOrganizations.Parse(organizationIds) : null),
+                    isAdmin ? ClaimOrganizations.Parse(organizationIds) : null,
+                    archived),
                 page,
                 pageSize),
             cancellationToken);
@@ -222,6 +225,31 @@ public class QualityAnalysisController : ControllerBase
         Response.Headers["X-Page"] = result.Page.ToString();
         Response.Headers["X-Page-Size"] = result.PageSize.ToString();
         return Ok(result.Items);
+    }
+
+    /// <summary>Administrators: hides a claim from every list (it stays in the database). Refused while its CAPA plan is open.</summary>
+    [HttpPost("claims/{id:guid}/archive")]
+    public Task<IActionResult> ArchiveClaim(Guid id, CancellationToken cancellationToken) => SetArchivedAsync(id, true, cancellationToken);
+
+    /// <summary>Administrators: brings an archived claim back.</summary>
+    [HttpPost("claims/{id:guid}/restore")]
+    public Task<IActionResult> RestoreClaim(Guid id, CancellationToken cancellationToken) => SetArchivedAsync(id, false, cancellationToken);
+
+    private async Task<IActionResult> SetArchivedAsync(Guid id, bool archive, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Utilisateur non authentifié." });
+        if (!IsQualityAdmin()) return Forbid();
+
+        var result = await _mediator.Send(new ArchiveClaimCommand(id, archive, userId), cancellationToken);
+        return result switch
+        {
+            ArchiveClaimResult.Done => Ok(new { success = true, message = archive ? "Réclamation archivée." : "Réclamation restaurée." }),
+            ArchiveClaimResult.Unchanged => Ok(new { success = true, message = archive ? "Déjà archivée." : "Déjà active." }),
+            ArchiveClaimResult.HasOpenPlans => Conflict(new { message = "Cette réclamation a un plan d'action encore ouvert : clôturez-le d'abord." }),
+            _ => NotFound(new { message = "Réclamation introuvable." }),
+        };
     }
 
     [HttpGet("claims/history")]

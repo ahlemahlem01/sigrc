@@ -17,7 +17,9 @@ public record GetClaimsQuery(
     /// <summary>Admin (not superadmin): restrict to created, assigned, or same department.</summary>
     string? ScopeUserId = null,
     /// <summary>The organizations followed (superadmin): a claim follows its assignee's organization, else its creator's.</summary>
-    IReadOnlyList<Guid>? OrganizationIds = null
+    IReadOnlyList<Guid>? OrganizationIds = null,
+    /// <summary>Only the archived claims (hidden everywhere else).</summary>
+    bool ArchivedOnly = false
 ) : IRequest<List<Claim>>;
 
 public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>>
@@ -43,7 +45,9 @@ public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>
     /// <summary>The filtered, unordered query: shared by the full list and the paged list.</summary>
     internal static async Task<IQueryable<Claim>> BuildAsync(IApplicationDbContext context, GetClaimsQuery request, CancellationToken cancellationToken)
     {
-        var query = context.Claims.AsNoTracking();
+        var query = request.ArchivedOnly
+            ? context.Claims.IgnoreQueryFilters().AsNoTracking().Where(c => c.IsArchived)
+            : context.Claims.AsNoTracking();
         if (!string.IsNullOrWhiteSpace(request.ScopeUserId))
             query = await ClaimVisibility.ApplyAsync(context, query, request.ScopeUserId, cancellationToken);
 
@@ -101,7 +105,8 @@ public class GetClaimsQueryHandler : IRequestHandler<GetClaimsQuery, List<Claim>
         {
             query = query.Where(c => c.StatusCode.ToUpper() == request.Status.ToUpper());
         }
-        else if (string.IsNullOrWhiteSpace(request.AssignedToId)
+        else if (!request.ArchivedOnly
+                 && string.IsNullOrWhiteSpace(request.AssignedToId)
                  && string.IsNullOrWhiteSpace(request.CreatedById)
                  && string.IsNullOrWhiteSpace(request.RelatedToUserId))
         {

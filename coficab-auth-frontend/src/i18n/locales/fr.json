@@ -3937,6 +3937,17 @@
     "deadlineFailed": "Impossible d’appliquer la date limite."
   },
   "adminLists": {
+    "archive": "Archiver",
+    "restore": "Restaurer",
+    "viewActive": "Actives",
+    "viewArchived": "Archivées",
+    "viewLabel": "Réclamations affichées",
+    "archiveTitle": "Archiver la réclamation",
+    "archiveText": "« {{title}} » sera retirée de toutes les listes. Elle est conservée et peut être restaurée depuis la vue « Archivées ».",
+    "archiveDone": "« {{title}} » archivée.",
+    "restoreDone": "« {{title}} » restaurée.",
+    "noArchived": "Aucune réclamation archivée.",
+    "archiveFailed": "L'opération a échoué.",
     "eightDLoadFailed": "Impossible de charger les dossiers 8D.",
     "eightDSubtitle": "Dossiers 8D des réclamations de votre périmètre.",
     "results_one": "{{count}} résultat",

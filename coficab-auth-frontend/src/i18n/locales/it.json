@@ -3937,6 +3937,17 @@
     "deadlineFailed": "Impossibile applicare la scadenza."
   },
   "adminLists": {
+    "archive": "Archivia",
+    "restore": "Ripristina",
+    "viewActive": "Attivi",
+    "viewArchived": "Archiviati",
+    "viewLabel": "Reclami mostrati",
+    "archiveTitle": "Archivia il reclamo",
+    "archiveText": "\"{{title}}\" verrà rimosso da tutti gli elenchi. Viene conservato e può essere ripristinato dalla vista \"Archiviati\".",
+    "archiveDone": "\"{{title}}\" archiviato.",
+    "restoreDone": "\"{{title}}\" ripristinato.",
+    "noArchived": "Nessun reclamo archiviato.",
+    "archiveFailed": "L'operazione non è riuscita.",
     "eightDLoadFailed": "Impossibile caricare i dossier 8D.",
     "eightDSubtitle": "Dossier 8D dei reclami del tuo perimetro.",
     "results_one": "{{count}} risultato",

@@ -150,7 +150,7 @@ export const qualityAnalysisService = {
     status?: string,
     token?: string,
     assignedTo?: string,
-    options?: { createdBy?: string; hasAssignee?: boolean; relatedTo?: string }
+    options?: { createdBy?: string; hasAssignee?: boolean; relatedTo?: string; archived?: boolean }
   ): Promise<Claim[]> => {
     const config = getAuthConfig(token);
     const params: Record<string, string | boolean> = { ...scopeParams() };
@@ -159,6 +159,7 @@ export const qualityAnalysisService = {
     if (options?.createdBy) params.createdBy = options.createdBy;
     if (options?.relatedTo) params.relatedTo = options.relatedTo;
     if (options?.hasAssignee !== undefined) params.hasAssignee = options.hasAssignee;
+    if (options?.archived) params.archived = true;
     // Server-side pagination: pages are fetched until X-Total-Count is reached, so callers still get the whole list.
     const pageSize = 200;
     const all: Claim[] = [];
@@ -170,6 +171,15 @@ export const qualityAnalysisService = {
       if (items.length < pageSize || (Number.isFinite(total) && all.length >= total)) break;
     }
     return all;
+  },
+
+  /** Admin: hides a claim from every list (kept in the database); refused while its CAPA plan is open. */
+  archiveClaim: async (id: string, token?: string): Promise<void> => {
+    await api.post(`/claims/${id}/archive`, {}, getAuthConfig(token));
+  },
+
+  restoreClaim: async (id: string, token?: string): Promise<void> => {
+    await api.post(`/claims/${id}/restore`, {}, getAuthConfig(token));
   },
 
   /** KPI réclamations (admin) : par mois, délai moyen de traitement, PPM par client, top défauts. */

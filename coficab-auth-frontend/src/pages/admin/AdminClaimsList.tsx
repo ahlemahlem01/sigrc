@@ -15,6 +15,7 @@ import { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { severityKey, type SeverityKey } from '../../utils/overviewSeverity';
 import { useTranslation } from 'react-i18next';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import i18n, { dateLocale } from '../../i18n';
 
 const PAGE_SIZE = 12;
@@ -75,13 +76,17 @@ export default function AdminClaimsList() {
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [page, setPage] = useState(1);
+  const [showArchived, setShowArchived] = useState(false);
+  const [ask, setAsk] = useState<Claim | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
 
   const load = async () => {
     if (!accessToken) return;
     setLoading(true);
     setError('');
     try {
-      const data = await qualityAnalysisService.getClaims(undefined, accessToken);
+      const data = await qualityAnalysisService.getClaims(undefined, accessToken, undefined, showArchived ? { archived: true } : undefined);
       setClaims(Array.isArray(data) ? data : []);
     } catch (e: any) {
       setError(e?.response?.data?.message || e?.message || i18n.t('claimsDir.loadFailed'));
@@ -92,7 +97,7 @@ export default function AdminClaimsList() {
   };
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the listed values change
-  useEffect(() => { void load(); }, [accessToken]);
+  useEffect(() => { void load(); }, [accessToken, showArchived]);
 
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -126,6 +131,40 @@ export default function AdminClaimsList() {
     });
   }, [claims, search, filterStatus, filterSeverity, filterDeadline, filterFrom, filterTo]);
 
+  const failure = (e: any) =>
+    setNotice({ ok: false, text: e?.response?.data?.message || e?.message || t('adminLists.archiveFailed') });
+
+  const archive = async (claim: Claim) => {
+    if (!accessToken) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      await qualityAnalysisService.archiveClaim(claim.id, accessToken);
+      setClaims((prev) => prev.filter((c) => c.id !== claim.id));
+      setNotice({ ok: true, text: t('adminLists.archiveDone', { title: claim.title || t('closedArchive.untitled') }) });
+    } catch (e) {
+      failure(e);
+    } finally {
+      setBusy(false);
+      setAsk(null);
+    }
+  };
+
+  const restore = async (claim: Claim) => {
+    if (!accessToken) return;
+    setBusy(true);
+    setNotice(null);
+    try {
+      await qualityAnalysisService.restoreClaim(claim.id, accessToken);
+      setClaims((prev) => prev.filter((c) => c.id !== claim.id));
+      setNotice({ ok: true, text: t('adminLists.restoreDone', { title: claim.title || t('closedArchive.untitled') }) });
+    } catch (e) {
+      failure(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const pageRows = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -158,12 +197,31 @@ export default function AdminClaimsList() {
         subtitle={t('adminLists.claimsSubtitle')}
         actions={
           <>
+            <div className="inline-flex p-0.5 rounded-lg bg-slate-100 text-xs" role="group" aria-label={t('adminLists.viewLabel')}>
+              {([[false, t('adminLists.viewActive')], [true, t('adminLists.viewArchived')]] as [boolean, string][]).map(([v, label]) => (
+                <button key={String(v)} type="button" aria-pressed={showArchived === v} onClick={() => { setShowArchived(v); setPage(1); setNotice(null); }} className="px-2.5 py-1 rounded-md font-semibold" style={showArchived === v ? { background: '#fff', color: '#000168', boxShadow: '0 1px 2px rgba(0,0,0,.08)' } : { color: '#64748b' }}>{label}</button>
+              ))}
+            </div>
             <button type="button" className={btnSecondary} onClick={() => void load()}>{t('dashboard.refresh')}</button>
             <button type="button" className={btnPrimary} onClick={() => navigate('/admin/claims/create')}>+ {t('adminNav.newClaim')}</button>
           </>
         }
       />
       {error ? <CapaErrorBanner message={error} /> : null}
+      {notice && (
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
+      )}
+      {ask && (
+        <ConfirmDialog
+          title={t('adminLists.archiveTitle')}
+          text={t('adminLists.archiveText', { title: ask.title || t('closedArchive.untitled') })}
+          confirmLabel={t('adminLists.archive')}
+          danger
+          busy={busy}
+          onConfirm={() => void archive(ask)}
+          onCancel={() => setAsk(null)}
+        />
+      )}
       <CapaKpiStrip
         variant="soft"
         items={Object.entries(STATUSES).map(([key, val]) => ({
@@ -244,7 +302,7 @@ export default function AdminClaimsList() {
                   </tr>
                 ))
               ) : pageRows.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">{t('adminLists.noClaims')}</td></tr>
+                <tr><td colSpan={7} className="px-4 py-12 text-center text-slate-400">{showArchived ? t('adminLists.noArchived') : t('adminLists.noClaims')}</td></tr>
               ) : pageRows.map((claim) => {
                 const known = STATUSES[resolveClaimStatus(claim)];
                 const status = known ? { ...known, label: t(known.label) } : { label: resolveClaimStatus(claim), color: 'bg-slate-100 text-slate-600' };
@@ -264,7 +322,14 @@ export default function AdminClaimsList() {
                   {claim.deadline ? formatDate(claim.deadline) : <span className="inline-block rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] font-semibold">{t('adminDashboard.claims.noDeadline')}</span>}
                 </td>
                     <td className="px-4 py-3.5 text-right">
-                      <button type="button" className={btnSecondary} onClick={() => navigate(`/admin/claims/eight-d/${claim.id}`)}>8D</button>
+                      <div className="inline-flex gap-1.5">
+                        <button type="button" className={btnSecondary} onClick={() => navigate(`/admin/claims/eight-d/${claim.id}`)}>8D</button>
+                        {showArchived ? (
+                          <button type="button" className={btnSecondary} disabled={busy} onClick={() => void restore(claim)}>{t('adminLists.restore')}</button>
+                        ) : (
+                          <button type="button" className={`${btnSecondary} !text-red-600`} onClick={() => setAsk(claim)}>{t('adminLists.archive')}</button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );

@@ -3937,6 +3937,17 @@
     "deadlineFailed": "Could not apply the deadline."
   },
   "adminLists": {
+    "archive": "Archive",
+    "restore": "Restore",
+    "viewActive": "Active",
+    "viewArchived": "Archived",
+    "viewLabel": "Claims shown",
+    "archiveTitle": "Archive the claim",
+    "archiveText": "\"{{title}}\" will be removed from every list. It is kept and can be restored from the \"Archived\" view.",
+    "archiveDone": "\"{{title}}\" archived.",
+    "restoreDone": "\"{{title}}\" restored.",
+    "noArchived": "No archived claims.",
+    "archiveFailed": "The operation failed.",
     "eightDLoadFailed": "Could not load the 8D files.",
     "eightDSubtitle": "8D files for the claims in your scope.",
     "results_one": "{{count}} result",
