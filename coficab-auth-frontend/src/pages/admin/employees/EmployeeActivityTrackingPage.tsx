@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import SegmentedToggle from '../../../components/SegmentedToggle';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../context/AuthContext';
 import TablePagination from '../../../components/TablePagination';
@@ -40,7 +41,7 @@ export default function EmployeeActivityTrackingPage() {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const scope: 'plans' | 'claims' = params.get('scope') === 'claims' ? 'claims' : 'plans';
   const [summary, setSummary] = useState<EmployeeActivitySummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -283,6 +284,15 @@ export default function EmployeeActivityTrackingPage() {
             {t(scope === 'claims' ? 'activityTracking.subtitleClaims' : 'activityTracking.subtitle')}
           </p>
         </div>
+        <SegmentedToggle
+          options={[
+            { id: 'plans', labelKey: 'activityTracking.scopePlans' },
+            { id: 'claims', labelKey: 'activityTracking.scopeClaims' },
+          ] as const}
+          value={scope}
+          onChange={(id) => { setParams(id === 'claims' ? { scope: 'claims' } : {}, { replace: true }); setPage(1); }}
+          ariaLabel={t('activityTracking.scopeAria')}
+        />
         <button type="button" className="eat-btn" onClick={() => void load()} disabled={loading}>
           <i className={`ti ${loading ? 'ti-loader-2 eat-spin' : 'ti-refresh'}`} />
           {t('qualityHistory.refresh')}

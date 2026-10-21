@@ -3779,6 +3779,9 @@
     "axis": "Asse"
   },
   "activityTracking": {
+    "scopePlans": "Piani d'azione",
+    "scopeClaims": "Reclami",
+    "scopeAria": "Fonte di attività",
     "subtitleClaims": "Stato in base all’ultima attività sui reclami; piani d’azione e accessi non contano. Volume = azioni negli ultimi 60 giorni.",
     "loadFailed": "Impossibile caricare il monitoraggio delle attività.",
     "title": "Monitoraggio attività",

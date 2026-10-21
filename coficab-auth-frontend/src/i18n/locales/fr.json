@@ -3779,6 +3779,9 @@
     "axis": "Axe"
   },
   "activityTracking": {
+    "scopePlans": "Plans d'actions",
+    "scopeClaims": "Réclamations",
+    "scopeAria": "Source d'activité",
     "subtitleClaims": "Statut selon la dernière activité sur les réclamations ; les plans d'actions et connexions ne comptent pas. Volume = actions sur 60 jours.",
     "loadFailed": "Impossible de charger le suivi d’activité.",
     "title": "Suivi d'activité",

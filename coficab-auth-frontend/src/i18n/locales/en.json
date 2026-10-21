@@ -3779,6 +3779,9 @@
     "axis": "Axis"
   },
   "activityTracking": {
+    "scopePlans": "Action plans",
+    "scopeClaims": "Claims",
+    "scopeAria": "Activity source",
     "subtitleClaims": "Status based on the last claim activity; action plans and sign-ins do not count. Volume = actions over 60 days.",
     "loadFailed": "Could not load activity tracking.",
     "title": "Activity tracking",
