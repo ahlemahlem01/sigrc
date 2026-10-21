@@ -3779,7 +3779,7 @@
   "activityTracking": {
     "loadFailed": "Impossibile caricare il monitoraggio delle attività.",
     "title": "Monitoraggio attività",
-    "subtitle": "Stato in base all’ultimo accesso o azione operativa. Volume = azioni negli ultimi 60 giorni.",
+    "subtitle": "Stato in base all’ultima attività sui piani d’azione (piani, azioni, assegnazioni); reclami e accessi non contano. Volume = azioni negli ultimi 60 giorni.",
     "searchPh": "Cerca…",
     "filterAria": "Filtra per stato",
     "volume": "Volume",

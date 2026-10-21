@@ -3779,7 +3779,7 @@
   "activityTracking": {
     "loadFailed": "Impossible de charger le suivi d’activité.",
     "title": "Suivi d'activité",
-    "subtitle": "Statut selon la dernière connexion ou action métier. Volume = actions sur 60 jours.",
+    "subtitle": "Statut selon la dernière activité sur les plans d'actions (plans, sous-actions, assignations) ; les réclamations et connexions ne comptent pas. Volume = actions sur 60 jours.",
     "searchPh": "Rechercher…",
     "filterAria": "Filtrer par statut",
     "volume": "Volume",

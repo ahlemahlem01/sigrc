@@ -3779,7 +3779,7 @@
   "activityTracking": {
     "loadFailed": "Could not load activity tracking.",
     "title": "Activity tracking",
-    "subtitle": "Status based on the last sign-in or business action. Volume = actions over 60 days.",
+    "subtitle": "Status based on the last action-plan activity (plans, sub-actions, assignments); claims and sign-ins do not count. Volume = actions over 60 days.",
     "searchPh": "Search…",
     "filterAria": "Filter by status",
     "volume": "Volume",

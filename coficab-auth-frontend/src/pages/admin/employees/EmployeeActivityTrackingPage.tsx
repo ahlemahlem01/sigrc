@@ -55,7 +55,7 @@ export default function EmployeeActivityTrackingPage() {
     setLoading(true);
     setError('');
     try {
-      const data = await adminEmployeeService.getActivitySummary(accessToken, true);
+      const data = await adminEmployeeService.getActivitySummary(accessToken, true, 'plans');
       setSummary(data);
     } catch {
       setError(i18n.t('activityTracking.loadFailed'));
