@@ -139,7 +139,7 @@ function StreamCard({
             </div>
             <div>
               <div className="text-[9px] font-bold uppercase tracking-wider mb-0.5" style={{ color: COFICAB.navy }}>
-                {t('adminDashboard.evolution.currentMonth')}
+                {t(evo.idleMonths > 0 ? 'adminDashboard.evolution.lastActiveMonth' : 'adminDashboard.evolution.currentMonth')}
               </div>
               <div className="text-xs font-bold capitalize" style={{ color: COFICAB.navy }}>
                 {formatMonthKey(evo.month, locale)}
@@ -154,9 +154,14 @@ function StreamCard({
             </span>
             <span className="flex items-center gap-1.5">
               <span className="inline-block w-3 h-2 rounded-full" style={{ background: accent }} />
-              {t('adminDashboard.evolution.currentMonth')}
+              {t(evo.idleMonths > 0 ? 'adminDashboard.evolution.lastActiveMonth' : 'adminDashboard.evolution.currentMonth')}
             </span>
           </div>
+          {evo.idleMonths > 0 && evo.firstIdleMonth && (
+            <p className="text-[10px] m-0 px-1" style={{ color: COFICAB.muted }}>
+              {t('adminDashboard.evolution.idle', { month: formatMonthKey(evo.firstIdleMonth, locale), last: formatMonthKey(evo.month, locale) })}
+            </p>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <MetricCompare

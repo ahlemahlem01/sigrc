@@ -686,8 +686,10 @@
       "auditCapa": "Voir Audit CAPA →"
     },
     "evolution": {
+      "lastActiveMonth": "Dernier mois d'activité",
+      "idle": "Aucune activité en {{month}} : la comparaison s'arrête à {{last}}.",
       "title": "Évolution du workflow",
-      "subtitle": "Comparaison mois courant vs mois précédent",
+      "subtitle": "Comparaison des deux derniers mois d'activité",
       "globalPulse": "Pulse global",
       "opened": "Ouverts",
       "closed": "Clôturés",
