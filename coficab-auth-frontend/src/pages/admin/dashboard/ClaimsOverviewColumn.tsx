@@ -78,34 +78,6 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
       className="rounded-xl bg-white shadow-sm flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md"
       style={{ border: `1px solid ${COFICAB.line}` }}
     >
-      <header
-        className="px-4 py-3.5 flex items-center gap-2.5 border-b"
-        style={{
-          borderColor: COFICAB.line,
-          background: `linear-gradient(135deg, ${COFICAB.light} 0%, #fff 72%)`,
-        }}
-      >
-        <div
-          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: COFICAB.light }}
-        >
-          <i className="ti ti-clipboard-list" style={{ fontSize: 18, color: CLAIMS_ACCENT }} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base font-bold m-0" style={{ color: CLAIMS_ACCENT }}>
-              {t('adminDashboard.claims.title')}
-            </h2>
-            <DashInfoTip
-              text={t('adminDashboard.help.claimsColumn')}
-              title={t('adminDashboard.claims.title')}
-              side="bottom"
-            />
-          </div>
-          <p className="text-[11px] text-slate-500 m-0">{t('adminDashboard.claims.subtitle')}</p>
-        </div>
-      </header>
-
       <div className="p-4 flex flex-col gap-4 flex-1">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           <KpiMiniCard
