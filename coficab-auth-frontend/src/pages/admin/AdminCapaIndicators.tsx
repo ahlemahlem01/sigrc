@@ -242,7 +242,7 @@ export default function AdminCapaIndicators() {
             </div>
           </Panel>
 
-          <EmployeeActivityWidget />
+          <EmployeeActivityWidget scope="plans" />
         </>
       )}
     </div>

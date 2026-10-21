@@ -106,6 +106,34 @@ public class EmployeeActivityService : IEmployeeActivityService
         return BuildSummary(profiles, null, deptNames);
     }
 
+    /// <summary>
+    /// Activity on action plans only: plans, their sub-actions and assignments. Claims, analyses and logins do not count,
+    /// and the stored (global) status of the profiles is left untouched.
+    /// </summary>
+    public async Task<EmployeeActivitySummaryDto> GetPlanSummaryAsync(CancellationToken ct = default)
+    {
+        var profiles = await _db.UserProfiles.AsNoTracking().ToListAsync(ct);
+        var metrics = await GetBusinessActivityMetricsAsync(profiles.Select(p => p.UserId).Distinct().ToList(), ct, plansOnly: true);
+        var now = DateTime.UtcNow;
+
+        var deptIds = profiles.Where(p => p.DepartmentId != null).Select(p => p.DepartmentId!.Value).Distinct().ToList();
+        var deptNames = deptIds.Count == 0
+            ? new Dictionary<Guid, string>()
+            : await _db.Departments.AsNoTracking()
+                .Where(d => deptIds.Contains(d.Id))
+                .ToDictionaryAsync(d => d.Id, d => d.Name, ct);
+
+        foreach (var p in profiles)
+        {
+            metrics.TryGetValue(p.UserId, out var metric);
+            p.LastActivityAt = metric?.LastAt;
+            p.ActivityStatus = ComputeStatus(metric?.LastAt, now);
+            p.ActivityStatusComputedAt = now;
+        }
+
+        return BuildSummary(profiles, metrics, deptNames);
+    }
+
     public async Task<EmployeeActivitySummaryDto> RecalculateAllAsync(CancellationToken ct = default)
     {
         var profiles = await _db.UserProfiles.ToListAsync(ct);
@@ -208,7 +236,8 @@ public class EmployeeActivityService : IEmployeeActivityService
 
     private async Task<Dictionary<string, BusinessActivityMetric>> GetBusinessActivityMetricsAsync(
         IReadOnlyCollection<string> userIds,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool plansOnly = false)
     {
         var set = userIds.Where(id => !string.IsNullOrWhiteSpace(id)).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var map = set.ToDictionary(id => id, _ => new BusinessActivityMetric(), StringComparer.OrdinalIgnoreCase);
@@ -241,16 +270,6 @@ public class EmployeeActivityService : IEmployeeActivityService
                 m.RecentCount++;
         }
 
-        var claims = await _db.Claims.AsNoTracking().Where(c => !c.IsArchived)
-            .Select(c => new { c.CreatedById, c.UpdatedById, c.CreatedBy, c.CreatedAt, c.UpdatedAt })
-            .ToListAsync(ct);
-        foreach (var c in claims)
-        {
-            Consider(c.CreatedById, MaxDate(c.CreatedAt, c.UpdatedAt));
-            Consider(c.CreatedBy, c.CreatedAt);
-            Consider(c.UpdatedById, c.UpdatedAt);
-        }
-
         var plans = await _db.ActionPlans.AsNoTracking().Where(p => !p.IsArchived)
             .Select(p => new { p.OwnerId, p.CreatedBy, p.UpdatedBy, p.CreatedAt, p.UpdatedAt })
             .ToListAsync(ct);
@@ -277,6 +296,19 @@ public class EmployeeActivityService : IEmployeeActivityService
             .Select(a => new { a.UserId, a.CreatedAt }).ToListAsync(ct);
         foreach (var a in assignments)
             Consider(a.UserId, a.CreatedAt);
+
+        // everything below concerns claims and their analyses, not action plans
+        if (plansOnly) return map;
+
+        var claims = await _db.Claims.AsNoTracking().Where(c => !c.IsArchived)
+            .Select(c => new { c.CreatedById, c.UpdatedById, c.CreatedBy, c.CreatedAt, c.UpdatedAt })
+            .ToListAsync(ct);
+        foreach (var c in claims)
+        {
+            Consider(c.CreatedById, MaxDate(c.CreatedAt, c.UpdatedAt));
+            Consider(c.CreatedBy, c.CreatedAt);
+            Consider(c.UpdatedById, c.UpdatedAt);
+        }
 
         var eightD = await _db.EightDDossiers.AsNoTracking().Where(d => !d.IsArchived)
             .Select(d => new

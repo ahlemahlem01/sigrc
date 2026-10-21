@@ -779,6 +779,8 @@
       "pulseNet": "Charge nette = ouverts − clôturés. Positif = backlog qui grossit ; négatif = backlog qui diminue."
     },
     "activity": {
+      "helpPlans": "Basé uniquement sur l'activité liée aux plans d'actions : création ou mise à jour d'un plan, d'une sous-action, ou nouvelle assignation. Les réclamations, analyses et connexions ne comptent pas. Actif : ≤ 15 jours, peu actif : ≤ 60 jours.",
+      "subtitlePlans": "Activité sur les plans d'actions uniquement",
       "title": "Suivi d'activité des employés",
       "help": "Basé sur la dernière connexion et les dernières actions métier (réclamations, CAPA, 8D). Distinct du verrouillage de compte.",
       "helpTitle": "Statut d'activité",

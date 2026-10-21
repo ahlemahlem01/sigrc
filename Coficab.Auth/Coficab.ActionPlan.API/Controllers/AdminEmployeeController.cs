@@ -57,9 +57,11 @@ public class AdminEmployeeController : ControllerBase
     }
 
     [HttpGet("activity")]
-    public async Task<IActionResult> GetActivityTracking([FromQuery] bool force = false, [FromQuery] string? organizationIds = null)
+    public async Task<IActionResult> GetActivityTracking([FromQuery] bool force = false, [FromQuery] string? organizationIds = null, [FromQuery] string? scope = null)
     {
-        var summary = await _employeeActivityService.GetSummaryAsync(forceRecalculate: force);
+        var summary = string.Equals(scope, "plans", StringComparison.OrdinalIgnoreCase)
+            ? await _employeeActivityService.GetPlanSummaryAsync()
+            : await _employeeActivityService.GetSummaryAsync(forceRecalculate: force);
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
         {
             var items = summary.Items.Where(i => people.Contains(i.UserId)).ToList();

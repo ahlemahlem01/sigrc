@@ -6,7 +6,7 @@ import { adminEmployeeService, type EmployeeActivitySummary } from '../../../ser
 import { COFICAB } from './dashPalette';
 import DashInfoTip from './DashInfoTip';
 
-export default function EmployeeActivityWidget() {
+export default function EmployeeActivityWidget({ scope }: { scope?: 'plans' }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -18,7 +18,7 @@ export default function EmployeeActivityWidget() {
     let cancelled = false;
     setLoading(true);
     adminEmployeeService
-      .getActivitySummary(accessToken, true)
+      .getActivitySummary(accessToken, true, scope)
       .then((summary) => {
         if (!cancelled) setData(summary);
       })
@@ -31,7 +31,7 @@ export default function EmployeeActivityWidget() {
     return () => {
       cancelled = true;
     };
-  }, [accessToken]);
+  }, [accessToken, scope]);
 
   const total = data?.total ?? 0;
   const rows = [
@@ -52,13 +52,13 @@ export default function EmployeeActivityWidget() {
               {t('adminDashboard.activity.title')}
             </h2>
             <DashInfoTip
-              text={t('adminDashboard.activity.help')}
+              text={t(scope === 'plans' ? 'adminDashboard.activity.helpPlans' : 'adminDashboard.activity.help')}
               title={t('adminDashboard.activity.helpTitle')}
               side="bottom"
             />
           </div>
           <p className="text-xs mt-1 mb-0" style={{ color: COFICAB.muted }}>
-            {t('adminDashboard.activity.subtitle')}
+            {t(scope === 'plans' ? 'adminDashboard.activity.subtitlePlans' : 'adminDashboard.activity.subtitle')}
           </p>
         </div>
         <button

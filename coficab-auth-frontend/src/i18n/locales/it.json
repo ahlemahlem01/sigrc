@@ -779,6 +779,8 @@
       "pulseNet": "Carico netto = aperti − chiusi. Positivo = backlog in crescita; negativo = backlog in calo."
     },
     "activity": {
+      "helpPlans": "Basato solo sull'attività dei piani d'azione: creazione o aggiornamento di un piano o di un'azione, o nuova assegnazione. Reclami, analisi e accessi non contano. Attivo: ≤ 15 giorni, poco attivo: ≤ 60 giorni.",
+      "subtitlePlans": "Solo attività sui piani d'azione",
       "title": "Attività dei dipendenti",
       "help": "Basato sull'ultimo accesso e sulle ultime azioni operative (reclami, CAPA, 8D). Distinto dal blocco dell'account.",
       "helpTitle": "Stato di attività",
