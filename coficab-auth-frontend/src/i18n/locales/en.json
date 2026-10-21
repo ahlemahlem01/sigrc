@@ -1,4 +1,13 @@
 {
+  "capaIndicators": {
+    "subtitle": "Workflow evolution, closure punctuality and plans by type.",
+    "help": "For analysis: the flow over time, closure punctuality over the last 12 months and the plans by type. Figures follow the chosen department.",
+    "perfTitle": "Closure performance",
+    "perfPeriod": "Over the last 12 months",
+    "noClosed": "No plan closed over the period",
+    "openByType": "Open plans by type",
+    "openByTypeScope": "Across {{count}} open plans"
+  },
   "lang": {
     "fr": "Français",
     "en": "English",
@@ -313,6 +322,7 @@
     }
   },
   "adminNav": {
+    "capaSteering": "Steering",
     "analysesHub": "Analyses & reports",
     "analysesTab": "5 Why / Ishikawa & report",
     "overview": "Overview",

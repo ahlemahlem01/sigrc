@@ -1,9 +1,6 @@
 import { PageSkeleton } from '../../components/TableSkeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
-} from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaIndicators, type CapaFigure, type CapaIndicators } from '../../services/capaIndicatorsService';
@@ -68,7 +65,7 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 }
 
 export default function AdminCapaIndicators() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { accessToken } = useAuth();
   const { param: scopeParam } = useOrganizationScope();
   const [period, setPeriod] = useState<Period>('3m');
@@ -98,11 +95,6 @@ export default function AdminCapaIndicators() {
   if (loading && !data) return <PageSkeleton figures={3} panels={3} />;
 
   const k = data?.kpis;
-  const locale = i18n.language === 'en' ? 'en-GB' : i18n.language === 'it' ? 'it-IT' : 'fr-FR';
-  const monthly = (data?.monthly ?? []).map((m) => {
-    const [y, mo] = m.month.split('-').map(Number);
-    return { ...m, label: new Date(y, mo - 1, 1).toLocaleDateString(locale, { month: 'short' }) };
-  });
   const multiOrg = new Set((data?.byDepartment ?? []).map((d) => d.organization)).size > 1;
   const selectedDepartment = data?.byDepartment.find((d) => d.id === departmentId);
   const lateShare = (late: number, open: number) => (open === 0 ? '' : ` · ${Math.round((100 * late) / open)} %`);
@@ -194,31 +186,6 @@ export default function AdminCapaIndicators() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-5">
-            <Panel title={t('indicators.byType')}>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-[11px] text-slate-500 border-b border-slate-100">
-                    <th className="pb-2 font-semibold text-left">{t('indicators.colType')}</th>
-                    <th className={th}>{t('indicators.colOpen')}</th>
-                    <th className={th}>{t('indicators.colLate')}</th>
-                    <th className={th}>{t('indicators.colClosed')}</th>
-                    <th className={th}>{t('indicators.colOnTime')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.byType.map((r) => (
-                    <tr key={r.type} className="border-t border-slate-50">
-                      <td className="py-1.5 font-semibold text-slate-800">{r.type}</td>
-                      <td className={td}>{r.openPlans}</td>
-                      <td className={td} style={{ color: r.latePlans > 0 ? BAD : undefined }}>{r.latePlans}</td>
-                      <td className={td}>{r.closedInPeriod}</td>
-                      <td className={td}>{r.onTimeRate == null ? '—' : `${fmt(r.onTimeRate, 1)} %`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </Panel>
-
             <Panel title={t('overviewPage.agingTitle')}>
               <div className="grid grid-cols-3 gap-2">
                 {([
@@ -233,6 +200,24 @@ export default function AdminCapaIndicators() {
                 ))}
               </div>
               <p className="text-[11px] text-slate-500 mt-2 mb-0">{t('indicators.agingNote')}</p>
+            </Panel>
+
+            <Panel title={t('indicators.owners')}>
+              {data.owners.length === 0 ? (
+                <p className="text-sm text-slate-400 m-0">{t('indicators.noData')}</p>
+              ) : (
+                <ul className="m-0 p-0 list-none space-y-2">
+                  {data.owners.map((o) => (
+                    <li key={o.name} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="font-medium text-slate-700 truncate">{o.name}</span>
+                      <span className="tabular-nums shrink-0 text-slate-500">
+                        <b className="text-slate-800">{o.openPlans}</b> {t('indicators.colOpen').toLowerCase()}
+                        {o.latePlans > 0 && <span style={{ color: BAD }}> · {o.latePlans} {t('indicators.colLate').toLowerCase()}</span>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Panel>
           </div>
 
@@ -274,42 +259,6 @@ export default function AdminCapaIndicators() {
               </table>
             )}
           </Panel>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-            <Panel title={t('indicators.monthlyPlans')} className="lg:col-span-2">
-              <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthly} barGap={2}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                    <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="opened" name={t('indicators.created')} fill="#94a3b8" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="closed" name={t('indicators.closed')} fill="#38a169" radius={[3, 3, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </Panel>
-
-            <Panel title={t('indicators.owners')}>
-              {data.owners.length === 0 ? (
-                <p className="text-sm text-slate-400 m-0">{t('indicators.noData')}</p>
-              ) : (
-                <ul className="m-0 p-0 list-none space-y-2">
-                  {data.owners.map((o) => (
-                    <li key={o.name} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-medium text-slate-700 truncate">{o.name}</span>
-                      <span className="tabular-nums shrink-0 text-slate-500">
-                        <b className="text-slate-800">{o.openPlans}</b> {t('indicators.colOpen').toLowerCase()}
-                        {o.latePlans > 0 && <span style={{ color: BAD }}> · {o.latePlans} {t('indicators.colLate').toLowerCase()}</span>}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Panel>
-          </div>
         </>
       )}
     </div>

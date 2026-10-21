@@ -1,4 +1,13 @@
 {
+  "capaIndicators": {
+    "subtitle": "Evoluzione del workflow, puntualità di chiusura e ripartizione dei piani per tipo.",
+    "help": "Per analizzare: il flusso nel tempo, la puntualità di chiusura negli ultimi 12 mesi e la ripartizione dei piani per tipo. I valori seguono il reparto scelto.",
+    "perfTitle": "Prestazione di chiusura",
+    "perfPeriod": "Negli ultimi 12 mesi",
+    "noClosed": "Nessun piano chiuso nel periodo",
+    "openByType": "Piani aperti per tipo",
+    "openByTypeScope": "Su {{count}} piani aperti"
+  },
   "lang": {
     "fr": "Français",
     "en": "English",
@@ -313,6 +322,7 @@
     }
   },
   "adminNav": {
+    "capaSteering": "Pilotaggio",
     "analysesHub": "Analisi e report",
     "analysesTab": "5 Why / Ishikawa e report",
     "overview": "Panoramica",

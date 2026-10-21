@@ -1,4 +1,13 @@
 {
+  "capaIndicators": {
+    "subtitle": "Évolution du workflow, ponctualité de clôture et répartition des plans par type.",
+    "help": "Pour analyser : l'évolution du flux, la ponctualité de clôture des 12 derniers mois et la répartition des plans par type. Les chiffres suivent le département choisi.",
+    "perfTitle": "Performance de clôture",
+    "perfPeriod": "Sur les 12 derniers mois",
+    "noClosed": "Aucun plan clôturé sur la période",
+    "openByType": "Plans ouverts par type",
+    "openByTypeScope": "Sur {{count}} plans ouverts"
+  },
   "lang": {
     "fr": "Français",
     "en": "English",
@@ -313,6 +322,7 @@
     }
   },
   "adminNav": {
+    "capaSteering": "Pilotage",
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",
     "overview": "Vue globale",

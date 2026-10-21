@@ -15,6 +15,8 @@ type Props = {
   claimsMonthly?: MonthlyOpenClosed[] | null;
   plansMonthly?: MonthlyOpenClosed[] | null;
   loading?: boolean;
+  /** false: only the plans card (the CAPA indicators page). */
+  showClaims?: boolean;
 };
 
 function DualBar({
@@ -212,7 +214,7 @@ function StreamCard({
 }
 
 /** Comparaison mois courant / mois précédent des réclamations, et des plans d'action si leur série est fournie. */
-export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, loading }: Props) {
+export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, loading, showClaims = true }: Props) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language || 'fr';
   const global = computeGlobalEvolution(claimsMonthly, plansMonthly);
@@ -237,14 +239,16 @@ export default function WorkflowEvolutionSection({ claimsMonthly, plansMonthly, 
         </p>
       </div>
 
-      <div className={`grid grid-cols-1 gap-3 ${plansMonthly !== undefined ? 'lg:grid-cols-2' : ''}`}>
-        <StreamCard
-          title={t('adminDashboard.claims.title')}
-          accent={COFICAB.navy}
-          evo={claimsEvo}
-          loading={loading}
-          locale={locale}
-        />
+      <div className={`grid grid-cols-1 gap-3 ${showClaims && plansMonthly !== undefined ? 'lg:grid-cols-2' : ''}`}>
+        {showClaims && (
+          <StreamCard
+            title={t('adminDashboard.claims.title')}
+            accent={COFICAB.navy}
+            evo={claimsEvo}
+            loading={loading}
+            locale={locale}
+          />
+        )}
         {plansMonthly !== undefined && (
           <StreamCard
             title={t('adminDashboard.actionPlans.title')}
