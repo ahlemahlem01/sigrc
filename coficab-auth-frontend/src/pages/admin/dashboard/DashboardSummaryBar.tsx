@@ -331,7 +331,7 @@ export default function DashboardSummaryBar({
         >
           <div className="sm:pr-4">
             <MetricColumn
-              label={t('adminDashboard.evolution.opened')}
+              label={t('adminDashboard.pulse.labelOpened')}
               help={t('adminDashboard.help.pulseOpened')}
               total={pulse.opened.total}
               claims={pulse.opened.claims}
@@ -345,7 +345,7 @@ export default function DashboardSummaryBar({
           </div>
           <div className="sm:px-4">
             <MetricColumn
-              label={t('adminDashboard.evolution.closed')}
+              label={t('adminDashboard.pulse.labelClosed')}
               help={t('adminDashboard.help.pulseClosed')}
               total={pulse.closed.total}
               claims={pulse.closed.claims}
@@ -358,7 +358,7 @@ export default function DashboardSummaryBar({
           </div>
           <div className="sm:pl-4">
             <MetricColumn
-              label={t('adminDashboard.evolution.backlog')}
+              label={t('adminDashboard.pulse.labelNet')}
               help={t('adminDashboard.help.pulseNet')}
               total={pulse.netLoad.total}
               claims={pulse.netLoad.claims}
