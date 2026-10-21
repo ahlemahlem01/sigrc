@@ -82,8 +82,16 @@ export interface GlobalDashboardKpis {
   criticalAlerts: number;
 }
 
+export interface DepartmentOption {
+  id: string;
+  name: string;
+  organization: string;
+  claims: number;
+}
+
 export interface DashboardSummary {
   global: GlobalDashboardKpis;
   claims: ClaimsDashboard;
   actionPlans: ActionPlansDashboard;
+  departments: DepartmentOption[];
 }

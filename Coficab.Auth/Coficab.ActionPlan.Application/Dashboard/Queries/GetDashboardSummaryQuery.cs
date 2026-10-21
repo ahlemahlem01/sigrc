@@ -82,13 +82,18 @@ public record GlobalDashboardKpisDto(
     int CriticalAlerts
 );
 
+/// <summary>A department a claim can be attributed to (its assignee's, else its creator's), with the number of claims.</summary>
+public record DepartmentOptionDto(Guid Id, string Name, string Organization, int Claims);
+
 public record DashboardSummaryDto(
     GlobalDashboardKpisDto Global,
     ClaimsDashboardDto Claims,
-    ActionPlansDashboardDto ActionPlans
+    ActionPlansDashboardDto ActionPlans,
+    IReadOnlyList<DepartmentOptionDto>? Departments = null
 );
 
-public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true, IReadOnlyList<Guid>? OrganizationIds = null) : IRequest<DashboardSummaryDto>;
+/// <param name="DepartmentId">Keeps the claims attributed to this department (and its plans); the department list stays complete.</param>
+public record GetDashboardSummaryQuery(string? UserId = null, bool SuperAdmin = true, IReadOnlyList<Guid>? OrganizationIds = null, Guid? DepartmentId = null) : IRequest<DashboardSummaryDto>;
 
 public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSummaryQuery, DashboardSummaryDto>
 {
@@ -168,6 +173,29 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
             var attribution = await OrganizationAttribution.LoadAsync(_context, cancellationToken);
             claims = claims.Where(c => attribution.Of(c.AssignedToId, c.CreatedById) is { } o && orgFilter.Contains(o)).ToList();
             plans = plans.Where(p => orgFilter.Contains(p.OrganizationId)).ToList();
+        }
+
+        // A claim belongs to its assignee's department, else to its creator's (the same rule as for organizations).
+        Guid? DepartmentOfClaim(string? assignedToId, string? createdById)
+        {
+            Guid? Of(string? uid) => !string.IsNullOrWhiteSpace(uid) && profileByUserId.TryGetValue(uid, out var pr) ? pr.DepartmentId : null;
+            return Of(assignedToId) ?? Of(createdById);
+        }
+
+        var departmentNames = await _context.Departments.AsNoTracking().Include(d => d.Organization)
+            .ToDictionaryAsync(d => d.Id, d => new { d.Name, Organization = d.Organization.Name }, cancellationToken);
+        var departmentOptions = claims
+            .Select(c => DepartmentOfClaim(c.AssignedToId, c.CreatedById))
+            .Where(id => id != null && departmentNames.ContainsKey(id.Value))
+            .GroupBy(id => id!.Value)
+            .Select(g => new DepartmentOptionDto(g.Key, departmentNames[g.Key].Name, departmentNames[g.Key].Organization, g.Count()))
+            .OrderBy(d => d.Organization).ThenBy(d => d.Name)
+            .ToList();
+
+        if (request.DepartmentId is { } departmentFilter)
+        {
+            claims = claims.Where(c => DepartmentOfClaim(c.AssignedToId, c.CreatedById) == departmentFilter).ToList();
+            plans = plans.Where(p => p.DepartmentId == departmentFilter).ToList();
         }
 
         static bool IsClaimClosed(string status) =>
@@ -384,7 +412,8 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
                 planMonthly,
                 natureDonut,
                 planResponsibles
-            )
+            ),
+            departmentOptions
         );
     }
 }

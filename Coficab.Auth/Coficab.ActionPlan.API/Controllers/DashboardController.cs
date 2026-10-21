@@ -83,12 +83,12 @@ public class DashboardController : ControllerBase
 
     /// <summary>Vue globale Claims + Action Plans (KPIs, top retards, courbes, donuts, responsables).</summary>
     [HttpGet("summary")]
-    public async Task<ActionResult<DashboardSummaryDto>> GetSummary([FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
+    public async Task<ActionResult<DashboardSummaryDto>> GetSummary([FromQuery] string? organizationIds = null, [FromQuery] Guid? departmentId = null, CancellationToken cancellationToken = default)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var superAdmin = User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
-        var result = await _mediator.Send(new GetDashboardSummaryQuery(userId, superAdmin, ParseOrganizations(organizationIds)), cancellationToken);
+        var result = await _mediator.Send(new GetDashboardSummaryQuery(userId, superAdmin, ParseOrganizations(organizationIds), departmentId), cancellationToken);
         return Ok(result);
     }
 }

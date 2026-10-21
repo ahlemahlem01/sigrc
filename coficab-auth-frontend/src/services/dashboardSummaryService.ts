@@ -8,10 +8,10 @@ function unwrap<T>(payload: any): T {
 }
 
 /** GET /api/dashboard/summary */
-export async function fetchDashboardSummary(token: string, organizationIds?: string): Promise<DashboardSummary> {
+export async function fetchDashboardSummary(token: string, organizationIds?: string, departmentId?: string): Promise<DashboardSummary> {
   const res = await axios.get(`${API_BASE}/dashboard/summary`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: organizationIds ? { organizationIds } : undefined,
+    params: { ...(organizationIds ? { organizationIds } : {}), ...(departmentId ? { departmentId } : {}) },
   });
   const raw = unwrap<any>(res.data);
 
@@ -46,6 +46,13 @@ export async function fetchDashboardSummary(token: string, organizationIds?: str
     critical: Number(k?.critical ?? k?.Critical ?? 0),
     noDeadline: Number(k?.noDeadline ?? k?.NoDeadline ?? 0),
   });
+
+  const departments = (raw?.departments ?? raw?.Departments ?? []).map((d: any) => ({
+    id: String(d.id ?? d.Id ?? ''),
+    name: String(d.name ?? d.Name ?? ''),
+    organization: String(d.organization ?? d.Organization ?? ''),
+    claims: Number(d.claims ?? d.Claims ?? 0),
+  }));
 
   return {
     global: {
@@ -93,5 +100,6 @@ export async function fetchDashboardSummary(token: string, organizationIds?: str
       natureDonut: mapNamed(raw?.actionPlans?.natureDonut ?? raw?.ActionPlans?.NatureDonut),
       topResponsibles: mapResponsible(raw?.actionPlans?.topResponsibles ?? raw?.ActionPlans?.TopResponsibles),
     },
+    departments,
   };
 }

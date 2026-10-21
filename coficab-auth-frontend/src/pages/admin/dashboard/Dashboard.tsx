@@ -21,14 +21,19 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
   const [data, setData] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [departmentId, setDepartmentId] = useState('');
+  const [departments, setDepartments] = useState<DashboardSummary['departments']>([]);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
     setError('');
     try {
-      const summary = await fetchDashboardSummary(accessToken, scopeParam);
+      const summary = await fetchDashboardSummary(accessToken, scopeParam, departmentId || undefined);
       setData(summary);
+      setDepartments(summary.departments);
+      // a department that left the followed organizations no longer exists in the list
+      if (departmentId && !summary.departments.some((d) => d.id === departmentId)) setDepartmentId('');
     } catch (err: any) {
       const status = err?.response?.status;
       if (status === 401 || status === 403) {
@@ -42,7 +47,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
     } finally {
       setLoading(false);
     }
-  }, [scopeParam, accessToken, t]);
+  }, [scopeParam, accessToken, departmentId, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -70,6 +75,19 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
             {t('adminDashboard.subtitle')}
           </p>
         </div>
+        <div className="flex items-center gap-2 flex-wrap">
+        <select
+          value={departmentId}
+          onChange={(e) => setDepartmentId(e.target.value)}
+          aria-label={t('planDetail.department')}
+          className="px-3 py-2 text-xs font-semibold rounded-xl border bg-white max-w-[260px]"
+          style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
+        >
+          <option value="">{t('audit.allDepartments')}</option>
+          {departments.map((d) => (
+            <option key={d.id} value={d.id}>{new Set(departments.map((x) => x.organization)).size > 1 ? `${d.name} · ${d.organization}` : d.name} ({d.claims})</option>
+          ))}
+        </select>
         <button
           type="button"
           onClick={() => void load()}
@@ -78,6 +96,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
         >
           <i className="ti ti-refresh" /> {t('adminDashboard.refresh')}
         </button>
+        </div>
       </div>
 
       {error && (
