@@ -38,8 +38,8 @@ public class DashboardController : ControllerBase
     /// <summary>CAPA indicators computed on the plans (open, late, closed on time, by type, by department, monthly), for the last <paramref name="days"/> days.</summary>
     [HttpGet("capa-indicators")]
     [Authorize(Policy = "AdminOnly")]
-    public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
-        => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, ParseOrganizations(organizationIds)), cancellationToken));
+    public async Task<ActionResult<CapaIndicatorsDto>> GetCapaIndicators([FromQuery] int days = 90, [FromQuery] string? organizationIds = null, [FromQuery] Guid? departmentId = null, CancellationToken cancellationToken = default)
+        => Ok(await _mediator.Send(new GetCapaIndicatorsQuery(days, ParseOrganizations(organizationIds), departmentId), cancellationToken));
 
     /// <summary>Who carries the CAPA plans: open and late plans per person, for the followed organizations.</summary>
     [HttpGet("capa-workload")]

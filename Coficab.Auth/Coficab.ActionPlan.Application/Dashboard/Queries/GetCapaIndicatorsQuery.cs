@@ -24,7 +24,7 @@ public record CapaIndicatorKpisDto(
 
 public record CapaIndicatorTypeDto(string Type, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
 
-public record CapaIndicatorDepartmentDto(string Name, string Organization, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
+public record CapaIndicatorDepartmentDto(Guid Id, string Name, string Organization, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
 
 public record CapaIndicatorMonthDto(string Month, int Opened, int Closed);
 
@@ -41,7 +41,8 @@ public record CapaIndicatorsDto(
     IReadOnlyList<CapaIndicatorOwnerDto> Owners,
     int DetailedActions);
 
-public record GetCapaIndicatorsQuery(int Days = 90, IReadOnlyList<Guid>? OrganizationIds = null) : IRequest<CapaIndicatorsDto>;
+/// <param name="DepartmentId">Restricts every figure to one department; the by-department table still lists all of them.</param>
+public record GetCapaIndicatorsQuery(int Days = 90, IReadOnlyList<Guid>? OrganizationIds = null, Guid? DepartmentId = null) : IRequest<CapaIndicatorsDto>;
 
 /// <summary>
 /// CAPA indicators computed on the plans (not on their detailed actions, which are often missing): same definition of
@@ -71,7 +72,8 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Include(p => p.Department).Include(p => p.Organization)
             .Where(p => !p.IsArchived);
         if (request.OrganizationIds is { Count: > 0 } orgs) query = query.Where(p => orgs.Contains(p.OrganizationId));
-        var plans = await query.ToListAsync(ct);
+        var allPlans = await query.ToListAsync(ct);
+        var plans = request.DepartmentId is { } departmentId ? allPlans.Where(p => p.DepartmentId == departmentId).ToList() : allPlans;
 
         var open = plans.Where(PlanDeadlines.IsOpen).ToList();
         var late = open.Where(p => PlanDeadlines.OverdueDays(p, today) > 0).ToList();
@@ -117,15 +119,20 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
                 OnTime(closedNow.Where(p => p.Type == t).ToList())))
             .ToList();
 
-        var byDepartment = plans
+        // Every department of the perimeter, whatever the department filter: it feeds the department choice and keeps the comparison.
+        var openAll = allPlans.Where(PlanDeadlines.IsOpen).ToList();
+        var lateAll = openAll.Where(p => PlanDeadlines.OverdueDays(p, today) > 0).ToList();
+        var closedNowAll = allPlans.Where(p => p.Status == ActionPlanStatus.Closed && p.CompletedAt != null && p.CompletedAt >= start && p.CompletedAt < end).ToList();
+        var byDepartment = allPlans
             .GroupBy(p => p.DepartmentId)
             .Select(g => new CapaIndicatorDepartmentDto(
+                g.Key,
                 g.First().Department?.Name ?? "—",
                 g.First().Organization?.Name ?? "—",
-                g.Count(PlanDeadlines.IsOpen),
-                late.Count(p => p.DepartmentId == g.Key),
-                closedNow.Count(p => p.DepartmentId == g.Key),
-                OnTime(closedNow.Where(p => p.DepartmentId == g.Key).ToList())))
+                openAll.Count(p => p.DepartmentId == g.Key),
+                lateAll.Count(p => p.DepartmentId == g.Key),
+                closedNowAll.Count(p => p.DepartmentId == g.Key),
+                OnTime(closedNowAll.Where(p => p.DepartmentId == g.Key).ToList())))
             .Where(d => d.OpenPlans > 0 || d.ClosedInPeriod > 0)
             .OrderByDescending(d => d.LatePlans).ThenByDescending(d => d.OpenPlans)
             .ToList();

@@ -72,6 +72,7 @@ export default function AdminCapaIndicators() {
   const { accessToken } = useAuth();
   const { param: scopeParam } = useOrganizationScope();
   const [period, setPeriod] = useState<Period>('3m');
+  const [departmentId, setDepartmentId] = useState('');
   const [data, setData] = useState<CapaIndicators | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -81,13 +82,16 @@ export default function AdminCapaIndicators() {
     setLoading(true);
     setError('');
     try {
-      setData(await fetchCapaIndicators(accessToken, PERIOD_DAYS[period], scopeParam));
+      const next = await fetchCapaIndicators(accessToken, PERIOD_DAYS[period], scopeParam, departmentId || undefined);
+      setData(next);
+      // a department that left the followed organizations no longer exists in the list
+      if (departmentId && !next.byDepartment.some((d) => d.id === departmentId)) setDepartmentId('');
     } catch {
       setError(t('indicators.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [accessToken, period, scopeParam, t]);
+  }, [accessToken, period, scopeParam, departmentId, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -100,6 +104,7 @@ export default function AdminCapaIndicators() {
     return { ...m, label: new Date(y, mo - 1, 1).toLocaleDateString(locale, { month: 'short' }) };
   });
   const multiOrg = new Set((data?.byDepartment ?? []).map((d) => d.organization)).size > 1;
+  const selectedDepartment = data?.byDepartment.find((d) => d.id === departmentId);
   const lateShare = (late: number, open: number) => (open === 0 ? '' : ` · ${Math.round((100 * late) / open)} %`);
 
   const exportPdf = () => {
@@ -114,6 +119,7 @@ export default function AdminCapaIndicators() {
         `${t('indicators.plansClosed')}: ${fmt(k.closed.current)}`,
         `${t('indicators.onTime')}: ${k.onTimeRate.current == null ? '—' : `${fmt(k.onTimeRate.current, 1)} %`}`,
         `Period: ${period}`,
+        ...(selectedDepartment ? [`${t('planDetail.department')}: ${selectedDepartment.name}`] : []),
       ],
       columns: [
         { key: 'name', label: t('indicators.colDepartment') },
@@ -135,6 +141,17 @@ export default function AdminCapaIndicators() {
   return (
     <div className="text-slate-900 w-full min-w-0">
       <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+        <select
+          value={departmentId}
+          onChange={(e) => setDepartmentId(e.target.value)}
+          aria-label={t('planDetail.department')}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 max-w-[260px]"
+        >
+          <option value="">{t('audit.allDepartments')}</option>
+          {(data?.byDepartment ?? []).map((d) => (
+            <option key={d.id} value={d.id}>{multiOrg ? `${d.name} · ${d.organization}` : d.name}</option>
+          ))}
+        </select>
         <button type="button" onClick={() => void load()} className={capaBtnSecondary}>{t('dashboard.refresh')}</button>
         <button type="button" onClick={exportPdf} className={capaBtnSecondary} disabled={!data}>{t('common.exportPdf')}</button>
         <SegmentedToggle
@@ -235,7 +252,12 @@ export default function AdminCapaIndicators() {
                 </thead>
                 <tbody>
                   {data.byDepartment.map((r) => (
-                    <tr key={r.name} className="border-t border-slate-50">
+                    <tr
+                      key={r.id}
+                      onClick={() => setDepartmentId(departmentId === r.id ? '' : r.id)}
+                      className="border-t border-slate-50 cursor-pointer hover:bg-slate-50"
+                      style={r.id === departmentId ? { background: '#eef0ff' } : undefined}
+                    >
                       <td className="py-1.5 font-semibold text-slate-800">
                         {r.name}
                         {multiOrg && <span className="font-normal text-slate-400"> · {r.organization}</span>}
