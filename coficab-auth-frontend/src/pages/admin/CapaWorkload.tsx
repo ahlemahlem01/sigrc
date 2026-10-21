@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaWorkload, type CapaWorkload as Workload } from '../../services/capaIndicatorsService';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 
 const NAVY = '#000168';
@@ -134,25 +135,29 @@ export default function CapaWorkload() {
       )}
 
       {data && data.people.length > 0 && (
-        <div className="rounded-xl bg-white border border-slate-200 px-5 py-4 mb-4">
+        <div className="rounded-xl bg-white border border-slate-200 px-4 py-4 mb-4">
           <h3 className="text-sm font-bold text-slate-800 m-0">{t('workload.splitTitle')}</h3>
-          <p className="text-[11px] text-slate-500 mt-0.5 mb-4">{t('workload.splitSub', { count: data.people.length })}</p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-            {(['heavy', 'normal', 'idle'] as const).map((k) => {
-              const row = split.find((r) => r.key === k);
-              const color = k === 'heavy' ? ORANGE : k === 'normal' ? NAVY : '#94a3b8';
-              return (
-                <div key={k} className="flex items-baseline gap-3">
-                  <span className="text-[32px] font-extrabold leading-none tabular-nums" style={{ color }}>{row?.value ?? 0}</span>
-                  <span className="text-sm text-slate-600">{t(`workload.split.${k}`)}</span>
-                </div>
-              );
-            })}
+          <p className="text-[11px] text-slate-500 mt-0.5 mb-2">{t('workload.splitSub', { count: data.people.length })}</p>
+          <div className="flex flex-wrap items-center gap-8">
+          <div className="w-[200px] shrink-0">
+          <ResponsiveContainer width="100%" height={170}>
+            <PieChart>
+              <Pie data={split.map((r) => ({ ...r, name: t(`workload.split.${r.key}`) }))} dataKey="value" nameKey="name" innerRadius={42} outerRadius={68} paddingAngle={2}>
+                {split.map((r) => <Cell key={r.key} fill={r.color} />)}
+              </Pie>
+              <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
+            </PieChart>
+          </ResponsiveContainer>
           </div>
-          <div className="h-3 rounded-full overflow-hidden flex bg-slate-100">
+          <ul className="m-0 p-0 list-none space-y-3 min-w-[16rem]">
             {split.map((r) => (
-              <div key={r.key} title={`${t(`workload.split.${r.key}`)}: ${r.value}`} style={{ width: `${(100 * r.value) / data.people.length}%`, background: r.color }} />
+              <li key={r.key} className="flex items-center gap-3 text-sm">
+                <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: r.color }} />
+                <span className="flex-1 text-slate-700">{t(`workload.split.${r.key}`)}</span>
+                <span className="tabular-nums font-bold text-slate-800">{r.value}</span>
+              </li>
             ))}
+          </ul>
           </div>
         </div>
       )}
