@@ -385,6 +385,7 @@
     }
   },
   "adminNav": {
+    "analysesSummary": "Summary",
     "capaSteering": "Steering",
     "analysesHub": "Analyses & reports",
     "analysesTab": "5 Why / Ishikawa & report",
@@ -2158,6 +2159,7 @@
     "causesNoMatch": "None of your causes resembles those recorded on the {{pool}} comparable dossiers (different wording?). Rely on your own analysis."
   },
   "qualityHistory": {
+    "kpiOpenHint": "Click a card to open the matching list (no list for \"Without 5 Why\": the figure is an alert).",
     "scopeOpen": "Open",
     "scopeClosed": "Closed",
     "scopeAll": "All",

@@ -7,7 +7,7 @@ import AdminEightDList from '../admin/AdminEightDList';
  * export) and the 8D list.
  */
 const TABS = [
-  { id: 'analyses', labelKey: 'adminNav.analysesTab' },
+  { id: 'analyses', labelKey: 'adminNav.analysesSummary' },
   { id: 'eightd', labelKey: 'adminNav.eightD' },
 ] as const;
 

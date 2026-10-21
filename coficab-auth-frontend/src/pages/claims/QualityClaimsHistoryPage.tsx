@@ -102,7 +102,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const initial: ClaimsHistoryQuery = { ...DEFAULT_FILTERS, ...preset, ...(adminView ? { scope: 'open' } : {}) };
+  const initial: ClaimsHistoryQuery = { ...DEFAULT_FILTERS, ...preset, ...(adminView ? { scope: 'open', pageSize: 1 } : {}) };
   const [stats, setStats] = useState<ClaimsHistoryStats | null>(null);
   const [filters, setFilters] = useState<ClaimsHistoryQuery>(initial);
   const [searchInput, setSearchInput] = useState('');
@@ -207,6 +207,40 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
     return <span className="qh-sort-mark">{filters.dir === 'asc' ? '▲' : '▼'}</span>;
   };
 
+  if (adminView) {
+    return (
+      <div className="pfe-container qh-page">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <SegmentedToggle
+            options={[
+              { id: 'open', labelKey: 'qualityHistory.scopeOpen' },
+              { id: 'closed', labelKey: 'qualityHistory.scopeClosed' },
+              { id: 'all', labelKey: 'qualityHistory.scopeAll' },
+            ] as const}
+            value={(filters.scope as 'open' | 'closed') || 'all'}
+            onChange={(id) => applyFilters({ scope: id === 'all' ? undefined : id })}
+            ariaLabel={t('qualityHistory.scopeAria')}
+          />
+          <button type="button" className="pfe-btn-secondary" onClick={() => void load(filters)} disabled={loading}>
+            <RefreshCw size={15} className={loading ? 'pfe-spin' : undefined} /> {t('qualityHistory.refresh')}
+          </button>
+        </div>
+        {error && (
+          <div className="pfe-alert-error"><AlertCircle size={15} /> {error}</div>
+        )}
+        <CapaKpiStrip
+          items={[
+            { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint') },
+            { key: 'eightD', label: t('qualityHistory.kpiEightD'), value: stats?.eightDToHandle ?? '—', hint: t('qualityHistory.kpiEightDHint'), onClick: () => navigate('/admin/claims/analyses?tab=eightd') },
+            { key: 'noCapa', label: t('qualityHistory.kpiNoCapa'), value: stats?.inAnalysisNoCapa ?? '—', hint: t('qualityHistory.kpiNoCapaHint'), onClick: () => navigate('/admin/claims/list?status=EN_ANALYSE') },
+            { key: 'capaLate', label: t('qualityHistory.kpiCapaLate'), value: stats?.capaLate ?? '—', hint: t('qualityHistory.kpiCapaLateHint'), onClick: () => navigate('/admin/action-plans?late=1') },
+          ]}
+        />
+        <p className="text-xs text-slate-500 m-0">{t('qualityHistory.kpiOpenHint')}</p>
+      </div>
+    );
+  }
+
   return (
     <div className="pfe-container qh-page">
       <div className="pfe-header">
@@ -238,31 +272,6 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
           </button>
         </div>
       </div>
-
-      {adminView && (
-        <>
-          <div className="flex flex-wrap items-center gap-3 mb-3">
-            <SegmentedToggle
-              options={[
-                { id: 'open', labelKey: 'qualityHistory.scopeOpen' },
-                { id: 'closed', labelKey: 'qualityHistory.scopeClosed' },
-                { id: 'all', labelKey: 'qualityHistory.scopeAll' },
-              ] as const}
-              value={(filters.scope as 'open' | 'closed') || 'all'}
-              onChange={(id) => applyFilters({ scope: id === 'all' ? undefined : id, focus: undefined, claimStatus: undefined, eightDStep: undefined })}
-              ariaLabel={t('qualityHistory.scopeAria')}
-            />
-          </div>
-          <CapaKpiStrip
-            items={[
-              { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint'), active: filters.focus === 'noFiveWhy', onClick: () => applyFilters({ focus: filters.focus === 'noFiveWhy' ? undefined : 'noFiveWhy' }) },
-              { key: 'eightD', label: t('qualityHistory.kpiEightD'), value: stats?.eightDToHandle ?? '—', hint: t('qualityHistory.kpiEightDHint'), active: filters.focus === 'eightD', onClick: () => applyFilters({ focus: filters.focus === 'eightD' ? undefined : 'eightD' }) },
-              { key: 'noCapa', label: t('qualityHistory.kpiNoCapa'), value: stats?.inAnalysisNoCapa ?? '—', hint: t('qualityHistory.kpiNoCapaHint'), active: filters.focus === 'noCapa', onClick: () => applyFilters({ focus: filters.focus === 'noCapa' ? undefined : 'noCapa' }) },
-              { key: 'capaLate', label: t('qualityHistory.kpiCapaLate'), value: stats?.capaLate ?? '—', hint: t('qualityHistory.kpiCapaLateHint'), active: filters.focus === 'capaLate', onClick: () => applyFilters({ focus: filters.focus === 'capaLate' ? undefined : 'capaLate' }) },
-            ]}
-          />
-        </>
-      )}
 
       {error && (
         <div className="pfe-alert-error">

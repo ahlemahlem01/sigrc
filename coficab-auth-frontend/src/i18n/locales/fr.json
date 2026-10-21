@@ -385,6 +385,7 @@
     }
   },
   "adminNav": {
+    "analysesSummary": "Synthèse",
     "capaSteering": "Pilotage",
     "analysesHub": "Analyses et rapports",
     "analysesTab": "5 Why / Ishikawa et rapport",
@@ -2158,6 +2159,7 @@
     "causesNoMatch": "Aucune de vos causes ne ressemble à celles enregistrées sur les {{pool}} dossiers comparables (formulations différentes ?). Fiez-vous à votre analyse."
   },
   "qualityHistory": {
+    "kpiOpenHint": "Cliquez sur une carte pour ouvrir la liste concernée (pas de liste pour « Sans 5 Pourquoi » : le chiffre sert d'alerte).",
     "scopeOpen": "En cours",
     "scopeClosed": "Clôturées",
     "scopeAll": "Toutes",
