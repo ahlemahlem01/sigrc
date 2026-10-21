@@ -107,7 +107,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
       )}
 
       <div className="grid grid-cols-1 gap-4 items-stretch">
-        <ClaimsOverviewColumn data={data?.claims} loading={loading} />
+        <ClaimsOverviewColumn data={data?.claims} loading={loading} part={focus === 'indicators' ? 'indicators' : 'steering'} />
       </div>
 
       {focus !== 'indicators' && (
@@ -117,10 +117,13 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
       />
       )}
 
+      {focus !== 'indicators' && (
       <div className="mt-4">
         <EmployeeActivityWidget />
       </div>
+      )}
 
+      {focus !== 'indicators' && (
       <footer
         className="mt-5 rounded-xl bg-white shadow-sm px-4 py-3.5 flex flex-wrap items-center gap-3 hover:shadow-md transition-shadow"
         style={{ border: `1px solid ${COFICAB.line}` }}
@@ -142,6 +145,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
           {t('adminDashboard.footer.auditClaims')}
         </button>
       </footer>
+      )}
     </div>
   );
 }

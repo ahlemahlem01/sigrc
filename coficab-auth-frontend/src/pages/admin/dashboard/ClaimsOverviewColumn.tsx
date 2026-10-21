@@ -1,8 +1,5 @@
 import React from 'react';
-import {
-  Cell, Legend, Line, LineChart, Pie, PieChart,
-  ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid,
-} from 'recharts';
+import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ClaimsDashboard } from '../../../types/dashboardSummary';
@@ -26,28 +23,17 @@ function severityBadge(sev: string) {
   return { bg, color };
 }
 
-function monthLabel(m: string, locale: string) {
-  const [y, mo] = m.split('-');
-  if (!y || !mo) return m;
-  const d = new Date(Number(y), Number(mo) - 1, 1);
-  return d.toLocaleDateString(locale, { month: 'short' });
-}
-
 type Props = {
   data?: ClaimsDashboard | null;
   loading?: boolean;
+  /** steering: figures and lists to act on; indicators: the severity breakdown. */
+  part?: 'steering' | 'indicators';
 };
 
-export default function ClaimsOverviewColumn({ data, loading }: Props) {
-  const { t, i18n } = useTranslation();
+export default function ClaimsOverviewColumn({ data, loading, part = 'steering' }: Props) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
-  const locale = i18n.language || 'fr';
   const kpis = data?.kpis;
-  const lineData = (data?.monthlyOpenClosed ?? []).map((r) => ({
-    month: monthLabel(r.month, locale),
-    open: r.opened,
-    closed: r.closed,
-  }));
   const donut = (data?.severityDonut ?? []).map((d) => ({
     name: t(`overviewPage.severity.${severityKey(d.name)}`),
     value: d.count,
@@ -56,9 +42,40 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
 
   const tipStyle = { borderRadius: 10, fontSize: 12, border: `1px solid ${COFICAB.line}` };
 
+  if (part === 'indicators') {
+    return (
+      <section
+        className="rounded-xl bg-white shadow-sm px-4 py-4"
+        style={{ border: `1px solid ${COFICAB.line}` }}
+      >
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="text-sm font-bold m-0" style={{ color: CLAIMS_ACCENT }}>{t('adminDashboard.claims.chartSeverity')}</h2>
+          <DashInfoTip text={t('adminDashboard.help.chartSeverity')} side="bottom" />
+        </div>
+        {loading ? (
+          <div className="h-[220px] rounded-lg bg-slate-100 animate-pulse" />
+        ) : donut.length === 0 ? (
+          <div className="h-[220px] flex items-center justify-center text-xs text-slate-400">{t('adminDashboard.noData')}</div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <PieChart>
+              <Pie data={donut} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                {donut.map((d) => (
+                  <Cell key={d.name} fill={d.fill} />
+                ))}
+              </Pie>
+              <Tooltip contentStyle={tipStyle} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+            </PieChart>
+          </ResponsiveContainer>
+        )}
+      </section>
+    );
+  }
+
   return (
     <section
-      className="rounded-xl bg-white shadow-sm flex flex-col min-h-[780px] overflow-hidden transition-shadow duration-200 hover:shadow-md"
+      className="rounded-xl bg-white shadow-sm flex flex-col overflow-hidden transition-shadow duration-200 hover:shadow-md"
       style={{ border: `1px solid ${COFICAB.line}` }}
     >
       <header
@@ -244,53 +261,6 @@ export default function ClaimsOverviewColumn({ data, loading }: Props) {
               {t('adminDashboard.claims.seeAll', { count: kpis?.noDeadline ?? 0 })}
             </button>
           )}
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="rounded-xl p-3 min-h-[200px]" style={{ border: `1px solid ${COFICAB.line}` }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <h3 className="text-xs font-bold text-slate-700 m-0">{t('adminDashboard.claims.chartTrend')}</h3>
-              <DashInfoTip text={t('adminDashboard.help.chartTrend')} side="bottom" />
-            </div>
-            {loading ? (
-              <div className="h-[160px] rounded-lg bg-slate-100 animate-pulse" />
-            ) : (
-              <ResponsiveContainer width="100%" height={160}>
-                <LineChart data={lineData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" />
-                  <XAxis dataKey="month" tick={{ fontSize: 10, fill: '#64748b' }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: '#94a3b8' }} />
-                  <Tooltip contentStyle={tipStyle} />
-                  <Line type="monotone" dataKey="open" name={t('adminDashboard.chartOpen')} stroke={CLAIMS_ACCENT} strokeWidth={2.2} dot={false} />
-                  <Line type="monotone" dataKey="closed" name={t('adminDashboard.chartClosed')} stroke={COFICAB.ok} strokeWidth={2.2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-
-          <div className="rounded-xl p-3 min-h-[200px]" style={{ border: `1px solid ${COFICAB.line}` }}>
-            <div className="flex items-center gap-1.5 mb-1">
-              <h3 className="text-xs font-bold text-slate-700 m-0">{t('adminDashboard.claims.chartSeverity')}</h3>
-              <DashInfoTip text={t('adminDashboard.help.chartSeverity')} side="bottom" />
-            </div>
-            {loading ? (
-              <div className="h-[160px] rounded-lg bg-slate-100 animate-pulse" />
-            ) : donut.length === 0 ? (
-              <div className="h-[160px] flex items-center justify-center text-xs text-slate-400">{t('adminDashboard.noData')}</div>
-            ) : (
-              <ResponsiveContainer width="100%" height={160}>
-                <PieChart>
-                  <Pie data={donut} dataKey="value" nameKey="name" innerRadius={36} outerRadius={58} paddingAngle={2}>
-                    {donut.map((d) => (
-                      <Cell key={d.name} fill={d.fill} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tipStyle} />
-                  <Legend wrapperStyle={{ fontSize: 10 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
         </div>
       </div>
     </section>
