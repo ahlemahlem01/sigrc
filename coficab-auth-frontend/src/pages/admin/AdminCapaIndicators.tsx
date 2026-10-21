@@ -1,12 +1,16 @@
 import { PageSkeleton } from '../../components/TableSkeleton';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis,
+} from 'recharts';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaIndicators, type CapaFigure, type CapaIndicators } from '../../services/capaIndicatorsService';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import SegmentedToggle from '../../components/SegmentedToggle';
+import EmployeeActivityWidget from './dashboard/EmployeeActivityWidget';
 import DashboardSummaryBar from './dashboard/DashboardSummaryBar';
 
 type Period = '7d' | '1m' | '3m' | '1y';
@@ -65,7 +69,7 @@ function Panel({ title, children, className = '' }: { title: string; children: R
 }
 
 export default function AdminCapaIndicators() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
   const { param: scopeParam } = useOrganizationScope();
   const [period, setPeriod] = useState<Period>('3m');
@@ -95,9 +99,13 @@ export default function AdminCapaIndicators() {
   if (loading && !data) return <PageSkeleton figures={3} panels={3} />;
 
   const k = data?.kpis;
+  const locale = i18n.language === 'en' ? 'en-GB' : i18n.language === 'it' ? 'it-IT' : 'fr-FR';
+  const monthly = (data?.monthly ?? []).map((m) => {
+    const [y, mo] = m.month.split('-').map(Number);
+    return { ...m, label: new Date(y, mo - 1, 1).toLocaleDateString(locale, { month: 'short' }) };
+  });
   const multiOrg = new Set((data?.byDepartment ?? []).map((d) => d.organization)).size > 1;
   const selectedDepartment = data?.byDepartment.find((d) => d.id === departmentId);
-  const lateShare = (late: number, open: number) => (open === 0 ? '' : ` · ${Math.round((100 * late) / open)} %`);
 
   const exportPdf = () => {
     if (!data || !k) return;
@@ -126,9 +134,6 @@ export default function AdminCapaIndicators() {
       })),
     });
   };
-
-  const th = 'pb-2 font-semibold text-right';
-  const td = 'py-1.5 tabular-nums text-right';
 
   return (
     <div className="text-slate-900 w-full min-w-0">
@@ -221,44 +226,23 @@ export default function AdminCapaIndicators() {
             </Panel>
           </div>
 
-          <Panel title={t('indicators.byDepartment')} className="mb-5">
-            {data.byDepartment.length === 0 ? (
-              <p className="text-sm text-slate-400 m-0">{t('indicators.noData')}</p>
-            ) : (
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-[11px] text-slate-500 border-b border-slate-100">
-                    <th className="pb-2 font-semibold text-left">{t('indicators.colDepartment')}</th>
-                    <th className={th}>{t('indicators.colOpen')}</th>
-                    <th className={th}>{t('indicators.colLate')}</th>
-                    <th className={th}>{t('indicators.colClosed')}</th>
-                    <th className={th}>{t('indicators.colOnTime')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.byDepartment.map((r) => (
-                    <tr
-                      key={r.id}
-                      onClick={() => setDepartmentId(departmentId === r.id ? '' : r.id)}
-                      className="border-t border-slate-50 cursor-pointer hover:bg-slate-50"
-                      style={r.id === departmentId ? { background: '#eef0ff' } : undefined}
-                    >
-                      <td className="py-1.5 font-semibold text-slate-800">
-                        {r.name}
-                        {multiOrg && <span className="font-normal text-slate-400"> · {r.organization}</span>}
-                      </td>
-                      <td className={td}>{r.openPlans}</td>
-                      <td className={td} style={{ color: r.latePlans > 0 ? BAD : undefined }}>
-                        {r.latePlans}<span className="text-slate-400 font-normal">{lateShare(r.latePlans, r.openPlans)}</span>
-                      </td>
-                      <td className={td}>{r.closedInPeriod}</td>
-                      <td className={td}>{r.onTimeRate == null ? '—' : `${fmt(r.onTimeRate, 1)} %`}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+          <Panel title={t('indicators.monthlyPlans')} className="mb-5">
+            <div className="h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthly} barGap={2}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="opened" name={t('indicators.created')} fill="#94a3b8" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="closed" name={t('indicators.closed')} fill="#38a169" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </Panel>
+
+          <EmployeeActivityWidget />
         </>
       )}
     </div>
