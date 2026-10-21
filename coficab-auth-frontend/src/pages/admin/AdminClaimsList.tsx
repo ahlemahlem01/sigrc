@@ -64,9 +64,9 @@ export default function AdminClaimsList() {
   const [claims, setClaims] = useState<Claim[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [search, setSearch] = useState('');
-  // ?status= and ?severity= preselect the filters (dashboard KPI tiles).
+  // ?status= and ?severity= preselect the filters (dashboard KPI tiles); ?q= pre-fills the search (defects, customers).
   const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get('q') || '');
   const [filterStatus, setFilterStatus] = useState<string | 'all'>(searchParams.get('status') || 'all');
   const [filterSeverity, setFilterSeverity] = useState((searchParams.get('severity') || 'all').toLowerCase());
   // ?deadline=late|none preselects the deadline filter (dashboard tiles)

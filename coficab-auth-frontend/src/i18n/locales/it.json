@@ -607,6 +607,9 @@
     "clientsNote": "Ordinati per reclami critici o alti aperti, poi per ritardi. Tasso nei tempi e PPM sul periodo scelto."
   },
   "adminDashboard": {
+    "subtitleSteering": "Polso, reclami in ritardo, reclami senza scadenza, responsabili e attività dei dipendenti.",
+    "subtitleIndicators": "Evoluzione del workflow, difetti ricorrenti, PPM per cliente e ripartizione per gravità.",
+    "claimKpis": {"title": "Qualità degli ultimi 12 mesi", "period_one": "Periodo: {{count}} mese", "period_other": "Periodo: {{count}} mesi", "avgTreatment": "tempo medio di trattamento {{days}} g su {{count}} reclami chiusi", "topDefects": "Difetti più frequenti", "topDefectsHint": "Numero di reclami per tipo di difetto", "ppmTitle": "PPM per cliente", "ppmHint": "Pezzi difettosi per milione di pezzi prodotti", "colClient": "Cliente", "colClaims": "Reclami", "colPpm": "PPM", "noProduction": "\"—\": nessuna produzione registrata per questo cliente, il PPM non può essere calcolato.", "openList": "Apri i reclami corrispondenti"},
     "overview": {
       "eyebrow": "Panoramica",
       "subtitle": "Sintesi direzionale: ciò che richiede attenzione tra reclami e piani CAPA.",
@@ -642,6 +645,7 @@
       "criticalAlerts": "Alert critici"
     },
     "claims": {
+      "severityScope": "Su {{count}} reclami (aperti e chiusi)",
       "noDeadline": "Senza scadenza",
       "noDeadlineTitle": "Reclami senza scadenza",
       "noDeadlineHint": "Un reclamo aperto senza scadenza non è contato come in ritardo.",
@@ -732,6 +736,8 @@
       "scopePlans": "Piani d’azione"
     },
     "help": {
+      "pageSteering": "Ciò che richiede un'azione: la dinamica del mese, i reclami in ritardo o senza scadenza e chi li gestisce. Clicca su (i) accanto a un indicatore per i dettagli.",
+      "pageIndicators": "Per analizzare: il flusso nel tempo, i difetti ricorrenti, il PPM per cliente e la ripartizione per gravità. I valori seguono il reparto scelto.",
       "page": "Vista globale per confrontare Claims e Action Plans: volumi, ritardi, trend e responsabili. Clicca su (i) accanto a ogni indicatore per i dettagli.",
       "totalActive": "Somma dei Claims aperti e dei piani d'azione ancora attivi (esclusi gli archiviati).",
       "totalOverdue": "Elementi con data obiettivo scaduta e non ancora chiusi.",

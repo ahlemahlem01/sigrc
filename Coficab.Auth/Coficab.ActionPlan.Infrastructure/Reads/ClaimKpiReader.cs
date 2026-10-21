@@ -1,5 +1,6 @@
 using System.Data;
 using System.Data.Common;
+using System.Text.Json;
 using Coficab.ActionPlan.Application.Kpi;
 using Coficab.ActionPlan.Core.Entities;
 using Coficab.ActionPlan.Infrastructure.Data;
@@ -19,6 +20,12 @@ public interface ISqlDialect
 
     /// <summary>Quoted table name, with its schema when the engine has schemas.</summary>
     string Table(string? schema, string table);
+
+    /// <summary>
+    /// Condition "the id column is one of the ids in this JSON array parameter". A JSON array is one parameter however long
+    /// it is (an IN list sends one parameter per id and SQL Server refuses more than 2100).
+    /// </summary>
+    string IdsIn(string quotedColumn, string jsonParameter);
 }
 
 public abstract class SqlDialectBase
@@ -29,6 +36,8 @@ public abstract class SqlDialectBase
 public sealed class SqlServerDialect : SqlDialectBase, ISqlDialect
 {
     public string MonthKey(string quotedColumn) => $"FORMAT({quotedColumn}, 'yyyy-MM')";
+
+    public string IdsIn(string quotedColumn, string jsonParameter) => $"{quotedColumn} IN (SELECT CAST(value AS uniqueidentifier) FROM OPENJSON({jsonParameter}))";
 }
 
 public sealed class SqliteDialect : SqlDialectBase, ISqlDialect
@@ -36,6 +45,8 @@ public sealed class SqliteDialect : SqlDialectBase, ISqlDialect
     public override string Table(string? schema, string table) => $"\"{table}\"";
 
     public string MonthKey(string quotedColumn) => $"strftime('%Y-%m', {quotedColumn})";
+
+    public string IdsIn(string quotedColumn, string jsonParameter) => $"UPPER({quotedColumn}) IN (SELECT UPPER(value) FROM json_each({jsonParameter}))";
 }
 
 /// <summary>Dapper read model for the claims KPIs: one round trip, aggregates computed by the database.</summary>
@@ -62,7 +73,7 @@ public sealed class ClaimKpiReader : IClaimKpiReader
         var table = dialect.Table(entity.GetSchema(), entity.GetTableName()!);
 
         // Active claims of the period, optionally limited to the ids the caller may see.
-        var scope = scopeClaimIds == null ? string.Empty : " AND \"Id\" IN @ids";
+        var scope = scopeClaimIds == null ? string.Empty : $" AND {dialect.IdsIn("\"Id\"", "@ids")}";
         var opened = dialect.MonthKey("\"DetectionDate\"");
         var closed = dialect.MonthKey("\"CompletedAt\"");
 
@@ -89,7 +100,7 @@ public sealed class ClaimKpiReader : IClaimKpiReader
             var parameters = new DynamicParameters();
             parameters.Add("no", false);
             parameters.Add("from", from);
-            if (scopeClaimIds != null) parameters.Add("ids", scopeClaimIds.ToList());
+            if (scopeClaimIds != null) parameters.Add("ids", JsonSerializer.Serialize(scopeClaimIds), DbType.String, size: -1);
 
             using var grid = await connection.QueryMultipleAsync(new CommandDefinition(sql, parameters, cancellationToken: ct));
             var openedRows = (await grid.ReadAsync<MonthRow>()).Select(r => new MonthCount(r.Month, r.Count)).ToList();

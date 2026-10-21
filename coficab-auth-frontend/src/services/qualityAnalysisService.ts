@@ -183,8 +183,11 @@ export const qualityAnalysisService = {
   },
 
   /** KPI réclamations (admin) : par mois, délai moyen de traitement, PPM par client, top défauts. */
-  getClaimKpis: async (months = 12, token?: string): Promise<ClaimKpis> => {
-    const response = await api.get<ClaimKpis>(`${API_BASE_URL}/kpi/claims`, { ...getAuthConfig(token), params: { months } });
+  getClaimKpis: async (months = 12, token?: string, organizationIds?: string, departmentId?: string): Promise<ClaimKpis> => {
+    const response = await api.get<ClaimKpis>(`${API_BASE_URL}/kpi/claims`, {
+      ...getAuthConfig(token),
+      params: { months, ...(organizationIds ? { organizationIds } : {}), ...(departmentId ? { departmentId } : {}) },
+    });
     return response.data;
   },
 

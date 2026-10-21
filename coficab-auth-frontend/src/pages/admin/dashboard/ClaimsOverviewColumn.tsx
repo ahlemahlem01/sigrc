@@ -1,12 +1,12 @@
 import React from 'react';
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ClaimsDashboard } from '../../../types/dashboardSummary';
 import KpiMiniCard from './KpiMiniCard';
 import DashInfoTip from './DashInfoTip';
-import { CLAIMS_ACCENT, COFICAB, SEV_COLORS } from './dashPalette';
-import { severityKey } from '../../../utils/overviewSeverity';
+import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
+import { severityKey, type SeverityKey } from '../../../utils/overviewSeverity';
 
 function severityBadge(sev: string) {
   const key = sev.toUpperCase();
@@ -34,40 +34,59 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
   const { t } = useTranslation();
   const navigate = useNavigate();
   const kpis = data?.kpis;
-  const donut = (data?.severityDonut ?? []).map((d) => ({
-    name: t(`overviewPage.severity.${severityKey(d.name)}`),
-    value: d.count,
-    fill: SEV_COLORS[d.name.toUpperCase()] || SEV_COLORS[severityKey(d.name).toUpperCase()] || '#64748b',
+  // one row per severity, from the most to the least serious, in clearly different colours
+  const ORDER: SeverityKey[] = ['critical', 'high', 'medium', 'low'];
+  const SEVERITY_COLORS: Record<SeverityKey, string> = { critical: '#b91c1c', high: '#ea580c', medium: '#ca8a04', low: '#2f855a' };
+  const counts = new Map<SeverityKey, number>();
+  (data?.severityDonut ?? []).forEach((d) => counts.set(severityKey(d.name), (counts.get(severityKey(d.name)) ?? 0) + d.count));
+  const donut = ORDER.filter((k) => (counts.get(k) ?? 0) > 0).map((k) => ({
+    key: k,
+    name: t(`overviewPage.severity.${k}`),
+    value: counts.get(k) ?? 0,
+    fill: SEVERITY_COLORS[k],
   }));
+  const totalSeverity = donut.reduce((n, d) => n + d.value, 0);
 
   const tipStyle = { borderRadius: 10, fontSize: 12, border: `1px solid ${COFICAB.line}` };
 
   if (part === 'indicators') {
+    const toList = (key: SeverityKey) => navigate(`/admin/claims/list?severity=${key}`);
     return (
-      <section
-        className="rounded-xl bg-white shadow-sm px-4 py-4"
-        style={{ border: `1px solid ${COFICAB.line}` }}
-      >
-        <div className="flex items-center gap-1.5 mb-2">
+      <section className="rounded-xl bg-white shadow-sm px-4 py-4" style={{ border: `1px solid ${COFICAB.line}` }}>
+        <div className="flex items-center gap-1.5">
           <h2 className="text-sm font-bold m-0" style={{ color: CLAIMS_ACCENT }}>{t('adminDashboard.claims.chartSeverity')}</h2>
           <DashInfoTip text={t('adminDashboard.help.chartSeverity')} side="bottom" />
         </div>
+        <p className="text-[11px] text-slate-500 mt-0.5 mb-3">{t('adminDashboard.claims.severityScope', { count: totalSeverity })}</p>
         {loading ? (
-          <div className="h-[220px] rounded-lg bg-slate-100 animate-pulse" />
+          <div className="h-[200px] rounded-lg bg-slate-100 animate-pulse" />
         ) : donut.length === 0 ? (
-          <div className="h-[220px] flex items-center justify-center text-xs text-slate-400">{t('adminDashboard.noData')}</div>
+          <div className="h-[200px] flex items-center justify-center text-xs text-slate-400">{t('adminDashboard.noData')}</div>
         ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <PieChart>
-              <Pie data={donut} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={2}>
-                {donut.map((d) => (
-                  <Cell key={d.name} fill={d.fill} />
-                ))}
-              </Pie>
-              <Tooltip contentStyle={tipStyle} />
-              <Legend wrapperStyle={{ fontSize: 11 }} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={donut} dataKey="value" nameKey="name" innerRadius={52} outerRadius={84} paddingAngle={2} onClick={(_, i) => toList(donut[i].key)} cursor="pointer">
+                  {donut.map((d) => (
+                    <Cell key={d.key} fill={d.fill} />
+                  ))}
+                </Pie>
+                <Tooltip contentStyle={tipStyle} />
+              </PieChart>
+            </ResponsiveContainer>
+            <ul className="m-0 p-0 list-none space-y-1.5">
+              {donut.map((d) => (
+                <li key={d.key}>
+                  <button type="button" onClick={() => toList(d.key)} className="w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg hover:bg-slate-50" title={t('adminDashboard.claimKpis.openList')}>
+                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: d.fill }} />
+                    <span className="font-semibold text-slate-800 flex-1 text-left">{d.name}</span>
+                    <span className="tabular-nums font-bold text-slate-800">{d.value}</span>
+                    <span className="tabular-nums text-slate-500 w-12 text-right">{Math.round((100 * d.value) / Math.max(1, totalSeverity))} %</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     );

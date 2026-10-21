@@ -607,6 +607,9 @@
     "clientsNote": "Sorted by open critical or high claims, then by delays. On-time rate and PPM over the chosen period."
   },
   "adminDashboard": {
+    "subtitleSteering": "Pulse, late claims, claims without a deadline, owners and employee activity.",
+    "subtitleIndicators": "Workflow evolution, recurring defects, PPM per customer and severity breakdown.",
+    "claimKpis": {"title": "Quality over the last 12 months", "period_one": "Period: {{count}} month", "period_other": "Period: {{count}} months", "avgTreatment": "average treatment time {{days}} d over {{count}} closed claims", "topDefects": "Most frequent defects", "topDefectsHint": "Number of claims per defect type", "ppmTitle": "PPM per customer", "ppmHint": "Defective parts per million parts produced", "colClient": "Customer", "colClaims": "Claims", "colPpm": "PPM", "noProduction": "\"—\": no production is recorded for this customer, so the PPM cannot be computed.", "openList": "Open the matching claims"},
     "overview": {
       "eyebrow": "Overview",
       "subtitle": "Management summary: what needs attention across claims and CAPA plans.",
@@ -642,6 +645,7 @@
       "criticalAlerts": "Critical alerts"
     },
     "claims": {
+      "severityScope": "Across {{count}} claims (open and closed)",
       "noDeadline": "No deadline",
       "noDeadlineTitle": "Claims without a deadline",
       "noDeadlineHint": "Open claims with no deadline are not counted as late.",
@@ -732,6 +736,8 @@
       "scopePlans": "Action plans"
     },
     "help": {
+      "pageSteering": "What needs action: the month's dynamics, late claims or claims without a deadline, and who carries them. Click (i) next to an indicator for details.",
+      "pageIndicators": "For analysis: the flow over time, recurring defects, PPM per customer and the severity breakdown. Figures follow the chosen department.",
       "page": "Global view to compare Claims and Action Plans: volumes, overdue items, trends and owners. Click (i) next to each KPI for details.",
       "totalActive": "Sum of open Claims and still-active action plans (excluding archived).",
       "totalOverdue": "Items whose target date is past and that are not closed yet.",

@@ -1,4 +1,5 @@
 using Coficab.ActionPlan.Application.Interfaces;
+using Coficab.ActionPlan.Application.QualityAnalyses;
 using Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims;
 using Coficab.ActionPlan.Application.ReferenceLists;
 using MediatR;
@@ -47,7 +48,7 @@ public interface IClaimKpiReader
 }
 
 /// <summary>Claims KPIs of the specification: claims per month, average treatment time, PPM per client, top defects.</summary>
-public record GetClaimKpisQuery(string? ScopeUserId, int Months = 12) : IRequest<ClaimKpisDto>;
+public record GetClaimKpisQuery(string? ScopeUserId, int Months = 12, IReadOnlyList<Guid>? OrganizationIds = null, Guid? DepartmentId = null) : IRequest<ClaimKpisDto>;
 
 public class GetClaimKpisQueryHandler : IRequestHandler<GetClaimKpisQuery, ClaimKpisDto>
 {
@@ -67,9 +68,15 @@ public class GetClaimKpisQueryHandler : IRequestHandler<GetClaimKpisQuery, Claim
         var from = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-(months - 1));
 
         List<Guid>? scope = null;
-        if (!string.IsNullOrWhiteSpace(request.ScopeUserId))
+        if (!string.IsNullOrWhiteSpace(request.ScopeUserId) || request.OrganizationIds is { Count: > 0 } || request.DepartmentId != null)
         {
-            var visible = await ClaimVisibility.ApplyAsync(_context, _context.Claims.AsNoTracking(), request.ScopeUserId, ct);
+            IQueryable<Core.Entities.Claim> visible = _context.Claims.AsNoTracking();
+            if (!string.IsNullOrWhiteSpace(request.ScopeUserId))
+                visible = await ClaimVisibility.ApplyAsync(_context, visible, request.ScopeUserId, ct);
+            if (request.OrganizationIds is { Count: > 0 } orgIds)
+                visible = await ClaimOrganizations.ApplyAsync(_context, visible, orgIds, ct);
+            if (request.DepartmentId is { } departmentId)
+                visible = await ClaimDepartments.ApplyAsync(_context, visible, departmentId, ct);
             scope = await visible.Select(c => c.Id).ToListAsync(ct);
         }
 

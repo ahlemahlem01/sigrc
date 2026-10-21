@@ -76,4 +76,25 @@ public class ClaimKpiTests : IDisposable
         var scoped = await new GetClaimKpisQueryHandler(_db, new ClaimKpiReader(_db)).Handle(new GetClaimKpisQuery("nobody", 6), default);
         Assert.Equal(0, scoped.TotalClaims);
     }
+
+    [Fact]
+    public async Task ScopeByIds_OnlyCountsTheListedClaims_EvenWithThousandsOfIds()
+    {
+        var now = DateTime.UtcNow;
+        var a = NewClaim("ACME", "Soudure", now.AddDays(-3), null, 1000, 5);
+        var b = NewClaim("BETA", "Sertissage", now.AddDays(-2), null, 1000, 10);
+        var c = NewClaim("GAMMA", "Soudure", now.AddDays(-1), null, 1000, 1);
+        _db.Claims.AddRange(a, b, c);
+        await _db.SaveChangesAsync();
+        var from = new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-1);
+        var reader = new ClaimKpiReader(_db);
+
+        var two = await reader.ReadAsync(from, new[] { a.Id, b.Id }, default);
+        Assert.Equal(new[] { "ACME", "BETA" }, two.Clients.Select(x => x.ClientId).OrderBy(x => x).ToArray());
+
+        // SQL Server refuses a request with more than 2100 parameters: the ids travel as one JSON parameter instead.
+        var many = Enumerable.Range(0, 3000).Select(_ => Guid.NewGuid()).Append(c.Id).ToList();
+        var big = await reader.ReadAsync(from, many, default);
+        Assert.Equal(new[] { "GAMMA" }, big.Clients.Select(x => x.ClientId).ToArray());
+    }
 }

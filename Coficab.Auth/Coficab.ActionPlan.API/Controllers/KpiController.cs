@@ -17,7 +17,7 @@ public class KpiController : ControllerBase
     public KpiController(IMediator mediator) => _mediator = mediator;
 
     [HttpGet("claims")]
-    public async Task<IActionResult> Claims([FromQuery] int months = 12, CancellationToken ct = default)
+    public async Task<IActionResult> Claims([FromQuery] int months = 12, [FromQuery] string? organizationIds = null, [FromQuery] Guid? departmentId = null, CancellationToken ct = default)
     {
         var roles = User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
             .Select(c => (c.Value ?? string.Empty).Trim().ToLowerInvariant()).ToList();
@@ -26,6 +26,6 @@ public class KpiController : ControllerBase
 
         // Same visibility as the claims list: an admin only gets the KPIs of the claims they can see.
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        return Ok(await _mediator.Send(new GetClaimKpisQuery(superAdmin ? null : userId, months), ct));
+        return Ok(await _mediator.Send(new GetClaimKpisQuery(superAdmin ? null : userId, months, Application.QualityAnalyses.ClaimOrganizations.Parse(organizationIds), departmentId), ct));
     }
 }

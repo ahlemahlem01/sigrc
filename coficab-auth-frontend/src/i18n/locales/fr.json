@@ -607,6 +607,9 @@
     "clientsNote": "Triés par réclamations critiques ou élevées ouvertes, puis par retards. Taux à l’heure et PPM sur la période choisie."
   },
   "adminDashboard": {
+    "subtitleSteering": "Pouls, retards, réclamations sans échéance, responsables et activité des employés.",
+    "subtitleIndicators": "Évolution du workflow, défauts récurrents, PPM par client et répartition par gravité.",
+    "claimKpis": {"title": "Qualité des 12 derniers mois", "period_one": "Période : {{count}} mois", "period_other": "Période : {{count}} mois", "avgTreatment": "délai moyen de traitement {{days}} j sur {{count}} réclamations clôturées", "topDefects": "Défauts les plus fréquents", "topDefectsHint": "Nombre de réclamations par type de défaut", "ppmTitle": "PPM par client", "ppmHint": "Pièces défectueuses par million de pièces produites", "colClient": "Client", "colClaims": "Réclamations", "colPpm": "PPM", "noProduction": "« — » : aucune production n'est renseignée pour ce client, le PPM ne peut pas être calculé.", "openList": "Ouvrir les réclamations concernées"},
     "overview": {
       "eyebrow": "Vue d'ensemble",
       "subtitle": "Synthèse de direction : ce qui demande de l'attention, réclamations et plans CAPA.",
@@ -642,6 +645,7 @@
       "criticalAlerts": "Alertes critiques"
     },
     "claims": {
+      "severityScope": "Sur {{count}} réclamations (ouvertes et clôturées)",
       "noDeadline": "Sans échéance",
       "noDeadlineTitle": "Réclamations sans échéance",
       "noDeadlineHint": "Une réclamation ouverte sans échéance n'est pas comptée comme en retard.",
@@ -732,6 +736,8 @@
       "scopePlans": "Plans d’action"
     },
     "help": {
+      "pageSteering": "Ce qui demande une action : la dynamique du mois, les réclamations en retard ou sans échéance, et qui les porte. Cliquez sur (i) près de chaque indicateur pour le détail.",
+      "pageIndicators": "Pour analyser : l'évolution du flux, les défauts qui reviennent, le PPM par client et la répartition par gravité. Les chiffres suivent le département choisi.",
       "page": "Vue globale pour comparer Claims et Action Plans : volumes, retards, tendances et responsables. Cliquez sur (i) près de chaque indicateur pour le détail.",
       "totalActive": "Somme des dossiers Claims ouverts et des plans d’action encore actifs (hors archivés).",
       "totalOverdue": "Dossiers dont la date cible est dépassée et qui ne sont pas encore clôturés.",

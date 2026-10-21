@@ -4,12 +4,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../context/AuthContext';
 import { useOrganizationScope } from '../../../context/OrganizationScopeContext';
 import { fetchDashboardSummary } from '../../../services/dashboardSummaryService';
+import { qualityAnalysisService, type ClaimKpis } from '../../../services/qualityAnalysisService';
 import type { DashboardSummary } from '../../../types/dashboardSummary';
 import DashboardSummaryBar from './DashboardSummaryBar';
 import ClaimsOverviewColumn from './ClaimsOverviewColumn';
 import TopResponsiblesSection from './TopResponsiblesSection';
 import WorkflowEvolutionSection from './WorkflowEvolutionSection';
 import EmployeeActivityWidget from './EmployeeActivityWidget';
+import ClaimKpiSection from './ClaimKpiSection';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
 
@@ -22,6 +24,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [departmentId, setDepartmentId] = useState('');
+  const [claimKpis, setClaimKpis] = useState<ClaimKpis | null>(null);
   const [departments, setDepartments] = useState<DashboardSummary['departments']>([]);
 
   const load = useCallback(async () => {
@@ -32,6 +35,10 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
       const summary = await fetchDashboardSummary(accessToken, scopeParam, departmentId || undefined);
       setData(summary);
       setDepartments(summary.departments);
+      if (focus === 'indicators') {
+        // the defects and customers follow the same organizations and department as the rest of the page
+        qualityAnalysisService.getClaimKpis(12, accessToken, scopeParam, departmentId || undefined).then(setClaimKpis).catch(() => setClaimKpis(null));
+      }
       // a department that left the followed organizations no longer exists in the list
       if (departmentId && !summary.departments.some((d) => d.id === departmentId)) setDepartmentId('');
     } catch (err: any) {
@@ -47,7 +54,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
     } finally {
       setLoading(false);
     }
-  }, [scopeParam, accessToken, departmentId, t]);
+  }, [scopeParam, accessToken, departmentId, focus, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -66,13 +73,13 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
               {focus === 'indicators' ? t('adminNav.claimsIndicators') : t('adminNav.claimsDashboard')}
             </h1>
             <DashInfoTip
-              text={t('adminDashboard.help.page')}
+              text={t(focus === 'indicators' ? 'adminDashboard.help.pageIndicators' : 'adminDashboard.help.pageSteering')}
               title={t('adminDashboard.title')}
               side="bottom"
             />
           </div>
           <p className="text-sm mt-1 mb-0" style={{ color: COFICAB.muted }}>
-            {t('adminDashboard.subtitle')}
+            {t(focus === 'indicators' ? 'adminDashboard.subtitleIndicators' : 'adminDashboard.subtitleSteering')}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
@@ -124,6 +131,8 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
         loading={loading}
       />
       )}
+
+      {focus === 'indicators' && <ClaimKpiSection kpis={claimKpis} loading={loading} />}
 
       <div className="grid grid-cols-1 gap-4 items-stretch">
         <ClaimsOverviewColumn data={data?.claims} loading={loading} part={focus === 'indicators' ? 'indicators' : 'steering'} />
