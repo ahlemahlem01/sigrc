@@ -4228,6 +4228,9 @@
     "selectDepartment": "Sélectionner un département"
   },
   "managedClaims": {
+    "titleAll": "Assignations des réclamations",
+    "subtitleAll": "Les réclamations ouvertes de votre périmètre : assignez celles qui n'ont pas encore de responsable.",
+    "kpiTotalAll": "Réclamations ouvertes",
     "loadFailed": "Impossible de charger vos réclamations.",
     "noChange": "Aucun changement.",
     "assignSaved": "Assignation enregistrée.",

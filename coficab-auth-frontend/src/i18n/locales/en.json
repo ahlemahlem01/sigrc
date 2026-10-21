@@ -4228,6 +4228,9 @@
     "selectDepartment": "Select a department"
   },
   "managedClaims": {
+    "titleAll": "Claim assignments",
+    "subtitleAll": "The open claims of your perimeter: assign the ones that have no one in charge yet.",
+    "kpiTotalAll": "Open claims",
     "loadFailed": "Could not load your claims.",
     "noChange": "No change.",
     "assignSaved": "Assignment saved.",

@@ -203,7 +203,7 @@ const App = () => {
               <Route path="/admin/claims/dashboard"             element={<ClaimsBoardPage />} />
               <Route path="/admin/claims/indicators"            element={<Navigate to="/admin/claims/dashboard?tab=indicators" replace />} />
               <Route path="/admin/claims/list"                  element={<AdminClaimsList />} />
-              <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage />} />
+              <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage scope="all" />} />
               <Route path="/admin/claims/analyses"              element={<ClaimsAnalysesHubPage />} />
               <Route path="/admin/claims/eight-d/:claimId"      element={<EightDPage />} />
               <Route path="/admin/claims/eight-d"               element={<Navigate to="/admin/claims/analyses?tab=eightd" replace />} />

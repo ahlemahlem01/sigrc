@@ -61,7 +61,8 @@ const normalizeClaim = (raw: any): Claim => ({
  * Front Admin — réclamations créées par l'admin.
  * Liste + détail + assignation + création, sans quitter la page.
  */
-export default function AdminManagedClaimsPage() {
+/** `scope`: 'mine' = the claims I created (workspace); 'all' = every open claim of my perimeter (admin menu). */
+export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mine' | 'all' }) {
   const { t } = useTranslation();
   const { accessToken, user } = useAuth();
   const [claims, setClaims] = useState<Claim[]>([]);
@@ -86,7 +87,12 @@ export default function AdminManagedClaimsPage() {
     setLoading(true);
     setError(null);
     try {
-      const rows = await qualityAnalysisService.getAdminManagedClaims(accessToken);
+      const rows = scope === 'all'
+        ? (await qualityAnalysisService.getClaims(undefined, accessToken)).filter((c: any) => {
+            const s = resolveClaimStatus(c);
+            return s !== 'CLOTUREE' && s !== 'DRAFT';
+          })
+        : await qualityAnalysisService.getAdminManagedClaims(accessToken);
       const list = (Array.isArray(rows) ? rows : []).map(normalizeClaim);
       setClaims(list);
     } catch {
@@ -95,7 +101,7 @@ export default function AdminManagedClaimsPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, scope]);
 
   useEffect(() => {
     load();
@@ -362,13 +368,13 @@ export default function AdminManagedClaimsPage() {
       <div className="amc-wrap">
         <div className="amc-head">
           <div>
-            <div className="amc-title">{t('managedClaims.title')}</div>
+            <div className="amc-title">{scope === 'all' ? t('managedClaims.titleAll') : t('managedClaims.title')}</div>
             <div className="amc-sub">
-              {t('managedClaims.subtitle')}
+              {scope === 'all' ? t('managedClaims.subtitleAll') : t('managedClaims.subtitle')}
             </div>
           </div>
           <div className="amc-actions">
-            {isPlatformAdmin(user) && accessToken && (
+            {scope === 'mine' && isPlatformAdmin(user) && accessToken && (
               <CsvImportButton
                 className="amc-btn ghost"
                 label={t('claimsList.import')}
@@ -403,7 +409,7 @@ export default function AdminManagedClaimsPage() {
             <div className="amc-kpis">
               <div className="amc-kpi">
                 <div className="amc-kpi-val">{claims.length}</div>
-                <div className="amc-kpi-lbl">{t('managedClaims.kpiTotal')}</div>
+                <div className="amc-kpi-lbl">{scope === 'all' ? t('managedClaims.kpiTotalAll') : t('managedClaims.kpiTotal')}</div>
               </div>
               <div className="amc-kpi">
                 <div className="amc-kpi-val">{assignedCount}</div>

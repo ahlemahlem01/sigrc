@@ -4228,6 +4228,9 @@
     "selectDepartment": "Seleziona un reparto"
   },
   "managedClaims": {
+    "titleAll": "Assegnazioni dei reclami",
+    "subtitleAll": "I reclami aperti del tuo perimetro: assegna quelli che non hanno ancora un responsabile.",
+    "kpiTotalAll": "Reclami aperti",
     "loadFailed": "Impossibile caricare i tuoi reclami.",
     "noChange": "Nessuna modifica.",
     "assignSaved": "Assegnazione salvata.",
