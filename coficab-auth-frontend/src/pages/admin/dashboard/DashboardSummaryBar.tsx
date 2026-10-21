@@ -66,6 +66,20 @@ function DeltaArrow({
   );
 }
 
+function DeltaAbs({ value, invert }: { value: number; invert?: boolean }) {
+  const flat = value === 0;
+  const rawUp = value > 0;
+  const good = flat ? null : invert ? !rawUp : rawUp;
+  const color = flat ? '#64748b' : good ? '#2f855a' : '#b91c1c';
+  const icon = flat ? 'ti-minus' : rawUp ? 'ti-arrow-up' : 'ti-arrow-down';
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold tabular-nums" style={{ color }}>
+      <i className={`ti ${icon}`} style={{ fontSize: 13 }} />
+      {value > 0 ? '+' : ''}{value}
+    </span>
+  );
+}
+
 function NetContextLabel({ total }: { total: number }) {
   const { t } = useTranslation();
   if (total > 2) {
@@ -97,6 +111,7 @@ function MetricColumn({
   actions,
   trend,
   deltaPercent,
+  deltaAbs,
   invertDelta,
   accent,
   showNetContext,
@@ -109,6 +124,7 @@ function MetricColumn({
   actions: number;
   trend: number[];
   deltaPercent?: number;
+  deltaAbs?: number;
   invertDelta?: boolean;
   accent: string;
   showNetContext?: boolean;
@@ -147,6 +163,7 @@ function MetricColumn({
         {typeof deltaPercent === 'number' && (
           <DeltaArrow deltaPercent={deltaPercent} invert={invertDelta} />
         )}
+        {typeof deltaAbs === 'number' && <DeltaAbs value={deltaAbs} invert={invertDelta} />}
       </div>
 
       {showNetContext && (
@@ -192,7 +209,7 @@ export default function DashboardSummaryBar({
   plansMonthly,
   pulse: pulseProp,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [period, setPeriod] = useState<PulsePeriod>('month');
   const [scope, setScope] = useState<PulseScope>('all');
 
@@ -216,6 +233,12 @@ export default function DashboardSummaryBar({
       backlogDelta: pulse.backlogDelta,
     });
   }, [pulse, data?.globalClosureRate]);
+
+  const monthName = (ym: string) => {
+    const [y, m] = ym.split('-').map(Number);
+    return new Date(y, (m || 1) - 1, 1).toLocaleDateString(i18n.language || 'fr', { month: 'short', year: 'numeric' });
+  };
+  const rangeText = (from: string, to: string) => (from === to ? monthName(from) : `${monthName(from)} – ${monthName(to)}`);
 
   const periodOptions: { id: PulsePeriod; labelKey: string }[] = [
     { id: 'month', labelKey: 'adminDashboard.pulse.periodMonth' },
@@ -289,6 +312,15 @@ export default function DashboardSummaryBar({
           {t('adminDashboard.evolution.noData')}
         </div>
       ) : (
+        <>
+        <p className="text-[11px] m-0 mb-3" style={{ color: COFICAB.muted }}>
+          {pulse.range.prevFrom && pulse.range.prevTo
+            ? t('adminDashboard.pulse.range', { range: rangeText(pulse.range.from, pulse.range.to), prev: rangeText(pulse.range.prevFrom, pulse.range.prevTo) })
+            : t('adminDashboard.pulse.rangeNoPrev', { range: rangeText(pulse.range.from, pulse.range.to) })}
+          {pulse.idleMonths > 0 && pulse.firstIdleMonth
+            ? ` · ${t('adminDashboard.pulse.idle', { month: monthName(pulse.firstIdleMonth), last: monthName(pulse.range.to) })}`
+            : ''}
+        </p>
         <div
           className="grid grid-cols-1 sm:grid-cols-3 gap-5 sm:gap-4 sm:divide-x"
           style={{ borderColor: COFICAB.line }}
@@ -328,11 +360,7 @@ export default function DashboardSummaryBar({
               claims={pulse.netLoad.claims}
               actions={pulse.netLoad.actions}
               trend={pulse.netLoad.trend}
-              deltaPercent={(() => {
-                const prev = pulse.netLoad.total - pulse.backlogDelta;
-                if (prev === 0) return pulse.backlogDelta === 0 ? 0 : 100;
-                return Math.round((pulse.backlogDelta / Math.abs(prev)) * 1000) / 10;
-              })()}
+              deltaAbs={pulse.backlogDelta}
               invertDelta
               accent={COFICAB.ink}
               showNetContext
@@ -340,6 +368,7 @@ export default function DashboardSummaryBar({
             />
           </div>
         </div>
+        </>
       )}
     </section>
   );

@@ -21,6 +21,11 @@ export interface PulseData {
   /** Variation absolue de charge nette (curr − prev) pour le badge santé */
   backlogDelta: number;
   scope: PulseScope;
+  /** Months covered by the period and by the one it is compared with (YYYY-MM). */
+  range: { from: string; to: string; prevFrom: string | null; prevTo: string | null };
+  /** Empty months at the end of the series that were left out (the current month, when nothing happened yet). */
+  idleMonths: number;
+  firstIdleMonth: string | null;
 }
 
 export type PulsePeriod = 'month' | '3m' | '6m';
@@ -129,6 +134,10 @@ function sumSlice(rows: MonthAgg[], start: number, end: number) {
   };
 }
 
+function isIdle(row: MonthAgg): boolean {
+  return row.claimsOpened + row.claimsClosed + row.actionsOpened + row.actionsClosed === 0;
+}
+
 function pctDelta(curr: number, prev: number): number {
   if (prev === 0) return curr === 0 ? 0 : 100;
   return Math.round(((curr - prev) / prev) * 1000) / 10;
@@ -157,7 +166,13 @@ export function buildPulseData(
   fallbackClosureRate = 0,
   scope: PulseScope = 'all',
 ): PulseData | null {
-  const rows = mergeMonthly(claimsMonthly, plansMonthly);
+  const all = mergeMonthly(claimsMonthly, plansMonthly);
+  // A trailing month without any activity would read as "0, -100 %": the period stops at the last month that had some.
+  let end = all.length;
+  while (end > 0 && isIdle(all[end - 1])) end -= 1;
+  const rows = all.slice(0, end);
+  const idleMonths = all.length - end;
+  const firstIdleMonth = idleMonths > 0 ? all[end].month : null;
   if (rows.length < 2) return null;
 
   const window = period === 'month' ? 1 : period === '3m' ? 3 : 6;
@@ -200,9 +215,12 @@ export function buildPulseData(
   const trendClosed = rows.map((r) => pickClosed(r, scope));
   const trendNet = rows.map((r) => pickOpened(r, scope) - pickClosed(r, scope));
 
-  const denom = openedCurr + closedCurr;
+  // Closures against openings, capped at 100 %: 100 % means the backlog is not growing. (Closures over openings plus
+  // closures would put a perfectly balanced flow at 50 %, which the health badge reads as critical.)
   const periodClosure =
-    denom === 0 ? fallbackClosureRate : Math.round((1000 * closedCurr) / denom) / 10;
+    openedCurr === 0
+      ? (closedCurr > 0 ? 100 : fallbackClosureRate)
+      : Math.min(100, Math.round((1000 * closedCurr) / openedCurr) / 10);
 
   return {
     opened: {
@@ -228,6 +246,14 @@ export function buildPulseData(
     closureRate: periodClosure,
     backlogDelta: netCurr - netPrev,
     scope,
+    range: {
+      from: rows[currStart].month,
+      to: rows[rows.length - 1].month,
+      prevFrom: prevStart < currStart ? rows[prevStart].month : null,
+      prevTo: prevStart < currStart ? rows[currStart - 1].month : null,
+    },
+    idleMonths,
+    firstIdleMonth,
   };
 }
 
@@ -239,5 +265,8 @@ export function emptyPulseData(closureRate = 0, scope: PulseScope = 'all'): Puls
     closureRate,
     backlogDelta: 0,
     scope,
+    range: { from: '', to: '', prevFrom: null, prevTo: null },
+    idleMonths: 0,
+    firstIdleMonth: null,
   };
 }
