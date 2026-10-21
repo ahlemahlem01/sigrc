@@ -16,6 +16,7 @@ public record CapaWorkloadPersonDto(
     string Name,
     string Email,
     string Department,
+    string Position,
     int OpenPlans,
     int LatePlans,
     int ClosedPlans,
@@ -133,6 +134,7 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
                 profile?.Name ?? "—",
                 profile?.Email ?? string.Empty,
                 profile?.Department?.Name ?? string.Empty,
+                profile?.Poste ?? string.Empty,
                 open.Count,
                 late.Count,
                 kv.Value.Count(p => p.Status == ActionPlanStatus.Closed),
@@ -159,10 +161,19 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
         var busy = people.Where(p => p.OpenPlans > 0).Select(p => p.UserId).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var idle = inScope.Count(id => !busy.Contains(id));
 
+        // staff with nothing to do are listed too: a manager must see who can take more work
+        var idleRows = inScope.Where(id => !busy.Contains(id) && !people.Any(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase)))
+            .Select(id => profileById[id])
+            .Select(pr => new CapaWorkloadPersonDto(
+                pr.UserId, pr.Name ?? "—", pr.Email ?? string.Empty, pr.Department?.Name ?? string.Empty, pr.Poste ?? string.Empty,
+                0, 0, 0, null, null, [], 0, 0, 0, 0, new Dictionary<string, int>(), []))
+            .OrderBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
         var withOpen = people.Where(p => p.OpenPlans > 0).ToList();
         var average = withOpen.Count == 0 ? 0 : withOpen.Average(p => (double)p.OpenPlans);
         var overloaded = withOpen.Count(p => p.OpenPlans >= OverloadMin && p.OpenPlans >= OverloadFactor * average);
 
-        return new CapaWorkloadDto(now, new CapaWorkloadSummaryDto(withOpen.Count, Math.Round(average, 1), overloaded, idle, people.Sum(p => p.LateActions), people.Sum(p => p.ActionsToValidate)), people);
+        return new CapaWorkloadDto(now, new CapaWorkloadSummaryDto(withOpen.Count, Math.Round(average, 1), overloaded, idle, people.Sum(p => p.LateActions), people.Sum(p => p.ActionsToValidate)), people.Concat(idleRows).ToList());
     }
 }

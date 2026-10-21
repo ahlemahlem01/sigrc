@@ -47,6 +47,7 @@ export interface CapaWorkloadPerson {
   name: string;
   email: string;
   department: string;
+  position: string;
   openPlans: number;
   latePlans: number;
   closedPlans: number;

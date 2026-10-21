@@ -211,6 +211,11 @@
     "title": "Organisations suivies dans toute l'application"
   },
   "workload": {
+    "byDepartment": "Charge par département",
+    "byDepartmentSub": "Cliquez sur un département pour filtrer la liste des personnes.",
+    "busyPeople": "Avec du travail",
+    "loadBar": "Plans ouverts par rapport au plus chargé",
+    "quick": {"all": "Tous", "heavy": "Surchargés", "late": "En retard", "toValidate": "À valider", "idle": "Sans charge"},
     "lateActions": "Sous-actions en retard",
     "toValidate": "À valider",
     "openActions": "Sous-act. ouvertes",

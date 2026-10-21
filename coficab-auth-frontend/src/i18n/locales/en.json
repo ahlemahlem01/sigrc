@@ -211,6 +211,11 @@
     "title": "Organizations followed across the application"
   },
   "workload": {
+    "byDepartment": "Workload by department",
+    "byDepartmentSub": "Click a department to filter the list of people.",
+    "busyPeople": "With work",
+    "loadBar": "Open plans compared to the most loaded person",
+    "quick": {"all": "All", "heavy": "Overloaded", "late": "Late", "toValidate": "To validate", "idle": "No workload"},
     "lateActions": "Late sub-actions",
     "toValidate": "To validate",
     "openActions": "Sub-actions",

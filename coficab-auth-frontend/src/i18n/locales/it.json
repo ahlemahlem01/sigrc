@@ -211,6 +211,11 @@
     "title": "Organizzazioni seguite in tutta l'applicazione"
   },
   "workload": {
+    "byDepartment": "Carico per reparto",
+    "byDepartmentSub": "Clicca su un reparto per filtrare l'elenco delle persone.",
+    "busyPeople": "Con lavoro",
+    "loadBar": "Piani aperti rispetto alla persona più carica",
+    "quick": {"all": "Tutti", "heavy": "Sovraccarichi", "late": "In ritardo", "toValidate": "Da convalidare", "idle": "Senza carico"},
     "lateActions": "Azioni in ritardo",
     "toValidate": "Da convalidare",
     "openActions": "Azioni",
