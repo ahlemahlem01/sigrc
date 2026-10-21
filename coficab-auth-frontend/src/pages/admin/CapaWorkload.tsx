@@ -72,12 +72,14 @@ export default function CapaWorkload() {
       {error && <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">{error}</div>}
 
       {s && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 mb-4">
           {([
             [t('workload.people'), String(s.people), NAVY],
             [t('workload.average'), String(s.averageOpen), NAVY],
             [t('workload.overloaded'), String(s.overloaded), s.overloaded > 0 ? ORANGE : GOOD],
             [t('workload.idle'), String(s.withoutOpenPlan), s.withoutOpenPlan > 0 ? ORANGE : GOOD],
+            [t('workload.lateActions'), String(s.lateActions), s.lateActions > 0 ? BAD : GOOD],
+            [t('workload.toValidate'), String(s.actionsToValidate), s.actionsToValidate > 0 ? ORANGE : GOOD],
           ] as [string, string, string][]).map(([label, value, tone]) => (
             <div key={label} className="rounded-xl bg-white shadow-sm px-4 py-3" style={{ border: '1px solid #e4e8f2', borderTop: `3px solid ${tone}` }}>
               <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{label}</div>
@@ -115,6 +117,10 @@ export default function CapaWorkload() {
                 <th className="text-left font-semibold px-4 py-2">{t('workload.person')}</th>
                 <th className="text-right font-semibold px-3 py-2">{t('workload.open')}</th>
                 <th className="text-right font-semibold px-3 py-2">{t('workload.late')}</th>
+                <th className="text-right font-semibold px-3 py-2">{t('workload.openActions')}</th>
+                <th className="text-right font-semibold px-3 py-2">{t('workload.lateActionsShort')}</th>
+                <th className="text-right font-semibold px-3 py-2">{t('workload.toValidateShort')}</th>
+                <th className="text-right font-semibold px-3 py-2">{t('workload.done30')}</th>
                 <th className="font-semibold px-3 py-2 text-left w-40">{t('workload.progress')}</th>
                 <th className="text-right font-semibold px-4 py-2">{t('workload.next')}</th>
               </tr>
@@ -142,6 +148,10 @@ export default function CapaWorkload() {
                       </td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold">{p.openPlans}</td>
                       <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.latePlans > 0 ? BAD : '#94a3b8' }}>{p.latePlans}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold">{p.openActions}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.lateActions > 0 ? BAD : '#94a3b8' }}>{p.lateActions}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums font-semibold" style={{ color: p.actionsToValidate > 0 ? ORANGE : '#94a3b8' }}>{p.actionsToValidate}</td>
+                      <td className="px-3 py-2.5 text-right tabular-nums text-slate-600">{p.actionsDoneLast30Days}</td>
                       <td className="px-3 py-2.5">
                         {p.avgProgress == null ? <span className="text-slate-400">—</span> : (
                           <div className="flex items-center gap-2">
@@ -154,7 +164,14 @@ export default function CapaWorkload() {
                     </tr>
                     {expanded && (
                       <tr className="bg-slate-50">
-                        <td colSpan={5} className="px-4 py-3">
+                        <td colSpan={9} className="px-4 py-3">
+                          <div className="flex flex-wrap items-center gap-2 mb-3">
+                            {Object.entries(p.openByType).map(([type, n]) => (
+                              <span key={type} className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-700">{t(`planPage.type.${type}`, { defaultValue: type })} · {n}</span>
+                            ))}
+                            {p.email && <span className="text-[11px] text-slate-500 ml-auto">{p.email}{p.department ? ` · ${p.department}` : ''}</span>}
+                          </div>
+                          <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mb-1.5">{t('workload.plansTitle')}</div>
                           <ul className="m-0 p-0 list-none space-y-1.5">
                             {plans.map((x) => (
                               <li
@@ -173,6 +190,33 @@ export default function CapaWorkload() {
                               </li>
                             ))}
                           </ul>
+                          {p.actions.length > 0 && (
+                            <>
+                              <div className="text-[11px] font-bold uppercase tracking-wide text-slate-500 mt-4 mb-1.5">{t('workload.actionsTitle', { count: p.actions.length })}</div>
+                              <ul className="m-0 p-0 list-none space-y-1.5">
+                                {p.actions.map((a) => {
+                                  const tone = a.state === 'validated' ? GOOD : a.state === 'toValidate' ? ORANGE : a.state === 'cancelled' ? '#94a3b8' : a.lateDays > 0 ? BAD : '#64748b';
+                                  return (
+                                    <li
+                                      key={a.id}
+                                      onClick={(e) => { e.stopPropagation(); navigate(`/admin/action-plans/${a.planId}`); }}
+                                      className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white border border-slate-100 cursor-pointer hover:border-slate-300"
+                                    >
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-semibold text-slate-700 truncate">{a.title}</div>
+                                        <div className="text-[11px] text-slate-500 truncate">{a.planTitle}</div>
+                                      </div>
+                                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ color: tone, background: `${tone}18` }}>{t(`workload.state.${a.state}`)}</span>
+                                      {a.lateDays > 0
+                                        ? <span className="text-[11px] font-bold" style={{ color: BAD }}>{t('workload.lateDays', { count: a.lateDays })}</span>
+                                        : <span className="text-[11px] text-slate-500 w-24 text-right">{date(a.deadline)}</span>}
+                                      <span className="tabular-nums text-[11px] text-slate-600 w-9 text-right">{a.progress} %</span>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            </>
+                          )}
                           {p.closedPlans > 0 && (
                             <button
                               type="button"

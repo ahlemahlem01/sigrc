@@ -36,6 +36,12 @@ export async function fetchCapaIndicators(token: string, days: number, organizat
 
 export interface CapaWorkloadPlan { id: string; title: string; type: string; closed: boolean; deadline: string | null; lateDays: number; progress: number }
 
+export interface CapaWorkloadAction {
+  id: string; planId: string; planTitle: string; title: string;
+  state: 'todo' | 'inProgress' | 'toValidate' | 'validated' | 'cancelled';
+  progress: number; priority: number; deadline: string | null; lateDays: number;
+}
+
 export interface CapaWorkloadPerson {
   userId: string;
   name: string;
@@ -47,11 +53,17 @@ export interface CapaWorkloadPerson {
   avgProgress: number | null;
   nextDeadline: string | null;
   plans: CapaWorkloadPlan[];
+  openActions: number;
+  lateActions: number;
+  actionsToValidate: number;
+  actionsDoneLast30Days: number;
+  openByType: Record<string, number>;
+  actions: CapaWorkloadAction[];
 }
 
 export interface CapaWorkload {
   generatedAt: string;
-  summary: { people: number; averageOpen: number; overloaded: number; withoutOpenPlan: number };
+  summary: { people: number; averageOpen: number; overloaded: number; withoutOpenPlan: number; lateActions: number; actionsToValidate: number };
   people: CapaWorkloadPerson[];
 }
 

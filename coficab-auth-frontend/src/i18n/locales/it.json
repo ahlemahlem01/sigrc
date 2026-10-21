@@ -211,6 +211,15 @@
     "title": "Organizzazioni seguite in tutta l'applicazione"
   },
   "workload": {
+    "lateActions": "Azioni in ritardo",
+    "toValidate": "Da convalidare",
+    "openActions": "Azioni",
+    "lateActionsShort": "In ritardo (az.)",
+    "toValidateShort": "Da convalidare",
+    "done30": "Fatte (30 g)",
+    "plansTitle": "Piani",
+    "actionsTitle": "Azioni assegnate ({{count}})",
+    "state": {"todo": "Da fare", "inProgress": "In corso", "toValidate": "Da convalidare", "validated": "Convalidata", "cancelled": "Annullata"},
     "loadError": "Impossibile caricare il carico di lavoro",
     "people": "Responsabili",
     "average": "Piani aperti per persona",

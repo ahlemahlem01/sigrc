@@ -211,6 +211,15 @@
     "title": "Organizations followed across the application"
   },
   "workload": {
+    "lateActions": "Late sub-actions",
+    "toValidate": "To validate",
+    "openActions": "Sub-actions",
+    "lateActionsShort": "Late (sub-act.)",
+    "toValidateShort": "To validate",
+    "done30": "Done (30 d)",
+    "plansTitle": "Plans",
+    "actionsTitle": "Assigned sub-actions ({{count}})",
+    "state": {"todo": "To do", "inProgress": "In progress", "toValidate": "To validate", "validated": "Validated", "cancelled": "Cancelled"},
     "loadError": "Could not load the workload",
     "people": "People in charge",
     "average": "Open plans per person",

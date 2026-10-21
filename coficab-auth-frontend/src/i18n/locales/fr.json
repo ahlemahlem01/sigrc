@@ -211,6 +211,15 @@
     "title": "Organisations suivies dans toute l'application"
   },
   "workload": {
+    "lateActions": "Sous-actions en retard",
+    "toValidate": "À valider",
+    "openActions": "Sous-act. ouvertes",
+    "lateActionsShort": "En retard (sous-act.)",
+    "toValidateShort": "À valider",
+    "done30": "Faites (30 j)",
+    "plansTitle": "Plans",
+    "actionsTitle": "Sous-actions assignées ({{count}})",
+    "state": {"todo": "À faire", "inProgress": "En cours", "toValidate": "À valider", "validated": "Validée", "cancelled": "Annulée"},
     "loadError": "Impossible de charger la charge de travail",
     "people": "Responsables",
     "average": "Plans ouverts par personne",
