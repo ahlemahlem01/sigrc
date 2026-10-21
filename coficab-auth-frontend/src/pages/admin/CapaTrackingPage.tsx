@@ -14,7 +14,7 @@ import CapaAssigneeGlance from './CapaAssigneeGlance';
 
 const TABS = [
   { id: 'todo', labelKey: 'tracking.todo' },
-  { id: 'assignments', labelKey: 'adminNav.assignments' },
+  { id: 'assignments', labelKey: 'tracking.access' },
 ] as const;
 
 const VIEWS = [

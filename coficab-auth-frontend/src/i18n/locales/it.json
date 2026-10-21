@@ -1,4 +1,30 @@
 {
+  "capaAssignments": {
+    "subtitle": "Chi è responsabile di ogni piano aperto: piani da assegnare, già assegnati, e (ri)assegnazione in un passo.",
+    "toAssign": "Da assegnare",
+    "assigned": "Assegnati",
+    "counts": "{{toAssign}} da assegnare · {{assigned}} assegnati",
+    "search": "Cerca un piano o una persona…",
+    "noneToAssign": "Ogni piano aperto ha un responsabile.",
+    "noneAssigned": "Nessun piano assegnato.",
+    "colPlan": "Piano",
+    "colType": "Tipo",
+    "colResponsible": "Responsabile",
+    "colDeadline": "Scadenza",
+    "colProgress": "Avanzamento",
+    "nobody": "Nessuno",
+    "assign": "Assegna",
+    "reassign": "Riassegna",
+    "selectPage": "Seleziona la pagina",
+    "assignSelection": "Assegna la selezione ({{count}})",
+    "dialogTitle": "Assegna {{count}} piano/i",
+    "dialogText": "Scegli chi diventa responsabile. Ogni modifica è registrata nella cronologia del piano.",
+    "choosePerson": "Scegli una persona…",
+    "done": "{{count}} piano/i assegnato/i a {{name}}.",
+    "skipped": "{{count}} ignorato/i (già suoi o chiusi).",
+    "failed": "L'assegnazione è fallita. Aggiorna per verificare i piani.",
+    "loadError": "Impossibile caricare i piani."
+  },
   "capaIndicators": {
     "subtitle": "Evoluzione del workflow, puntualità di chiusura e ripartizione dei piani per tipo.",
     "help": "Per analizzare: il flusso nel tempo, la puntualità di chiusura negli ultimi 12 mesi e la ripartizione dei piani per tipo. I valori seguono il reparto scelto.",
@@ -335,6 +361,7 @@
     }
   },
   "tracking": {
+    "access": "Accesso ai piani",
     "todo": "Da gestire",
     "viewOverview": "Panoramica",
     "viewOperational": "Monitoraggio operativo",

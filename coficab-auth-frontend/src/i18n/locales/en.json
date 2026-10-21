@@ -1,4 +1,30 @@
 {
+  "capaAssignments": {
+    "subtitle": "Who is responsible for each open plan: plans to assign, plans already assigned, and (re)assignment in one step.",
+    "toAssign": "To assign",
+    "assigned": "Assigned",
+    "counts": "{{toAssign}} to assign · {{assigned}} assigned",
+    "search": "Search a plan or a person…",
+    "noneToAssign": "Every open plan has a responsible person.",
+    "noneAssigned": "No assigned plan.",
+    "colPlan": "Plan",
+    "colType": "Type",
+    "colResponsible": "Responsible",
+    "colDeadline": "Deadline",
+    "colProgress": "Progress",
+    "nobody": "Nobody",
+    "assign": "Assign",
+    "reassign": "Reassign",
+    "selectPage": "Select the page",
+    "assignSelection": "Assign the selection ({{count}})",
+    "dialogTitle": "Assign {{count}} plan(s)",
+    "dialogText": "Choose who becomes responsible. Each change is recorded in the plan's history.",
+    "choosePerson": "Choose a person…",
+    "done": "{{count}} plan(s) assigned to {{name}}.",
+    "skipped": "{{count}} skipped (already theirs or closed).",
+    "failed": "The assignment failed. Refresh to check the plans.",
+    "loadError": "Could not load the plans."
+  },
   "capaIndicators": {
     "subtitle": "Workflow evolution, closure punctuality and plans by type.",
     "help": "For analysis: the flow over time, closure punctuality over the last 12 months and the plans by type. Figures follow the chosen department.",
@@ -335,6 +361,7 @@
     }
   },
   "tracking": {
+    "access": "Plan access",
     "todo": "To handle",
     "viewOverview": "Overview",
     "viewOperational": "Operational tracking",

@@ -1,4 +1,30 @@
 {
+  "capaAssignments": {
+    "subtitle": "Qui est responsable de chaque plan ouvert : plans à assigner, plans déjà assignés, et (ré)assignation en une étape.",
+    "toAssign": "À assigner",
+    "assigned": "Assignés",
+    "counts": "{{toAssign}} à assigner · {{assigned}} assignés",
+    "search": "Rechercher un plan ou une personne…",
+    "noneToAssign": "Tous les plans ouverts ont un responsable.",
+    "noneAssigned": "Aucun plan assigné.",
+    "colPlan": "Plan",
+    "colType": "Type",
+    "colResponsible": "Responsable",
+    "colDeadline": "Échéance",
+    "colProgress": "Avancement",
+    "nobody": "Personne",
+    "assign": "Assigner",
+    "reassign": "Réassigner",
+    "selectPage": "Sélectionner la page",
+    "assignSelection": "Assigner la sélection ({{count}})",
+    "dialogTitle": "Assigner {{count}} plan(s)",
+    "dialogText": "Choisissez la personne qui devient responsable. Chaque changement est inscrit dans l'historique du plan.",
+    "choosePerson": "Choisir une personne…",
+    "done": "{{count}} plan(s) assigné(s) à {{name}}.",
+    "skipped": "{{count}} ignoré(s) (déjà à cette personne ou clôturés).",
+    "failed": "L'assignation a échoué. Actualisez pour vérifier l'état des plans.",
+    "loadError": "Impossible de charger les plans."
+  },
   "capaIndicators": {
     "subtitle": "Évolution du workflow, ponctualité de clôture et répartition des plans par type.",
     "help": "Pour analyser : l'évolution du flux, la ponctualité de clôture des 12 derniers mois et la répartition des plans par type. Les chiffres suivent le département choisi.",
@@ -335,6 +361,7 @@
     }
   },
   "tracking": {
+    "access": "Accès aux plans",
     "todo": "À traiter",
     "viewOverview": "Aperçu",
     "viewOperational": "Suivi opérationnel",

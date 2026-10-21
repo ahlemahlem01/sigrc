@@ -43,6 +43,7 @@ import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
 import PreferencesPage from './pages/admin/PreferencesPage';
 import CapaBoardPage from './pages/admin/CapaBoardPage';
+import CapaAssignmentsPage from './pages/admin/CapaAssignmentsPage';
 import CapaTrackingPage from './pages/admin/CapaTrackingPage';
 import { EmployeeDocuments } from './pages/employee/EmployeeDocuments';
 import EmployeeEightDPage from './pages/employee/EmployeeEightDPage';
@@ -188,7 +189,7 @@ const App = () => {
               <Route path="/admin/action-plans/indicators"      element={<Navigate to="/admin/action-plans/dashboard?tab=indicators" replace />} />
               <Route path="/admin/action-plans/assign"          element={<Navigate to="/admin/employees/activity?scope=workload" replace />} />
               <Route path="/admin/action-plans/tracking"        element={<CapaTrackingPage />} />
-              <Route path="/admin/action-plans/assignments"     element={<Navigate to="/admin/action-plans/tracking?tab=assignments" replace />} />
+              <Route path="/admin/action-plans/assignments"     element={<CapaAssignmentsPage />} />
               <Route path="/admin/action-plans/associated"      element={<Navigate to="/admin/action-plans/tracking?tab=associated" replace />} />
               <Route path="/admin/action-plans/follow-up"       element={<Navigate to="/admin/action-plans/tracking?tab=follow-up" replace />} />
               <Route path="/admin/action-plans/report"          element={<CapaReportsPage />} />
