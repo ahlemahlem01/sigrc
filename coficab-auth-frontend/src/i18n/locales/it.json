@@ -1,4 +1,10 @@
 {
+  "eightDList": {
+    "inProgress": "In corso",
+    "pending": "In convalida",
+    "rejected": "Respinti",
+    "done": "Convalidati o chiusi"
+  },
   "capaAssignments": {
     "kpiOpen": "Piani aperti",
     "kpiOpenHint": "{{count}} responsabile/i",

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   CapaErrorBanner,
+  CapaKpiStrip,
   CapaPageHeader,
   CapaPageShell,
   CapaPanel,
@@ -11,10 +12,13 @@ import {
 } from '../../components/capa/CapaAdminUi';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import { ClaimsHistoryRow } from '../../types/qualityAnalysis';
+import { getEightDStatusMeta } from '../../utils/Claimutils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
 const PAGE_SIZE = 12;
+const btnPrimary =
+  'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-[#000168] text-white hover:bg-[#00009e]';
 const btnSecondary =
   'inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 hover:border-indigo-200 disabled:opacity-40';
 
@@ -84,6 +88,18 @@ export default function AdminEightDList() {
     [rows],
   );
 
+  const upper = (v?: string | null) => String(v || '').trim().toUpperCase();
+  const figures = useMemo(() => ({
+    inProgress: rows.filter((r) => upper(r.eightDStatus) === 'IN_PROGRESS').length,
+    pending: rows.filter((r) => upper(r.eightDStatus).includes('PENDING')).length,
+    rejected: rows.filter((r) => upper(r.eightDStatus).includes('REJECT')).length,
+    done: rows.filter((r) => ['VALIDATED', 'CLOSED'].includes(upper(r.eightDStatus))).length,
+  }), [rows]);
+  const pickStatus = (match: (s: string) => boolean) => {
+    const found = statuses.find((x) => match(upper(x))) ?? 'all';
+    setFilterStatus(filterStatus === found ? 'all' : found);
+    setPage(1);
+  };
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     const from = dayStamp(filterFrom);
@@ -138,6 +154,14 @@ export default function AdminEightDList() {
         subtitle={t('adminLists.eightDSubtitle')}
       />
       {error ? <CapaErrorBanner message={error} /> : null}
+      <CapaKpiStrip
+        items={[
+          { key: 'progress', label: t('eightDList.inProgress'), value: figures.inProgress, active: upper(filterStatus) === 'IN_PROGRESS', onClick: () => pickStatus((x) => x === 'IN_PROGRESS') },
+          { key: 'pending', label: t('eightDList.pending'), value: figures.pending, active: upper(filterStatus).includes('PENDING'), onClick: () => pickStatus((x) => x.includes('PENDING')) },
+          { key: 'rejected', label: t('eightDList.rejected'), value: figures.rejected, active: upper(filterStatus).includes('REJECT'), onClick: () => pickStatus((x) => x.includes('REJECT')) },
+          { key: 'done', label: t('eightDList.done'), value: figures.done, active: ['VALIDATED', 'CLOSED'].includes(upper(filterStatus)), onClick: () => pickStatus((x) => x === 'VALIDATED' || x === 'CLOSED') },
+        ]}
+      />
       <CapaPanel
         className="mb-5"
         padding
@@ -174,7 +198,7 @@ export default function AdminEightDList() {
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('adminLists.eightDStatus')}</span>
             <select className={capaSelectCls} value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}>
               <option value="all">{t('activity.all')}</option>
-              {statuses.map((status) => <option key={status} value={status}>{status}</option>)}
+              {statuses.map((status) => <option key={status} value={status}>{getEightDStatusMeta(status, null).label}</option>)}
             </select>
           </label>
           <label className="block">
@@ -220,9 +244,9 @@ export default function AdminEightDList() {
                   <td className="px-4 py-3.5 text-slate-700">{row.productionLine || '—'}</td>
                   <td className="px-4 py-3.5 text-slate-700">{champion(row)}</td>
                   <td className="px-4 py-3.5 text-slate-700">{row.eightDStep ? `D${row.eightDStep}` : '—'}</td>
-                  <td className="px-4 py-3.5 text-slate-700">{row.eightDStatus || '—'}</td>
+                  <td className="px-4 py-3.5"><span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">{getEightDStatusMeta(row.eightDStatus, null).label}</span></td>
                   <td className="px-4 py-3.5 text-right">
-                    <button type="button" className={btnSecondary} onClick={() => navigate(`/admin/claims/eight-d/${row.id}`)}>{t('qualityHistory.open')}</button>
+                    <button type="button" className={btnPrimary} onClick={() => navigate(`/admin/claims/eight-d/${row.id}`)}>{t('qualityHistory.open')}</button>
                   </td>
                 </tr>
               ))}
