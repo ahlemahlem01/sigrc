@@ -31,7 +31,8 @@ export const useClaimsDirectory = (accessToken: string | null) => {
 
   const [searchParams] = useSearchParams();
   const statusFilter = searchParams.get('status');
-  const claimIdFromUrl = searchParams.get('claimId');
+  // ?focus= is the older name of ?claimId= (several dashboard links still use it)
+  const claimIdFromUrl = searchParams.get('claimId') ?? searchParams.get('focus');
   const startFromUrl = searchParams.get('start') === '1';
   const mineOnly = searchParams.get('mine') === '1';
   const defectTypeParam = (searchParams.get('defectType') || '').trim();

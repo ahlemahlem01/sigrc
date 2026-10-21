@@ -3950,6 +3950,8 @@
     "deadlineFailed": "Impossibile applicare la scadenza."
   },
   "adminLists": {
+    "folder": "Fascicolo",
+    "openFolder": "Apri il fascicolo del reclamo",
     "archive": "Archivia",
     "restore": "Ripristina",
     "viewActive": "Attivi",

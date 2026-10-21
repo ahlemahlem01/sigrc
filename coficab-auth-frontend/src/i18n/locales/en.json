@@ -3950,6 +3950,8 @@
     "deadlineFailed": "Could not apply the deadline."
   },
   "adminLists": {
+    "folder": "File",
+    "openFolder": "Open the claim file",
     "archive": "Archive",
     "restore": "Restore",
     "viewActive": "Active",

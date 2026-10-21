@@ -3950,6 +3950,8 @@
     "deadlineFailed": "Impossible d’appliquer la date limite."
   },
   "adminLists": {
+    "folder": "Dossier",
+    "openFolder": "Ouvrir le dossier de la réclamation",
     "archive": "Archiver",
     "restore": "Restaurer",
     "viewActive": "Actives",
