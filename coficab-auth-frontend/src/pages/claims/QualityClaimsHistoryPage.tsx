@@ -208,7 +208,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
 
   if (adminView) {
     return (
-      <div className="pfe-container qh-page">
+      <div className="mt-6">
         <div className="mb-3">
           <h2 className="text-sm font-semibold text-slate-800 m-0">{t('qualityHistory.toHandleTitle')}</h2>
           <p className="text-xs text-slate-500 mt-1 mb-0">{t('qualityHistory.toHandleSub')}</p>
