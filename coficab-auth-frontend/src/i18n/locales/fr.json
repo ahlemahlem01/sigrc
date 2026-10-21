@@ -752,6 +752,7 @@
       "evolution": "Compare le mois en cours au précédent : ouvertures, clôtures et charge nette (ouverts − clôturés). Vert = amélioration, rouge = dégradation.",
       "pulse": "Vue Claims / Action Plans / Global : ouvertures, clôtures et charge nette. Utilisez le toggle pour séparer les flux.",
       "pulseClaims": "Réclamations ouvertes, clôturées et charge nette sur la période, comparées à la période précédente. La période s'arrête au dernier mois qui a eu de l'activité.",
+      "pulsePlans": "Plans d'action ouverts, clôturés et charge nette sur la période, comparés à la période précédente. La période s'arrête au dernier mois qui a eu de l'activité.",
       "pulseOpened": "Nouveaux dossiers ouverts sur la période (selon le périmètre choisi). Une baisse est plutôt positive.",
       "pulseClosed": "Dossiers clôturés sur la période. Une hausse est positive.",
       "pulseNet": "Charge nette = ouverts − clôturés. Positif = backlog qui grossit ; négatif = backlog qui diminue."

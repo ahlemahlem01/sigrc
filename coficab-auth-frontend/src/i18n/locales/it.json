@@ -752,6 +752,7 @@
       "evolution": "Confronta il mese corrente con il precedente: aperture, chiusure e carico netto (aperti − chiusi). Verde = miglioramento, rosso = peggioramento.",
       "pulse": "Vista consolidata Claims + Action Plans: aperture, chiusure e carico netto (aperti − chiusi), con trend e dettaglio.",
       "pulseClaims": "Reclami aperti, chiusi e carico netto nel periodo, confrontati con il periodo precedente. Il periodo termina all'ultimo mese con attività.",
+      "pulsePlans": "Piani d'azione aperti, chiusi e carico netto nel periodo, confrontati con il periodo precedente. Il periodo termina all'ultimo mese con attività.",
       "pulseOpened": "Nuovi dossier aperti nel periodo (Claims + piani). Una diminuzione è generalmente positiva.",
       "pulseClosed": "Dossier chiusi nel periodo. Un aumento è positivo.",
       "pulseNet": "Carico netto = aperti − chiusi. Positivo = backlog in crescita; negativo = backlog in calo."

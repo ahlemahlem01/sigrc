@@ -276,7 +276,7 @@ export default function DashboardSummaryBar({
             {t(titleKey)}
           </h2>
           <DashInfoTip
-            text={t(fixedScope === 'claims' ? 'adminDashboard.help.pulseClaims' : 'adminDashboard.help.pulse')}
+            text={t(fixedScope === 'claims' ? 'adminDashboard.help.pulseClaims' : fixedScope === 'plans' ? 'adminDashboard.help.pulsePlans' : 'adminDashboard.help.pulse')}
             title={t(titleKey)}
             side="bottom"
           />

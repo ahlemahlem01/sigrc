@@ -10,6 +10,7 @@ import { fetchCapaIndicators, type CapaFigure, type CapaIndicators } from '../..
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import SegmentedToggle from '../../components/SegmentedToggle';
+import DashboardSummaryBar from './dashboard/DashboardSummaryBar';
 
 type Period = '7d' | '1m' | '3m' | '1y';
 const PERIOD_DAYS: Record<Period, number> = { '7d': 7, '1m': 30, '3m': 90, '1y': 365 };
@@ -147,6 +148,8 @@ export default function AdminCapaIndicators() {
 
       {data && k && (
         <>
+          <DashboardSummaryBar plansMonthly={data.monthly} fixedScope="plans" />
+
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 mb-5">
             <Kpi label={t('indicators.plansOpen')} value={fmt(k.openPlans)} tone={NAVY} />
             <Kpi
