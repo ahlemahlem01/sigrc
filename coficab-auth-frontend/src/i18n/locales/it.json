@@ -4341,6 +4341,7 @@
     "selectDepartment": "Seleziona un reparto"
   },
   "managedClaims": {
+    "kpiRate": "Tasso di assegnazione",
     "titleAll": "Assegnazioni dei reclami",
     "subtitleAll": "I reclami aperti del tuo perimetro: assegna quelli che non hanno ancora un responsabile.",
     "kpiTotalAll": "Reclami aperti",

@@ -4341,6 +4341,7 @@
     "selectDepartment": "Sélectionner un département"
   },
   "managedClaims": {
+    "kpiRate": "Taux d'assignation",
     "titleAll": "Assignations des réclamations",
     "subtitleAll": "Les réclamations ouvertes de votre périmètre : assignez celles qui n'ont pas encore de responsable.",
     "kpiTotalAll": "Réclamations ouvertes",

@@ -4341,6 +4341,7 @@
     "selectDepartment": "Select a department"
   },
   "managedClaims": {
+    "kpiRate": "Assignment rate",
     "titleAll": "Claim assignments",
     "subtitleAll": "The open claims of your perimeter: assign the ones that have no one in charge yet.",
     "kpiTotalAll": "Open claims",

@@ -15,6 +15,7 @@ import { ClaimDateSortSelect } from '../../components/ClaimDateSortSelect';
 import { EmployeeRecommendationBanner } from '../../components/EmployeeRecommendationBanner';
 import { CreateClaimForm } from '../claims/CreateClaimForm';
 import { CsvImportButton } from '../../components/CsvImportButton';
+import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 
@@ -406,20 +407,14 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
           </div>
         ) : (
           <>
-            <div className="amc-kpis">
-              <div className="amc-kpi">
-                <div className="amc-kpi-val">{claims.length}</div>
-                <div className="amc-kpi-lbl">{scope === 'all' ? t('managedClaims.kpiTotalAll') : t('managedClaims.kpiTotal')}</div>
-              </div>
-              <div className="amc-kpi">
-                <div className="amc-kpi-val">{assignedCount}</div>
-                <div className="amc-kpi-lbl">{t('managedClaims.kpiAssigned')}</div>
-              </div>
-              <div className="amc-kpi" style={{ borderTopColor: '#d97706' }}>
-                <div className="amc-kpi-val" style={{ color: '#d97706' }}>{unassignedCount}</div>
-                <div className="amc-kpi-lbl">{t('frontNav.unassigned')}</div>
-              </div>
-            </div>
+            <CapaKpiStrip
+              items={[
+                { key: 'total', label: scope === 'all' ? t('managedClaims.kpiTotalAll') : t('managedClaims.kpiTotal'), value: claims.length },
+                { key: 'unassigned', label: t('frontNav.unassigned'), value: unassignedCount, active: toggle === 'unassigned', onClick: () => setToggle('unassigned') },
+                { key: 'assigned', label: t('managedClaims.kpiAssigned'), value: assignedCount, active: toggle === 'assigned', onClick: () => setToggle('assigned') },
+                { key: 'rate', label: t('managedClaims.kpiRate'), value: claims.length === 0 ? '—' : `${Math.round((100 * assignedCount) / claims.length)} %` },
+              ]}
+            />
 
             <div className="amc-toolbar">
               <div className="amc-toggle" role="tablist" aria-label={t('managedClaims.toggleAria')}>
