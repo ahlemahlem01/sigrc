@@ -2158,6 +2158,18 @@
     "causesNoMatch": "Aucune de vos causes ne ressemble à celles enregistrées sur les {{pool}} dossiers comparables (formulations différentes ?). Fiez-vous à votre analyse."
   },
   "qualityHistory": {
+    "scopeOpen": "En cours",
+    "scopeClosed": "Clôturées",
+    "scopeAll": "Toutes",
+    "scopeAria": "Périmètre",
+    "kpiNoFiveWhy": "Sans 5 Pourquoi",
+    "kpiNoFiveWhyHint": "aucune analyse démarrée",
+    "kpiEightD": "8D à traiter",
+    "kpiEightDHint": "non démarré ou en retard",
+    "kpiNoCapa": "En analyse sans CAPA",
+    "kpiNoCapaHint": "aucun plan d'action lié",
+    "kpiCapaLate": "CAPA en retard",
+    "kpiCapaLateHint": "plans ou actions dépassés",
     "capaCreated": "Créé",
     "sessionExpired": "Session expirée.",
     "loadFailed": "Impossible de charger l’historique.",

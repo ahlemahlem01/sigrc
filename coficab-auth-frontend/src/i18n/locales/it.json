@@ -2158,6 +2158,18 @@
     "causesNoMatch": "Nessuna delle tue cause somiglia a quelle registrate sui {{pool}} dossier comparabili (formulazioni diverse?). Fidati della tua analisi."
   },
   "qualityHistory": {
+    "scopeOpen": "In corso",
+    "scopeClosed": "Chiusi",
+    "scopeAll": "Tutti",
+    "scopeAria": "Perimetro",
+    "kpiNoFiveWhy": "Senza 5 Perché",
+    "kpiNoFiveWhyHint": "nessuna analisi avviata",
+    "kpiEightD": "8D da trattare",
+    "kpiEightDHint": "non avviato o in ritardo",
+    "kpiNoCapa": "In analisi senza CAPA",
+    "kpiNoCapaHint": "nessun piano collegato",
+    "kpiCapaLate": "CAPA in ritardo",
+    "kpiCapaLateHint": "piani o azioni scaduti",
     "capaCreated": "Creato",
     "sessionExpired": "Sessione scaduta.",
     "loadFailed": "Impossibile caricare lo storico.",

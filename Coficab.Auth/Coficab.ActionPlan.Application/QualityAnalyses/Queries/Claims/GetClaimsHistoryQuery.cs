@@ -1,4 +1,5 @@
 using Coficab.ActionPlan.Application.Interfaces;
+using Coficab.ActionPlan.Core.Enums;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +37,10 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? Sort { get; set; } = "updatedAt";
     public string? Dir { get; set; } = "desc";
     public bool IncludeDrafts { get; set; }
+    /// <summary>open (claims not closed yet) | closed | empty (all).</summary>
+    public string? Scope { get; set; }
+    /// <summary>What needs attention: noFiveWhy | eightD | noCapa | capaLate. Counts of the four are always returned in the stats.</summary>
+    public string? Focus { get; set; }
     /// <summary>When set, only claims related to this user (assignee / creator / champion / CAPA).</summary>
     public string? RelatedToUserId { get; set; }
     /// <summary>Admin (not superadmin): created, assigned, or same department.</summary>
@@ -115,6 +120,14 @@ public class ClaimsHistoryStatsDto
     public int FiveWhyRejected { get; set; }
     public int WithCapa { get; set; }
     public int EightDPending { get; set; }
+    /// <summary>Claims of the scope without any 5 Why.</summary>
+    public int NoFiveWhy { get; set; }
+    /// <summary>Open claims whose 8D is not started, or not validated while the claim deadline has passed.</summary>
+    public int EightDToHandle { get; set; }
+    /// <summary>Claims in analysis without any CAPA plan.</summary>
+    public int InAnalysisNoCapa { get; set; }
+    /// <summary>Claims with a CAPA plan that is late (open plan with a deadline or an unfinished action past due).</summary>
+    public int CapaLate { get; set; }
 }
 
 public class ClaimsHistoryPageDto
@@ -178,6 +191,12 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             var st = request.ClaimStatus.Trim().ToUpper();
             claims = claims.Where(c => c.StatusCode.ToUpper() == st);
         }
+
+        var scope = request.Scope?.Trim().ToLowerInvariant();
+        if (scope == "open")
+            claims = claims.Where(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED"));
+        else if (scope == "closed")
+            claims = claims.Where(c => c.StatusCode.ToUpper().Contains("CLOTUR") || c.StatusCode.ToUpper().Contains("CLOSED"));
 
         if (!string.IsNullOrWhiteSpace(request.ClientId))
             claims = claims.Where(c => c.ClientId == request.ClientId);
@@ -289,6 +308,26 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             claims = claims.Where(c => capas.Any(p => p.ClaimId == c.Id));
         else if (hasCapa == "NO")
             claims = claims.Where(c => !capas.Any(p => p.ClaimId == c.Id));
+
+        var nowUtc = DateTime.UtcNow;
+        var unfocused = claims;
+        var finished = new[] { ActionProgress.Hundred, ActionProgress.Validated, ActionProgress.Cancelled };
+        var openPlans = new[] { ActionPlanStatus.Created, ActionPlanStatus.Ongoing };
+        var latePlans = capas.Where(p => openPlans.Contains(p.Status)
+            && ((p.Deadline != null && p.Deadline < nowUtc && !p.PlanActions.Any(a => !a.IsArchived))
+                || p.PlanActions.Any(a => !a.IsArchived && !finished.Contains(a.Progress) && a.Deadline != null && a.Deadline < nowUtc)));
+        var focus = request.Focus?.Trim().ToLowerInvariant();
+        claims = focus switch
+        {
+            "nofivewhy" => claims.Where(c => !fiveWhy.Any(f => f.ClaimId == c.Id)),
+            "eightd" => claims.Where(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+                && (!eightD.Any(d => d.ClaimId == c.Id)
+                    || (c.Deadline != null && c.Deadline < nowUtc
+                        && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED"))))),
+            "nocapa" => claims.Where(c => c.StatusCode.ToUpper().Contains("ANALYS") && !capas.Any(p => p.ClaimId == c.Id)),
+            "capalate" => claims.Where(c => latePlans.Any(p => p.ClaimId == c.Id)),
+            _ => claims,
+        };
 
         var desc = !string.Equals(request.Dir, "asc", StringComparison.OrdinalIgnoreCase);
         var sort = (request.Sort ?? "updatedAt").Trim().ToLowerInvariant();
@@ -447,6 +486,13 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         }
 
         var stats = new ClaimsHistoryStatsDto { Total = total };
+        stats.NoFiveWhy = await unfocused.CountAsync(c => !fiveWhy.Any(f => f.ClaimId == c.Id), cancellationToken);
+        stats.EightDToHandle = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+            && (!eightD.Any(d => d.ClaimId == c.Id)
+                || (c.Deadline != null && c.Deadline < nowUtc
+                    && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED")))), cancellationToken);
+        stats.InAnalysisNoCapa = await unfocused.CountAsync(c => c.StatusCode.ToUpper().Contains("ANALYS") && !capas.Any(p => p.ClaimId == c.Id), cancellationToken);
+        stats.CapaLate = await unfocused.CountAsync(c => latePlans.Any(p => p.ClaimId == c.Id), cancellationToken);
         if (total > 0)
         {
             var filteredIds = claims.Select(c => c.Id);

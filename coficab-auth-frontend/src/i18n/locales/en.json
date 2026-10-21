@@ -2158,6 +2158,18 @@
     "causesNoMatch": "None of your causes resembles those recorded on the {{pool}} comparable dossiers (different wording?). Rely on your own analysis."
   },
   "qualityHistory": {
+    "scopeOpen": "Open",
+    "scopeClosed": "Closed",
+    "scopeAll": "All",
+    "scopeAria": "Scope",
+    "kpiNoFiveWhy": "Without 5 Why",
+    "kpiNoFiveWhyHint": "no analysis started",
+    "kpiEightD": "8D to handle",
+    "kpiEightDHint": "not started or late",
+    "kpiNoCapa": "In analysis, no CAPA",
+    "kpiNoCapaHint": "no linked action plan",
+    "kpiCapaLate": "Late CAPA",
+    "kpiCapaLateHint": "plans or actions past due",
     "capaCreated": "Created",
     "sessionExpired": "Session expired.",
     "loadFailed": "Could not load the history.",

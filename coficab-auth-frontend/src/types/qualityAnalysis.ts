@@ -289,6 +289,10 @@ export interface ClaimsHistoryStats {
   fiveWhyRejected: number;
   withCapa: number;
   eightDPending: number;
+  noFiveWhy?: number;
+  eightDToHandle?: number;
+  inAnalysisNoCapa?: number;
+  capaLate?: number;
 }
 
 export interface ClaimsHistoryPage {
@@ -328,4 +332,8 @@ export interface ClaimsHistoryQuery {
   sort?: string;
   dir?: string;
   includeDrafts?: boolean;
+  /** open | closed | empty (all) */
+  scope?: string;
+  /** noFiveWhy | eightD | noCapa | capaLate */
+  focus?: string;
 }

@@ -18,6 +18,7 @@ import { useAuth } from '../../context/AuthContext';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import {
   ClaimsHistoryQuery,
+  ClaimsHistoryStats,
   ClaimsHistoryRow,
 } from '../../types/qualityAnalysis';
 import {
@@ -34,6 +35,8 @@ import {
 import './ClaimsListPage.styles.css';
 import './QualityClaimsHistoryPage.styles.css';
 import { useTranslation } from 'react-i18next';
+import SegmentedToggle from '../../components/SegmentedToggle';
+import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import i18n, { dateLocale } from '../../i18n';
 
 const DEFAULT_FILTERS: ClaimsHistoryQuery = {
@@ -90,7 +93,8 @@ function csvEscape(value: unknown) {
   return text;
 }
 
-const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery> }> = ({ preset }) => {
+/** `adminView`: the admin report: figures to act on and the open claims by default. */
+const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>; adminView?: boolean }> = ({ preset, adminView = false }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { accessToken } = useAuth();
@@ -98,7 +102,9 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery> 
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] = useState<ClaimsHistoryQuery>({ ...DEFAULT_FILTERS, ...preset });
+  const initial: ClaimsHistoryQuery = { ...DEFAULT_FILTERS, ...preset, ...(adminView ? { scope: 'open' } : {}) };
+  const [stats, setStats] = useState<ClaimsHistoryStats | null>(null);
+  const [filters, setFilters] = useState<ClaimsHistoryQuery>(initial);
   const [searchInput, setSearchInput] = useState('');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -118,6 +124,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery> 
       const data = await qualityAnalysisService.getClaimsHistory(next, accessToken);
       setRows(data.items || []);
       setTotal(data.total || 0);
+      setStats(data.stats ?? null);
     } catch (err: any) {
       setError(err?.response?.data?.message || i18n.t('qualityHistory.loadFailed'));
       setRows([]);
@@ -155,12 +162,12 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery> 
 
   const resetFilters = () => {
     setSearchInput('');
-    setFilters(DEFAULT_FILTERS);
-    void load(DEFAULT_FILTERS);
+    setFilters(initial);
+    void load(initial);
   };
 
   const hasFilters = Boolean(
-    filters.search || filters.claimStatus || filters.eightDStep || filters.updatedFrom || filters.updatedTo
+    filters.search || filters.claimStatus || filters.eightDStep || filters.updatedFrom || filters.updatedTo || filters.focus
   );
 
   const exportCsv = () => {
@@ -231,6 +238,31 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery> 
           </button>
         </div>
       </div>
+
+      {adminView && (
+        <>
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            <SegmentedToggle
+              options={[
+                { id: 'open', labelKey: 'qualityHistory.scopeOpen' },
+                { id: 'closed', labelKey: 'qualityHistory.scopeClosed' },
+                { id: 'all', labelKey: 'qualityHistory.scopeAll' },
+              ] as const}
+              value={(filters.scope as 'open' | 'closed') || 'all'}
+              onChange={(id) => applyFilters({ scope: id === 'all' ? undefined : id, focus: undefined, claimStatus: undefined, eightDStep: undefined })}
+              ariaLabel={t('qualityHistory.scopeAria')}
+            />
+          </div>
+          <CapaKpiStrip
+            items={[
+              { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint'), active: filters.focus === 'noFiveWhy', onClick: () => applyFilters({ focus: filters.focus === 'noFiveWhy' ? undefined : 'noFiveWhy' }) },
+              { key: 'eightD', label: t('qualityHistory.kpiEightD'), value: stats?.eightDToHandle ?? '—', hint: t('qualityHistory.kpiEightDHint'), active: filters.focus === 'eightD', onClick: () => applyFilters({ focus: filters.focus === 'eightD' ? undefined : 'eightD' }) },
+              { key: 'noCapa', label: t('qualityHistory.kpiNoCapa'), value: stats?.inAnalysisNoCapa ?? '—', hint: t('qualityHistory.kpiNoCapaHint'), active: filters.focus === 'noCapa', onClick: () => applyFilters({ focus: filters.focus === 'noCapa' ? undefined : 'noCapa' }) },
+              { key: 'capaLate', label: t('qualityHistory.kpiCapaLate'), value: stats?.capaLate ?? '—', hint: t('qualityHistory.kpiCapaLateHint'), active: filters.focus === 'capaLate', onClick: () => applyFilters({ focus: filters.focus === 'capaLate' ? undefined : 'capaLate' }) },
+            ]}
+          />
+        </>
+      )}
 
       {error && (
         <div className="pfe-alert-error">

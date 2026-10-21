@@ -17,7 +17,7 @@ export default function ClaimsAnalysesHubPage() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <PageTabs tabs={TABS} active={tab} onChange={setTab} />
-      {tab === 'analyses' && <QualityClaimsHistoryPage />}
+      {tab === 'analyses' && <QualityClaimsHistoryPage adminView />}
       {tab === 'eightd' && <AdminEightDList />}
     </div>
   );
