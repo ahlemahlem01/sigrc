@@ -289,6 +289,10 @@ export interface ClaimsHistoryStats {
   fiveWhyRejected: number;
   withCapa: number;
   eightDPending: number;
+  eightDTotal?: number;
+  eightDInProgress?: number;
+  eightDRejected?: number;
+  eightDDone?: number;
   noFiveWhy?: number;
   eightDToHandle?: number;
   inAnalysisNoCapa?: number;

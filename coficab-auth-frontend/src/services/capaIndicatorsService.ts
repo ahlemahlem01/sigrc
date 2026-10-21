@@ -111,3 +111,21 @@ export async function fetchPlanDetail(token: string, id: string): Promise<PlanDe
   const res = await axios.get(`${API_BASE}/actionplan/${id}/detail`, { headers: { Authorization: `Bearer ${token}` } });
   return (res.data?.data ?? res.data) as PlanDetail;
 }
+
+export interface ClaimsReportGroup { key: string; name: string; total: number; closed: number; open: number; late: number; departments: string[] }
+export interface ClaimsReport {
+  generatedAt: string;
+  overall: ClaimsReportGroup;
+  bySeverity: ClaimsReportGroup[];
+  byDepartment: ClaimsReportGroup[];
+  byDefect: ClaimsReportGroup[];
+}
+
+/** GET /api/dashboard/claims-report : totals, closures and delays of the claims by severity, department and defect type. */
+export async function fetchClaimsReport(token: string, organizationIds?: string): Promise<ClaimsReport> {
+  const res = await axios.get(`${API_BASE}/dashboard/claims-report`, {
+    headers: { Authorization: `Bearer ${token}` },
+    params: organizationIds ? { organizationIds } : undefined,
+  });
+  return (res.data?.data ?? res.data) as ClaimsReport;
+}

@@ -1,5 +1,39 @@
 {
+  "reportClaims": {
+    "eyebrow": "Analisi e rapporti",
+    "title": "Rapporto dei reclami",
+    "subtitle": "Sintesi dei reclami per gravità, reparto e difetto, poi le analisi da trattare.",
+    "export": "Esporta",
+    "loadError": "Impossibile caricare il rapporto",
+    "cardAll": "Reclami",
+    "cardOthers": "Medi e bassi",
+    "statusClosed": "chiusi",
+    "statusOpen": "aperti",
+    "statusLate": "in ritardo",
+    "closureRate": "Tasso di chiusura",
+    "noDepartment": "Senza reparto",
+    "byDeptTitle": "Per reparto",
+    "byDeptSub": "Ogni reclamo conta per il reparto della persona assegnata, altrimenti del creatore.",
+    "colClaims": "Reclami",
+    "colOpen": "Aperti",
+    "colClosed": "Chiusi",
+    "colLate": "In ritardo",
+    "colRate": "Tasso di chiusura",
+    "empty": "Nessun reclamo",
+    "attentionTitle": "Da sorvegliare",
+    "attentionSub": "Reparti e difetti con almeno la metà dei reclami aperti in ritardo. Il dato indica la quota in ritardo.",
+    "attentionEmpty": "Niente da segnalare.",
+    "claimsCount": "{{count}} reclamo/i",
+    "lateCount": "{{count}} in ritardo",
+    "help": {
+      "all": "Quota di reclami chiusi sul totale (bozze e archiviati esclusi).",
+      "critical": "Reclami critici: chiusi sul totale.",
+      "high": "Reclami di gravità alta: chiusi sul totale.",
+      "others": "Reclami di gravità media o bassa: chiusi sul totale."
+    }
+  },
   "eightDList": {
+    "truncated": "I dati sopra riguardano tutti i {{total}} dossier 8D; l'elenco mostra i {{shown}} aggiornati più di recente.",
     "inProgress": "In corso",
     "pending": "In convalida",
     "rejected": "Respinti",
@@ -2165,6 +2199,8 @@
     "causesNoMatch": "Nessuna delle tue cause somiglia a quelle registrate sui {{pool}} dossier comparabili (formulazioni diverse?). Fidati della tua analisi."
   },
   "qualityHistory": {
+    "toHandleTitle": "Analisi da trattare",
+    "toHandleSub": "Sui reclami in corso. Clicca su una scheda per aprire l'elenco corrispondente.",
     "kpiOpenHint": "Clicca su una scheda per aprire l'elenco corrispondente (nessun elenco per \"Senza 5 Perché\": il dato è un avviso).",
     "scopeOpen": "In corso",
     "scopeClosed": "Chiusi",

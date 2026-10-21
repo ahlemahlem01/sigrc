@@ -120,6 +120,10 @@ public class ClaimsHistoryStatsDto
     public int FiveWhyRejected { get; set; }
     public int WithCapa { get; set; }
     public int EightDPending { get; set; }
+    public int EightDTotal { get; set; }
+    public int EightDInProgress { get; set; }
+    public int EightDRejected { get; set; }
+    public int EightDDone { get; set; }
     /// <summary>Claims of the scope without any 5 Why.</summary>
     public int NoFiveWhy { get; set; }
     /// <summary>Open claims whose 8D is not started, or not validated while the claim deadline has passed.</summary>
@@ -509,6 +513,13 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             stats.WithCapa = await claims.CountAsync(c => capas.Any(p => p.ClaimId == c.Id), cancellationToken);
             stats.EightDPending = await eightD.CountAsync(
                 d => filteredIds.Contains(d.ClaimId) && d.StatusCode.ToUpper() == "PENDING_VALIDATION", cancellationToken);
+            stats.EightDTotal = await eightD.CountAsync(d => filteredIds.Contains(d.ClaimId), cancellationToken);
+            stats.EightDInProgress = await eightD.CountAsync(
+                d => filteredIds.Contains(d.ClaimId) && d.StatusCode.ToUpper() == "IN_PROGRESS", cancellationToken);
+            stats.EightDRejected = await eightD.CountAsync(
+                d => filteredIds.Contains(d.ClaimId) && d.StatusCode.ToUpper().Contains("REJECT"), cancellationToken);
+            stats.EightDDone = await eightD.CountAsync(
+                d => filteredIds.Contains(d.ClaimId) && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED"), cancellationToken);
         }
 
         var facets = new ClaimsHistoryFacetsDto

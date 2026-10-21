@@ -11,7 +11,7 @@ import {
   capaSelectCls,
 } from '../../components/capa/CapaAdminUi';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
-import { ClaimsHistoryRow } from '../../types/qualityAnalysis';
+import { ClaimsHistoryRow, ClaimsHistoryStats } from '../../types/qualityAnalysis';
 import { getEightDStatusMeta } from '../../utils/Claimutils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
@@ -41,6 +41,8 @@ export default function AdminEightDList() {
   const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [rows, setRows] = useState<ClaimsHistoryRow[]>([]);
+  // the totals come from the server: the list below only holds the 500 most recent dossiers
+  const [serverStats, setServerStats] = useState<ClaimsHistoryStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
@@ -61,6 +63,7 @@ export default function AdminEightDList() {
         { page: 1, pageSize: 100, hasEightD: 'YES', sort: 'updatedAt', dir: 'desc' },
         accessToken,
       );
+      if (!cancel) setServerStats(first.stats ?? null);
       const items = [...(first.items || [])];
       const total = first.total || items.length;
       for (let next = 2; items.length < total && next <= 5; next += 1) {
@@ -90,11 +93,11 @@ export default function AdminEightDList() {
 
   const upper = (v?: string | null) => String(v || '').trim().toUpperCase();
   const figures = useMemo(() => ({
-    inProgress: rows.filter((r) => upper(r.eightDStatus) === 'IN_PROGRESS').length,
-    pending: rows.filter((r) => upper(r.eightDStatus).includes('PENDING')).length,
-    rejected: rows.filter((r) => upper(r.eightDStatus).includes('REJECT')).length,
-    done: rows.filter((r) => ['VALIDATED', 'CLOSED'].includes(upper(r.eightDStatus))).length,
-  }), [rows]);
+    inProgress: serverStats?.eightDInProgress ?? rows.filter((r) => upper(r.eightDStatus) === 'IN_PROGRESS').length,
+    pending: serverStats?.eightDPending ?? rows.filter((r) => upper(r.eightDStatus).includes('PENDING')).length,
+    rejected: serverStats?.eightDRejected ?? rows.filter((r) => upper(r.eightDStatus).includes('REJECT')).length,
+    done: serverStats?.eightDDone ?? rows.filter((r) => ['VALIDATED', 'CLOSED'].includes(upper(r.eightDStatus))).length,
+  }), [rows, serverStats]);
   const pickStatus = (match: (s: string) => boolean) => {
     const found = statuses.find((x) => match(upper(x))) ?? 'all';
     setFilterStatus(filterStatus === found ? 'all' : found);
@@ -162,6 +165,9 @@ export default function AdminEightDList() {
           { key: 'done', label: t('eightDList.done'), value: figures.done, active: ['VALIDATED', 'CLOSED'].includes(upper(filterStatus)), onClick: () => pickStatus((x) => x === 'VALIDATED' || x === 'CLOSED') },
         ]}
       />
+      {serverStats?.eightDTotal != null && serverStats.eightDTotal > rows.length && (
+        <p className="text-xs text-slate-500 -mt-2 mb-4">{t('eightDList.truncated', { shown: rows.length, total: serverStats.eightDTotal })}</p>
+      )}
       <CapaPanel
         className="mb-5"
         padding

@@ -35,7 +35,6 @@ import {
 import './ClaimsListPage.styles.css';
 import './QualityClaimsHistoryPage.styles.css';
 import { useTranslation } from 'react-i18next';
-import SegmentedToggle from '../../components/SegmentedToggle';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import i18n, { dateLocale } from '../../i18n';
 
@@ -210,20 +209,9 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
   if (adminView) {
     return (
       <div className="pfe-container qh-page">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <SegmentedToggle
-            options={[
-              { id: 'open', labelKey: 'qualityHistory.scopeOpen' },
-              { id: 'closed', labelKey: 'qualityHistory.scopeClosed' },
-              { id: 'all', labelKey: 'qualityHistory.scopeAll' },
-            ] as const}
-            value={(filters.scope as 'open' | 'closed') || 'all'}
-            onChange={(id) => applyFilters({ scope: id === 'all' ? undefined : id })}
-            ariaLabel={t('qualityHistory.scopeAria')}
-          />
-          <button type="button" className="pfe-btn-secondary" onClick={() => void load(filters)} disabled={loading}>
-            <RefreshCw size={15} className={loading ? 'pfe-spin' : undefined} /> {t('qualityHistory.refresh')}
-          </button>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-slate-800 m-0">{t('qualityHistory.toHandleTitle')}</h2>
+          <p className="text-xs text-slate-500 mt-1 mb-0">{t('qualityHistory.toHandleSub')}</p>
         </div>
         {error && (
           <div className="pfe-alert-error"><AlertCircle size={15} /> {error}</div>

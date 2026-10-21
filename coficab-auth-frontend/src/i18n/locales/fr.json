@@ -1,5 +1,39 @@
 {
+  "reportClaims": {
+    "eyebrow": "Analyses & rapports",
+    "title": "Rapport des réclamations",
+    "subtitle": "Synthèse des réclamations par gravité, par département et par défaut, puis analyses à traiter.",
+    "export": "Exporter",
+    "loadError": "Impossible de charger le rapport",
+    "cardAll": "Réclamations",
+    "cardOthers": "Moyennes et faibles",
+    "statusClosed": "clôturées",
+    "statusOpen": "ouvertes",
+    "statusLate": "en retard",
+    "closureRate": "Taux de clôture",
+    "noDepartment": "Sans département",
+    "byDeptTitle": "Par département",
+    "byDeptSub": "Chaque réclamation compte pour le département de la personne assignée, à défaut celui de son créateur.",
+    "colClaims": "Réclamations",
+    "colOpen": "Ouvertes",
+    "colClosed": "Clôturées",
+    "colLate": "En retard",
+    "colRate": "Taux de clôture",
+    "empty": "Aucune réclamation",
+    "attentionTitle": "À surveiller",
+    "attentionSub": "Départements et défauts dont au moins la moitié des réclamations ouvertes sont en retard. Le chiffre indique la part en retard.",
+    "attentionEmpty": "Rien à signaler.",
+    "claimsCount": "{{count}} réclamation(s)",
+    "lateCount": "{{count}} en retard",
+    "help": {
+      "all": "Part des réclamations clôturées sur l'ensemble des réclamations (hors brouillons et archivées).",
+      "critical": "Réclamations de gravité critique : clôturées sur total.",
+      "high": "Réclamations de gravité élevée : clôturées sur total.",
+      "others": "Réclamations de gravité moyenne ou faible : clôturées sur total."
+    }
+  },
   "eightDList": {
+    "truncated": "Les chiffres ci-dessus portent sur les {{total}} dossiers 8D ; la liste affiche les {{shown}} plus récemment mis à jour.",
     "inProgress": "En cours",
     "pending": "En validation",
     "rejected": "Rejetés",
@@ -2165,6 +2199,8 @@
     "causesNoMatch": "Aucune de vos causes ne ressemble à celles enregistrées sur les {{pool}} dossiers comparables (formulations différentes ?). Fiez-vous à votre analyse."
   },
   "qualityHistory": {
+    "toHandleTitle": "Analyses à traiter",
+    "toHandleSub": "Sur les réclamations en cours. Cliquez sur une carte pour ouvrir la liste concernée.",
     "kpiOpenHint": "Cliquez sur une carte pour ouvrir la liste concernée (pas de liste pour « Sans 5 Pourquoi » : le chiffre sert d'alerte).",
     "scopeOpen": "En cours",
     "scopeClosed": "Clôturées",

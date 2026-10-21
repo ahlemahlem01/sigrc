@@ -1,5 +1,39 @@
 {
+  "reportClaims": {
+    "eyebrow": "Analyses & reports",
+    "title": "Claims report",
+    "subtitle": "Summary of the claims by severity, department and defect, then the analyses to handle.",
+    "export": "Export",
+    "loadError": "Could not load the report",
+    "cardAll": "Claims",
+    "cardOthers": "Medium and low",
+    "statusClosed": "closed",
+    "statusOpen": "open",
+    "statusLate": "late",
+    "closureRate": "Closure rate",
+    "noDepartment": "No department",
+    "byDeptTitle": "By department",
+    "byDeptSub": "Each claim counts for the department of its assignee, otherwise of its creator.",
+    "colClaims": "Claims",
+    "colOpen": "Open",
+    "colClosed": "Closed",
+    "colLate": "Late",
+    "colRate": "Closure rate",
+    "empty": "No claim",
+    "attentionTitle": "To watch",
+    "attentionSub": "Departments and defects where at least half of the open claims are late. The figure is the late share.",
+    "attentionEmpty": "Nothing to report.",
+    "claimsCount": "{{count}} claim(s)",
+    "lateCount": "{{count}} late",
+    "help": {
+      "all": "Share of claims that are closed among all claims (drafts and archived excluded).",
+      "critical": "Critical claims: closed over total.",
+      "high": "High-severity claims: closed over total.",
+      "others": "Medium and low severity claims: closed over total."
+    }
+  },
   "eightDList": {
+    "truncated": "The figures above cover all {{total}} 8D dossiers; the list shows the {{shown}} most recently updated.",
     "inProgress": "In progress",
     "pending": "Pending validation",
     "rejected": "Rejected",
@@ -2165,6 +2199,8 @@
     "causesNoMatch": "None of your causes resembles those recorded on the {{pool}} comparable dossiers (different wording?). Rely on your own analysis."
   },
   "qualityHistory": {
+    "toHandleTitle": "Analyses to handle",
+    "toHandleSub": "On open claims. Click a card to open the matching list.",
     "kpiOpenHint": "Click a card to open the matching list (no list for \"Without 5 Why\": the figure is an alert).",
     "scopeOpen": "Open",
     "scopeClosed": "Closed",

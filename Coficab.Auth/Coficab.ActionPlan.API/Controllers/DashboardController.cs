@@ -47,6 +47,19 @@ public class DashboardController : ControllerBase
     public async Task<ActionResult<CapaWorkloadDto>> GetCapaWorkload([FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
         => Ok(await _mediator.Send(new GetCapaWorkloadQuery(ParseOrganizations(organizationIds)), cancellationToken));
 
+    /// <summary>The claims report: totals, closures and delays overall and by severity, department and defect type.</summary>
+    [HttpGet("claims-report")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims.ClaimsReportDto>> GetClaimsReport([FromQuery] string? organizationIds = null, CancellationToken cancellationToken = default)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return Ok(await _mediator.Send(
+            IsSuperAdmin()
+                ? new Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims.GetClaimsReportQuery(organizationIds)
+                : new Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims.GetClaimsReportQuery(null, userId),
+            cancellationToken));
+    }
+
     /// <summary>The targets the overview's traffic lights are compared with.</summary>
     [HttpGet("overview/targets")]
     [Authorize(Policy = "AdminOnly")]
