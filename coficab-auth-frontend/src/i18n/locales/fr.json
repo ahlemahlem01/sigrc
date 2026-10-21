@@ -211,10 +211,13 @@
     "title": "Organisations suivies dans toute l'application"
   },
   "workload": {
+    "plansCount_one": "{{count}} plan",
+    "plansCount_other": "{{count}} plans",
+    "lateCount": "{{count}} en retard",
     "splitTitle": "Répartition des personnes",
     "splitSub": "{{count}} personnes suivies",
     "topTitle": "Personnes les plus chargées",
-    "topSub": "Plans ouverts, dont ceux en retard (10 premières personnes).",
+    "topSub": "Chaque barre = les plans ouverts d'une personne ; la partie rouge = ceux en retard.",
     "onTimePlans": "Plans dans les délais",
     "latePlans": "Plans en retard",
     "split": {"heavy": "Surchargées", "normal": "Charge normale", "idle": "Sans charge"},

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaWorkload, type CapaWorkload as Workload } from '../../services/capaIndicatorsService';
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 
 const NAVY = '#000168';
@@ -111,6 +111,7 @@ export default function CapaWorkload() {
     .sort((a, b) => b.openPlans - a.openPlans || b.latePlans - a.latePlans)
     .slice(0, 10)
     .map((p) => ({ name: p.name, onTime: p.openPlans - p.latePlans, late: p.latePlans })), [data]);
+  const topMax = Math.max(1, ...topLoad.map((r) => r.onTime + r.late));
   const maxOpen = Math.max(1, ...(data?.people ?? []).map((p) => p.openPlans));
   const paged = usePagedList(rows, 15);
 
@@ -169,17 +170,21 @@ export default function CapaWorkload() {
             {topLoad.length === 0 ? (
               <div className="h-[200px] flex items-center justify-center text-xs text-slate-400">{t('workload.none')}</div>
             ) : (
-              <ResponsiveContainer width="100%" height={Math.max(160, topLoad.length * 30 + 40)}>
-                <BarChart data={topLoad} layout="vertical" margin={{ left: 8, right: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11 }} />
-                  <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 11 }} />
-                  <Tooltip contentStyle={{ borderRadius: 10, fontSize: 12 }} />
-                  <Legend />
-                  <Bar dataKey="onTime" stackId="a" name={t('workload.onTimePlans')} fill={NAVY} />
-                  <Bar dataKey="late" stackId="a" name={t('workload.latePlans')} fill={BAD} radius={[0, 3, 3, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <ul className="m-0 p-0 list-none space-y-3">
+                {topLoad.map((r) => (
+                  <li key={r.name} className="flex items-center gap-3">
+                    <span className="w-36 shrink-0 truncate text-xs font-semibold text-slate-700">{r.name}</span>
+                    <div className="flex-1 h-3 rounded-full bg-slate-100 overflow-hidden flex">
+                      <div style={{ width: `${(100 * r.onTime) / topMax}%`, background: NAVY }} />
+                      <div style={{ width: `${(100 * r.late) / topMax}%`, background: BAD }} />
+                    </div>
+                    <span className="w-40 shrink-0 text-xs tabular-nums text-slate-700">
+                      <b>{t('workload.plansCount', { count: r.onTime + r.late })}</b>
+                      {r.late > 0 && <span style={{ color: BAD }}> · {t('workload.lateCount', { count: r.late })}</span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </div>

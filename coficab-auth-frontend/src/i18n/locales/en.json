@@ -211,10 +211,13 @@
     "title": "Organizations followed across the application"
   },
   "workload": {
+    "plansCount_one": "{{count}} plan",
+    "plansCount_other": "{{count}} plans",
+    "lateCount": "{{count}} late",
     "splitTitle": "People distribution",
     "splitSub": "{{count}} people followed",
     "topTitle": "Most loaded people",
-    "topSub": "Open plans, including late ones (top 10 people).",
+    "topSub": "Each bar = a person's open plans; the red part = the late ones.",
     "onTimePlans": "Plans on time",
     "latePlans": "Late plans",
     "split": {"heavy": "Overloaded", "normal": "Normal load", "idle": "No workload"},
