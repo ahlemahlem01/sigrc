@@ -4268,6 +4268,10 @@
     "create": "Create the plan"
   },
   "planList": {
+    "archiveTitle": "Archive the action plan",
+    "archiveText": "\"{{title}}\" will leave the active lists. It is kept and can be restored from the Archived view.",
+    "archiveDone": "\"{{title}}\" archived.",
+    "restoreDone": "\"{{title}}\" restored.",
     "loadFailed": "Could not load plans.",
     "confirmArchive": "Archive this action plan?",
     "subtitle": "Active and archived action plans — filter by status, search and archive.",

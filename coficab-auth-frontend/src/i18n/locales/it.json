@@ -4268,6 +4268,10 @@
     "create": "Crea il piano"
   },
   "planList": {
+    "archiveTitle": "Archivia il piano d'azione",
+    "archiveText": "«{{title}}» sarà rimosso dalle liste attive. Viene conservato e può essere ripristinato dalla vista Archiviati.",
+    "archiveDone": "«{{title}}» archiviato.",
+    "restoreDone": "«{{title}}» ripristinato.",
     "loadFailed": "Impossibile caricare i piani.",
     "confirmArchive": "Archiviare questo piano d’azione?",
     "subtitle": "Piani d’azione attivi e archiviati — filtra per stato, cerca e archivia.",

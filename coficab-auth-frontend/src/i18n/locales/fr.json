@@ -4268,6 +4268,10 @@
     "create": "Créer le plan"
   },
   "planList": {
+    "archiveTitle": "Archiver le plan d'action",
+    "archiveText": "« {{title}} » sera retiré des listes actives. Il est conservé et peut être restauré depuis la vue « Archivés ».",
+    "archiveDone": "« {{title}} » archivé.",
+    "restoreDone": "« {{title}} » restauré.",
     "loadFailed": "Impossible de charger les plans.",
     "confirmArchive": "Archiver ce plan d’action ?",
     "subtitle": "Liste des plans d’action actifs et archivés — filtrez par statut, recherchez et archivez.",

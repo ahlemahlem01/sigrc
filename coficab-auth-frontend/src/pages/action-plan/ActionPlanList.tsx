@@ -2,8 +2,10 @@ import axios from 'axios';
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import {
   archiveActionPlan,
+  restoreActionPlan,
   createActionPlan,
   getActionPlans,
   updateActionPlan,
@@ -207,18 +209,6 @@ const ActionPlanList = () => {
     setShowModal(true);
   };
 
-  const openEdit = (plan: ActionPlan) => {
-    setEditing(plan);
-    setForm({
-      title: plan.title,
-      description: plan.description || '',
-      type: plan.type,
-      departmentId: plan.departmentId,
-      status: plan.status,
-    });
-    setShowModal(true);
-  };
-
   const handleSubmit = async () => {
     try {
       if (editing) {
@@ -242,10 +232,37 @@ const ActionPlanList = () => {
     }
   };
 
-  const handleArchive = async (id: string) => {
-    if (!window.confirm(t('planList.confirmArchive'))) return;
-    await archiveActionPlan(accessToken!, id);
-    void loadPlans();
+  const [ask, setAsk] = useState<ActionPlan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleArchive = async (plan: ActionPlan) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await archiveActionPlan(accessToken!, plan.id);
+      setNotice({ ok: true, text: t('planList.archiveDone', { title: plan.title }) });
+      await loadPlans();
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.response?.data?.error || e?.message || t('adminLists.archiveFailed') });
+    } finally {
+      setBusy(false);
+      setAsk(null);
+    }
+  };
+
+  const handleRestore = async (plan: ActionPlan) => {
+    setBusy(true);
+    setNotice(null);
+    try {
+      await restoreActionPlan(accessToken!, plan.id);
+      setNotice({ ok: true, text: t('planList.restoreDone', { title: plan.title }) });
+      await loadPlans();
+    } catch (e: any) {
+      setNotice({ ok: false, text: e?.response?.data?.error || e?.message || t('adminLists.archiveFailed') });
+    } finally {
+      setBusy(false);
+    }
   };
 
   const goToDetail = (id: string) => navigate(`/admin/action-plans/${id}`);
@@ -334,6 +351,20 @@ const ActionPlanList = () => {
       />
 
       {error ? <CapaErrorBanner message={error} /> : null}
+      {notice && (
+        <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
+      )}
+      {ask && (
+        <ConfirmDialog
+          title={t('planList.archiveTitle')}
+          text={t('planList.archiveText', { title: ask.title })}
+          confirmLabel={t('adminLists.archive')}
+          danger
+          busy={busy}
+          onConfirm={() => void handleArchive(ask)}
+          onCancel={() => setAsk(null)}
+        />
+      )}
 
       <CapaKpiStrip
         variant="soft"
@@ -559,22 +590,13 @@ const ActionPlanList = () => {
                       <td className="px-4 py-3.5 text-slate-500 whitespace-nowrap">{formatDate(plan.createdAt)}</td>
                       <td className="px-4 py-3.5">
                         <div className="flex flex-wrap justify-end gap-1.5">
-                          <button type="button" className={btnSecondary} onClick={() => goToDetail(plan.id)}>
+                          <button type="button" className={btnPrimary} onClick={() => goToDetail(plan.id)}>
                             {t('qualityHistory.open')}
                           </button>
-                          {!showArchived && (
-                            <>
-                              <button type="button" className={btnSecondary} onClick={() => openEdit(plan)}>
-                                {t('common.edit')}
-                              </button>
-                              <button
-                                type="button"
-                                className="inline-flex items-center px-2.5 py-1 text-xs font-semibold rounded-lg border border-rose-200 bg-white text-rose-700 hover:bg-rose-50"
-                                onClick={() => void handleArchive(plan.id)}
-                              >
-                                {t('alerts.archive')}
-                              </button>
-                            </>
+                          {showArchived ? (
+                            <button type="button" className={btnSecondary} disabled={busy} onClick={() => void handleRestore(plan)}>{t('adminLists.restore')}</button>
+                          ) : (
+                            <button type="button" className={`${btnSecondary} !text-red-600`} onClick={() => setAsk(plan)}>{t('adminLists.archive')}</button>
                           )}
                         </div>
                       </td>

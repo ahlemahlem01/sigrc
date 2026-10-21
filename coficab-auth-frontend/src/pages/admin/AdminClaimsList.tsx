@@ -323,10 +323,7 @@ export default function AdminClaimsList() {
                 </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="inline-flex gap-1.5">
-                        {!showArchived && (
-                          <button type="button" className={btnPrimary} title={t('adminLists.openFolder')} onClick={() => navigate(`/pages/front/quality-analyses?claimId=${claim.id}`)}>{t('adminLists.folder')}</button>
-                        )}
-                        <button type="button" className={btnSecondary} onClick={() => navigate(`/admin/claims/eight-d/${claim.id}`)}>8D</button>
+                        <button type="button" className={btnPrimary} title={t('adminLists.openFolder')} onClick={() => navigate(`/pages/front/quality-analyses?claimId=${claim.id}`)}>{t('qualityHistory.open')}</button>
                         {showArchived ? (
                           <button type="button" className={btnSecondary} disabled={busy} onClick={() => void restore(claim)}>{t('adminLists.restore')}</button>
                         ) : (
