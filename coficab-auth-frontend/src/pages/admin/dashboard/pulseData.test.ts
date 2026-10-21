@@ -30,6 +30,13 @@ describe('buildPulseData', () => {
     expect(buildPulseData(balanced, [], 'month', 0, 'claims')!.closureRate).toBe(100);
   });
 
+  it('ignores months where only action plans were active when the scope is claims', () => {
+    const plans = [{ month: '2026-09', opened: 5, closed: 3 }, { month: '2026-10', opened: 4, closed: 2 }];
+    const p = buildPulseData(claims, plans, 'month', 0, 'claims');
+    expect(p!.range.to).toBe('2026-09');
+    expect(p!.opened.total).toBe(150);
+  });
+
   it('returns null when fewer than two months have activity', () => {
     expect(buildPulseData([{ month: '2026-09', opened: 1, closed: 0 }], [], 'month')).toBeNull();
   });

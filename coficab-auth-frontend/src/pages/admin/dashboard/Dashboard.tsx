@@ -93,7 +93,7 @@ export default function Dashboard({ focus = 'claims' }: { focus?: 'claims' | 'in
         data={data?.global}
         loading={loading}
         claimsMonthly={data?.claims.monthlyOpenClosed}
-        plansMonthly={data?.actionPlans.monthlyOpenClosed}
+        fixedScope="claims"
       />
 
       {focus !== 'claims' && (

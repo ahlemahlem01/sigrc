@@ -19,6 +19,8 @@ type Props = {
   claimsMonthly?: MonthlyOpenClosed[] | null;
   plansMonthly?: MonthlyOpenClosed[] | null;
   pulse?: PulseData | null;
+  /** Locks the pulse on one scope and hides the scope switch (the claims board only talks about claims). */
+  fixedScope?: PulseScope;
 };
 
 function Sparkline({ values, color }: { values: number[]; color: string }) {
@@ -208,10 +210,12 @@ export default function DashboardSummaryBar({
   claimsMonthly,
   plansMonthly,
   pulse: pulseProp,
+  fixedScope,
 }: Props) {
   const { t, i18n } = useTranslation();
   const [period, setPeriod] = useState<PulsePeriod>('month');
-  const [scope, setScope] = useState<PulseScope>('all');
+  const [scopeState, setScope] = useState<PulseScope>('all');
+  const scope = fixedScope ?? scopeState;
 
   const pulse = useMemo(() => {
     if (pulseProp) return pulseProp;
@@ -272,7 +276,7 @@ export default function DashboardSummaryBar({
             {t(titleKey)}
           </h2>
           <DashInfoTip
-            text={t('adminDashboard.help.pulse')}
+            text={t(fixedScope === 'claims' ? 'adminDashboard.help.pulseClaims' : 'adminDashboard.help.pulse')}
             title={t(titleKey)}
             side="bottom"
           />
@@ -290,7 +294,7 @@ export default function DashboardSummaryBar({
             {t(health.labelKey)}
           </span>
 
-          <ScopeToggle value={scope} onChange={setScope} />
+          {!fixedScope && <ScopeToggle value={scope} onChange={setScope} />}
 
           <SegmentedToggle
             options={periodOptions}

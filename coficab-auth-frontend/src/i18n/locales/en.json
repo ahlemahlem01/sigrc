@@ -751,6 +751,7 @@
       "topResponsibles": "People ranked by workload and closure rate. Switch Claims / Actions to change the scope.",
       "evolution": "Compares the current month to the previous one: openings, closures and net load (opened − closed). Green = improvement, red = deterioration.",
       "pulse": "Consolidated Claims + Action Plans view: openings, closures and net load (opened − closed), with trend and breakdown.",
+      "pulseClaims": "Claims opened, closed and net load over the period, compared with the previous period. The period ends at the last month that had activity.",
       "pulseOpened": "New items opened in the period (Claims + plans). A decrease is usually positive.",
       "pulseClosed": "Items closed in the period. An increase is positive.",
       "pulseNet": "Net load = opened − closed. Positive = growing backlog; negative = shrinking backlog."

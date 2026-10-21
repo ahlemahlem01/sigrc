@@ -134,8 +134,8 @@ function sumSlice(rows: MonthAgg[], start: number, end: number) {
   };
 }
 
-function isIdle(row: MonthAgg): boolean {
-  return row.claimsOpened + row.claimsClosed + row.actionsOpened + row.actionsClosed === 0;
+function isIdle(row: MonthAgg, scope: PulseScope): boolean {
+  return pickOpened(row, scope) + pickClosed(row, scope) === 0;
 }
 
 function pctDelta(curr: number, prev: number): number {
@@ -169,7 +169,7 @@ export function buildPulseData(
   const all = mergeMonthly(claimsMonthly, plansMonthly);
   // A trailing month without any activity would read as "0, -100 %": the period stops at the last month that had some.
   let end = all.length;
-  while (end > 0 && isIdle(all[end - 1])) end -= 1;
+  while (end > 0 && isIdle(all[end - 1], scope)) end -= 1;
   const rows = all.slice(0, end);
   const idleMonths = all.length - end;
   const firstIdleMonth = idleMonths > 0 ? all[end].month : null;
