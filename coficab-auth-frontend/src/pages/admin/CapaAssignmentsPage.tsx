@@ -6,7 +6,7 @@ import SegmentedToggle from '../../components/SegmentedToggle';
 import TablePagination from '../../components/TablePagination';
 import { usePagedList } from '../../hooks/usePagedList';
 import { ListSkeleton } from '../../components/TableSkeleton';
-import { CapaErrorBanner, CapaPageHeader, capaBtnPrimary, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
+import { CapaErrorBanner, CapaKpiStrip, CapaPageHeader, capaBtnPrimary, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { bulkAssignPlans, getUsersForAssignment } from '../../services/actionPlanService';
 import { loadCapaDataset, type PlanRow } from './capaAnalytics';
 
@@ -70,6 +70,16 @@ export default function CapaAssignmentsPage() {
 
   const unassigned = useMemo(() => plans.filter((p) => !p.assignedToId), [plans]);
   const assigned = useMemo(() => plans.filter((p) => !!p.assignedToId), [plans]);
+  const figures = useMemo(() => {
+    const isLate = (p: PlanRow) => !!p.deadline && new Date(p.deadline).getTime() < Date.now();
+    const owners = new Set(assigned.map((p) => p.assignedToId));
+    return {
+      lateUnassigned: unassigned.filter(isLate).length,
+      lateTotal: plans.filter(isLate).length,
+      owners: owners.size,
+      average: owners.size === 0 ? 0 : Math.round((10 * assigned.length) / owners.size) / 10,
+    };
+  }, [plans, unassigned, assigned]);
   const rows = useMemo(() => {
     const term = search.trim().toLowerCase();
     return (view === 'unassigned' ? unassigned : assigned)
@@ -113,6 +123,15 @@ export default function CapaAssignmentsPage() {
         title={t('adminNav.assignments')}
         subtitle={t('capaAssignments.subtitle')}
         actions={<button type="button" className={capaBtnSecondary} onClick={() => void load()}>{t('dashboard.refresh')}</button>}
+      />
+
+      <CapaKpiStrip
+        items={[
+          { key: 'open', label: t('capaAssignments.kpiOpen'), value: plans.length, hint: t('capaAssignments.kpiOpenHint', { count: figures.owners }) },
+          { key: 'unassigned', label: t('capaAssignments.toAssign'), value: unassigned.length, hint: t('capaAssignments.kpiToAssignHint', { count: figures.lateUnassigned }), active: view === 'unassigned', onClick: () => { setView('unassigned'); setSelected(new Set()); } },
+          { key: 'assigned', label: t('capaAssignments.assigned'), value: assigned.length, hint: t('capaAssignments.kpiAssignedHint', { avg: figures.average }), active: view === 'assigned', onClick: () => { setView('assigned'); setSelected(new Set()); } },
+          { key: 'late', label: t('capaAssignments.kpiLate'), value: figures.lateTotal, hint: t('capaAssignments.kpiLateHint', { count: figures.lateUnassigned }) },
+        ]}
       />
 
       {error && <CapaErrorBanner message={error} />}

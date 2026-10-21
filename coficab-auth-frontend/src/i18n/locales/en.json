@@ -1,5 +1,11 @@
 {
   "capaAssignments": {
+    "kpiOpen": "Open plans",
+    "kpiOpenHint": "{{count}} responsible person(s)",
+    "kpiToAssignHint": "{{count}} of them late",
+    "kpiAssignedHint": "{{avg}} plan(s) per person",
+    "kpiLate": "Late plans",
+    "kpiLateHint": "{{count}} without a responsible person",
     "subtitle": "Who is responsible for each open plan: plans to assign, plans already assigned, and (re)assignment in one step.",
     "toAssign": "To assign",
     "assigned": "Assigned",

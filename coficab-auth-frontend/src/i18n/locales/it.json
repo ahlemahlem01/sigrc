@@ -1,5 +1,11 @@
 {
   "capaAssignments": {
+    "kpiOpen": "Piani aperti",
+    "kpiOpenHint": "{{count}} responsabile/i",
+    "kpiToAssignHint": "di cui {{count}} in ritardo",
+    "kpiAssignedHint": "{{avg}} piano/i per persona",
+    "kpiLate": "Piani in ritardo",
+    "kpiLateHint": "di cui {{count}} senza responsabile",
     "subtitle": "Chi è responsabile di ogni piano aperto: piani da assegnare, già assegnati, e (ri)assegnazione in un passo.",
     "toAssign": "Da assegnare",
     "assigned": "Assegnati",
