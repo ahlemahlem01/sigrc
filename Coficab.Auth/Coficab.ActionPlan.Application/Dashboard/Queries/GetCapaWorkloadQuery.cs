@@ -89,6 +89,9 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
         // a deactivated account (locked, profile inactive) no longer carries work
         bool Inactive(string id) => profileById.TryGetValue(id, out var pr) && string.Equals(pr.Status, "inactive", StringComparison.OrdinalIgnoreCase);
 
+        // administrators follow the work, they are not part of the staff whose load is measured
+        bool IsAdmin(string id) => profileById.TryGetValue(id, out var pr) && (pr.Role ?? string.Empty).Contains("admin", StringComparison.OrdinalIgnoreCase);
+
         foreach (var userId in actionsByUser.Keys)
             if (!responsible.ContainsKey(userId)) responsible[userId] = [];
 
@@ -102,7 +105,7 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
         };
         var monthAgo = now.AddDays(-30);
 
-        var people = responsible.Where(kv => !Inactive(kv.Key)).Select(kv =>
+        var people = responsible.Where(kv => !Inactive(kv.Key) && !IsAdmin(kv.Key)).Select(kv =>
         {
             profileById.TryGetValue(kv.Key, out var profile);
             var open = kv.Value.Where(PlanDeadlines.IsOpen).ToList();
