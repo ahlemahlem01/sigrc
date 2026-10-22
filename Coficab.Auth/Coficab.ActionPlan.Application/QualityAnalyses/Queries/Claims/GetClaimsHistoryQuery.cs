@@ -132,6 +132,8 @@ public class ClaimsHistoryStatsDto
     public int InAnalysisNoCapa { get; set; }
     /// <summary>Claims with a CAPA plan that is late (open plan with a deadline or an unfinished action past due).</summary>
     public int CapaLate { get; set; }
+    /// <summary>Open claims whose deadline has passed.</summary>
+    public int ClaimsLate { get; set; }
 }
 
 public class ClaimsHistoryPageDto
@@ -496,6 +498,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 || (c.Deadline != null && c.Deadline < nowUtc
                     && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED")))), cancellationToken);
         stats.InAnalysisNoCapa = await unfocused.CountAsync(c => c.StatusCode.ToUpper().Contains("ANALYS") && !capas.Any(p => p.ClaimId == c.Id), cancellationToken);
+        stats.ClaimsLate = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+            && c.Deadline != null && c.Deadline < nowUtc, cancellationToken);
         stats.CapaLate = await unfocused.CountAsync(c => latePlans.Any(p => p.ClaimId == c.Id), cancellationToken);
         if (total > 0)
         {

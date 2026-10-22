@@ -66,7 +66,7 @@
   },
   "capaAssignments": {
     "kpiOpen": "Piani aperti",
-    "kpiOpenHint": "Clicca su una scheda per aprire l'elenco corrispondente.",
+    "kpiOpenHint": "{{count}} responsabile/i",
     "kpiToAssignHint": "di cui {{count}} in ritardo",
     "kpiAssignedHint": "{{avg}} piano/i per persona",
     "kpiLate": "Piani in ritardo",
@@ -2224,9 +2224,11 @@
     "causesNoMatch": "Nessuna delle tue cause somiglia a quelle registrate sui {{pool}} dossier comparabili (formulazioni diverse?). Fidati della tua analisi."
   },
   "qualityHistory": {
+    "kpiClaimsLate": "Reclami in ritardo",
+    "kpiClaimsLateHint": "scadenza superata",
     "toHandleTitle": "Analisi da trattare",
     "toHandleSub": "Sui reclami in corso. Clicca su una scheda per aprire l'elenco corrispondente.",
-    "kpiOpenHint": "Clicca su una scheda per aprire l'elenco corrispondente (nessun elenco per \"Senza 5 Perché\": il dato è un avviso).",
+    "kpiOpenHint": "Clicca su una scheda per aprire l'elenco corrispondente.",
     "scopeOpen": "In corso",
     "scopeClosed": "Chiusi",
     "scopeAll": "Tutti",

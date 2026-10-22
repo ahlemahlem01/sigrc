@@ -297,6 +297,7 @@ export interface ClaimsHistoryStats {
   eightDToHandle?: number;
   inAnalysisNoCapa?: number;
   capaLate?: number;
+  claimsLate?: number;
 }
 
 export interface ClaimsHistoryPage {

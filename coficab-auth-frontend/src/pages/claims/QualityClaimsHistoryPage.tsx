@@ -221,7 +221,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
             { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint'), onClick: () => navigate('/admin/claims/list?focus=noFiveWhy') },
             { key: 'eightD', label: t('qualityHistory.kpiEightD'), value: stats?.eightDToHandle ?? '—', hint: t('qualityHistory.kpiEightDHint'), onClick: () => navigate('/admin/claims/eight-d') },
             { key: 'noCapa', label: t('qualityHistory.kpiNoCapa'), value: stats?.inAnalysisNoCapa ?? '—', hint: t('qualityHistory.kpiNoCapaHint'), onClick: () => navigate('/admin/claims/list?status=EN_ANALYSE') },
-            { key: 'capaLate', label: t('qualityHistory.kpiCapaLate'), value: stats?.capaLate ?? '—', hint: t('qualityHistory.kpiCapaLateHint'), onClick: () => navigate('/admin/action-plans?late=1') },
+            { key: 'claimsLate', label: t('qualityHistory.kpiClaimsLate'), value: stats?.claimsLate ?? '—', hint: t('qualityHistory.kpiClaimsLateHint'), onClick: () => navigate('/admin/claims/list?deadline=late') },
           ]}
         />
         <p className="text-xs text-slate-500 m-0">{t('qualityHistory.kpiOpenHint')}</p>
