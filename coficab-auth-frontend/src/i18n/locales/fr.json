@@ -3420,6 +3420,12 @@
       "system": "Système"
     },
     "action": {
+      "subaction_completed": "Action terminée",
+      "subaction_validated": "Action validée",
+      "subaction_rejected": "Action rejetée",
+      "subaction_warning": "Avertissement action",
+      "warning_sent": "Avertissement plan",
+      "resubmitted": "Renvoyé en validation",
       "CREATE": "Création user",
       "UPDATE": "Modif. user",
       "DELETE": "Suppression user",

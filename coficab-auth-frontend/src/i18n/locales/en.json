@@ -3420,6 +3420,12 @@
       "system": "System"
     },
     "action": {
+      "subaction_completed": "Action completed",
+      "subaction_validated": "Action validated",
+      "subaction_rejected": "Action rejected",
+      "subaction_warning": "Action warning",
+      "warning_sent": "Plan warning",
+      "resubmitted": "Resubmitted for validation",
       "CREATE": "User created",
       "UPDATE": "User edited",
       "DELETE": "User deleted",

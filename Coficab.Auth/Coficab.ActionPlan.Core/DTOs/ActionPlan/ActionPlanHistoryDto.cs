@@ -14,6 +14,8 @@ public class ActionPlanHistoryDto
     public string? Note { get; set; }
     public DateTime CreatedAt { get; set; }
     public string? ChangedByName { get; set; }
+    public string? DepartmentId { get; set; }
+    public string? DepartmentName { get; set; }
 }
 
 public class ActionPlanRefDto

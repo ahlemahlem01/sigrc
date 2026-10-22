@@ -135,6 +135,12 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   subaction_created:  { label: 'audit.action.subaction_created',       bg: '#f0fdf4', color: '#65a30d', icon: 'ti-plus' },
   subaction_updated:  { label: 'audit.action.subaction_updated',    bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-pencil' },
   subaction_progress: { label: 'audit.action.subaction_progress',       bg: '#fffbeb', color: '#d97706', icon: 'ti-activity' },
+  subaction_completed: { label: 'audit.action.subaction_completed',      bg: '#ecfeff', color: '#0891b2', icon: 'ti-flag' },
+  subaction_validated: { label: 'audit.action.subaction_validated',      bg: '#f0fdfa', color: '#0f766e', icon: 'ti-check' },
+  subaction_rejected:  { label: 'audit.action.subaction_rejected',       bg: '#fef2f2', color: '#b91c1c', icon: 'ti-x' },
+  subaction_warning:   { label: 'audit.action.subaction_warning',        bg: '#fff7ed', color: '#c2410c', icon: 'ti-alert-triangle' },
+  warning_sent:        { label: 'audit.action.warning_sent',             bg: '#fff7ed', color: '#c2410c', icon: 'ti-alert-triangle' },
+  resubmitted:         { label: 'audit.action.resubmitted',              bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-send' },
   calendar_created:   { label: 'audit.action.calendar_created',     bg: '#e0f2fe', color: '#0284c7', icon: 'ti-calendar-plus' },
   calendar_updated:   { label: 'audit.action.calendar_updated', bg: '#e0f2fe', color: '#0369a1', icon: 'ti-calendar' },
   calendar_deleted:   { label: 'audit.action.calendar_deleted',bg: '#f1f5f9', color: '#64748b', icon: 'ti-calendar-off' },
@@ -169,6 +175,7 @@ const MUTATION_ACTIONS = new Set([
   'org_created', 'org_updated', 'org_archived', 'dept_created', 'dept_updated', 'dept_archived',
   'claim_created', 'claim_updated', 'document_added', 'document_removed', 'document_uploaded',
   'ishikawa_cause_added', 'ishikawa_cause_archived', 'fivewhy_saved',
+  'subaction_validated', 'subaction_rejected', 'subaction_warning', 'warning_sent', 'resubmitted',
 ]);
 const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned']);
 
@@ -249,11 +256,17 @@ function inferModule(actionType: string, rawModule?: string): ModuleKey {
 type UserIndex = {
   byId: Record<string, string>;
   byEmail: Record<string, string>;
+  /** lower-cased name -> the name as written on the account (one spelling per person) */
+  canon: Record<string, string>;
+  /** account name -> its department, for the events that carry none */
+  deptByName: Record<string, { id?: string; name: string }>;
 };
 
 function buildUserIndex(users: any[]): UserIndex {
   const byId: Record<string, string> = {};
   const byEmail: Record<string, string> = {};
+  const canon: Record<string, string> = {};
+  const deptByName: Record<string, { id?: string; name: string }> = {};
   for (const u of users) {
     const id = String(u.id ?? u.Id ?? '').trim();
     const email = String(u.email ?? u.Email ?? '').trim().toLowerCase();
@@ -268,8 +281,15 @@ function buildUserIndex(users: any[]): UserIndex {
     if (!label) continue;
     if (id) byId[id.toLowerCase()] = label;
     if (email) byEmail[email] = label;
+    const known = canon[label.toLowerCase()];
+    if (!known || (known === known.toLowerCase() && label !== label.toLowerCase())) canon[label.toLowerCase()] = label;
+    const deptName = String(u.department ?? u.Department ?? u.departmentName ?? u.DepartmentName ?? '').trim();
+    if (deptName) {
+      const deptId = String(u.departmentId ?? u.DepartmentId ?? '').trim();
+      deptByName[label] = { id: deptId || undefined, name: deptName };
+    }
   }
-  return { byId, byEmail };
+  return { byId, byEmail, canon, deptByName };
 }
 
 function resolveActorLabel(raw: string | null | undefined, index: UserIndex): string {
@@ -278,12 +298,14 @@ function resolveActorLabel(raw: string | null | undefined, index: UserIndex): st
   if (value.toLowerCase() === 'unknown') return ACTOR_UNKNOWN;
 
   const lower = value.toLowerCase();
-  if (index.byId[lower]) return index.byId[lower];
-  if (index.byEmail[lower]) return index.byEmail[lower];
+  // one spelling per name: two accounts of the same person ("ahlem alaya" / "Ahlem Alaya") are listed once
+  const one = (label: string) => index.canon[label.toLowerCase()] ?? label;
+  if (index.byId[lower]) return one(index.byId[lower]);
+  if (index.byEmail[lower]) return one(index.byEmail[lower]);
 
   if (value.includes('@')) return emailLocalPart(value) || value;
   if (isUuid(value)) return `${value.slice(0, 8)}…`;
-  return value;
+  return index.canon[lower] ?? value;
 }
 
 function actorFilterLabel(name: string): string {
@@ -572,7 +594,7 @@ export default function AuditLogPage() {
         fetch(withScope(`${ACTION_API}/QualityAnalysis/claims/history?page=1&pageSize=100&sort=updatedAt&dir=desc`), { headers: hdrs }),
       ]);
 
-      let userIndex: UserIndex = { byId: {}, byEmail: {} };
+      let userIndex: UserIndex = { byId: {}, byEmail: {}, canon: {}, deptByName: {} };
       if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
         try {
           const raw = await usersRes.value.json();
@@ -641,6 +663,13 @@ export default function AuditLogPage() {
         unified.push(...mapClaimsToEvents(claimRows, userIndex, unified));
       } else {
         errors.push('Claims');
+      }
+
+      // events without a department take the one of the person who did it
+      for (const e of unified) {
+        if (e.departmentId || e.departmentName) continue;
+        const d = userIndex.deptByName[e.actor];
+        if (d) { e.departmentId = d.id; e.departmentName = d.name; }
       }
 
       unified.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());

@@ -3420,6 +3420,12 @@
       "system": "Sistema"
     },
     "action": {
+      "subaction_completed": "Azione completata",
+      "subaction_validated": "Azione convalidata",
+      "subaction_rejected": "Azione respinta",
+      "subaction_warning": "Avviso azione",
+      "warning_sent": "Avviso piano",
+      "resubmitted": "Rinviato in convalida",
       "CREATE": "Utente creato",
       "UPDATE": "Utente modificato",
       "DELETE": "Utente eliminato",

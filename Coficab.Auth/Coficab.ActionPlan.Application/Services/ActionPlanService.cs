@@ -989,12 +989,21 @@ public class ActionPlanService : IActionPlanService
     {
         var history = await _context.ActionPlanHistories
             .IgnoreQueryFilters()
-            .Include(h => h.ActionPlan)
+            .Include(h => h.ActionPlan).ThenInclude(p => p.Department)
+            .OrderByDescending(h => h.CreatedAt)
+            .ToListAsync();
+
+        // sub-actions: progress, completion, validation, rejection and warnings (kept in their own history)
+        var subHistory = await _context.PlanActionHistories
+            .IgnoreQueryFilters()
+            .Include(h => h.PlanAction).ThenInclude(a => a.ActionPlan).ThenInclude(p => p.Department)
+            .Where(h => h.PlanAction != null && h.PlanAction.ActionPlan != null)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
         var userIds = history
             .SelectMany(h => new[] { h.ChangedBy, h.NewAssignedToId, h.OldAssignedToId })
+            .Concat(subHistory.Select(h => h.ChangedBy))
             .OfType<string>()
             .Where(id => id.Length > 0)
             .Distinct()
@@ -1008,10 +1017,12 @@ public class ActionPlanService : IActionPlanService
             if (name != null) userNames[uid] = name;
         }
 
-        return history.Select(h => new ActionPlanHistoryDto
+        var planItems = history.Select(h => new ActionPlanHistoryDto
         {
             Id = h.Id.ToString(),
             ActionPlanId = h.ActionPlanId.ToString(),
+            DepartmentId = h.ActionPlan?.DepartmentId.ToString(),
+            DepartmentName = h.ActionPlan?.Department?.Name,
             ActionPlan = h.ActionPlan == null ? null : new ActionPlanRefDto { Title = h.ActionPlan.Title },
             ChangedBy = h.ChangedBy,
             ChangedByName = ResolveDisplayName(h.ChangedByName, h.ChangedBy, userNames),
@@ -1025,7 +1036,46 @@ public class ActionPlanService : IActionPlanService
             Note = h.Note,
             CreatedAt = h.CreatedAt
         });
+
+        var subItems = subHistory.Select(h =>
+        {
+            var plan = h.PlanAction.ActionPlan;
+            var kind = SubActionEventType(h);
+            var detail = string.IsNullOrWhiteSpace(h.Note)
+                ? $"{(int)DisplayProgress(h.OldProgress)} % → {(int)DisplayProgress(h.NewProgress)} %"
+                : h.Note!.Trim();
+            return new ActionPlanHistoryDto
+            {
+                Id = $"sub-{h.Id}",
+                ActionPlanId = plan.Id.ToString(),
+                DepartmentId = plan.DepartmentId.ToString(),
+                DepartmentName = plan.Department?.Name,
+                ActionPlan = new ActionPlanRefDto { Title = plan.Title },
+                ChangedBy = h.ChangedBy,
+                ChangedByName = ResolveDisplayName(null, h.ChangedBy, userNames),
+                ActionType = kind,
+                Note = $"« {h.PlanAction.Title} » · {detail}",
+                CreatedAt = h.CreatedAt,
+            };
+        });
+
+        return planItems.Concat(subItems).OrderByDescending(i => i.CreatedAt).ToList();
     }
+
+    /// <summary>The kind of a sub-action history row: validated, rejected, warning, completed or plain progress.</summary>
+    private static string SubActionEventType(PlanActionHistory h)
+    {
+        var note = (h.Note ?? string.Empty).TrimStart();
+        if (h.NewProgress == ActionProgress.Validated) return "subaction_validated";
+        if (h.NewProgress == ActionProgress.SeventyFive && h.OldProgress == ActionProgress.Hundred
+            && note.StartsWith("Rejet", StringComparison.OrdinalIgnoreCase)) return "subaction_rejected";
+        if (h.OldProgress == h.NewProgress && note.StartsWith("Avertissement", StringComparison.OrdinalIgnoreCase)) return "subaction_warning";
+        if (h.NewProgress == ActionProgress.Hundred) return "subaction_completed";
+        return "subaction_progress";
+    }
+
+    private static ActionProgress DisplayProgress(ActionProgress p) =>
+        p == ActionProgress.Validated ? ActionProgress.Hundred : p == ActionProgress.Cancelled ? ActionProgress.NotStarted : p;
 
     /// <summary>The person's current name when the id is known, else the text stored with the record.</summary>
     private static string? ResolveDisplayName(string? storedName, string? userId, Dictionary<string, string> userNames)

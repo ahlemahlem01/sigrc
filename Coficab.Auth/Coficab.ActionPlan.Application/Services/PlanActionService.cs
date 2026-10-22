@@ -268,6 +268,21 @@ public class PlanActionService : IPlanActionService
             "Avertissement",
             $"À propos de la sous-action « {action.Title} » : {message.Trim()}",
             action.ActionPlanId);
+
+        var now = DateTime.UtcNow;
+        await _repo.AddHistoryAsync(new PlanActionHistory
+        {
+            Id = Guid.NewGuid(),
+            PlanActionId = id,
+            ChangedBy = warnedBy,
+            OldProgress = action.Progress,
+            NewProgress = action.Progress,
+            Note = $"Avertissement : {message.Trim()}",
+            CreatedAt = now,
+            CreatedBy = warnedBy,
+            UpdatedAt = now,
+            UpdatedBy = warnedBy,
+        });
     }
 
     public async Task ArchiveAsync(Guid id, string archivedBy)

@@ -23,6 +23,7 @@ public interface IApplicationDbContext
     DbSet<Site> Sites { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<ActionPlanHistory> ActionPlanHistories { get; }
+    DbSet<PlanActionHistory> PlanActionHistories { get; }
     DbSet<PlanActionAssignmentHistory> PlanActionAssignmentHistories { get; }
     DbSet<FiveWhyAnalysis> FiveWhyAnalyses { get; }
     DbSet<FiveWhyStep> FiveWhySteps { get; }
