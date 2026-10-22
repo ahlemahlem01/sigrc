@@ -695,7 +695,7 @@ html, body, #root {
 
             {/* Administration / Backoffice */}
 
-            <div className="lp-card lp-card-admin" onClick={() => goToLogin('/dashboard')}>
+            <div className="lp-card lp-card-admin" onClick={() => goToLogin('/admin/dashboard')}>
 
               <div className="lp-card-icon">
 
