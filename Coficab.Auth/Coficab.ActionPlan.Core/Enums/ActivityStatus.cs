@@ -1,7 +1,7 @@
 namespace Coficab.ActionPlan.Core.Enums;
 
 /// <summary>
-/// Statut d'activité métier (indépendant du verrouillage de compte IAM).
+/// Statut d'activité métier (indépendant du verrouillage de compte account).
 /// Active ≤15 j, LowActivity 15–60 j, Inactive 60+ j.
 /// </summary>
 public enum ActivityStatus

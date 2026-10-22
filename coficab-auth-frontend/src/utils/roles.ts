@@ -1,4 +1,4 @@
-/** Rôles IAM qui ouvrent la console admin / voient tout le périmètre qualité. */
+/** Rôles de compte qui ouvrent la console admin / voient tout le périmètre qualité. */
 const ADMIN_ROLES = new Set(['admin', 'superadmin', 'admin_quality']);
 
 /** Normalise role / roles (string | string[] | undefined) en liste lowercase. */

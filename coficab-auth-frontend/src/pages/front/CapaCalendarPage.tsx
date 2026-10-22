@@ -431,7 +431,7 @@ export default function CapaCalendarPage() {
       }
     };
 
-    // 1) IAM users (admin endpoint — may 403 for employees)
+    // 1) account users (admin endpoint — may 403 for employees)
     try {
       const iam = await getUsers(accessToken);
       addPeople(iam);

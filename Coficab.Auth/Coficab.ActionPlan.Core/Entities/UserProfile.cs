@@ -27,7 +27,7 @@ public class UserProfile
     public string? ManagerEmail { get; set; }
 
     public DateTime HireDate { get; set; }
-    /// <summary>Statut RH (active, onLeave, remote) — distinct du verrouillage IAM.</summary>
+    /// <summary>Statut RH (active, onLeave, remote) — distinct du verrouillage account.</summary>
     public string Status { get; set; } = "active";
 
     /// <summary>Statut d'activité calculé (Active / LowActivity / Inactive).</summary>
@@ -36,7 +36,7 @@ public class UserProfile
     /// <summary>Dernière activité retenue (login ou action métier).</summary>
     public DateTime? LastActivityAt { get; set; }
 
-    /// <summary>Dernière connexion IAM synchronisée.</summary>
+    /// <summary>Dernière connexion account synchronisée.</summary>
     public DateTime? LastLoginAt { get; set; }
 
     /// <summary>Horodatage du dernier recalcul d'activité.</summary>

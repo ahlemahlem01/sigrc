@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { withScope } from '../../services/organizationScopeStore';
 
-/** Page unique de traçabilité : IAM + workflow (CAPA, claims, RH, orgs…). */
+/** Page unique de traçabilité : comptes + workflow (CAPA, claims, RH, orgs…). */
 const PAGE_SIZE = 25;
 
 type ModuleKey =
@@ -632,7 +632,7 @@ export default function AuditLogPage() {
         const data = await iamRes.value.json();
         const logs: AuthAuditLog[] = data.logs ?? data ?? [];
         unified.push(...logs.map((l) => mapIam(l, userIndex)));
-      } else errors.push('IAM');
+      } else errors.push(i18n.t('audit.sourceAccounts'));
 
       if (wfRes.status === 'fulfilled' && wfRes.value.ok) {
         const raw = await wfRes.value.json();
@@ -888,7 +888,7 @@ export default function AuditLogPage() {
 
   const exportRows = useCallback(() => filtered.map((e) => ({
     date: formatDate(e.timestamp),
-    source: e.source === 'iam' ? 'IAM' : 'Workflow',
+    source: e.source === 'iam' ? i18n.t('audit.sourceAccounts') : 'Workflow',
     module: moduleMeta(e.module).label,
     action: actionMeta(e.action).label,
     actionCode: e.action,
@@ -1030,7 +1030,6 @@ export default function AuditLogPage() {
 
       <p className="aul-sub">
         {t('audit.subtitle')}
-        {events.length > 0 ? ` · ${t('audit.loaded', { count: events.length })}` : ''}
         {filterPlanId ? ` · ${t('audit.planShort', { plan: filterPlanId.slice(0, 8) })}` : ''}
       </p>
 
@@ -1107,7 +1106,7 @@ export default function AuditLogPage() {
           onChange={(e) => { setFilterSource(e.target.value as SourceKey); setFilterAction(''); bumpPage(); }}
         >
           <option value="">{t('audit.allSources')}</option>
-          <option value="iam">IAM / Auth</option>
+          <option value="iam">{t('audit.sourceAccounts')}</option>
           <option value="workflow">{t('audit.workflow')}</option>
         </select>
         <select

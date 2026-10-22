@@ -733,7 +733,7 @@ export default function AdminLayout() {
                       <i className="ti ti-user" style={{ fontSize: 15 }} /> Mon profil
                     </Link>
                     <Link to="/admin/users" className="al-tb-drop-item" onClick={() => setUserMenuOpen(false)}>
-                      <i className="ti ti-users" style={{ fontSize: 15 }} /> Utilisateurs IAM
+                      <i className="ti ti-users" style={{ fontSize: 15 }} /> Utilisateurs
                     </Link>
                     <div className="al-tb-drop-divider" />
                     <button className="al-tb-drop-item danger" onClick={() => { setUserMenuOpen(false); logout(); }}>

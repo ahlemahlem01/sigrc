@@ -226,7 +226,7 @@ export default function EmployeeProfile({
           authUser?.department,
           meta.department,
         );
-        // Pour soi-même, privilégier le rôle IAM (admin/superadmin) au rôle RH du profil
+        // Pour soi-même, privilégier le rôle du compte (admin/superadmin) au rôle RH du profil
         const iamRole = Array.isArray(authUser?.role)
           ? String(authUser.role[0] ?? '')
           : String(

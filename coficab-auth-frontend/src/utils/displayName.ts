@@ -1,4 +1,4 @@
-/** Nom d’affichage à partir d’un profil user (IAM / RH). */
+/** Nom d’affichage à partir d’un profil user (compte / RH). */
 export function resolveDisplayName(user?: Record<string, unknown> | null): string {
   if (!user) return '';
   const candidates = [

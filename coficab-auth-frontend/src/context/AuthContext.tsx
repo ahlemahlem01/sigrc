@@ -25,10 +25,10 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
- * Fusionne identité IAM (7102) + profil employé (7204).
- * Les rôles / permissions IAM ne doivent JAMAIS être écrasés par le profil RH
+ * Fusionne identité du compte (7102) + profil employé (7204).
+ * Les rôles / permissions du compte ne doivent JAMAIS être écrasés par le profil RH
  * (ex. Role="Collaborateur" en base UserProfiles).
- * Les champs IAM non vides (department, etc.) ne doivent pas être écrasés par null.
+ * Les champs du compte non vides (department, etc.) ne doivent pas être écrasés par null.
  */
 const fetchFullUserProfile = async (token: string): Promise<UserInfo> => {
   const authInfo = await getUserInfo(token);
@@ -273,7 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser((prev) => {
       if (!prev) return null;
       const next = { ...prev, ...updatedFields };
-      // Ne jamais laisser un update local écraser les rôles IAM avec un rôle RH
+      // Ne jamais laisser un update local écraser les rôles du compte avec un rôle RH
       if (updatedFields.role !== undefined && prev.role) {
         const prevRoles = Array.isArray(prev.role) ? prev.role : [prev.role];
         const isIamAdmin = prevRoles.some((r) =>

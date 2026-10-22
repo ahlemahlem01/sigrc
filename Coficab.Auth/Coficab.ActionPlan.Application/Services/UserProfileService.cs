@@ -69,7 +69,7 @@ public class UserProfileService : IUserProfileService
                 ? null
                 : dto.ProfilePictureUrl.Trim();
 
-        // Status RH uniquement (active / onLeave / remote) — jamais un libellé IAM
+        // Status RH uniquement (active / onLeave / remote) — jamais un libellé account
         if (!string.IsNullOrWhiteSpace(dto.Status))
         {
             var st = dto.Status.Trim();
