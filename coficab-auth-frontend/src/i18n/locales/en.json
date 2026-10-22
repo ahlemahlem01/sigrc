@@ -1,6 +1,8 @@
 {
   "reportClaims": {
     "gen": {
+      "allResponsibles": "All owners",
+      "allSeverities": "All severities",
       "sectionTitle": "Report generator",
       "subtitle": "On-demand report: period, filters and grouping, with CSV and PDF export.",
       "loadError": "Could not load the claims",
@@ -18,6 +20,7 @@
       "colResponsible": "Responsible",
       "colState": "State",
       "by": {
+        "department": "Department",
         "severity": "Severity",
         "responsible": "Responsible",
         "status": "Status",
@@ -1180,11 +1183,11 @@
     "title": "Actions report",
     "subtitle": "On-demand report generator — period, filters and grouping",
     "loadError": "Could not load the actions report",
-    "from": "Du",
-    "to": "Au",
+    "from": "From",
+    "to": "To",
     "groupBy": "Group by",
     "byResponsible": "Owner",
-    "byProcess": "Process",
+    "byProcess": "Department",
     "byNature": "Nature",
     "kpiActions": "Actions",
     "kpiClosed": "Closed",
@@ -1198,7 +1201,7 @@
     "invalidRange": "The start date must be on or before the end date",
     "by": {
       "responsible": "Owner",
-      "process": "Process",
+      "process": "Department",
       "nature": "Nature",
       "status": "Status",
       "plan": "Plan"
@@ -1227,10 +1230,10 @@
     "resultTitle": "Result",
     "sourceCount": "{{count}} action(s) available in the source",
     "preset": {
-      "7d": "7j",
+      "7d": "7d",
       "1m": "1m",
       "3m": "3m",
-      "1y": "1an",
+      "1y": "1y",
       "ytd": "YTD"
     },
     "kpiOpen": "Open"

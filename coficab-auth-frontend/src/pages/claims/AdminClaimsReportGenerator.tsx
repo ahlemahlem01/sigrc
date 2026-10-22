@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
+import { getUsersForAssignment } from '../../services/actionPlanService';
 import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
@@ -11,11 +12,14 @@ import { ListSkeleton } from '../../components/TableSkeleton';
 
 const COFICAB = '#000168';
 
-type GroupBy = 'responsible' | 'severity' | 'status' | 'defect' | 'client';
+type GroupBy = 'responsible' | 'severity' | 'status' | 'defect' | 'client' | 'department';
 type StatusFilter = 'all' | 'open' | 'closed' | 'late';
 type DateField = 'detection' | 'created' | 'deadline';
 
-type Criteria = { from: string; to: string; groupBy: GroupBy; status: StatusFilter; dateField: DateField; q: string };
+type Criteria = {
+  from: string; to: string; groupBy: GroupBy; status: StatusFilter; dateField: DateField; q: string;
+  department: string; responsible: string; severity: string;
+};
 
 type Row = { claim: Claim; closed: boolean; late: boolean };
 type GroupRow = { key: string; label: string; total: number; closed: number; late: number; open: number; rate: number; rows: Row[] };
@@ -36,7 +40,7 @@ const defaultCriteria = (): Criteria => {
   const to = new Date();
   const from = new Date();
   from.setMonth(from.getMonth() - 3);
-  return { from: toDateInput(from), to: toDateInput(to), groupBy: 'severity', status: 'all', dateField: 'detection', q: '' };
+  return { from: toDateInput(from), to: toDateInput(to), groupBy: 'severity', status: 'all', dateField: 'detection', q: '', department: 'all', responsible: 'all', severity: 'all' };
 };
 const inRange = (iso: string | null | undefined, from: string, to: string) => {
   if (!iso) return false;
@@ -64,6 +68,7 @@ export default function AdminClaimsReportGenerator() {
   const [draft, setDraft] = useState<Criteria>(defaultCriteria);
   const [report, setReport] = useState<Generated | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [deptByUser, setDeptByUser] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -80,6 +85,27 @@ export default function AdminClaimsReportGenerator() {
   }, [accessToken, t]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // the department of a claim: the one of its assignee, else of its creator (same rule as the rest of the console)
+  useEffect(() => {
+    if (!accessToken) return;
+    getUsersForAssignment(accessToken).then((res) => {
+      const payload: any = res.data;
+      const list: any[] = Array.isArray(payload) ? payload : payload?.data ?? payload?.items ?? payload?.['$values'] ?? [];
+      const map: Record<string, string> = {};
+      for (const u of list) {
+        const id = String(u.id ?? u.Id ?? '').toLowerCase();
+        const dept = String(u.department ?? u.Department ?? u.departmentName ?? u.DepartmentName ?? '').trim();
+        if (id && dept) map[id] = dept;
+      }
+      setDeptByUser(map);
+    }).catch(() => setDeptByUser({}));
+  }, [accessToken]);
+
+  const departmentOf = (c: Claim) =>
+    deptByUser[String(c.assignedToId ?? '').toLowerCase()] || deptByUser[String(c.createdById ?? '').toLowerCase()] || '';
+  const departments = Array.from(new Set(claims.map(departmentOf).filter(Boolean))).sort((a, b) => a.localeCompare(b));
+  const responsibles = Array.from(new Set(claims.map((c) => c.assignedToName).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
 
   const sevLabel = (raw?: string) => t(`claimStatus.severity${{ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' }[severityKey(raw)]}`);
   const statusLabel = (c: Claim) => t(`claimStatus.${({
@@ -102,6 +128,10 @@ export default function AdminClaimsReportGenerator() {
         if (criteria.status === 'open' && closed) return false;
         if (criteria.status === 'closed' && !closed) return false;
         if (criteria.status === 'late' && !late) return false;
+        if (criteria.department !== 'all' && departmentOf(claim) !== criteria.department) return false;
+        if (criteria.responsible === '__unassigned__' && claim.assignedToName) return false;
+        if (criteria.responsible !== 'all' && criteria.responsible !== '__unassigned__' && claim.assignedToName !== criteria.responsible) return false;
+        if (criteria.severity !== 'all' && severityKey(claim.severity) !== criteria.severity) return false;
         if (!term) return true;
         return [claim.title, claim.clientId, claim.defectType, claim.lotNumber, claim.assignedToName]
           .some((v) => String(v ?? '').toLowerCase().includes(term));
@@ -114,6 +144,7 @@ export default function AdminClaimsReportGenerator() {
         case 'status': return { key: resolveClaimStatus(c), label: statusLabel(c) };
         case 'defect': return { key: c.defectType || '—', label: c.defectType || '—' };
         case 'client': return { key: c.clientId || '—', label: c.clientId || '—' };
+        case 'department': return { key: departmentOf(c) || '—', label: departmentOf(c) || t('reportClaims.noDepartment') };
         default: return { key: severityKey(c.severity), label: sevLabel(c.severity) };
       }
     };
@@ -183,12 +214,20 @@ export default function AdminClaimsReportGenerator() {
       subtitle: t('reportClaims.gen.generatedSubtitle'),
       filename: `claims-report-${c.from}_${c.to}`,
       meta: [
-        `${t('actionsReport.from')}: ${c.from} → ${t('actionsReport.to')}: ${c.to}`,
-        `${t('actionsReport.groupBy')}: ${t(`reportClaims.gen.by.${c.groupBy}`)}`,
-        `${t('actionsReport.status')}: ${t(`actionsReport.statusOpt.${c.status}`)}`,
         `${t('actionsReport.generatedAt')}: ${new Date(report.generatedAt).toLocaleString()}`,
-        `${t('reportClaims.cardAll')}: ${report.totals.total} · ${t('reportClaims.colRate')}: ${report.totals.rate}%`,
-      ],
+        `${t('actionsReport.from')}: ${c.from} → ${t('actionsReport.to')}: ${c.to}`,
+        `${t('actionsReport.groupBy')}: ${t(`reportClaims.gen.by.${c.groupBy}`)} · ${t('actionsReport.status')}: ${t(`actionsReport.statusOpt.${c.status}`)}`,
+        [
+          c.department !== 'all' ? `${t('planDetail.department')}: ${c.department}` : '',
+          c.responsible !== 'all' ? `${t('reportClaims.gen.colResponsible')}: ${c.responsible === '__unassigned__' ? t('reportClaims.gen.unassigned') : c.responsible}` : '',
+          c.severity !== 'all' ? `${t('reportClaims.gen.colSeverity')}: ${t(`claimStatus.severity${{ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' }[c.severity as 'critical']}`)}` : '',
+          c.q ? `${t('actionsReport.search')}: ${c.q}` : '',
+        ].filter(Boolean).join(' · '),
+        `${t('reportClaims.cardAll')}: ${report.totals.total} · ${t('actionsReport.kpiClosed')}: ${report.totals.closed} · ${t('actionsReport.kpiLate')}: ${report.totals.late} · ${t('reportClaims.colRate')}: ${report.totals.rate}%`,
+      ].filter(Boolean),
+      summary: report.groups
+        .map((g) => `${g.label}: ${g.total} (${t('actionsReport.kpiClosed').toLowerCase()} ${g.closed}, ${t('actionsReport.kpiLate').toLowerCase()} ${g.late}, ${g.rate}%)`)
+        .join('\n'),
       columns: [
         { key: 'group', label: t('actionsReport.colGroup') },
         { key: 'claim', label: t('reportClaims.gen.colClaim') },
@@ -269,7 +308,7 @@ export default function AdminClaimsReportGenerator() {
           <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
             {t('actionsReport.groupBy')}
             <select value={draft.groupBy} onChange={(e) => setDraft({ ...draft, groupBy: e.target.value as GroupBy })} className={selectCls}>
-              {(['severity', 'responsible', 'status', 'defect', 'client'] as const).map((g) => <option key={g} value={g}>{t(`reportClaims.gen.by.${g}`)}</option>)}
+              {(['severity', 'department', 'responsible', 'status', 'defect', 'client'] as const).map((g) => <option key={g} value={g}>{t(`reportClaims.gen.by.${g}`)}</option>)}
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
@@ -279,6 +318,30 @@ export default function AdminClaimsReportGenerator() {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            {t('planDetail.department')}
+            <select value={draft.department} onChange={(e) => setDraft({ ...draft, department: e.target.value })} className={selectCls}>
+              <option value="all">{t('audit.allDepartments')}</option>
+              {departments.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            {t('reportClaims.gen.colResponsible')}
+            <select value={draft.responsible} onChange={(e) => setDraft({ ...draft, responsible: e.target.value })} className={selectCls}>
+              <option value="all">{t('reportClaims.gen.allResponsibles')}</option>
+              <option value="__unassigned__">{t('reportClaims.gen.unassigned')}</option>
+              {responsibles.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600">
+            {t('reportClaims.gen.colSeverity')}
+            <select value={draft.severity} onChange={(e) => setDraft({ ...draft, severity: e.target.value })} className={selectCls}>
+              <option value="all">{t('reportClaims.gen.allSeverities')}</option>
+              {(['critical', 'high', 'medium', 'low'] as const).map((s) => (
+                <option key={s} value={s}>{t(`claimStatus.severity${{ critical: 'Critical', high: 'High', medium: 'Medium', low: 'Low' }[s]}`)}</option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold text-slate-600 sm:col-span-2 lg:col-span-3">
             {t('actionsReport.search')}
             <input value={draft.q} onChange={(e) => setDraft({ ...draft, q: e.target.value })} placeholder={t('reportClaims.gen.searchPh')} className={selectCls} />
           </label>

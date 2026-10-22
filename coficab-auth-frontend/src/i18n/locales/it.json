@@ -1,6 +1,8 @@
 {
   "reportClaims": {
     "gen": {
+      "allResponsibles": "Tutti i responsabili",
+      "allSeverities": "Tutte le gravità",
       "sectionTitle": "Generatore di rapporti",
       "subtitle": "Rapporto su richiesta: periodo, filtri e raggruppamento, con esportazione CSV e PDF.",
       "loadError": "Impossibile caricare i reclami",
@@ -18,6 +20,7 @@
       "colResponsible": "Responsabile",
       "colState": "Stato",
       "by": {
+        "department": "Reparto",
         "severity": "Gravità",
         "responsible": "Responsabile",
         "status": "Stato",
@@ -1180,11 +1183,11 @@
     "title": "Report azioni",
     "subtitle": "Generatore di report su richiesta — periodo, filtri e raggruppamento",
     "loadError": "Impossibile caricare il report azioni",
-    "from": "Du",
-    "to": "Au",
+    "from": "Dal",
+    "to": "Al",
     "groupBy": "Raggruppa per",
     "byResponsible": "Responsabile",
-    "byProcess": "Processo",
+    "byProcess": "Reparto",
     "byNature": "Natura",
     "kpiActions": "Azioni",
     "kpiClosed": "Chiuse",
@@ -1198,7 +1201,7 @@
     "invalidRange": "La data di inizio deve essere precedente o uguale alla data di fine",
     "by": {
       "responsible": "Responsabile",
-      "process": "Processo",
+      "process": "Reparto",
       "nature": "Natura",
       "status": "Stato",
       "plan": "Piano"
@@ -1227,10 +1230,10 @@
     "resultTitle": "Risultato",
     "sourceCount": "{{count}} azione/i disponibili nella fonte",
     "preset": {
-      "7d": "7j",
+      "7d": "7g",
       "1m": "1m",
       "3m": "3m",
-      "1y": "1an",
+      "1y": "1a",
       "ytd": "YTD"
     },
     "kpiOpen": "Aperte"

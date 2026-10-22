@@ -310,12 +310,20 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
       subtitle: t('actionsReport.generatedSubtitle'),
       filename: `actions-report-${c.from}_${c.to}`,
       meta: [
-        `${t('actionsReport.from')}: ${c.from} → ${t('actionsReport.to')}: ${c.to}`,
-        `${t('actionsReport.groupBy')}: ${t(`actionsReport.by.${c.groupBy}`)}`,
-        `${t('actionsReport.status')}: ${t(`actionsReport.statusOpt.${c.status}`)}`,
-        `${t('actionsReport.generatedAt')}: ${new Date(report.generatedAt).toLocaleString()}`,
-        `${t('actionsReport.kpiActions')}: ${report.totals.total} · ${t('indicators.kpiRate')}: ${report.totals.rate}%`,
-      ],
+        `${t('actionsReport.generatedAt')}: ${new Date(report.generatedAt).toLocaleString(i18n.language)}`,
+        `${t('actionsReport.from')}: ${c.from} → ${t('actionsReport.to')}: ${c.to} (${t('actionsReport.dateField')}: ${c.dateField === 'deadline' ? t('actionsReport.dateDeadline') : t('actionsReport.dateCreated')})`,
+        `${t('actionsReport.groupBy')}: ${t(`actionsReport.by.${c.groupBy}`)} · ${t('actionsReport.status')}: ${t(`actionsReport.statusOpt.${c.status}`)}`,
+        [
+          c.process !== 'all' ? `${t('planDetail.department')}: ${c.process}` : '',
+          c.nature !== 'all' ? `${t('dashboard.colNature')}: ${typeLabel(c.nature)}` : '',
+          c.responsible !== 'all' ? `${t('dashboard.colResponsible')}: ${c.responsible === '__unassigned__' ? t('dashboard.unassigned') : (names[c.responsible] || c.responsible)}` : '',
+          c.q ? `${t('actionsReport.search')}: ${c.q}` : '',
+        ].filter(Boolean).join(' · '),
+        `${t('actionsReport.kpiActions')}: ${report.totals.total} · ${t('actionsReport.kpiClosed')}: ${report.totals.closed} · ${t('actionsReport.kpiLate')}: ${report.totals.late} · ${t('indicators.kpiRate')}: ${report.totals.rate}%`,
+      ].filter(Boolean),
+      summary: report.groups
+        .map((g) => `${g.label}: ${g.total} (${t('actionsReport.kpiClosed').toLowerCase()} ${g.closed}, ${t('actionsReport.kpiLate').toLowerCase()} ${g.late}, ${g.rate}%)`)
+        .join('\n'),
       columns: [
         { key: 'group', label: t('actionsReport.colGroup') },
         { key: 'action', label: t('associatedActions.colAction') },
@@ -490,13 +498,13 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
             </select>
           </label>
           <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
-            {t('dashboard.colProcess')}
+            {t('planDetail.department')}
             <select
               value={draft.process}
               onChange={(e) => setDraft((c) => ({ ...c, process: e.target.value }))}
               className={`${selectCls} mt-1 w-full`}
             >
-              <option value="all">{t('dashboard.allProcesses')}</option>
+              <option value="all">{t('audit.allDepartments')}</option>
               {processes.map((p) => (
                 <option key={p} value={p}>{p}</option>
               ))}
