@@ -39,6 +39,7 @@ public class ArchiveClaimCommandHandler : IRequestHandler<ArchiveClaimCommand, A
         claim.UpdatedAt = DateTime.UtcNow;
         claim.UpdatedById = request.UserId;
         await _context.SaveChangesAsync(cancellationToken);
+        await ClaimAudit.RecordAsync(_context, claim.Id, request.Archive ? "claim_archived" : "claim_restored", request.UserId, claim.Title, cancellationToken);
         return ArchiveClaimResult.Done;
     }
 }

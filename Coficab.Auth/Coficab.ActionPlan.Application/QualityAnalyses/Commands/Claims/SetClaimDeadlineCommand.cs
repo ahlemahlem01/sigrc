@@ -33,6 +33,7 @@ public class SetClaimDeadlineCommandHandler : IRequestHandler<SetClaimDeadlineCo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await ClaimAudit.RecordAsync(_context, claim.Id, "claim_deadline_set", request.UpdatedById.ToString(), $"{claim.Title} · {claim.Deadline:yyyy-MM-dd}", cancellationToken);
         return true;
     }
 }

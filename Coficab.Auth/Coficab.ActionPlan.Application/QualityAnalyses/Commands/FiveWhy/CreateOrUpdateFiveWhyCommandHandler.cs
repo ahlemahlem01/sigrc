@@ -67,6 +67,7 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
         // Update existing record
         existingAnalysis.ProblemStatement = request.ProblemStatement;
         existingAnalysis.RootCause = request.RootCause;
+        var previousStatus = existingAnalysis.StatusCode;
         existingAnalysis.StatusCode = request.StatusCode ?? existingAnalysis.StatusCode;
 
         _context.FiveWhySteps.RemoveRange(existingAnalysis.Steps);
@@ -78,6 +79,10 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
         }).ToList();
 
         await SaveChangesSafelyAsync(cancellationToken);
+        if (!string.Equals(previousStatus, existingAnalysis.StatusCode, StringComparison.OrdinalIgnoreCase)
+            && (existingAnalysis.StatusCode ?? string.Empty).ToUpperInvariant().Contains("PENDING"))
+            await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(
+                _context, request.ClaimId, "fivewhy_submitted", userIdString, null, cancellationToken);
         return existingAnalysis.Id;
     }
 

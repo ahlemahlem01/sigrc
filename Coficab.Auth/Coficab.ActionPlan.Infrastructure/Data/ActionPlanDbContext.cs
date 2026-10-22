@@ -30,6 +30,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     // ─── Employee Dashboard ────────────────────────────────────────────
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserAlias> UserAliases => Set<UserAlias>();
+    public DbSet<ClaimEvent> ClaimEvents => Set<ClaimEvent>();
     public DbSet<Badge> Badges => Set<Badge>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentFavorite> DocumentFavorites => Set<DocumentFavorite>();
@@ -85,6 +86,17 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.UserId, e.ActionPlanId }).IsUnique();
+        });
+
+        // ─── ClaimEvent: append-only audit of claims ──────────────────────
+        modelBuilder.Entity<ClaimEvent>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ActionType).IsRequired().HasMaxLength(60);
+            entity.Property(e => e.ActorId).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.Detail).HasMaxLength(2000);
+            entity.HasIndex(e => e.ClaimId);
+            entity.HasIndex(e => e.CreatedAt);
         });
 
         // ─── UserAlias: merged accounts ───────────────────────────────────

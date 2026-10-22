@@ -131,6 +131,7 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
         _context.Claims.Add(claim);
         _context.FiveWhyAnalyses.Add(fiveWhy);
         await _context.SaveChangesAsync(cancellationToken);
+        await ClaimAudit.RecordAsync(_context, claim.Id, "claim_created", claim.CreatedById, claim.Title, cancellationToken);
 
         try { await _semanticSearch.UpsertClaimAsync(claim, cancellationToken); }
         catch { /* embedding is best-effort */ }

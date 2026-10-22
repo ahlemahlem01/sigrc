@@ -3420,6 +3420,18 @@
       "system": "System"
     },
     "action": {
+      "claim_assigned": "Claim assigned",
+      "claim_unassigned": "Assignment removed",
+      "claim_deadline_set": "Deadline set",
+      "claim_archived": "Claim archived",
+      "claim_restored": "Claim restored",
+      "claim_imported": "Claims import",
+      "fivewhy_submitted": "5 Why submitted",
+      "fivewhy_rejected": "5 Why rejected",
+      "eightd_saved": "8D saved",
+      "eightd_submitted": "8D submitted",
+      "eightd_validated": "8D validated",
+      "eightd_rejected": "8D rejected",
       "subaction_completed": "Action completed",
       "subaction_validated": "Action validated",
       "subaction_rejected": "Action rejected",

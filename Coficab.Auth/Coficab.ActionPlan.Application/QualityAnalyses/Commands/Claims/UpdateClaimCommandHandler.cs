@@ -79,6 +79,7 @@ public class UpdateClaimCommandHandler : IRequestHandler<UpdateClaimCommand, boo
         claim.UpdatedAt = DateTime.UtcNow;
         claim.UpdatedById = request.UpdatedById.ToString();
         await _context.SaveChangesAsync(cancellationToken);
+        await ClaimAudit.RecordAsync(_context, claim.Id, "claim_updated", request.UpdatedById.ToString(), $"{claim.Title} · {claim.StatusCode}", cancellationToken);
 
         try { await _semanticSearch.UpsertClaimAsync(claim, cancellationToken); }
         catch { /* embedding is best-effort */ }

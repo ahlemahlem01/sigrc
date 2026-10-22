@@ -45,6 +45,7 @@ namespace Coficab.ActionPlan.Application.Claims.Commands.StartClaimAnalysis
 
             claim.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
+            await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(_context, claim.Id, "claim_analysis_started", claim.UpdatedById, claim.Title, cancellationToken);
             return true;
         }
     }

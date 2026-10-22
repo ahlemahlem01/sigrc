@@ -139,6 +139,18 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   subaction_validated: { label: 'audit.action.subaction_validated',      bg: '#f0fdfa', color: '#0f766e', icon: 'ti-check' },
   subaction_rejected:  { label: 'audit.action.subaction_rejected',       bg: '#fef2f2', color: '#b91c1c', icon: 'ti-x' },
   subaction_warning:   { label: 'audit.action.subaction_warning',        bg: '#fff7ed', color: '#c2410c', icon: 'ti-alert-triangle' },
+  claim_assigned:      { label: 'audit.action.claim_assigned',          bg: '#f5f3ff', color: '#7c3aed', icon: 'ti-user-plus' },
+  claim_unassigned:    { label: 'audit.action.claim_unassigned',        bg: '#fef2f2', color: '#b91c1c', icon: 'ti-user-minus' },
+  claim_deadline_set:  { label: 'audit.action.claim_deadline_set',      bg: '#fff7ed', color: '#c2410c', icon: 'ti-calendar-event' },
+  claim_archived:      { label: 'audit.action.claim_archived',          bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
+  claim_restored:      { label: 'audit.action.claim_restored',          bg: '#f0fdf4', color: '#15803d', icon: 'ti-restore' },
+  claim_imported:      { label: 'audit.action.claim_imported',          bg: '#eef2ff', color: '#4f46e5', icon: 'ti-file-import' },
+  fivewhy_submitted:   { label: 'audit.action.fivewhy_submitted',       bg: '#fefce8', color: '#a16207', icon: 'ti-send' },
+  fivewhy_rejected:    { label: 'audit.action.fivewhy_rejected',        bg: '#fef2f2', color: '#b91c1c', icon: 'ti-x' },
+  eightd_saved:        { label: 'audit.action.eightd_saved',            bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-device-floppy' },
+  eightd_submitted:    { label: 'audit.action.eightd_submitted',        bg: '#fefce8', color: '#a16207', icon: 'ti-send' },
+  eightd_validated:    { label: 'audit.action.eightd_validated',        bg: '#f0fdf4', color: '#15803d', icon: 'ti-shield-check' },
+  eightd_rejected:     { label: 'audit.action.eightd_rejected',         bg: '#fef2f2', color: '#b91c1c', icon: 'ti-x' },
   warning_sent:        { label: 'audit.action.warning_sent',             bg: '#fff7ed', color: '#c2410c', icon: 'ti-alert-triangle' },
   resubmitted:         { label: 'audit.action.resubmitted',              bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-send' },
   calendar_created:   { label: 'audit.action.calendar_created',     bg: '#e0f2fe', color: '#0284c7', icon: 'ti-calendar-plus' },
@@ -176,8 +188,10 @@ const MUTATION_ACTIONS = new Set([
   'claim_created', 'claim_updated', 'document_added', 'document_removed', 'document_uploaded',
   'ishikawa_cause_added', 'ishikawa_cause_archived', 'fivewhy_saved',
   'subaction_validated', 'subaction_rejected', 'subaction_warning', 'warning_sent', 'resubmitted',
+  'claim_deadline_set', 'claim_archived', 'claim_restored', 'claim_imported', 'fivewhy_rejected', 'fivewhy_validated',
+  'eightd_validated', 'eightd_rejected',
 ]);
-const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned']);
+const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned', 'claim_assigned', 'claim_unassigned']);
 
 const PRESETS: { key: PresetKey; label: string }[] = [
   { key: 'all', label: 'audit.presetAll' },
@@ -243,9 +257,9 @@ function inferModule(actionType: string, rawModule?: string): ModuleKey {
   if (a.startsWith('calendar_')) return 'calendar';
   if (a.startsWith('document_') || a === 'document_uploaded') return 'document';
   if (a.startsWith('subaction_')) return 'planaction';
-  if (['assigned', 'unassigned', 'reassigned'].includes(a)) return 'assignment';
+  if (['assigned', 'unassigned', 'reassigned', 'claim_assigned', 'claim_unassigned'].includes(a)) return 'assignment';
   if (a.startsWith('profile_') || a.startsWith('badge_') || a.startsWith('timeline_')) return 'employee';
-  if (a.startsWith('claim_') || a.startsWith('fivewhy_') || a.startsWith('ishikawa_')) return 'quality';
+  if (a.startsWith('claim_') || a.startsWith('fivewhy_') || a.startsWith('ishikawa_') || a.startsWith('eightd_')) return 'quality';
   if (a.startsWith('org_') || a.startsWith('dept_')) return 'organization';
 
   const m = String(rawModule || '').toLowerCase();
@@ -376,6 +390,10 @@ function mapClaimsToEvents(claims: ClaimRow[], users: UserIndex, existing: Unifi
       .filter((e) => e.module === 'quality' && e.relatedEntityId)
       .map((e) => `${e.action}:${String(e.relatedEntityId).toLowerCase()}`),
   );
+  // a claim with recorded events no longer needs the dates reconstructed from its row
+  for (const e of existing) {
+    if (e.relatedEntityId && /^(ce|e8)-/.test(String(e.id))) covered.add(`any:${String(e.relatedEntityId).toLowerCase()}`);
+  }
   // Also cover by claim id appearing in detail/target for older logs without relatedEntityId
   for (const e of existing) {
     if (e.module !== 'quality') continue;
@@ -398,7 +416,7 @@ function mapClaimsToEvents(claims: ClaimRow[], users: UserIndex, existing: Unifi
     const updatedBy = String(c.updatedById ?? c.UpdatedById ?? createdBy);
 
     const createKey = `claim_created:${id.toLowerCase()}`;
-    if (!covered.has(createKey) && createdAt) {
+    if (!covered.has(createKey) && !covered.has(`any:${id.toLowerCase()}`) && createdAt) {
       out.push({
         id: `claim-created-${id}`,
         source: 'workflow',
@@ -419,7 +437,8 @@ function mapClaimsToEvents(claims: ClaimRow[], users: UserIndex, existing: Unifi
     const hasMeaningfulUpdate =
       !Number.isNaN(updatedMs)
       && !Number.isNaN(createdMs)
-      && updatedMs - createdMs > 60_000;
+      && updatedMs - createdMs > 60_000
+      && !covered.has(`any:${id.toLowerCase()}`);
 
     if (hasMeaningfulUpdate) {
       const statusUp = status.toUpperCase();
@@ -585,13 +604,14 @@ export default function AuditLogPage() {
     const hdrs = { Authorization: `Bearer ${accessToken}` };
 
     try {
-      const [iamRes, wfRes, usersRes, claimsRes, claimsHistRes] = await Promise.allSettled([
+      const [iamRes, wfRes, usersRes, claimsRes, claimsHistRes, claimEventsRes] = await Promise.allSettled([
         fetch(withScope(`${AUTH_API}/api/admin/audit-logs?page=1&pageSize=1000`), { headers: hdrs }),
         fetch(withScope(`${ACTION_API}/actionplan/history`), { headers: hdrs }),
         fetch(`${AUTH_API}/api/admin/users`, { headers: hdrs }),
         // Sans status : le backend filtre déjà hors DRAFT. `status=all` matchait StatusCode=="ALL" → 0 résultats.
         fetch(withScope(`${ACTION_API}/QualityAnalysis/claims`), { headers: hdrs }),
         fetch(withScope(`${ACTION_API}/QualityAnalysis/claims/history?page=1&pageSize=100&sort=updatedAt&dir=desc`), { headers: hdrs }),
+        fetch(withScope(`${ACTION_API}/QualityAnalysis/claims/events`), { headers: hdrs }),
       ]);
 
       let userIndex: UserIndex = { byId: {}, byEmail: {}, canon: {}, deptByName: {} };
@@ -619,6 +639,31 @@ export default function AuditLogPage() {
           : (raw?.$values ?? raw?.data ?? raw?.items ?? []);
         unified.push(...list.map((item) => mapWorkflow(item, userIndex)));
       } else errors.push('Workflow');
+
+      // Claims / 8D: the recorded events (claim changes, 8D history, imports)
+      if (claimEventsRes.status === 'fulfilled' && claimEventsRes.value.ok) {
+        try {
+          const raw = await claimEventsRes.value.json();
+          const list: any[] = Array.isArray(raw) ? raw : (raw?.$values ?? raw?.data ?? raw?.items ?? []);
+          for (const e of list) {
+            const claimId = e.claimId ? String(e.claimId) : undefined;
+            unified.push({
+              id: String(e.id),
+              source: 'workflow',
+              module: inferModule(String(e.actionType), 'quality'),
+              action: String(e.actionType),
+              actor: resolveActorLabel(e.actorName || e.actorId, userIndex),
+              target: String(e.claimTitle || '—'),
+              detail: String(e.detail || e.claimTitle || '—'),
+              timestamp: String(e.createdAt),
+              relatedEntityId: claimId,
+              relatedEntityType: claimId ? 'Claim' : 'Import',
+              departmentId: e.departmentId ? String(e.departmentId) : undefined,
+              departmentName: e.departmentName || undefined,
+            });
+          }
+        } catch { /* the claims list below still gives creation and update dates */ }
+      }
 
       // Claims / 8D : liste claims + historique (complète le journal workflow)
       const claimRows: ClaimRow[] = [];

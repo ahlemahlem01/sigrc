@@ -91,6 +91,11 @@ public class AssignClaimCommandHandler : IRequestHandler<AssignClaimCommand, boo
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await ClaimAudit.RecordAsync(
+            _context, claim.Id, newId == null ? "claim_unassigned" : "claim_assigned",
+            request.AssignedById == Guid.Empty ? null : request.AssignedById.ToString(),
+            newId == null ? claim.Title : $"{claim.Title} · {(string.IsNullOrWhiteSpace(oldId) ? "—" : oldId)} → {claim.AssignedToName ?? newId}",
+            cancellationToken);
 
         if (newId != null
             && !string.Equals(oldId, newId, StringComparison.OrdinalIgnoreCase))

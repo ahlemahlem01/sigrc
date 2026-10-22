@@ -252,6 +252,21 @@ public class QualityAnalysisController : ControllerBase
         };
     }
 
+    /// <summary>The audit log of claims: recorded events, 8D history and imports (quality admins).</summary>
+    [HttpGet("claims/events")]
+    public async Task<IActionResult> GetClaimsAuditEvents([FromQuery] string? organizationIds, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId))
+            return Unauthorized(new { message = "Utilisateur non authentifié." });
+        if (!IsQualityAdmin()) return Forbid();
+
+        var query = IsSuperAdmin()
+            ? new GetClaimsAuditQuery(organizationIds)
+            : new GetClaimsAuditQuery(null, userId);
+        return Ok(await _mediator.Send(query, cancellationToken));
+    }
+
     [HttpGet("claims/history")]
     public async Task<IActionResult> GetClaimsHistory(
         [FromQuery] GetClaimsHistoryQuery query,

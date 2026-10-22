@@ -3420,6 +3420,18 @@
       "system": "Sistema"
     },
     "action": {
+      "claim_assigned": "Reclamo assegnato",
+      "claim_unassigned": "Assegnazione rimossa",
+      "claim_deadline_set": "Scadenza fissata",
+      "claim_archived": "Reclamo archiviato",
+      "claim_restored": "Reclamo ripristinato",
+      "claim_imported": "Importazione reclami",
+      "fivewhy_submitted": "5 Perché inviato",
+      "fivewhy_rejected": "5 Perché respinto",
+      "eightd_saved": "8D salvato",
+      "eightd_submitted": "8D inviato",
+      "eightd_validated": "8D convalidato",
+      "eightd_rejected": "8D respinto",
       "subaction_completed": "Azione completata",
       "subaction_validated": "Azione convalidata",
       "subaction_rejected": "Azione respinta",
