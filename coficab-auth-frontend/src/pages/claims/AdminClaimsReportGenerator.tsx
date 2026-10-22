@@ -8,6 +8,7 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
+import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -216,6 +217,39 @@ export default function AdminClaimsReportGenerator() {
   const summaryOf = (r: Generated) =>
     buildReportSummary(t, t('reportSummary.nounClaims'), r.totals, r.previous, r.groups.map((g) => ({ label: g.label, total: g.total, late: g.late, rate: g.rate })));
 
+  const exportXlsx = () => {
+    if (!report) return;
+    const c = report.criteria;
+    const summary: XlsxCell[][] = [
+      [{ v: t('reportClaims.title'), style: 'title' }],
+      [t('actionsReport.generatedAt'), new Date(report.generatedAt).toLocaleString()],
+      [t('actionsReport.from'), c.from, t('actionsReport.to'), c.to],
+      [t('actionsReport.groupBy'), t(`reportClaims.gen.by.${c.groupBy}`), t('actionsReport.status'), t(`actionsReport.statusOpt.${c.status}`)],
+      [t('planDetail.department'), c.department === 'all' ? t('audit.allDepartments') : c.department, t('reportClaims.gen.colResponsible'), c.responsible === 'all' ? t('reportClaims.gen.allResponsibles') : c.responsible === '__unassigned__' ? t('reportClaims.gen.unassigned') : c.responsible],
+      [],
+      [{ v: t('reportSummary.title'), style: 'bold' }],
+      ...summaryOf(report).map((line): XlsxCell[] => [line]),
+      [],
+      [t('reportClaims.cardAll'), t('actionsReport.kpiClosed'), t('actionsReport.kpiLate'), t('actionsReport.kpiOpen'), t('reportClaims.colRate')].map((v): XlsxCell => ({ v, style: 'header' })),
+      [report.totals.total, report.totals.closed, report.totals.late, report.totals.open, `${report.totals.rate}%`],
+      [],
+      [t('actionsReport.colGroup'), t('reportClaims.colClaims'), t('actionsReport.kpiClosed'), t('actionsReport.kpiLate'), t('reportClaims.colRate')].map((v): XlsxCell => ({ v, style: 'header' })),
+      ...report.groups.map((g): XlsxCell[] => [g.label, g.total, g.closed, g.late, `${g.rate}%`]),
+    ];
+    const detail: XlsxCell[][] = [
+      [t('actionsReport.colGroup'), t('reportClaims.gen.colClaim'), t('reportClaims.gen.colClient'), t('reportClaims.gen.colDefect'), t('reportClaims.gen.colSeverity'), t('actionsReport.status'), t('planDetail.department'), t('reportClaims.gen.colDeadline'), t('reportClaims.gen.colResponsible'), t('reportClaims.gen.colState')]
+        .map((v): XlsxCell => ({ v, style: 'header' })),
+      ...report.groups.flatMap((g) => g.rows.map((r): XlsxCell[] => [
+        g.label, r.claim.title, r.claim.clientId, r.claim.defectType, sevLabel(r.claim.severity), statusLabel(r.claim),
+        departmentOf(r.claim), fmtDate(r.claim.deadline), r.claim.assignedToName || t('reportClaims.gen.unassigned'), rowState(r),
+      ])),
+    ];
+    downloadXlsx(`claims-report-${c.from}_${c.to}`, [
+      { name: t('reportSummary.title'), rows: summary, widths: [34, 24, 18, 24, 14] },
+      { name: t('actionsReport.resultTitle'), rows: detail, widths: [22, 44, 16, 24, 12, 18, 20, 14, 24, 14] },
+    ]);
+  };
+
   const exportPdf = () => {
     if (!report) return;
     const c = report.criteria;
@@ -281,6 +315,7 @@ export default function AdminClaimsReportGenerator() {
         <div className="flex items-center gap-2 flex-wrap">
           <button type="button" onClick={() => void load()} className={capaBtnSecondary}>{t('dashboard.refresh')}</button>
           <button type="button" disabled={!report} onClick={exportCsv} className={`${capaBtnSecondary} disabled:opacity-40`}>{t('actionsReport.exportCsv')}</button>
+          <button type="button" disabled={!report} onClick={exportXlsx} className={`${capaBtnSecondary} disabled:opacity-40`}>{t('common.exportExcel')}</button>
           <button type="button" disabled={!report} onClick={exportPdf} className={`${capaBtnSecondary} disabled:opacity-40`}>{t('common.exportPdf')}</button>
         </div>
       </div>

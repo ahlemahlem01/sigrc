@@ -133,6 +133,7 @@
     "label": "Langue"
   },
   "common": {
+    "exportExcel": "Export Excel",
     "home": "Accueil",
     "loading": "Chargement...",
     "search": "Rechercher",

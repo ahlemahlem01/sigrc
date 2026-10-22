@@ -7,6 +7,7 @@ import { FlatAction, loadCapaDataset, UiType } from './capaAnalytics';
 import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
+import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
 import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -309,6 +310,39 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
   const summaryOf = (r: GeneratedReport) =>
     buildReportSummary(t, t('reportSummary.nounActions'), r.totals, r.previous, r.groups.map((g) => ({ label: g.label, total: g.total, late: g.late, rate: g.rate })));
 
+  const exportXlsx = () => {
+    if (!report) return;
+    const c = report.criteria;
+    const owner = (a: FlatAction) => (a.assignedToId ? (names[a.assignedToId] || a.assignedToName || a.assignedToId) : (a.assignedToName || t('dashboard.unassigned')));
+    const summary: XlsxCell[][] = [
+      [{ v: t('actionsReport.title'), style: 'title' }],
+      [t('actionsReport.generatedAt'), new Date(report.generatedAt).toLocaleString(i18n.language)],
+      [t('actionsReport.from'), c.from, t('actionsReport.to'), c.to],
+      [t('actionsReport.groupBy'), t(`actionsReport.by.${c.groupBy}`), t('actionsReport.status'), t(`actionsReport.statusOpt.${c.status}`)],
+      [t('planDetail.department'), c.process === 'all' ? t('audit.allDepartments') : c.process, t('dashboard.colNature'), c.nature === 'all' ? t('dashboard.allNatures') : typeLabel(c.nature)],
+      [],
+      [{ v: t('reportSummary.title'), style: 'bold' }],
+      ...summaryOf(report).map((line): XlsxCell[] => [line]),
+      [],
+      [t('actionsReport.kpiActions'), t('actionsReport.kpiClosed'), t('actionsReport.kpiLate'), t('actionsReport.kpiOpen'), t('indicators.kpiRate')].map((v): XlsxCell => ({ v, style: 'header' })),
+      [report.totals.total, report.totals.closed, report.totals.late, report.totals.open, `${report.totals.rate}%`],
+      [],
+      [t('actionsReport.colGroup'), t('actionsReport.kpiActions'), t('actionsReport.kpiClosed'), t('actionsReport.kpiLate'), t('indicators.kpiRate')].map((v): XlsxCell => ({ v, style: 'header' })),
+      ...report.groups.map((g): XlsxCell[] => [g.label, g.total, g.closed, g.late, `${g.rate}%`]),
+    ];
+    const detail: XlsxCell[][] = [
+      [t('actionsReport.colGroup'), t('associatedActions.colAction'), t('associatedActions.colPlan'), t('dashboard.colProcess'), t('dashboard.colNature'), t('reportPlans.colProgress'), t('dashboard.colDeadline'), t('dashboard.colResponsible'), t('dashboard.colStatus')]
+        .map((v): XlsxCell => ({ v, style: 'header' })),
+      ...report.groups.flatMap((g) => g.actions.map((a): XlsxCell[] => [
+        g.label, fixMojibake(a.title), fixMojibake(a.planTitle), a.process, typeLabel(a.type), a.progress, formatDate(a.deadline), owner(a), statusLabel(a),
+      ])),
+    ];
+    downloadXlsx(`actions-report-${c.from}_${c.to}`, [
+      { name: t('reportSummary.title'), rows: summary, widths: [34, 24, 18, 24, 14] },
+      { name: t('actionsReport.resultTitle'), rows: detail, widths: [24, 40, 34, 20, 16, 12, 14, 24, 16] },
+    ]);
+  };
+
   const exportPdf = () => {
     if (!report) return;
     const c = report.criteria;
@@ -394,6 +428,14 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
               className={`${capaBtnSecondary} disabled:opacity-40`}
             >
               {t('actionsReport.exportCsv')}
+            </button>
+            <button
+              type="button"
+              disabled={!report}
+              onClick={exportXlsx}
+              className={`${capaBtnSecondary} disabled:opacity-40`}
+            >
+              {t('common.exportExcel')}
             </button>
             <button
               type="button"

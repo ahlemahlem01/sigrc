@@ -133,6 +133,7 @@
     "label": "Lingua"
   },
   "common": {
+    "exportExcel": "Esporta Excel",
     "home": "Home",
     "loading": "Caricamento...",
     "search": "Cerca",
