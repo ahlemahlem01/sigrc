@@ -10,6 +10,7 @@ import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
 import SavedReportsBar from '../../components/SavedReportsBar';
+import ReportSchedulesBar from '../../components/ReportSchedulesBar';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -73,6 +74,7 @@ export default function AdminClaimsReportGenerator() {
   const [draft, setDraft] = useState<Criteria>(defaultCriteria);
   const [report, setReport] = useState<Generated | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [savedKey, setSavedKey] = useState(0);
   const [deptByUser, setDeptByUser] = useState<Record<string, string>>({});
 
   const load = useCallback(async () => {
@@ -431,7 +433,35 @@ export default function AdminClaimsReportGenerator() {
             })),
           },
         })}
-        onOpen={(criteria, result) => { setDraft({ ...defaultCriteria(), ...criteria }); setReport(result); setExpanded(null); setError(null); }}
+        refreshKey={savedKey}
+        onOpen={(criteria, result) => {
+          setDraft({ ...defaultCriteria(), ...criteria });
+          // a scheduled report comes from the server with raw group names: give them their translated names
+          if (result?.generatedBy === 'schedule') {
+            const by = result.criteria?.groupBy;
+            result = {
+              ...result,
+              groups: result.groups.map((g: Generated['groups'][number]) => ({
+                ...g,
+                label: by === 'severity' ? sevLabel(g.key)
+                  : by === 'status' ? statusLabel({ statusCode: g.key } as Claim)
+                  : by === 'department' && g.key === '—' ? t('reportClaims.noDepartment')
+                  : by === 'responsible' && g.key === '—' ? t('reportClaims.gen.unassigned')
+                  : g.label,
+              })),
+            };
+          }
+          setReport(result);
+          setExpanded(null);
+          setError(null);
+        }}
+      />
+
+      <ReportSchedulesBar
+        criteria={{ groupBy: draft.groupBy, status: draft.status, dateField: draft.dateField, q: draft.q, department: draft.department, responsible: draft.responsible, severity: draft.severity }}
+        periodDays={Math.max(1, Math.round((new Date(draft.to).getTime() - new Date(draft.from).getTime()) / 86400000) + 1)}
+        defaultTitle={t('reportClaims.title')}
+        onGenerated={() => setSavedKey((k) => k + 1)}
       />
 
       {!report && !generating && (

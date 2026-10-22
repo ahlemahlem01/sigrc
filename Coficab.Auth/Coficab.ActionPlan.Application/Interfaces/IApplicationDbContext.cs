@@ -26,6 +26,7 @@ public interface IApplicationDbContext
     DbSet<PlanActionHistory> PlanActionHistories { get; }
     DbSet<ClaimEvent> ClaimEvents { get; }
     DbSet<SavedReport> SavedReports { get; }
+    DbSet<ReportSchedule> ReportSchedules { get; }
     DbSet<PlanActionAssignmentHistory> PlanActionAssignmentHistories { get; }
     DbSet<FiveWhyAnalysis> FiveWhyAnalyses { get; }
     DbSet<FiveWhyStep> FiveWhySteps { get; }

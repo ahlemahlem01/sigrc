@@ -16,10 +16,12 @@ type Props = {
   hasReport: boolean;
   defaultTitle: string;
   onOpen: (criteria: any, result: any) => void;
+  /** change it to reload the list (a scheduled report has just been generated) */
+  refreshKey?: number;
 };
 
 /** The reports kept on the server: save the one on screen, reopen one as it was, archive one (it is never deleted). */
-export default function SavedReportsBar({ kind, snapshot, hasReport, defaultTitle, onOpen }: Props) {
+export default function SavedReportsBar({ kind, snapshot, hasReport, defaultTitle, onOpen, refreshKey = 0 }: Props) {
   const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
   const [rows, setRows] = useState<SavedRow[]>([]);
@@ -40,7 +42,7 @@ export default function SavedReportsBar({ kind, snapshot, hasReport, defaultTitl
     }
   }, [accessToken, kind]);
 
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { void load(); }, [load, refreshKey]);
 
   const save = async () => {
     const snap = snapshot();
@@ -141,7 +143,7 @@ export default function SavedReportsBar({ kind, snapshot, hasReport, defaultTitl
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-slate-800 truncate">{r.title}</div>
                 <div className="text-[11px] text-slate-500">
-                  {new Date(r.createdAt).toLocaleString(i18n.language)}{r.createdByName ? ` · ${r.createdByName}` : ''} · {t('savedReports.items', { count: r.itemCount })}
+                  {new Date(r.createdAt).toLocaleString(i18n.language)}{` · ${r.createdByName || t('savedReports.auto')}`} · {t('savedReports.items', { count: r.itemCount })}
                 </div>
               </div>
               <button type="button" className={capaBtnPrimary} disabled={busy} onClick={() => void open(r)}>{t('qualityHistory.open')}</button>
