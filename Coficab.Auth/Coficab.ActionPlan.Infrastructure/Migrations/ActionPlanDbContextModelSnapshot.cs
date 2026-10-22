@@ -2252,6 +2252,10 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<DateTime>("NextRunAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("OrganizationIds")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<int>("PeriodDays")
                         .HasColumnType("int");
 

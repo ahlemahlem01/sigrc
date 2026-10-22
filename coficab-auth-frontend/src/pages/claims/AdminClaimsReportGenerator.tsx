@@ -458,6 +458,7 @@ export default function AdminClaimsReportGenerator() {
       />
 
       <ReportSchedulesBar
+        kind="claims"
         criteria={{ groupBy: draft.groupBy, status: draft.status, dateField: draft.dateField, q: draft.q, department: draft.department, responsible: draft.responsible, severity: draft.severity }}
         periodDays={Math.max(1, Math.round((new Date(draft.to).getTime() - new Date(draft.from).getTime()) / 86400000) + 1)}
         defaultTitle={t('reportClaims.title')}

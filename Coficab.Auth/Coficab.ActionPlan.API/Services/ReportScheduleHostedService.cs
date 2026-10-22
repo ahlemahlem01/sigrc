@@ -50,8 +50,11 @@ public class ReportScheduleHostedService : BackgroundService
         var now = DateTime.UtcNow;
         try
         {
-            var (result, criteriaJson, count) = await ClaimsReportGenerator.GenerateAsync(
-                db, ClaimsReportGenerator.ParseCriteria(schedule.CriteriaJson), schedule.PeriodDays, now, ct);
+            var (result, criteriaJson, count) = schedule.Kind == "capa-actions"
+                ? await CapaActionsReportGenerator.GenerateAsync(
+                    db, CapaActionsReportGenerator.ParseCriteria(schedule.CriteriaJson), schedule.PeriodDays, now, schedule.OrganizationIds, ct)
+                : await ClaimsReportGenerator.GenerateAsync(
+                    db, ClaimsReportGenerator.ParseCriteria(schedule.CriteriaJson), schedule.PeriodDays, now, schedule.OrganizationIds, ct);
             var report = new SavedReport
             {
                 Kind = schedule.Kind,

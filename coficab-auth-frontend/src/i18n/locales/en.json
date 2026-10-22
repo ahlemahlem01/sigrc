@@ -1,5 +1,7 @@
 {
   "reportSchedules": {
+    "scopeAll": "All organizations",
+    "scopeSelected": "{{count}} followed organization(s)",
     "title": "Automatic schedule",
     "hint": "The report generates itself every week or month, with the chosen criteria, and is added to the saved reports.",
     "add": "Schedule this report",

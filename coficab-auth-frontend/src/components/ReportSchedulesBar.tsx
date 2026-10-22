@@ -3,15 +3,18 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { ACTION_PLAN_API_URL } from '../config/apiEnv';
 import { useAuth } from '../context/AuthContext';
+import { useOrganizationScope } from '../context/OrganizationScopeContext';
 import ConfirmDialog from './ConfirmDialog';
 import { capaBtnPrimary, capaBtnSecondary } from './capa/CapaAdminUi';
 
 type Schedule = {
   id: string; title: string; frequency: 'weekly' | 'monthly'; dayOfWeek: number; dayOfMonth: number; hour: number; periodDays: number;
-  isActive: boolean; nextRunAt: string; lastRunAt?: string | null; lastError?: string | null;
+  isActive: boolean; nextRunAt: string; lastRunAt?: string | null; lastError?: string | null; organizationCount?: number;
 };
 
 type Props = {
+  /** claims | capa-actions */
+  kind: string;
   /** the criteria of the report on screen (without its dates), kept by the schedule */
   criteria: unknown;
   /** length in days of the period on screen */
@@ -24,9 +27,11 @@ type Props = {
 const PERIODS = [7, 30, 90, 365];
 
 /** Reports that generate themselves every week or every month; each run saves a report in "Saved reports". */
-export default function ReportSchedulesBar({ criteria, periodDays, defaultTitle, onGenerated }: Props) {
+export default function ReportSchedulesBar({ kind, criteria, periodDays, defaultTitle, onGenerated }: Props) {
   const { t, i18n } = useTranslation();
   const { accessToken } = useAuth();
+  // the schedule follows the organizations selected when it is made
+  const { param: scopeParam } = useOrganizationScope();
   const [rows, setRows] = useState<Schedule[]>([]);
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('');
@@ -43,12 +48,12 @@ export default function ReportSchedulesBar({ criteria, periodDays, defaultTitle,
   const load = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const res = await axios.get<Schedule[]>(`${ACTION_PLAN_API_URL}/report-schedules`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const res = await axios.get<Schedule[]>(`${ACTION_PLAN_API_URL}/report-schedules`, { headers: { Authorization: `Bearer ${accessToken}` }, params: { kind } });
       setRows(Array.isArray(res.data) ? res.data : []);
     } catch {
       setRows([]);
     }
-  }, [accessToken]);
+  }, [accessToken, kind]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -75,7 +80,7 @@ export default function ReportSchedulesBar({ criteria, periodDays, defaultTitle,
 
   const create = () => run(async () => {
     await axios.post(`${ACTION_PLAN_API_URL}/report-schedules`, {
-      title: title.trim(), frequency, dayOfWeek, dayOfMonth, hour, periodDays: period, criteriaJson: JSON.stringify(criteria),
+      kind, organizationIds: scopeParam || null, title: title.trim(), frequency, dayOfWeek, dayOfMonth, hour, periodDays: period, criteriaJson: JSON.stringify(criteria),
     }, { headers });
     setOpen(false);
   }, t('reportSchedules.created'));
@@ -149,7 +154,8 @@ export default function ReportSchedulesBar({ criteria, periodDays, defaultTitle,
               </select>
             </label>
           </div>
-          <p className="text-[11px] text-slate-500 mt-3 mb-3">{t('reportSchedules.criteriaNote')}</p>
+          <p className="text-[11px] text-slate-500 mt-3 mb-0">{t('reportSchedules.criteriaNote')}</p>
+          <p className="text-[11px] text-slate-500 mt-1 mb-3">{scopeParam ? t('reportSchedules.scopeSelected', { count: scopeParam.split(',').filter(Boolean).length }) : t('reportSchedules.scopeAll')}</p>
           <div className="flex gap-2">
             <button type="button" className={capaBtnPrimary} disabled={busy || !title.trim()} onClick={() => void create()}>{t('reportSchedules.create')}</button>
             <button type="button" className={capaBtnSecondary} disabled={busy} onClick={() => setOpen(false)}>{t('common.cancel')}</button>
@@ -173,7 +179,7 @@ export default function ReportSchedulesBar({ criteria, periodDays, defaultTitle,
                   {!s.isActive && <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-500">{t('reportSchedules.paused')}</span>}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {when(s)} · {t('reportSchedules.lastDays', { count: s.periodDays })}
+                  {when(s)} · {t('reportSchedules.lastDays', { count: s.periodDays })} · {s.organizationCount ? t('reportSchedules.scopeSelected', { count: s.organizationCount }) : t('reportSchedules.scopeAll')}
                   {s.isActive ? ` · ${t('reportSchedules.next', { date: new Date(s.nextRunAt).toLocaleString(i18n.language) })}` : ''}
                   {s.lastRunAt ? ` · ${t('reportSchedules.last', { date: new Date(s.lastRunAt).toLocaleString(i18n.language) })}` : ''}
                 </div>

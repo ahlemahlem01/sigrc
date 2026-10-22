@@ -100,6 +100,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(450);
             entity.Property(e => e.CreatedByName).HasMaxLength(300);
             entity.Property(e => e.LastError).HasMaxLength(1000);
+            entity.Property(e => e.OrganizationIds).HasMaxLength(2000);
             entity.HasIndex(e => new { e.IsActive, e.IsArchived, e.NextRunAt });
         });
 

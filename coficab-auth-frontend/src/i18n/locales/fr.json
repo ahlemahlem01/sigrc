@@ -1,5 +1,7 @@
 {
   "reportSchedules": {
+    "scopeAll": "Toutes les organisations",
+    "scopeSelected": "{{count}} organisation(s) suivie(s)",
     "title": "Programmation automatique",
     "hint": "Le rapport se génère tout seul chaque semaine ou chaque mois, avec les critères choisis, et s'ajoute aux rapports enregistrés.",
     "add": "Programmer ce rapport",

@@ -38,7 +38,7 @@ public static class ClaimsReportGenerator
         bool Closed, bool Late, string Department);
 
     public static async Task<(string ResultJson, string CriteriaJson, int Count)> GenerateAsync(
-        IApplicationDbContext context, ClaimsReportCriteria criteria, int periodDays, DateTime nowUtc, CancellationToken ct)
+        IApplicationDbContext context, ClaimsReportCriteria criteria, int periodDays, DateTime nowUtc, string? organizationIds, CancellationToken ct)
     {
         periodDays = Math.Clamp(periodDays, 1, 3660);
         var to = nowUtc.Date;
@@ -58,7 +58,10 @@ public static class ClaimsReportGenerator
         }
 
         var today = nowUtc.Date;
-        var claims = await context.Claims.AsNoTracking().Where(c => !c.IsArchived && c.StatusCode != "DRAFT")
+        var source = context.Claims.AsNoTracking().Where(c => !c.IsArchived && c.StatusCode != "DRAFT");
+        if (ClaimOrganizations.Parse(organizationIds) is { } followed)
+            source = await ClaimOrganizations.ApplyAsync(context, source, followed, ct);
+        var claims = await source
             .Select(c => new { c.Id, c.Title, c.ClientId, c.DefectType, c.Severity, c.StatusCode, c.Deadline, c.DetectionDate, c.CreatedAt, c.AssignedToId, c.AssignedToName, c.CreatedById, c.LotNumber })
             .ToListAsync(ct);
         var all = claims.Select(c =>

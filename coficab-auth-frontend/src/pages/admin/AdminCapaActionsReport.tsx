@@ -9,6 +9,7 @@ import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
 import SavedReportsBar from '../../components/SavedReportsBar';
+import ReportSchedulesBar from '../../components/ReportSchedulesBar';
 import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -102,6 +103,7 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
   const [draft, setDraft] = useState<Criteria>(() => defaultCriteria());
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [savedKey, setSavedKey] = useState(0);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -631,7 +633,35 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
         hasReport={!!report}
         defaultTitle={`${t('actionsReport.title')} ${draft.from} → ${draft.to}`}
         snapshot={() => report && ({ criteria: report.criteria, result: report, itemCount: report.totals.total })}
-        onOpen={(criteria, result) => { setDraft({ ...defaultCriteria(), ...criteria }); setReport(result); setExpanded(null); setError(null); }}
+        refreshKey={savedKey}
+        onOpen={(criteria, result) => {
+          setDraft({ ...defaultCriteria(), ...criteria });
+          // a scheduled report comes from the server with raw group names: give them their translated names
+          if (result?.generatedBy === 'schedule') {
+            const by = result.criteria?.groupBy;
+            result = {
+              ...result,
+              groups: result.groups.map((g: GroupRow) => ({
+                ...g,
+                label: by === 'responsible' && g.key === '__unassigned__' ? t('dashboard.unassigned')
+                  : by === 'nature' ? typeLabel(g.key as UiType)
+                  : by === 'status' ? (g.key === 'closed' ? t('reportPlans.statusClosed') : g.key === 'late' ? t('followUp.tabBelated') : t('reportPlans.statusOpened'))
+                  : g.label,
+              })),
+            };
+          }
+          setReport(result);
+          setExpanded(null);
+          setError(null);
+        }}
+      />
+
+      <ReportSchedulesBar
+        kind="capa-actions"
+        criteria={{ groupBy: draft.groupBy, status: draft.status, dateField: draft.dateField, process: draft.process, nature: draft.nature, responsible: draft.responsible, q: draft.q }}
+        periodDays={Math.max(1, Math.round((new Date(draft.to).getTime() - new Date(draft.from).getTime()) / 86400000) + 1)}
+        defaultTitle={t('actionsReport.title')}
+        onGenerated={() => setSavedKey((k) => k + 1)}
       />
 
       {!report && !generating && (

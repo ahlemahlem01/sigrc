@@ -7,7 +7,7 @@ namespace Coficab.ActionPlan.Core.Entities;
 public class ReportSchedule
 {
     public Guid Id { get; set; } = Guid.NewGuid();
-    /// <summary>claims</summary>
+    /// <summary>claims | capa-actions</summary>
     public string Kind { get; set; } = "claims";
     public string Title { get; set; } = string.Empty;
     /// <summary>weekly | monthly</summary>
@@ -21,6 +21,8 @@ public class ReportSchedule
     /// <summary>Length of the reported period, ending the day of the run.</summary>
     public int PeriodDays { get; set; } = 30;
     public string CriteriaJson { get; set; } = "{}";
+    /// <summary>"id1,id2": the organizations followed when the schedule was made (empty: all).</summary>
+    public string? OrganizationIds { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime NextRunAt { get; set; }
     public DateTime? LastRunAt { get; set; }

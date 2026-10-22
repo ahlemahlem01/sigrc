@@ -19,7 +19,9 @@ public class ReportSchedulesController : ControllerBase
 
     public ReportSchedulesController(ActionPlanDbContext db) => _db = db;
 
-    public sealed record ScheduleRequest(string Title, string Frequency, int DayOfWeek, int DayOfMonth, int Hour, int PeriodDays, string CriteriaJson);
+    private static readonly string[] Kinds = ["claims", "capa-actions"];
+
+    public sealed record ScheduleRequest(string Kind, string Title, string Frequency, int DayOfWeek, int DayOfMonth, int Hour, int PeriodDays, string CriteriaJson, string? OrganizationIds);
 
     private string CurrentUserId() => User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? "system";
 
@@ -27,18 +29,22 @@ public class ReportSchedulesController : ControllerBase
     {
         s.Id, s.Kind, s.Title, s.Frequency, s.DayOfWeek, s.DayOfMonth, s.Hour, s.PeriodDays, s.IsActive,
         s.NextRunAt, s.LastRunAt, s.LastReportId, s.LastError, s.CreatedByName, s.CreatedAt,
+        OrganizationCount = string.IsNullOrWhiteSpace(s.OrganizationIds) ? 0 : s.OrganizationIds.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
     };
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken ct)
+    public async Task<IActionResult> List([FromQuery] string? kind, CancellationToken ct)
     {
-        var rows = await _db.ReportSchedules.AsNoTracking().Where(s => !s.IsArchived).OrderBy(s => s.NextRunAt).ToListAsync(ct);
+        var query = _db.ReportSchedules.AsNoTracking().Where(s => !s.IsArchived);
+        if (!string.IsNullOrWhiteSpace(kind)) query = query.Where(s => s.Kind == kind);
+        var rows = await query.OrderBy(s => s.NextRunAt).ToListAsync(ct);
         return Ok(rows.Select(Dto));
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] ScheduleRequest request, CancellationToken ct)
     {
+        if (!Kinds.Contains(request.Kind)) return BadRequest(new { error = "Type de rapport inconnu." });
         var title = (request.Title ?? string.Empty).Trim();
         if (title.Length == 0) return BadRequest(new { error = "Donnez un titre à la programmation." });
         if (request.Frequency is not ("weekly" or "monthly")) return BadRequest(new { error = "Fréquence inconnue." });
@@ -51,7 +57,7 @@ public class ReportSchedulesController : ControllerBase
             ?? User.FindFirstValue(ClaimTypes.Email) ?? userId;
         var schedule = new ReportSchedule
         {
-            Kind = "claims", Title = title.Length > 200 ? title[..200] : title, Frequency = request.Frequency,
+            Kind = request.Kind, OrganizationIds = string.IsNullOrWhiteSpace(request.OrganizationIds) ? null : request.OrganizationIds.Trim(), Title = title.Length > 200 ? title[..200] : title, Frequency = request.Frequency,
             DayOfWeek = Math.Clamp(request.DayOfWeek, 0, 6), DayOfMonth = Math.Clamp(request.DayOfMonth, 1, 28), Hour = request.Hour,
             PeriodDays = request.PeriodDays, CriteriaJson = request.CriteriaJson ?? "{}", CreatedBy = userId, CreatedByName = name,
         };
