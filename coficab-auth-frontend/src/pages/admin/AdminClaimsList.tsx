@@ -77,6 +77,9 @@ export default function AdminClaimsList() {
   const [filterTo, setFilterTo] = useState('');
   const [page, setPage] = useState(1);
   const [showArchived, setShowArchived] = useState(false);
+  // ?focus=noFiveWhy: only the open claims without any 5 Why (the figure of the analyses report)
+  const [focus, setFocus] = useState<string | null>(searchParams.get('focus') === 'noFiveWhy' ? 'noFiveWhy' : null);
+  const [focusIds, setFocusIds] = useState<Set<string> | null>(null);
   const [ask, setAsk] = useState<Claim | null>(null);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
@@ -99,9 +102,25 @@ export default function AdminClaimsList() {
   // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the listed values change
   useEffect(() => { void load(); }, [accessToken, showArchived]);
 
+  useEffect(() => {
+    if (!accessToken || !focus) { setFocusIds(null); return; }
+    let cancel = false;
+    (async () => {
+      const ids = new Set<string>();
+      for (let page = 1; page <= 20; page += 1) {
+        const res = await qualityAnalysisService.getClaimsHistory({ page, pageSize: 100, scope: 'open', focus, sort: 'detectionDate', dir: 'desc' }, accessToken);
+        (res.items || []).forEach((r) => ids.add(r.id));
+        if (ids.size >= (res.total || 0) || (res.items || []).length === 0) break;
+      }
+      if (!cancel) setFocusIds(ids);
+    })().catch(() => { if (!cancel) setFocusIds(new Set()); });
+    return () => { cancel = true; };
+  }, [accessToken, focus]);
+
   const filtered = useMemo(() => {
     const term = search.trim().toLowerCase();
     return claims.filter((claim) => {
+      if (focus && focusIds && !focusIds.has(claim.id)) return false;
       const status = resolveClaimStatus(claim);
       if (filterStatus !== 'all' && status !== filterStatus) return false;
       if (filterSeverity !== 'all' && severityKey(claim.severity) !== filterSeverity) return false;
@@ -129,7 +148,7 @@ export default function AdminClaimsList() {
         person(claim),
       ].some((value) => String(value || '').toLowerCase().includes(term));
     });
-  }, [claims, search, filterStatus, filterSeverity, filterDeadline, filterFrom, filterTo]);
+  }, [claims, search, filterStatus, filterSeverity, filterDeadline, filterFrom, filterTo, focus, focusIds]);
 
   const failure = (e: any) =>
     setNotice({ ok: false, text: e?.response?.data?.message || e?.message || t('adminLists.archiveFailed') });
@@ -235,6 +254,12 @@ export default function AdminClaimsList() {
           },
         }))}
       />
+      {focus && (
+        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-800">
+          {t('adminLists.focusNoFiveWhy')}
+          <button type="button" aria-label={t('common.reset')} className="text-blue-700 hover:text-blue-900" onClick={() => { setFocus(null); setPage(1); }}>×</button>
+        </div>
+      )}
       <CapaPanel
         className="mb-5"
         padding

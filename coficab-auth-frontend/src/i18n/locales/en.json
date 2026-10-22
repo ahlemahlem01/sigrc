@@ -66,7 +66,7 @@
   },
   "capaAssignments": {
     "kpiOpen": "Open plans",
-    "kpiOpenHint": "{{count}} responsible person(s)",
+    "kpiOpenHint": "Click a card to open the matching list.",
     "kpiToAssignHint": "{{count}} of them late",
     "kpiAssignedHint": "{{avg}} plan(s) per person",
     "kpiLate": "Late plans",
@@ -4114,6 +4114,7 @@
     "deadlineFailed": "Could not apply the deadline."
   },
   "adminLists": {
+    "focusNoFiveWhy": "Open claims without a 5 Why",
     "folder": "File",
     "openFolder": "Open the claim file",
     "archive": "Archive",

@@ -218,7 +218,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
         )}
         <CapaKpiStrip
           items={[
-            { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint') },
+            { key: 'noFiveWhy', label: t('qualityHistory.kpiNoFiveWhy'), value: stats?.noFiveWhy ?? '—', hint: t('qualityHistory.kpiNoFiveWhyHint'), onClick: () => navigate('/admin/claims/list?focus=noFiveWhy') },
             { key: 'eightD', label: t('qualityHistory.kpiEightD'), value: stats?.eightDToHandle ?? '—', hint: t('qualityHistory.kpiEightDHint'), onClick: () => navigate('/admin/claims/eight-d') },
             { key: 'noCapa', label: t('qualityHistory.kpiNoCapa'), value: stats?.inAnalysisNoCapa ?? '—', hint: t('qualityHistory.kpiNoCapaHint'), onClick: () => navigate('/admin/claims/list?status=EN_ANALYSE') },
             { key: 'capaLate', label: t('qualityHistory.kpiCapaLate'), value: stats?.capaLate ?? '—', hint: t('qualityHistory.kpiCapaLateHint'), onClick: () => navigate('/admin/action-plans?late=1') },

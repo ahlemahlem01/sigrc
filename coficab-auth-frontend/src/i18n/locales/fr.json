@@ -66,7 +66,7 @@
   },
   "capaAssignments": {
     "kpiOpen": "Plans ouverts",
-    "kpiOpenHint": "{{count}} responsable(s)",
+    "kpiOpenHint": "Cliquez sur une carte pour ouvrir la liste concernée.",
     "kpiToAssignHint": "dont {{count}} en retard",
     "kpiAssignedHint": "{{avg}} plan(s) par responsable",
     "kpiLate": "Plans en retard",
@@ -4114,6 +4114,7 @@
     "deadlineFailed": "Impossible d’appliquer la date limite."
   },
   "adminLists": {
+    "focusNoFiveWhy": "Réclamations en cours sans 5 Pourquoi",
     "folder": "Dossier",
     "openFolder": "Ouvrir le dossier de la réclamation",
     "archive": "Archiver",
