@@ -28,6 +28,8 @@ public class ArchiveIshikawaCauseCommandHandler : IRequestHandler<ArchiveIshikaw
         cause.ArchiveReason = request.ArchiveReason;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(
+            _context, cause.ClaimId, "ishikawa_cause_archived", request.ArchivedBy, $"{cause.Category} · {cause.CauseDescription}", cancellationToken);
         return true;
     }
 }

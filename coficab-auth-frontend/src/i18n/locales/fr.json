@@ -3420,6 +3420,8 @@
       "system": "Système"
     },
     "action": {
+      "claim_import_archived": "Import archivé",
+      "ishikawa_updated": "Diagramme Ishikawa mis à jour",
       "claim_assigned": "Réclamation assignée",
       "claim_unassigned": "Assignation retirée",
       "claim_deadline_set": "Échéance fixée",

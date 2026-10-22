@@ -144,6 +144,8 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   claim_deadline_set:  { label: 'audit.action.claim_deadline_set',      bg: '#fff7ed', color: '#c2410c', icon: 'ti-calendar-event' },
   claim_archived:      { label: 'audit.action.claim_archived',          bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
   claim_restored:      { label: 'audit.action.claim_restored',          bg: '#f0fdf4', color: '#15803d', icon: 'ti-restore' },
+  claim_import_archived: { label: 'audit.action.claim_import_archived', bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
+  ishikawa_updated:    { label: 'audit.action.ishikawa_updated',        bg: '#fff1f2', color: '#be123c', icon: 'ti-git-fork' },
   claim_imported:      { label: 'audit.action.claim_imported',          bg: '#eef2ff', color: '#4f46e5', icon: 'ti-file-import' },
   fivewhy_submitted:   { label: 'audit.action.fivewhy_submitted',       bg: '#fefce8', color: '#a16207', icon: 'ti-send' },
   fivewhy_rejected:    { label: 'audit.action.fivewhy_rejected',        bg: '#fef2f2', color: '#b91c1c', icon: 'ti-x' },
@@ -188,7 +190,7 @@ const MUTATION_ACTIONS = new Set([
   'claim_created', 'claim_updated', 'document_added', 'document_removed', 'document_uploaded',
   'ishikawa_cause_added', 'ishikawa_cause_archived', 'fivewhy_saved',
   'subaction_validated', 'subaction_rejected', 'subaction_warning', 'warning_sent', 'resubmitted',
-  'claim_deadline_set', 'claim_archived', 'claim_restored', 'claim_imported', 'fivewhy_rejected', 'fivewhy_validated',
+  'claim_deadline_set', 'claim_archived', 'claim_restored', 'claim_imported', 'claim_import_archived', 'ishikawa_updated', 'fivewhy_rejected', 'fivewhy_validated',
   'eightd_validated', 'eightd_rejected',
 ]);
 const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned', 'claim_assigned', 'claim_unassigned']);

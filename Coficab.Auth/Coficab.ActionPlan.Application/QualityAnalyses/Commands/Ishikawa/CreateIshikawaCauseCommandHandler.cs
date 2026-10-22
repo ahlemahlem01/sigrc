@@ -29,6 +29,8 @@ public class CreateIshikawaCauseCommandHandler : IRequestHandler<CreateIshikawaC
 
         _context.IshikawaCauses.Add(cause);
         await _context.SaveChangesAsync(cancellationToken);
+        await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(
+            _context, cause.ClaimId, "ishikawa_cause_added", request.CreatedBy, $"{cause.Category} · {cause.CauseDescription}", cancellationToken);
 
         return cause.Id;
     }

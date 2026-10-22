@@ -85,9 +85,15 @@ public class GetClaimsAuditQueryHandler : IRequestHandler<GetClaimsAuditQuery, I
         {
             var batches = await _context.ImportBatches.AsNoTracking().OrderByDescending(b => b.CreatedAt).Take(500).ToListAsync(ct);
             foreach (var b in batches)
+            {
                 result.Add(new ClaimsAuditEventDto(
                     $"ib-{b.Id}", null, b.FileName, "claim_imported", b.CreatedBy, Name(b.CreatedBy),
                     $"{b.ClaimCount} · {b.CauseCount}", b.CreatedAt, null, null));
+                if (b.IsArchived && b.ArchivedAt.HasValue)
+                    result.Add(new ClaimsAuditEventDto(
+                        $"ib-a-{b.Id}", null, b.FileName, "claim_import_archived", string.Empty, string.Empty,
+                        $"{b.ClaimCount} · {b.CauseCount}", b.ArchivedAt.Value, null, null));
+            }
         }
 
         return result.OrderByDescending(r => r.CreatedAt).Take(limit).ToList();

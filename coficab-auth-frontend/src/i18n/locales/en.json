@@ -3420,6 +3420,8 @@
       "system": "System"
     },
     "action": {
+      "claim_import_archived": "Import archived",
+      "ishikawa_updated": "Ishikawa diagram updated",
       "claim_assigned": "Claim assigned",
       "claim_unassigned": "Assignment removed",
       "claim_deadline_set": "Deadline set",

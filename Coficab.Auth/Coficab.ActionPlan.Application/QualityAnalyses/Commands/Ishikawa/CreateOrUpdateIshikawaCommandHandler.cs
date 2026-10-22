@@ -53,6 +53,8 @@ public class CreateOrUpdateIshikawaCommandHandler : IRequestHandler<CreateOrUpda
         }
 
         await _context.SaveChangesAsync(cancellationToken);
+        await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(
+            _context, request.ClaimId, "ishikawa_updated", request.UserId, $"{newCauses.Count} / {existingCauses.Count}", cancellationToken);
         return true;
     }
 }
