@@ -1,4 +1,22 @@
 {
+  "reportSummary": {
+    "title": "Synthèse automatique",
+    "empty": "Aucune donnée ({{noun}}) sur la période et les critères choisis.",
+    "nounClaims": "réclamations",
+    "nounActions": "sous-actions",
+    "volume": "{{total}} {{noun}} sur la période ({{delta}} par rapport à la période précédente : {{previous}}).",
+    "volumeAlone": "{{total}} {{noun}} sur la période.",
+    "rate": "Taux de clôture de {{rate}} % ({{closed}} sur {{total}}), soit {{delta}} points par rapport à la période précédente ({{previous}} %).",
+    "rateAlone": "Taux de clôture de {{rate}} % ({{closed}} sur {{total}}).",
+    "late": "{{late}} en retard ({{delta}} par rapport à la période précédente : {{previous}}).",
+    "lateAlone": "{{late}} en retard.",
+    "noLate": "Aucun retard sur la période.",
+    "worst": "Le plus en retard : {{label}} avec {{late}} en retard ({{rate}} % clôturé).",
+    "watchDown": "À surveiller : le taux de clôture recule de {{delta}} points.",
+    "goodUp": "Amélioration : le taux de clôture progresse de {{delta}} points.",
+    "watchLate": "À surveiller : {{delta}} retards de plus que sur la période précédente.",
+    "comparedWith": "Comparé au {{from}} → {{to}}, même durée, mêmes critères."
+  },
   "reportClaims": {
     "gen": {
       "allResponsibles": "Tous les responsables",

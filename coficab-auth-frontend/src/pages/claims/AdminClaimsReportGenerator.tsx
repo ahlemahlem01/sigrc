@@ -7,6 +7,7 @@ import { getUsersForAssignment } from '../../services/actionPlanService';
 import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
+import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -28,6 +29,8 @@ type Generated = {
   criteria: Criteria;
   groups: GroupRow[];
   totals: { total: number; closed: number; late: number; open: number; groups: number; rate: number };
+  /** the same filters over the period just before: for the comparison of the summary */
+  previous?: { total: number; closed: number; late: number; open: number; groups: number; rate: number } | null;
 };
 
 const toDateInput = (d: Date) => d.toISOString().slice(0, 10);
@@ -175,7 +178,11 @@ export default function AdminClaimsReportGenerator() {
     setError(null);
     setGenerating(true);
     setExpanded(null);
-    window.setTimeout(() => { setReport(build(draft)); setGenerating(false); }, 180);
+    window.setTimeout(() => {
+      const prev = previousPeriod(draft.from, draft.to);
+      setReport({ ...build(draft), previous: build({ ...draft, from: prev.from, to: prev.to }).totals });
+      setGenerating(false);
+    }, 180);
   };
 
   const applyPreset = (p: '7d' | '1m' | '3m' | '1y' | 'ytd') => {
@@ -206,6 +213,9 @@ export default function AdminClaimsReportGenerator() {
     URL.revokeObjectURL(url);
   };
 
+  const summaryOf = (r: Generated) =>
+    buildReportSummary(t, t('reportSummary.nounClaims'), r.totals, r.previous, r.groups.map((g) => ({ label: g.label, total: g.total, late: g.late, rate: g.rate })));
+
   const exportPdf = () => {
     if (!report) return;
     const c = report.criteria;
@@ -225,9 +235,11 @@ export default function AdminClaimsReportGenerator() {
         ].filter(Boolean).join(' · '),
         `${t('reportClaims.cardAll')}: ${report.totals.total} · ${t('actionsReport.kpiClosed')}: ${report.totals.closed} · ${t('actionsReport.kpiLate')}: ${report.totals.late} · ${t('reportClaims.colRate')}: ${report.totals.rate}%`,
       ].filter(Boolean),
-      summary: report.groups
-        .map((g) => `${g.label}: ${g.total} (${t('actionsReport.kpiClosed').toLowerCase()} ${g.closed}, ${t('actionsReport.kpiLate').toLowerCase()} ${g.late}, ${g.rate}%)`)
-        .join('\n'),
+      summary: [
+        ...summaryOf(report),
+        '',
+        ...report.groups.map((g) => `${g.label}: ${g.total} (${t('actionsReport.kpiClosed').toLowerCase()} ${g.closed}, ${t('actionsReport.kpiLate').toLowerCase()} ${g.late}, ${g.rate}%)`),
+      ].join('\n'),
       columns: [
         { key: 'group', label: t('actionsReport.colGroup') },
         { key: 'claim', label: t('reportClaims.gen.colClaim') },
@@ -252,6 +264,8 @@ export default function AdminClaimsReportGenerator() {
       }))),
     });
   };
+
+  const summaryLines = report ? summaryOf(report) : [];
 
   const selectCls = 'px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#000168]/25';
 
@@ -380,6 +394,14 @@ export default function AdminClaimsReportGenerator() {
               {' · '}{report.criteria.from} → {report.criteria.to}{' · '}{t(`reportClaims.gen.by.${report.criteria.groupBy}`)}
             </div>
             <button type="button" onClick={generate} className="text-xs font-semibold text-[#000168] hover:underline">{t('actionsReport.regenerate')}</button>
+          </div>
+
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-5 py-4 mb-5">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-[#000168] mb-1.5">{t('reportSummary.title')}</div>
+            <ul className="m-0 pl-4 space-y-1 text-sm text-slate-700">
+              {summaryLines.map((line) => <li key={line}>{line}</li>)}
+            </ul>
+            {report.previous && <p className="text-[11px] text-slate-500 mt-2 mb-0">{t('reportSummary.comparedWith', { from: previousPeriod(report.criteria.from, report.criteria.to).from, to: previousPeriod(report.criteria.from, report.criteria.to).to })}</p>}
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-5">

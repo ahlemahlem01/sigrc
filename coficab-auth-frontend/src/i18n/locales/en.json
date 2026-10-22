@@ -1,4 +1,22 @@
 {
+  "reportSummary": {
+    "title": "Automatic summary",
+    "empty": "No data ({{noun}}) for the chosen period and criteria.",
+    "nounClaims": "claims",
+    "nounActions": "sub-actions",
+    "volume": "{{total}} {{noun}} over the period ({{delta}} compared with the previous period: {{previous}}).",
+    "volumeAlone": "{{total}} {{noun}} over the period.",
+    "rate": "Closure rate of {{rate}}% ({{closed}} of {{total}}), {{delta}} points compared with the previous period ({{previous}}%).",
+    "rateAlone": "Closure rate of {{rate}}% ({{closed}} of {{total}}).",
+    "late": "{{late}} late ({{delta}} compared with the previous period: {{previous}}).",
+    "lateAlone": "{{late}} late.",
+    "noLate": "No delay over the period.",
+    "worst": "Most late: {{label}} with {{late}} late ({{rate}}% closed).",
+    "watchDown": "To watch: the closure rate drops by {{delta}} points.",
+    "goodUp": "Improvement: the closure rate rises by {{delta}} points.",
+    "watchLate": "To watch: {{delta}} more late items than over the previous period.",
+    "comparedWith": "Compared with {{from}} → {{to}}, same length, same criteria."
+  },
   "reportClaims": {
     "gen": {
       "allResponsibles": "All owners",

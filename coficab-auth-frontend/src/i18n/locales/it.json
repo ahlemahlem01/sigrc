@@ -1,4 +1,22 @@
 {
+  "reportSummary": {
+    "title": "Sintesi automatica",
+    "empty": "Nessun dato ({{noun}}) nel periodo e con i criteri scelti.",
+    "nounClaims": "reclami",
+    "nounActions": "azioni",
+    "volume": "{{total}} {{noun}} nel periodo ({{delta}} rispetto al periodo precedente: {{previous}}).",
+    "volumeAlone": "{{total}} {{noun}} nel periodo.",
+    "rate": "Tasso di chiusura del {{rate}}% ({{closed}} su {{total}}), {{delta}} punti rispetto al periodo precedente ({{previous}}%).",
+    "rateAlone": "Tasso di chiusura del {{rate}}% ({{closed}} su {{total}}).",
+    "late": "{{late}} in ritardo ({{delta}} rispetto al periodo precedente: {{previous}}).",
+    "lateAlone": "{{late}} in ritardo.",
+    "noLate": "Nessun ritardo nel periodo.",
+    "worst": "Il più in ritardo: {{label}} con {{late}} in ritardo ({{rate}}% chiuso).",
+    "watchDown": "Da sorvegliare: il tasso di chiusura cala di {{delta}} punti.",
+    "goodUp": "Miglioramento: il tasso di chiusura sale di {{delta}} punti.",
+    "watchLate": "Da sorvegliare: {{delta}} ritardi in più rispetto al periodo precedente.",
+    "comparedWith": "Confrontato con {{from}} → {{to}}, stessa durata, stessi criteri."
+  },
   "reportClaims": {
     "gen": {
       "allResponsibles": "Tutti i responsabili",
