@@ -1,4 +1,18 @@
 {
+  "savedReports": {
+    "title": "Rapporti salvati",
+    "hint": "Conserva un rapporto così com'era quel giorno: criteri e dati restano salvati e si possono riaprire più tardi.",
+    "saveCurrent": "Salva questo rapporto",
+    "titlePh": "Titolo del rapporto",
+    "save": "Salva",
+    "saved": "Rapporto salvato.",
+    "failed": "Salvataggio non riuscito.",
+    "failedOpen": "Impossibile aprire questo rapporto.",
+    "none": "Nessun rapporto salvato.",
+    "items": "{{count}} elemento/i",
+    "archiveTitle": "Archivia il rapporto salvato",
+    "archiveText": "«{{title}}» uscirà dall'elenco. Viene conservato."
+  },
   "reportSummary": {
     "title": "Sintesi automatica",
     "empty": "Nessun dato ({{noun}}) nel periodo e con i criteri scelti.",

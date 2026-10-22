@@ -1,4 +1,18 @@
 {
+  "savedReports": {
+    "title": "Rapports enregistrés",
+    "hint": "Gardez un rapport tel qu'il était ce jour-là : ses critères et ses chiffres sont conservés et peuvent être rouverts plus tard.",
+    "saveCurrent": "Enregistrer ce rapport",
+    "titlePh": "Titre du rapport",
+    "save": "Enregistrer",
+    "saved": "Rapport enregistré.",
+    "failed": "L'enregistrement a échoué.",
+    "failedOpen": "Impossible d'ouvrir ce rapport.",
+    "none": "Aucun rapport enregistré.",
+    "items": "{{count}} élément(s)",
+    "archiveTitle": "Archiver le rapport enregistré",
+    "archiveText": "« {{title}} » sera retiré de la liste. Il est conservé."
+  },
   "reportSummary": {
     "title": "Synthèse automatique",
     "empty": "Aucune donnée ({{noun}}) sur la période et les critères choisis.",

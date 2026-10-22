@@ -8,6 +8,7 @@ import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
+import SavedReportsBar from '../../components/SavedReportsBar';
 import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -624,6 +625,14 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
           </span>
         </div>
       </div>
+
+      <SavedReportsBar
+        kind="capa-actions"
+        hasReport={!!report}
+        defaultTitle={`${t('actionsReport.title')} ${draft.from} → ${draft.to}`}
+        snapshot={() => report && ({ criteria: report.criteria, result: report, itemCount: report.totals.total })}
+        onOpen={(criteria, result) => { setDraft({ ...defaultCriteria(), ...criteria }); setReport(result); setExpanded(null); setError(null); }}
+      />
 
       {!report && !generating && (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">

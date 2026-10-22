@@ -1,4 +1,18 @@
 {
+  "savedReports": {
+    "title": "Saved reports",
+    "hint": "Keep a report as it was that day: its criteria and figures are stored and can be reopened later.",
+    "saveCurrent": "Save this report",
+    "titlePh": "Report title",
+    "save": "Save",
+    "saved": "Report saved.",
+    "failed": "Saving failed.",
+    "failedOpen": "Could not open this report.",
+    "none": "No saved report.",
+    "items": "{{count}} item(s)",
+    "archiveTitle": "Archive the saved report",
+    "archiveText": "\"{{title}}\" will leave the list. It is kept."
+  },
   "reportSummary": {
     "title": "Automatic summary",
     "empty": "No data ({{noun}}) for the chosen period and criteria.",

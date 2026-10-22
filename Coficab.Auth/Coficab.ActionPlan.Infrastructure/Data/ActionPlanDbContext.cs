@@ -31,6 +31,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
     public DbSet<UserAlias> UserAliases => Set<UserAlias>();
     public DbSet<ClaimEvent> ClaimEvents => Set<ClaimEvent>();
+    public DbSet<SavedReport> SavedReports => Set<SavedReport>();
     public DbSet<Badge> Badges => Set<Badge>();
     public DbSet<Document> Documents => Set<Document>();
     public DbSet<DocumentFavorite> DocumentFavorites => Set<DocumentFavorite>();
@@ -86,6 +87,18 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
                   .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(e => new { e.UserId, e.ActionPlanId }).IsUnique();
+        });
+
+        // ─── SavedReport: reports kept by administrators ──────────────────
+        modelBuilder.Entity<SavedReport>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Kind).IsRequired().HasMaxLength(40);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CreatedBy).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.CreatedByName).HasMaxLength(300);
+            entity.Property(e => e.ArchivedBy).HasMaxLength(450);
+            entity.HasIndex(e => new { e.Kind, e.IsArchived, e.CreatedAt });
         });
 
         // ─── ClaimEvent: append-only audit of claims ──────────────────────

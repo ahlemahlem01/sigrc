@@ -9,6 +9,7 @@ import { resolveClaimStatus } from '../../utils/Claimutils';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
+import SavedReportsBar from '../../components/SavedReportsBar';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
 
@@ -406,6 +407,32 @@ export default function AdminClaimsReportGenerator() {
           <span className="text-xs text-slate-400 ml-auto">{t('reportClaims.gen.sourceCount', { count: claims.length })}</span>
         </div>
       </div>
+
+      <SavedReportsBar
+        kind="claims"
+        hasReport={!!report}
+        defaultTitle={`${t('reportClaims.title')} ${draft.from} → ${draft.to}`}
+        snapshot={() => report && ({
+          criteria: report.criteria,
+          itemCount: report.totals.total,
+          // the claims are kept slim: only what the screen and the exports show
+          result: {
+            ...report,
+            groups: report.groups.map((g) => ({
+              ...g,
+              rows: g.rows.map((r) => ({
+                ...r,
+                claim: {
+                  id: r.claim.id, title: r.claim.title, clientId: r.claim.clientId, defectType: r.claim.defectType, severity: r.claim.severity,
+                  statusCode: r.claim.statusCode, deadline: r.claim.deadline, detectionDate: r.claim.detectionDate, createdAt: r.claim.createdAt,
+                  assignedToId: r.claim.assignedToId, assignedToName: r.claim.assignedToName, createdById: r.claim.createdById,
+                },
+              })),
+            })),
+          },
+        })}
+        onOpen={(criteria, result) => { setDraft({ ...defaultCriteria(), ...criteria }); setReport(result); setExpanded(null); setError(null); }}
+      />
 
       {!report && !generating && (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-14 text-center">
