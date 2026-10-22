@@ -3407,6 +3407,7 @@
     "opening": "Ouverture…"
   },
   "audit": {
+    "generatedOn": "Généré le {{date}}",
     "sourceAccounts": "Comptes et connexions",
     "module": {
       "iam": "Comptes",

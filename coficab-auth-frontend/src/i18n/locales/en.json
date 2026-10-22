@@ -3407,6 +3407,7 @@
     "opening": "Opening…"
   },
   "audit": {
+    "generatedOn": "Generated on {{date}}",
     "sourceAccounts": "Accounts and sign-ins",
     "module": {
       "iam": "Accounts",

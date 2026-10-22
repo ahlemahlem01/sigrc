@@ -900,11 +900,26 @@ export default function AuditLogPage() {
     severity: eventSeverity(e.action),
   })), [filtered]);
 
+  /** Moment of the download: date and hour, for the file name and for the title block of the files. */
+  const downloadStamp = () => {
+    const now = new Date();
+    const p = (n: number) => String(n).padStart(2, '0');
+    return {
+      file: `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}_${p(now.getHours())}-${p(now.getMinutes())}`,
+      label: now.toLocaleString(dateLocale(), { dateStyle: 'long', timeStyle: 'short' }),
+    };
+  };
+
   const handleExportCsv = () => {
     const rows = exportRows();
+    const stamp = downloadStamp();
     downloadCsv(
-      `${t('audit.fileName')}-${new Date().toISOString().slice(0, 10)}.csv`,
+      `${t('audit.fileName')}-${stamp.file}.csv`,
       [
+        [t('audit.pdfTitle')],
+        [t('audit.generatedOn', { date: stamp.label })],
+        [t('audit.pdfCount', { count: rows.length }), dateFrom || dateTo ? t('audit.pdfPeriod', { from: dateFrom || '…', to: dateTo || '…' }) : t('audit.pdfPeriodAll')],
+        [],
         t('audit.csvHeader').split('|'),
         ...rows.map((r) => [
           r.date, r.source, r.module, r.action, r.actionCode, r.actor, r.target, r.detail, r.department, r.planId, r.severity,
@@ -915,11 +930,13 @@ export default function AuditLogPage() {
 
   const handleExportPdf = () => {
     const rows = exportRows();
+    const stamp = downloadStamp();
     exportCapaPdf({
       title: t('audit.pdfTitle'),
       subtitle: t('audit.pdfSubtitle'),
-      filename: `${t('audit.fileName')}-${new Date().toISOString().slice(0, 10)}`,
+      filename: `${t('audit.fileName')}-${stamp.file}`,
       meta: [
+        t('audit.generatedOn', { date: stamp.label }),
         t('audit.pdfCount', { count: rows.length }),
         t('audit.pdfFilters', { count: activeFilterCount }),
         dateFrom || dateTo ? t('audit.pdfPeriod', { from: dateFrom || '…', to: dateTo || '…' }) : t('audit.pdfPeriodAll'),
