@@ -67,6 +67,8 @@ public class ClaimsHistoryRowDto
     public bool? IsOnTime { get; set; }
     public string? CreatedBy { get; set; }
     public string? CreatedById { get; set; }
+    public string? AssignedToId { get; set; }
+    public string? AssignedToName { get; set; }
     public string? ProductionLine { get; set; }
     public string? Shift { get; set; }
     public int? ProducedQuantity { get; set; }
@@ -374,6 +376,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 IsOnTime = c.IsOnTime,
                 CreatedBy = c.CreatedBy,
                 CreatedById = c.CreatedById,
+                AssignedToId = c.AssignedToId,
+                AssignedToName = c.AssignedToName,
                 ProductionLine = c.ProductionLine,
                 Shift = c.Shift,
                 ProducedQuantity = c.ProducedQuantity,
