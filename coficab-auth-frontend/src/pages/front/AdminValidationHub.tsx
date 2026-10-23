@@ -9,19 +9,21 @@ import {
   rejectActionPlan,
 } from '../../services/actionPlanService';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
-import { Claim, FiveWhyDetails } from '../../types/qualityAnalysis';
-import { resolveClaimStatus } from '../../utils/Claimutils';
 import {
-  ClaimDateSort,
-  DEFAULT_CLAIM_DATE_SORT,
-  sortClaimsByDate,
-} from '../../utils/claimDateSort';
-import { ClaimDateSortSelect } from '../../components/ClaimDateSortSelect';
+  decideDossiers,
+  getFiveWhyQueue,
+  notifyFiveWhyReturned,
+  type FiveWhyQueueItem,
+} from '../../services/validationsService';
+import { Claim } from '../../types/qualityAnalysis';
+import { resolveClaimStatus } from '../../utils/Claimutils';
 import { computeIatfSla, slaToneStyles } from '../../utils/iatfSla';
+import DecisionDialog from '../../components/DecisionDialog';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 
 type TabId = 'dossiers' | 'capa' | 'rejected' | 'fivewhy';
+type SortKey = 'oldest' | 'newest' | 'severity' | 'line';
 
 type PendingCapa = {
   id: string;
@@ -37,10 +39,13 @@ type PendingCapa = {
   lastRejectComment?: string;
 };
 
-type PendingFiveWhy = {
-  claim: Claim;
-  fiveWhy: FiveWhyDetails;
-};
+/** What the decision box is about: one or several files, or a single 5 Why / CAPA plan. */
+type Pending =
+  | { kind: 'dossiers'; ids: string[]; approve: boolean }
+  | { kind: 'fivewhy'; item: FiveWhyQueueItem; approve: boolean }
+  | { kind: 'capa'; plan: PendingCapa; approve: boolean };
+
+const SEVERITY_RANK: Record<string, number> = { critical: 0, critique: 0, high: 1, elevee: 1, élevée: 1, medium: 2, moyenne: 2, low: 3, faible: 3 };
 
 function pct(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return Math.max(0, Math.min(100, Math.round(raw)));
@@ -76,9 +81,24 @@ function isPendingDossier(claim: Claim): boolean {
   return raw === 'PENDING_VALIDATION' || raw === 'PENDING' || raw === 'SUBMITTED' || raw.includes('ATTENTE');
 }
 
+/** Since when a file waits for its validation: its last change, else its creation. */
+function waitingSince(claim: Claim): number {
+  const raw = claim.updatedAt || claim.createdAt;
+  const t = raw ? new Date(raw).getTime() : NaN;
+  return Number.isFinite(t) ? t : Date.now();
+}
+
+function waitDays(since: number): number {
+  return Math.max(0, Math.floor((Date.now() - since) / 86_400_000));
+}
+
+function waitTone(days: number): 'ok' | 'warn' | 'late' {
+  return days > 14 ? 'late' : days > 7 ? 'warn' : 'ok';
+}
+
 export const AdminValidationHub: React.FC = () => {
   const { t } = useTranslation();
-  const { accessToken, user } = useAuth();
+  const { accessToken } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
@@ -89,35 +109,41 @@ export const AdminValidationHub: React.FC = () => {
     'dossiers';
 
   const [dossiers, setDossiers] = useState<Claim[]>([]);
-  const [dateSort, setDateSort] = useState<ClaimDateSort>(DEFAULT_CLAIM_DATE_SORT);
+  const [sort, setSort] = useState<SortKey>('oldest');
+  const [search, setSearch] = useState('');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [capa, setCapa] = useState<PendingCapa[]>([]);
   const [rejected, setRejected] = useState<PendingCapa[]>([]);
-  const [fiveWhyQueue, setFiveWhyQueue] = useState<PendingFiveWhy[]>([]);
+  const [fiveWhyQueue, setFiveWhyQueue] = useState<FiveWhyQueueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pending, setPending] = useState<Pending | null>(null);
+  const [dialogBusy, setDialogBusy] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
 
   const setTab = (next: TabId) => {
     const p = new URLSearchParams(params);
     p.set('tab', next);
     setParams(p, { replace: true });
+    setSelected(new Set());
   };
 
   const loadDossiers = useCallback(async () => {
     if (!accessToken) return;
-    let pending: Claim[] = [];
+    let rows: Claim[] = [];
     try {
-      pending = await qualityAnalysisService.getClaims('PENDING_VALIDATION', accessToken);
+      rows = await qualityAnalysisService.getClaims('PENDING_VALIDATION', accessToken);
     } catch {
-      pending = [];
+      rows = [];
     }
-    if (!pending?.length) {
+    if (!rows?.length) {
       const all = await qualityAnalysisService.getClaims(undefined, accessToken);
-      pending = (all || []).filter(isPendingDossier);
+      rows = (all || []).filter(isPendingDossier);
     } else {
-      pending = pending.filter(isPendingDossier);
+      rows = rows.filter(isPendingDossier);
     }
-    setDossiers(pending);
+    setDossiers(rows);
   }, [accessToken]);
 
   const loadCapa = useCallback(async () => {
@@ -140,31 +166,11 @@ export const AdminValidationHub: React.FC = () => {
 
   const loadFiveWhy = useCallback(async () => {
     if (!accessToken) return;
-    const claims = await qualityAnalysisService.getClaims(undefined, accessToken);
-    const candidates = (claims || []).filter((c) => {
-      const s = String(c.statusCode || '').toUpperCase();
-      return s !== 'DRAFT' && s !== 'VALIDATED' && s !== 'CLOSED' && s !== 'REJETEE' && s !== 'REJECTED';
-    });
-
-    const results: PendingFiveWhy[] = [];
-    const chunk = 6;
-    for (let i = 0; i < candidates.length; i += chunk) {
-      const slice = candidates.slice(i, i + chunk);
-      const settled = await Promise.allSettled(
-        slice.map(async (claim) => {
-          const fw = await qualityAnalysisService.getFiveWhy(claim.id, accessToken);
-          return { claim, fiveWhy: fw };
-        })
-      );
-      for (const r of settled) {
-        if (r.status !== 'fulfilled' || !r.value?.fiveWhy) continue;
-        const code = String(r.value.fiveWhy.statusCode || '').toUpperCase();
-        if (code === 'PENDING_VALIDATION' || code === 'PENDING') {
-          results.push(r.value);
-        }
-      }
+    try {
+      setFiveWhyQueue(await getFiveWhyQueue(accessToken));
+    } catch {
+      setFiveWhyQueue([]);
     }
-    setFiveWhyQueue(results);
   }, [accessToken]);
 
   const loadAll = useCallback(async () => {
@@ -175,14 +181,13 @@ export const AdminValidationHub: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([loadDossiers(), loadCapa(), loadRejected()]);
+      await Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy()]);
     } catch (e: any) {
       console.error(e);
       setError(e?.message || i18n.t('validationHub.loadFailed'));
     } finally {
       setLoading(false);
     }
-    void loadFiveWhy().catch((e) => console.error(e));
   }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy]);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
@@ -197,116 +202,120 @@ export const AdminValidationHub: React.FC = () => {
     [dossiers.length, capa.length, rejected.length, fiveWhyQueue.length]
   );
 
-  const sortedDossiers = useMemo(
-    () => sortClaimsByDate(dossiers, dateSort),
-    [dossiers, dateSort]
+  const sortedDossiers = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const rows = q
+      ? dossiers.filter((c) =>
+          [c.title, c.reference, c.clientId, c.defectType, c.productionLine, c.lotNumber, c.assignedToName]
+            .some((v) => String(v || '').toLowerCase().includes(q)))
+      : dossiers;
+    const sev = (c: Claim) => SEVERITY_RANK[String(c.severity || '').toLowerCase()] ?? 4;
+    return [...rows].sort((a, b) => {
+      if (sort === 'newest') return waitingSince(b) - waitingSince(a);
+      if (sort === 'severity') return sev(a) - sev(b) || waitingSince(a) - waitingSince(b);
+      if (sort === 'line') return String(a.productionLine || '~').localeCompare(String(b.productionLine || '~')) || waitingSince(a) - waitingSince(b);
+      return waitingSince(a) - waitingSince(b);
+    });
+  }, [dossiers, sort, search]);
+
+  const sortedFiveWhy = useMemo(
+    () => [...fiveWhyQueue].sort((a, b) => new Date(a.since).getTime() - new Date(b.since).getTime()),
+    [fiveWhyQueue]
   );
 
-  const sortedFiveWhy = useMemo(() => {
-    const orderedIds = sortClaimsByDate(
-      fiveWhyQueue.map((x) => x.claim),
-      dateSort
-    ).map((c) => c.id);
-    const rank = new Map(orderedIds.map((id, i) => [id, i]));
-    return [...fiveWhyQueue].sort(
-      (a, b) => (rank.get(a.claim.id) ?? 0) - (rank.get(b.claim.id) ?? 0)
-    );
-  }, [fiveWhyQueue, dateSort]);
+  const visibleIds = useMemo(() => sortedDossiers.map((c) => c.id), [sortedDossiers]);
+  const selectedVisible = visibleIds.filter((id) => selected.has(id));
+  const allVisibleSelected = visibleIds.length > 0 && selectedVisible.length === visibleIds.length;
 
-  const userId = String((user as any)?.id || (user as any)?.sub || '');
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  const toggleAllVisible = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) visibleIds.forEach((id) => next.delete(id)); else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
 
-  const decideDossier = async (claim: Claim, approve: boolean) => {
-    if (!accessToken || busyId) return;
-    const label = approve
-      ? t('validationHub.confirmApproveDossier')
-      : t('validationHub.confirmReturnDossier');
-    if (!window.confirm(label)) return;
-    setBusyId(claim.id);
+  const openDialog = (p: Pending) => { setDialogError(null); setPending(p); };
+  const closeDialog = useCallback(() => { if (!dialogBusy) setPending(null); }, [dialogBusy]);
+
+  const confirmDialog = async (reason: string) => {
+    if (!accessToken || !pending) return;
+    setDialogBusy(true);
+    setDialogError(null);
     try {
-      await qualityAnalysisService.updateClaim(
-        claim.id,
-        {
-          id: claim.id,
-          updatedById: userId || claim.updatedById || claim.createdById || claim.id,
-          statusCode: approve ? 'OUVERTE' : 'DRAFT',
-        },
-        accessToken
-      );
-      setDossiers((prev) => prev.filter((c) => c.id !== claim.id));
-    } catch (e) {
-      console.error(e);
-      alert(workflowMessage(e) ?? (approve ? t('validationHub.approveDossierFailed') : t('validationHub.returnDossierFailed')));
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const validateCapa = async (p: PendingCapa) => {
-    if (!accessToken || busyId) return;
-    if ((p.proofCount ?? 0) <= 0) {
-      alert(t('validationHub.proofRequired'));
-      return;
-    }
-    if (!window.confirm(t('validationHub.confirmValidateCapa'))) return;
-    setBusyId(p.id);
-    try {
-      await closeActionPlan(accessToken, p.id);
-      setCapa((prev) => prev.filter((x) => x.id !== p.id));
+      if (pending.kind === 'dossiers') {
+        const results = await decideDossiers(accessToken, pending.ids, pending.approve, reason);
+        const done = new Set(results.filter((r) => r.ok).map((r) => r.id));
+        const failed = results.filter((r) => !r.ok);
+        setDossiers((prev) => prev.filter((c) => !done.has(c.id)));
+        setSelected((prev) => new Set(Array.from(prev).filter((id) => !done.has(id))));
+        setNotice(
+          failed.length === 0
+            ? t(pending.approve ? 'validationHub.noticeApproved' : 'validationHub.noticeReturned', { count: done.size })
+            : t('validationHub.noticePartial', { done: done.size, failed: failed.length, reason: failed[0].error || '' })
+        );
+      } else if (pending.kind === 'fivewhy') {
+        const { item, approve } = pending;
+        await qualityAnalysisService.validateFiveWhy(
+          {
+            analysisId: item.analysisId,
+            claimId: item.claimId,
+            isApproved: approve,
+            validatedBy: '',
+            statusCode: approve ? 'VALIDATED' : 'DRAFT',
+          } as any,
+          accessToken
+        );
+        if (!approve) await notifyFiveWhyReturned(accessToken, item.claimId, reason).catch(() => undefined);
+        setFiveWhyQueue((prev) => prev.filter((x) => x.analysisId !== item.analysisId));
+        setNotice(t(approve ? 'validationHub.noticeApproved' : 'validationHub.noticeReturned', { count: 1 }));
+      } else {
+        const { plan, approve } = pending;
+        if (approve) {
+          await closeActionPlan(accessToken, plan.id);
+        } else {
+          await rejectActionPlan(accessToken, plan.id, reason);
+          await loadRejected();
+        }
+        setCapa((prev) => prev.filter((x) => x.id !== plan.id));
+        setNotice(t(approve ? 'validationHub.noticeApproved' : 'validationHub.noticeReturned', { count: 1 }));
+      }
+      setPending(null);
     } catch (e: any) {
       console.error(e);
-      const msg = e?.response?.data?.error || t('validationHub.validateCapaFailed');
-      alert(msg);
+      setDialogError(
+        workflowMessage(e) ??
+        e?.response?.data?.error ??
+        e?.response?.data?.message ??
+        t('validationHub.decisionFailed')
+      );
     } finally {
-      setBusyId(null);
+      setDialogBusy(false);
     }
   };
 
-  const rejectCapa = async (p: PendingCapa) => {
-    if (!accessToken || busyId) return;
-    const comment = window.prompt(t('validationHub.returnReasonPrompt'), '') ?? '';
-    if (!comment.trim()) {
-      alert(t('validationHub.returnReasonRequired'));
+  const askCapa = (p: PendingCapa, approve: boolean) => {
+    if (approve && (p.proofCount ?? 0) <= 0) {
+      setNotice(t('validationHub.proofRequired'));
       return;
     }
-    setBusyId(p.id);
-    try {
-      await rejectActionPlan(accessToken, p.id, comment.trim());
-      setCapa((prev) => prev.filter((x) => x.id !== p.id));
-      await loadRejected();
-    } catch (e: any) {
-      console.error(e);
-      alert(e?.response?.data?.error || t('validationHub.returnCapaFailed'));
-    } finally {
-      setBusyId(null);
-    }
+    openDialog({ kind: 'capa', plan: p, approve });
   };
 
-  const decideFiveWhy = async (item: PendingFiveWhy, approve: boolean) => {
-    if (!accessToken || busyId) return;
-    const label = approve ? t('validationHub.confirmApproveFiveWhy') : t('validationHub.confirmReturnFiveWhy');
-    if (!window.confirm(label)) return;
-    setBusyId(item.fiveWhy.id);
-    try {
-      const validatedBy =
-        (user as any)?.email || (user as any)?.name || (user as any)?.fullName || 'admin';
-      await qualityAnalysisService.validateFiveWhy(
-        {
-          analysisId: item.fiveWhy.id,
-          claimId: item.claim.id,
-          isApproved: approve,
-          validatedBy,
-          statusCode: approve ? 'VALIDATED' : 'DRAFT',
-        } as any,
-        accessToken
-      );
-      setFiveWhyQueue((prev) => prev.filter((x) => x.fiveWhy.id !== item.fiveWhy.id));
-    } catch (e) {
-      console.error(e);
-      alert(approve ? t('validationHub.approveFiveWhyFailed') : t('validationHub.returnFiveWhyFailed'));
-    } finally {
-      setBusyId(null);
-    }
-  };
+  const dialogTitle = !pending ? '' : pending.approve ? t('validationHub.dialogApproveTitle') : t('validationHub.dialogReturnTitle');
+  const dialogCount = pending?.kind === 'dossiers' ? pending.ids.length : 1;
+  const dialogMessage = !pending
+    ? undefined
+    : pending.kind === 'dossiers'
+      ? t(pending.approve ? 'validationHub.dialogApproveDossiers' : 'validationHub.dialogReturnDossiers', { count: dialogCount })
+      : pending.kind === 'fivewhy'
+        ? t(pending.approve ? 'validationHub.confirmApproveFiveWhy' : 'validationHub.confirmReturnFiveWhy')
+        : t(pending.approve ? 'validationHub.confirmValidateCapa' : 'validationHub.returnReasonPrompt');
 
   const renderCapaCard = (p: PendingCapa, mode: 'pending' | 'rejected') => {
     const sla = computeIatfSla(p.createdAt || p.deadline, { progress: p.progress, gate: 'D5' });
@@ -354,11 +363,11 @@ export const AdminValidationHub: React.FC = () => {
           <Link className="avh-ghost" to={`/pages/front/action-plans/${p.id}`}>{t('qualityHistory.open')}</Link>
           {mode === 'pending' && (
             <>
-              <button type="button" className="avh-ko" disabled={busyId === p.id} onClick={() => void rejectCapa(p)}>
+              <button type="button" className="avh-ko" onClick={() => askCapa(p, false)}>
                 {t('validationHub.return')}
               </button>
-              <button type="button" className="avh-ok" disabled={busyId === p.id} onClick={() => void validateCapa(p)}>
-                {busyId === p.id ? '…' : t('validationHub.validateD5')}
+              <button type="button" className="avh-ok" onClick={() => askCapa(p, true)}>
+                {t('validationHub.validateD5')}
               </button>
             </>
           )}
@@ -394,20 +403,32 @@ export const AdminValidationHub: React.FC = () => {
           font-size:12px; font-weight:700; color:#64748b; cursor:pointer; font-family:inherit;
         }
         .avh-tab.on { background:var(--navy); color:#fff; border-color:var(--navy); }
-        .avh-date-sort {
-          margin-left:auto; height:34px; border:1px solid var(--line); border-radius:8px;
-          background:#fff; padding:0 10px; font-size:12px; color:#334155; min-width:190px;
-        }
         .avh-tab .n {
           display:inline-flex; min-width:18px; height:18px; padding:0 5px; margin-left:6px;
           align-items:center; justify-content:center; border-radius:999px; font-size:10px;
           background:rgba(255,255,255,.2);
         }
         .avh-tab:not(.on) .n { background:#eef2ff; color:var(--navy); }
+        .avh-tools { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:0 0 12px; }
+        .avh-search { flex:1; min-width:200px; height:34px; border:1px solid var(--line); border-radius:8px; background:#fff; padding:0 12px; font:inherit; font-size:13px; }
+        .avh-select { height:34px; border:1px solid var(--line); border-radius:8px; background:#fff; padding:0 10px; font:inherit; font-size:12.5px; color:#334155; }
+        .avh-checkall { display:inline-flex; align-items:center; gap:6px; font-size:12.5px; font-weight:600; color:#334155; cursor:pointer; }
+        .avh-bulk {
+          position:sticky; top:62px; z-index:20; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+          background:var(--navy); color:#fff; border-radius:12px; padding:10px 14px; margin-bottom:12px; box-shadow:0 6px 18px rgba(0,1,104,.25);
+        }
+        .avh-bulk strong { font-size:13px; margin-right:auto; }
+        .avh-bulk button { height:32px; padding:0 14px; border-radius:8px; border:none; font:inherit; font-size:12.5px; font-weight:700; cursor:pointer; }
+        .avh-bulk .ok { background:#059669; color:#fff; }
+        .avh-bulk .ko { background:#fff; color:#b91c1c; }
+        .avh-bulk .clr { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); }
         .avh-card {
           background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px;
           display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap;
         }
+        .avh-card.sel { border-color:var(--navy); box-shadow:0 0 0 1px var(--navy) inset; }
+        .avh-cb { width:18px; height:18px; accent-color:var(--navy); cursor:pointer; flex-shrink:0; }
+        .avh-ref { font-family:'JetBrains Mono', ui-monospace, monospace; font-size:11px; color:#64748b; margin-right:8px; }
         .avh-list { display:flex; flex-direction:column; gap:10px; }
         .avh-title-sm { margin:0; font-size:14px; font-weight:700; color:var(--ink); }
         .avh-meta { margin-top:4px; font-size:12px; color:#94a3b8; display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
@@ -415,12 +436,18 @@ export const AdminValidationHub: React.FC = () => {
           font-size:10px; font-weight:700; padding:3px 8px; border-radius:6px;
           background:#fffbeb; color:#b45309;
         }
+        .avh-wait { font-size:10.5px; font-weight:700; padding:3px 8px; border-radius:6px; }
+        .avh-wait.ok { background:#ecfdf5; color:#047857; }
+        .avh-wait.warn { background:#fffbeb; color:#b45309; }
+        .avh-wait.late { background:#fef2f2; color:#b91c1c; }
         .avh-acts { display:flex; gap:8px; flex-wrap:wrap; }
         .avh-ok { background:#059669; color:#fff; border:none; border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
         .avh-ko { background:#fff; color:#b91c1c; border:1px solid #fecaca; border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
         .avh-ghost { background:#fff; color:var(--navy); border:1px solid var(--line); border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; }
         .avh-empty, .avh-loading { padding:48px 20px; text-align:center; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:14px; }
         .avh-error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
+        .avh-notice { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; gap:10px; }
+        .avh-notice button { border:none; background:none; color:inherit; cursor:pointer; font-size:16px; line-height:1; }
       `}</style>
 
       <div className="avh-shell">
@@ -448,16 +475,15 @@ export const AdminValidationHub: React.FC = () => {
           <button type="button" className={`avh-tab${tab === 'rejected' ? ' on' : ''}`} onClick={() => setTab('rejected')}>
             {t('validationHub.tabReturned')} <span className="n">{counts.rejected}</span>
           </button>
-          {(tab === 'dossiers' || tab === 'fivewhy') && (
-            <ClaimDateSortSelect
-              className="avh-date-sort"
-              value={dateSort}
-              onChange={setDateSort}
-            />
-          )}
         </div>
 
         {error && <div className="avh-error">{error}</div>}
+        {notice && (
+          <div className="avh-notice" role="status">
+            <span>{notice}</span>
+            <button type="button" aria-label={t('decisionDialog.cancel')} onClick={() => setNotice(null)}>×</button>
+          </div>
+        )}
 
         {loading ? (
           <div className="avh-loading">{t('validationHub.loading')}</div>
@@ -465,55 +491,97 @@ export const AdminValidationHub: React.FC = () => {
           dossiers.length === 0 ? (
             <div className="avh-empty">{t('validationHub.emptyDossiers')}</div>
           ) : (
-            <div className="avh-list">
-              {sortedDossiers.map((claim) => (
-                <div key={claim.id} className="avh-card">
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <h3 className="avh-title-sm">{claim.title || t('validationHub.untitledDossier')}</h3>
-                    <div className="avh-meta">
-                      <span className="avh-pill">{t('validationHub.pillDossier')}</span>
-                      <span>{claim.clientId || '—'}</span>
-                      <span>{claim.defectType || '—'}</span>
-                      <span>{claim.severity || '—'}</span>
-                      {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
-                      {claim.createdAt && (
-                        <span>{t('validationHub.submitted')} {new Date(claim.createdAt).toLocaleDateString(dateLocale())}</span>
-                      )}
-                    </div>
-                    {claim.description && (
-                      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
-                        {claim.description.slice(0, 160)}{claim.description.length > 160 ? '…' : ''}
-                      </p>
-                    )}
-                  </div>
-                  <div className="avh-acts">
-                    <button
-                      type="button"
-                      className="avh-ghost"
-                      onClick={() => navigate(`/pages/front/quality-analyses?focus=${claim.id}`)}
-                    >
-                      {t('qualityHistory.open')}
-                    </button>
-                    <button
-                      type="button"
-                      className="avh-ko"
-                      disabled={busyId === claim.id}
-                      onClick={() => void decideDossier(claim, false)}
-                    >
-                      {t('validationHub.return')}
-                    </button>
-                    <button
-                      type="button"
-                      className="avh-ok"
-                      disabled={busyId === claim.id}
-                      onClick={() => void decideDossier(claim, true)}
-                    >
-                      {busyId === claim.id ? '…' : t('validationHub.approve')}
-                    </button>
-                  </div>
+            <>
+              <div className="avh-tools">
+                <label className="avh-checkall">
+                  <input type="checkbox" className="avh-cb" checked={allVisibleSelected} onChange={toggleAllVisible} />
+                  {t('validationHub.selectAll', { count: visibleIds.length })}
+                </label>
+                <input
+                  className="avh-search"
+                  type="search"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder={t('validationHub.searchPlaceholder')}
+                  aria-label={t('validationHub.searchPlaceholder')}
+                />
+                <select className="avh-select" value={sort} onChange={(e) => setSort(e.target.value as SortKey)} aria-label={t('validationHub.sortLabel')}>
+                  <option value="oldest">{t('validationHub.sortOldest')}</option>
+                  <option value="newest">{t('validationHub.sortNewest')}</option>
+                  <option value="severity">{t('validationHub.sortSeverity')}</option>
+                  <option value="line">{t('validationHub.sortLine')}</option>
+                </select>
+              </div>
+
+              {selectedVisible.length > 0 && (
+                <div className="avh-bulk" role="toolbar">
+                  <strong>{t('validationHub.selectedCount', { count: selectedVisible.length })}</strong>
+                  <button type="button" className="ok" onClick={() => openDialog({ kind: 'dossiers', ids: selectedVisible, approve: true })}>
+                    {t('validationHub.approveSelection')}
+                  </button>
+                  <button type="button" className="ko" onClick={() => openDialog({ kind: 'dossiers', ids: selectedVisible, approve: false })}>
+                    {t('validationHub.returnSelection')}
+                  </button>
+                  <button type="button" className="clr" onClick={() => setSelected(new Set())}>{t('validationHub.clearSelection')}</button>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {sortedDossiers.length === 0 ? (
+                <div className="avh-empty">{t('validationHub.noMatch')}</div>
+              ) : (
+                <div className="avh-list">
+                  {sortedDossiers.map((claim) => {
+                    const days = waitDays(waitingSince(claim));
+                    return (
+                      <div key={claim.id} className={`avh-card${selected.has(claim.id) ? ' sel' : ''}`}>
+                        <input
+                          type="checkbox"
+                          className="avh-cb"
+                          checked={selected.has(claim.id)}
+                          onChange={() => toggleOne(claim.id)}
+                          aria-label={t('validationHub.selectOne', { title: claim.title || '' })}
+                        />
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <h3 className="avh-title-sm">
+                            {claim.reference && <span className="avh-ref">{claim.reference}</span>}
+                            {claim.title || t('validationHub.untitledDossier')}
+                          </h3>
+                          <div className="avh-meta">
+                            <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
+                            <span>{claim.clientId || '—'}</span>
+                            <span>{claim.defectType || '—'}</span>
+                            <span>{claim.severity || '—'}</span>
+                            {claim.productionLine && <span>{claim.productionLine}</span>}
+                            {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
+                            {claim.assignedToName && <span>{claim.assignedToName}</span>}
+                          </div>
+                          {claim.description && (
+                            <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                              {claim.description.slice(0, 160)}{claim.description.length > 160 ? '…' : ''}
+                            </p>
+                          )}
+                        </div>
+                        <div className="avh-acts">
+                          <button
+                            type="button"
+                            className="avh-ghost"
+                            onClick={() => navigate(`/pages/front/quality-analyses?focus=${claim.id}`)}
+                          >
+                            {t('qualityHistory.open')}
+                          </button>
+                          <button type="button" className="avh-ko" onClick={() => openDialog({ kind: 'dossiers', ids: [claim.id], approve: false })}>
+                            {t('validationHub.return')}
+                          </button>
+                          <button type="button" className="avh-ok" onClick={() => openDialog({ kind: 'dossiers', ids: [claim.id], approve: true })}>
+                            {t('validationHub.approve')}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
           )
         ) : tab === 'capa' ? (
           capa.length === 0 ? (
@@ -531,52 +599,63 @@ export const AdminValidationHub: React.FC = () => {
           <div className="avh-empty">{t('validationHub.emptyFiveWhy')}</div>
         ) : (
           <div className="avh-list">
-            {sortedFiveWhy.map((item) => (
-              <div key={item.fiveWhy.id} className="avh-card">
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <h3 className="avh-title-sm">{item.claim.title || t('analysisTools.claim')}</h3>
-                  <div className="avh-meta">
-                    <span className="avh-pill">{t('validationHub.pillFiveWhy')}</span>
-                    <span>{item.claim.clientId || '—'}</span>
-                    <span>{item.claim.defectType || '—'}</span>
+            {sortedFiveWhy.map((item) => {
+              const days = waitDays(new Date(item.since).getTime());
+              return (
+                <div key={item.analysisId} className="avh-card">
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 className="avh-title-sm">
+                      {item.reference && <span className="avh-ref">{item.reference}</span>}
+                      {item.claimTitle || t('analysisTools.claim')}
+                    </h3>
+                    <div className="avh-meta">
+                      <span className="avh-pill">{t('validationHub.pillFiveWhy')}</span>
+                      <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
+                      <span>{item.clientId || '—'}</span>
+                      <span>{item.defectType || '—'}</span>
+                      {item.assignedToName && <span>{item.assignedToName}</span>}
+                    </div>
+                    {item.rootCause && (
+                      <p style={{ margin: '6px 0 0', fontSize: 12, color: '#334155' }}>
+                        {t('validationHub.rootCause')} : {item.rootCause.slice(0, 160)}
+                        {item.rootCause.length > 160 ? '…' : ''}
+                      </p>
+                    )}
                   </div>
-                  {item.fiveWhy.rootCause && (
-                    <p style={{ margin: '6px 0 0', fontSize: 12, color: '#334155' }}>
-                      {t('validationHub.rootCause')} : {item.fiveWhy.rootCause.slice(0, 160)}
-                      {item.fiveWhy.rootCause.length > 160 ? '…' : ''}
-                    </p>
-                  )}
+                  <div className="avh-acts">
+                    <button
+                      type="button"
+                      className="avh-ghost"
+                      onClick={() => navigate(`/pages/front/quality-analyses/5why/${item.claimId}`)}
+                    >
+                      {t('qualityHistory.open')}
+                    </button>
+                    <button type="button" className="avh-ko" onClick={() => openDialog({ kind: 'fivewhy', item, approve: false })}>
+                      {t('validationHub.return')}
+                    </button>
+                    <button type="button" className="avh-ok" onClick={() => openDialog({ kind: 'fivewhy', item, approve: true })}>
+                      {t('validationHub.approve')}
+                    </button>
+                  </div>
                 </div>
-                <div className="avh-acts">
-                  <button
-                    type="button"
-                    className="avh-ghost"
-                    onClick={() => navigate(`/pages/front/quality-analyses/5why/${item.claim.id}`)}
-                  >
-                    {t('qualityHistory.open')}
-                  </button>
-                  <button
-                    type="button"
-                    className="avh-ko"
-                    disabled={busyId === item.fiveWhy.id}
-                    onClick={() => void decideFiveWhy(item, false)}
-                  >
-                    {t('validationHub.return')}
-                  </button>
-                  <button
-                    type="button"
-                    className="avh-ok"
-                    disabled={busyId === item.fiveWhy.id}
-                    onClick={() => void decideFiveWhy(item, true)}
-                  >
-                    {busyId === item.fiveWhy.id ? '…' : t('validationHub.approve')}
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      <DecisionDialog
+        open={pending !== null}
+        title={dialogTitle}
+        message={dialogMessage}
+        reason={pending ? !pending.approve : false}
+        confirmLabel={pending?.approve ? t('validationHub.approve') : t('validationHub.return')}
+        tone={pending?.approve ? 'ok' : 'danger'}
+        busy={dialogBusy}
+        error={dialogError}
+        onCancel={closeDialog}
+        onConfirm={(reason) => void confirmDialog(reason)}
+      />
     </div>
   );
 };

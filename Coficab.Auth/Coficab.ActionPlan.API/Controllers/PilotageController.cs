@@ -35,29 +35,11 @@ public class PilotageController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] string? organizationIds = null, [FromQuery] Guid? departmentId = null, CancellationToken ct = default)
     {
-        var orgs = OrganizationFilter.Parse(organizationIds);
-        if (departmentId is { } wanted && orgs == null)
-        {
-            var org = await _db.Departments.AsNoTracking().Where(d => d.Id == wanted).Select(d => (Guid?)d.OrganizationId).FirstOrDefaultAsync(ct);
-            if (org != null) orgs = new[] { org.Value };
-        }
-        var scoped = orgs != null || departmentId != null;
-
-        // The people of the followed organization / department: the load is theirs, and so are the files assigned to them.
-        HashSet<string>? scopeUsers = null;
-        if (scoped)
-        {
-            var people = _db.UserProfiles.AsNoTracking().Where(u => u.Department != null);
-            if (orgs != null) people = people.Where(u => orgs.Contains(u.Department!.OrganizationId));
-            if (departmentId != null) people = people.Where(u => u.DepartmentId == departmentId);
-            scopeUsers = (await people.Select(u => u.UserId).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        }
-
-        var claimsBase = _db.Claims.AsNoTracking().Where(c => !c.IsArchived);
-        if (orgs != null) claimsBase = await ClaimOrganizations.ApplyAsync(_db, claimsBase, orgs, ct, departmentId);
-        var plansBase = _db.ActionPlans.AsNoTracking().Where(p => !p.IsArchived);
-        if (orgs != null) plansBase = plansBase.Where(p => orgs.Contains(p.OrganizationId));
-        if (departmentId != null) plansBase = plansBase.Where(p => p.DepartmentId == departmentId);
+        var scope = await AdminScope.ResolveAsync(_db, organizationIds, departmentId, ct);
+        var orgs = scope.Organizations;
+        var scopeUsers = scope.Users;
+        var claimsBase = await scope.ClaimsAsync(_db, ct);
+        var plansBase = scope.Plans(_db);
         var alertsBase = _db.Alerts.AsNoTracking().AsQueryable();
         if (departmentId != null) alertsBase = alertsBase.Where(a => a.DepartmentId == departmentId);
         else if (orgs != null) alertsBase = alertsBase.Where(a => a.DepartmentId != null && _db.Departments.Any(d => d.Id == a.DepartmentId && orgs.Contains(d.OrganizationId)));
@@ -100,12 +82,11 @@ public class PilotageController : ControllerBase
             .Select(c => new { c.Id, c.Reference, c.Title, Who = c.AssignedToName, LateDays = Days(c.Deadline!.Value) })
             .ToList();
 
-        var openPlans = (await plansBase.Where(p => p.AssignedToId != null).ToListAsync(ct))
-            .Where(PlanDeadlines.IsOpen)
-            .ToList();
-        var latePlans = openPlans.Where(p => PlanDeadlines.OverdueDays(p, today) > 0)
-            .OrderByDescending(p => PlanDeadlines.OverdueDays(p, today))
-            .ToList();
+        // A plan is late when its own deadline is past and it is not finished (same rule as the deadlines page).
+        var latePlans = (await plansBase
+                .Where(p => (p.Status == ActionPlanStatus.Created || p.Status == ActionPlanStatus.Ongoing) && p.Progress < 100 && p.Deadline != null && p.Deadline < now)
+                .OrderBy(p => p.Deadline)
+                .ToListAsync(ct));
         var planIdsInScope = plansBase.Where(p => p.Status == ActionPlanStatus.Created || p.Status == ActionPlanStatus.Ongoing).Select(p => p.Id);
         var lateActionCount = await _db.PlanActions.AsNoTracking()
             .CountAsync(a => !a.IsArchived && a.Deadline != null && a.Deadline < now && (int)a.Progress < 100 && planIdsInScope.Contains(a.ActionPlanId), ct);
@@ -148,7 +129,7 @@ public class PilotageController : ControllerBase
                     count = latePlans.Count,
                     items = latePlans.Take(Top).Select(p => new
                     {
-                        p.Id, p.Reference, p.Title, Who = (string?)null, LateDays = PlanDeadlines.OverdueDays(p, today),
+                        p.Id, p.Reference, p.Title, Who = (string?)null, LateDays = Days(p.Deadline!.Value),
                     }),
                 },
                 actions = lateActionCount,

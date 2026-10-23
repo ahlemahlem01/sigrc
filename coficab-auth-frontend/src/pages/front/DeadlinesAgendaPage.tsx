@@ -3,13 +3,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import {
-  getActionPlans,
-  getOverduePlanActions,
-  getPlanActions,
-  getUserActionPlans,
-} from '../../services/actionPlanService';
-import { getUsers, type UserDto } from '../../services/adminService';
+import { getPlanActions, getUserActionPlans } from '../../services/actionPlanService';
+import { getAdminDeadlines } from '../../services/validationsService';
+import { getScopeParam } from '../../services/organizationScopeStore';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
@@ -101,28 +97,6 @@ function urgencyOf(dateStr: string, closed: boolean): Urgency {
   return 'ok';
 }
 
-function userName(map: Map<string, string>, id?: string | null) {
-  if (!id) return '';
-  return map.get(String(id)) || '';
-}
-
-async function mapPool<T, R>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<R>
-): Promise<R[]> {
-  const results: R[] = [];
-  let idx = 0;
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (idx < items.length) {
-      const cur = items[idx++];
-      results.push(await worker(cur));
-    }
-  });
-  await Promise.all(runners);
-  return results;
-}
-
 export default function DeadlinesAgendaPage() {
   const { t, i18n } = useTranslation();
   const { accessToken, user } = useAuth();
@@ -143,32 +117,51 @@ export default function DeadlinesAgendaPage() {
   const [openOnly, setOpenOnly] = useState(true);
   const [assigneeFilter, setAssigneeFilter] = useState('all');
 
+  const planHref = useCallback(
+    (id: string) => (isAdmin ? `/pages/front/action-plans/${id}` : `/pages/front/my-action-plans/${id}`),
+    [isAdmin]
+  );
+  const claimHref = useCallback(
+    (id: string) =>
+      isAdmin
+        ? `/pages/front/quality-analyses/8d/${encodeURIComponent(id)}`
+        : `/pages/front/my-claims?claimId=${encodeURIComponent(id)}`,
+    [isAdmin]
+  );
+
   const load = useCallback(async () => {
     if (!accessToken) return;
     setLoading(true);
     setError(null);
     try {
-      const names = new Map<string, string>();
+      const open = t('employeeWorkspace.deadlinesStatusOpen');
+      const closedLabel = t('employeeWorkspace.deadlinesStatusClosed');
+
+      // Administrator: everything comes from one server request (open items and the last 90 days of closed ones).
       if (isAdmin) {
-        const users = await getUsers(accessToken).catch(() => [] as UserDto[]);
-        for (const u of users) {
-          names.set(String(u.id), u.fullName || u.email || u.id);
-        }
+        const rows = await getAdminDeadlines(accessToken, getScopeParam());
+        setItems(
+          rows.map((r) => ({
+            id: r.id,
+            kind: r.kind,
+            title: r.title || (r.kind === 'claim' ? t('employeeWorkspace.claimFallback', { id: r.id.slice(-8) }) : t('deadlines.untitledPlan')),
+            subtitle: r.subtitle || undefined,
+            assigneeId: r.assigneeId || undefined,
+            assigneeName: r.assigneeName || undefined,
+            deadline: r.deadline,
+            statusLabel: r.closed ? closedLabel : r.kind === 'claim' ? resolveClaimStatus({ statusCode: r.statusCode }) || open : open,
+            href: r.kind === 'claim' ? claimHref(r.id.replace('claim-', '')) : planHref(r.kind === 'plan' ? r.id.replace('plan-', '') : String(r.planId || '')),
+            closed: r.closed,
+          }))
+        );
+        return;
       }
 
-      const [plansRes, claimsRows, overdueRes] = await Promise.all([
-        (isAdmin ? getActionPlans(accessToken) : getUserActionPlans(accessToken)).catch(() => ({
-          data: [],
-        })),
-        (isAdmin
-          ? qualityAnalysisService.getClaims(undefined, accessToken)
-          : qualityAnalysisService.getMyAssignedClaims(accessToken)
-        ).catch(() => [] as Claim[]),
-        isAdmin
-          ? getOverduePlanActions(accessToken).catch(() => ({ data: [] }))
-          : Promise.resolve({ data: [] }),
+      // Employee: his claims, his plans and the sub-actions of the first plans.
+      const [plansRes, claimsRows] = await Promise.all([
+        getUserActionPlans(accessToken).catch(() => ({ data: [] })),
+        qualityAnalysisService.getMyAssignedClaims(accessToken).catch(() => [] as Claim[]),
       ]);
-
       const planList = unwrapList<Record<string, unknown>>(plansRes.data)
         .map((p) => ({
           id: String(p.id ?? p.Id ?? ''),
@@ -176,44 +169,22 @@ export default function DeadlinesAgendaPage() {
           status: Number(p.status ?? p.Status ?? 0),
           progress: Number(p.progress ?? p.Progress ?? 0),
           deadline: (p.deadline ?? p.Deadline) as string | undefined,
-          assignedToId: String(p.assignedToId ?? p.AssignedToId ?? '').trim() || undefined,
-          ownerId: String(p.ownerId ?? p.OwnerId ?? '').trim() || undefined,
         }))
         .filter((p) => p.id);
-
-      const planTitleById = new Map(planList.map((p) => [p.id, p.title]));
-      const claimList = Array.isArray(claimsRows) ? claimsRows : [];
       const collected: DeadlineItem[] = [];
 
-      const claimHref = (id: string) =>
-        isAdmin
-          ? `/pages/front/quality-analyses/8d/${encodeURIComponent(id)}`
-          : `/pages/front/my-claims?claimId=${encodeURIComponent(id)}`;
-
-      const planHref = (id: string) =>
-        isAdmin ? `/pages/front/action-plans/${id}` : `/pages/front/my-action-plans/${id}`;
-
-      for (const c of claimList) {
+      for (const c of Array.isArray(claimsRows) ? claimsRows : []) {
         const dl = c.deadline ?? (c as Claim & { Deadline?: string }).Deadline;
         if (!dl || !parseDeadline(dl)) continue;
         const id = String(c.id);
         const closed = isClaimClosed(c);
-        const assigneeId = String(c.assignedToId || (c as any).AssignedToId || '').trim() || undefined;
         collected.push({
           id: `claim-${id}`,
           kind: 'claim',
           title: c.title || t('employeeWorkspace.claimFallback', { id: id.slice(0, 8) }),
           subtitle: c.defectType || undefined,
-          assigneeId,
-          assigneeName:
-            c.assignedToName ||
-            (c as any).AssignedToName ||
-            userName(names, assigneeId) ||
-            undefined,
           deadline: String(dl),
-          statusLabel: closed
-            ? t('employeeWorkspace.deadlinesStatusClosed')
-            : resolveClaimStatus(c) || t('employeeWorkspace.deadlinesStatusOpen'),
+          statusLabel: closed ? closedLabel : resolveClaimStatus(c) || open,
           href: claimHref(id),
           closed,
         });
@@ -221,59 +192,20 @@ export default function DeadlinesAgendaPage() {
 
       for (const p of planList) {
         if (!p.deadline || !parseDeadline(p.deadline)) continue;
-        const closed = isPlanClosed(p.status, p.progress);
-        const assigneeId = p.assignedToId || p.ownerId;
+        const closed = isPlanClosed(p.status, p.progress) || p.status === 3 || p.status === 4;
         collected.push({
           id: `plan-${p.id}`,
           kind: 'plan',
           title: p.title,
-          subtitle: undefined,
-          assigneeId,
-          assigneeName: userName(names, assigneeId) || undefined,
           deadline: String(p.deadline),
-          statusLabel: closed
-            ? t('employeeWorkspace.deadlinesStatusClosed')
-            : t('employeeWorkspace.deadlinesStatusOpen'),
+          statusLabel: closed ? closedLabel : open,
           href: planHref(p.id),
-          closed: closed || p.status === 3 || p.status === 4,
+          closed,
         });
       }
 
-      // Actions: employee = per-plan (capped); admin = overdue endpoint + sample of open plans
-      if (isAdmin) {
-        const overdueActions = unwrapList<Record<string, unknown>>(
-          (overdueRes as any)?.data ?? overdueRes
-        );
-        for (const a of overdueActions) {
-          const id = String(a.id ?? a.Id ?? '');
-          const deadline = (a.deadline ?? a.Deadline) as string | undefined;
-          if (!id || !deadline || !parseDeadline(deadline)) continue;
-          const progress = Number(a.progress ?? a.Progress ?? 0);
-          const closed = isActionDone(progress);
-          const planId = String(a.actionPlanId ?? a.ActionPlanId ?? '');
-          const assigneeId =
-            String(a.assignedToId ?? a.AssignedToId ?? '').trim() || undefined;
-          collected.push({
-            id: `action-${id}`,
-            kind: 'action',
-            title: String(a.title ?? a.Title ?? t('employeeWorkspace.deadlinesKindAction')),
-            subtitle: planTitleById.get(planId),
-            assigneeId,
-            assigneeName: userName(names, assigneeId) || undefined,
-            deadline: String(deadline),
-            statusLabel: closed
-              ? t('employeeWorkspace.deadlinesStatusClosed')
-              : t('employeeWorkspace.deadlinesStatusOpen'),
-            href: planHref(planId || id),
-            closed,
-          });
-        }
-
-        const openPlans = planList
-          .filter((p) => !isPlanClosed(p.status, p.progress))
-          .slice(0, 80);
-
-        const actionBatches = await mapPool(openPlans, 6, async (plan) => {
+      const actionLists = await Promise.all(
+        planList.slice(0, 50).map(async (plan) => {
           try {
             const res = await getPlanActions(accessToken, plan.id);
             return unwrapList<Record<string, unknown>>(res.data).map((a) => ({
@@ -283,68 +215,25 @@ export default function DeadlinesAgendaPage() {
               progress: Number(a.progress ?? a.Progress ?? 0),
               planId: plan.id,
               planTitle: plan.title,
-              assignedToId:
-                String(a.assignedToId ?? a.AssignedToId ?? '').trim() || undefined,
             }));
           } catch {
             return [];
           }
+        })
+      );
+      for (const a of actionLists.flat()) {
+        if (!a.id || !a.deadline || !parseDeadline(a.deadline)) continue;
+        const closed = isActionDone(a.progress);
+        collected.push({
+          id: `action-${a.id}`,
+          kind: 'action',
+          title: a.title || t('employeeWorkspace.deadlinesKindAction'),
+          subtitle: a.planTitle,
+          deadline: String(a.deadline),
+          statusLabel: closed ? closedLabel : open,
+          href: planHref(a.planId),
+          closed,
         });
-
-        for (const a of actionBatches.flat()) {
-          if (!a.id || !a.deadline || !parseDeadline(a.deadline)) continue;
-          // Skip past open already covered by overdue endpoint when possible
-          const closed = isActionDone(a.progress);
-          collected.push({
-            id: `action-${a.id}`,
-            kind: 'action',
-            title: a.title || t('employeeWorkspace.deadlinesKindAction'),
-            subtitle: a.planTitle,
-            assigneeId: a.assignedToId,
-            assigneeName: userName(names, a.assignedToId) || undefined,
-            deadline: String(a.deadline),
-            statusLabel: closed
-              ? t('employeeWorkspace.deadlinesStatusClosed')
-              : t('employeeWorkspace.deadlinesStatusOpen'),
-            href: planHref(a.planId),
-            closed,
-          });
-        }
-      } else {
-        const actionLists = await Promise.all(
-          planList.slice(0, 50).map(async (plan) => {
-            try {
-              const res = await getPlanActions(accessToken, plan.id);
-              return unwrapList<Record<string, unknown>>(res.data).map((a) => ({
-                id: String(a.id ?? a.Id ?? ''),
-                title: String(a.title ?? a.Title ?? ''),
-                deadline: (a.deadline ?? a.Deadline) as string | undefined,
-                progress: Number(a.progress ?? a.Progress ?? 0),
-                planId: plan.id,
-                planTitle: plan.title,
-              }));
-            } catch {
-              return [];
-            }
-          })
-        );
-
-        for (const a of actionLists.flat()) {
-          if (!a.id || !a.deadline || !parseDeadline(a.deadline)) continue;
-          const closed = isActionDone(a.progress);
-          collected.push({
-            id: `action-${a.id}`,
-            kind: 'action',
-            title: a.title || t('employeeWorkspace.deadlinesKindAction'),
-            subtitle: a.planTitle,
-            deadline: String(a.deadline),
-            statusLabel: closed
-              ? t('employeeWorkspace.deadlinesStatusClosed')
-              : t('employeeWorkspace.deadlinesStatusOpen'),
-            href: planHref(a.planId),
-            closed,
-          });
-        }
       }
 
       const byId = new Map<string, DeadlineItem>();
@@ -357,7 +246,7 @@ export default function DeadlinesAgendaPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, isAdmin, t]);
+  }, [accessToken, isAdmin, t, claimHref, planHref]);
 
   useEffect(() => {
     void load();
