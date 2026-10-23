@@ -3217,6 +3217,9 @@
     "noProgress": "No progress history."
   },
   "frontNav": {
+    "sectionMenu": "Section menu",
+    "claimsDirectory": "Directory",
+    "myClaims": "My claims",
     "validationFiles": "Files",
     "validationFiveWhy": "5 Why analyses",
     "validationCapa": "CAPA · D5",

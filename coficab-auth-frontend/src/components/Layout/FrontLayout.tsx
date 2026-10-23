@@ -2,11 +2,11 @@ import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import {
-  LogOut, LayoutDashboard, ShieldCheck, ChevronDown, PlayCircle, CheckCircle2, PlusCircle,
-  Users, ClipboardList, History, FileText, BadgeCheck, AlertTriangle, BookOpen,
+  LogOut, LayoutDashboard, ShieldCheck, CheckCircle2, PlusCircle,
+  Users, ClipboardList, History, FileText, AlertTriangle, BookOpen,
   CalendarDays, CalendarClock, AppWindow,
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
@@ -47,6 +47,65 @@ const FrontLayout = () => {
     !isAgendaPath &&
     (location.pathname === '/pages/front/action-plans' ||
       location.pathname.startsWith('/pages/front/action-plans/'));
+
+  const isQualityPath =
+    isActive(QUALITY_ANALYSIS_PATH) || isActive('/pages/front/my-claims') || location.pathname === '/alerts' ||
+    isActive('/pages/front/alerts') || isActive('/claims');
+
+  /** The first level of the menu: the sections. Also shown as a row under the bar on narrow screens. */
+  const mainLinks: Array<{ to: string; label: string; active: boolean }> = [
+    { to: '/pages/front', label: t('employeeWorkspace.frontHome'), active: location.pathname === '/pages/front' },
+    ...(isAdmin ? [
+      { to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') },
+      { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
+    ] : []),
+    ...(isAuthenticated ? [
+      {
+        to: isAdmin ? '/pages/front/action-plans' : '/pages/front/my-action-plans',
+        label: t(isAdmin ? 'employeeWorkspace.frontPlans' : 'employeeWorkspace.frontMyPlans'),
+        active: isPlansNavActive || isActive('/pages/front/my-action-plans'),
+      },
+      { to: '/pages/front/agenda/deadlines', label: t('employeeWorkspace.frontAgenda'), active: isAgendaPath },
+      { to: QUALITY_ANALYSIS_PATH, label: t('employeeWorkspace.frontQuality'), active: isQualityPath },
+    ] : []),
+  ];
+
+  /** The second level of the menu: the pages of the section being viewed (no more hover menus). */
+  type SubLink = { to: string; label: string; icon: ReactNode; active: boolean };
+  const here = location.pathname;
+  const QP = QUALITY_ANALYSIS_PATH;
+  const PLANS = '/pages/front/action-plans';
+  let subLinks: SubLink[] = [];
+  let subAction: { to: string; label: string } | null = null;
+  if (isAuthenticated && isAgendaPath) {
+    subLinks = [
+      { to: '/pages/front/agenda/deadlines', label: t('employeeWorkspace.frontDeadlines'), icon: <CalendarClock size={14} />, active: here === '/pages/front/agenda/deadlines' },
+      { to: `${PLANS}/calendar`, label: t('employeeWorkspace.frontCalendar'), icon: <CalendarDays size={14} />, active: here === `${PLANS}/calendar` },
+    ];
+  } else if (isAuthenticated && isAdmin && isPlansNavActive) {
+    subLinks = [
+      { to: PLANS, label: t('employeeWorkspace.frontAllPlans'), icon: <ClipboardList size={14} />, active: here === PLANS || (here.startsWith(`${PLANS}/`) && here !== `${PLANS}/history` && !isActive(`${PLANS}/assignments`)) },
+      { to: `${PLANS}/history`, label: t('employeeWorkspace.frontHistory'), icon: <History size={14} />, active: here === `${PLANS}/history` },
+      { to: `${PLANS}/assignments`, label: t('employeeWorkspace.frontAssignments'), icon: <Users size={14} />, active: isActive(`${PLANS}/assignments`) },
+    ];
+  } else if (isAuthenticated && isQualityPath) {
+    subLinks = [
+      { to: '/alerts', label: t('employeeWorkspace.frontAlerts'), icon: <AlertTriangle size={14} />, active: here === '/alerts' || here === '/pages/front/alerts' },
+      {
+        to: QP,
+        label: isAdmin ? t('frontNav.claimsDirectory') : t('frontNav.myClaims'),
+        icon: <ShieldCheck size={14} />,
+        active: here === QP || here === '/pages/front/my-claims' || here === `${QP}/assigned`,
+      },
+      ...(isAdmin
+        ? [{ to: `${QP}/managed`, label: t('frontNav.myCreatedClaims'), icon: <Users size={14} />, active: here === `${QP}/managed` }]
+        : [{ to: `${QP}/closed`, label: t('closedArchive.title'), icon: <CheckCircle2 size={14} />, active: here === `${QP}/closed` }]),
+      { to: `${QP}/drafts`, label: t('drafts.title'), icon: <FileText size={14} />, active: here === `${QP}/drafts` },
+      { to: `${QP}/history`, label: t('frontNav.history'), icon: <History size={14} />, active: here === `${QP}/history` },
+      { to: `${QP}/parcours`, label: t('frontNav.guide'), icon: <BookOpen size={14} />, active: here.startsWith(`${QP}/parcours`) },
+    ];
+    subAction = { to: `${QP}/new`, label: t('claimsList.newClaim') };
+  }
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 15);
@@ -274,6 +333,25 @@ const FrontLayout = () => {
         }
 
         .fl-main { display: block; min-height: calc(100dvh - 56px); padding-top: 56px; }
+        .fl-subnav {
+          position: sticky; top: 56px; z-index: 40; display: flex; align-items: center; gap: 2px;
+          background: #fff; border-bottom: 1px solid #e5e9f2; padding: 0 24px; overflow-x: auto; scrollbar-width: none;
+        }
+        .fl-subnav-link {
+          display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; white-space: nowrap;
+          font-size: 13px; font-weight: 600; color: #475569; text-decoration: none; border-bottom: 2px solid transparent;
+        }
+        .fl-narrownav { display: none; background: #f1f4fb; }
+        @media (max-width: 1024px) { .fl-narrownav { display: flex; } .fl-narrownav + .fl-subnav { top: 100px; } }
+        .fl-subnav-link:hover { color: #000168; }
+        .fl-subnav-link.active { color: #000168; border-bottom-color: #000168; }
+        .fl-subnav-action {
+          margin-left: auto; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+          height: 32px; padding: 0 14px; border-radius: 8px; background: #000168; color: #fff;
+          font-size: 12.5px; font-weight: 700; text-decoration: none;
+        }
+        .fl-subnav-action:hover { background: #00009e; }
+
 
         /* ─── FOOTER ─── */
         .fl-footer { 
@@ -330,231 +408,11 @@ const FrontLayout = () => {
           </Link>
 
           <div className="fl-nav-links">
-            <Link to="/pages/front" className={`fl-nav-link ${location.pathname === '/pages/front' ? 'active' : ''}`}>
-              {t('employeeWorkspace.frontHome')}
-            </Link>
-
-            {isAdmin && (
-              <Link to="/pages/front/pilotage" className={`fl-nav-link ${isActive('/pages/front/pilotage') ? 'active' : ''}`}>
-                {t('pilotage.nav')}
+            {mainLinks.map((l) => (
+              <Link key={l.to} to={l.to} className={`fl-nav-link ${l.active ? 'active' : ''}`}>
+                {l.label}
               </Link>
-            )}
-
-            {/* ── Plans d'action ── */}
-            {isAdmin ? (
-              <div className="fl-nav-dropdown-wrap">
-                <span className={`fl-nav-link ${isPlansNavActive ? 'active' : ''}`}>
-                  {t('employeeWorkspace.frontPlans')} <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                </span>
-                <div className="fl-nav-dropdown-menu">
-                  <Link to="/pages/front/action-plans" className={`fl-nav-dropdown-item ${location.pathname === '/pages/front/action-plans' ? 'active' : ''}`}>
-                    <ClipboardList size={14} /> {t('employeeWorkspace.frontAllPlans')}
-                  </Link>
-                  <Link to="/pages/front/action-plans/history" className={`fl-nav-dropdown-item ${location.pathname === '/pages/front/action-plans/history' ? 'active' : ''}`}>
-                    <History size={14} /> {t('employeeWorkspace.frontHistory')}
-                  </Link>
-                  <Link to="/pages/front/action-plans/assignments" className={`fl-nav-dropdown-item ${isActive('/pages/front/action-plans/assignments') ? 'active' : ''}`}>
-                    <Users size={14} /> {t('employeeWorkspace.frontAssignments')}
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              isAuthenticated && (
-                <Link to="/pages/front/my-action-plans" className={`fl-nav-link ${isActive('/pages/front/my-action-plans') ? 'active' : ''}`}>
-                  {t('employeeWorkspace.frontMyPlans')}
-                </Link>
-              )
-            )}
-
-            {/* ── Agenda (calendrier + deadlines) ── */}
-            {isAuthenticated && (
-              <div className="fl-nav-dropdown-wrap">
-                <span className={`fl-nav-link ${isAgendaPath ? 'active' : ''}`}>
-                  {t('employeeWorkspace.frontAgenda')} <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                </span>
-                <div className="fl-nav-dropdown-menu">
-                  <Link
-                    to="/pages/front/action-plans/calendar"
-                    className={`fl-nav-dropdown-item ${location.pathname === '/pages/front/action-plans/calendar' ? 'active' : ''}`}
-                  >
-                    <CalendarDays size={14} /> {t('employeeWorkspace.frontCalendar')}
-                  </Link>
-                  <Link
-                    to="/pages/front/agenda/deadlines"
-                    className={`fl-nav-dropdown-item ${location.pathname === '/pages/front/agenda/deadlines' ? 'active' : ''}`}
-                  >
-                    <CalendarClock size={14} /> {t('employeeWorkspace.frontDeadlines')}
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* ── Validations (admin) ── */}
-            {isAdmin && (
-              <div className="fl-nav-dropdown-wrap">
-                <span className={`fl-nav-link ${isActive('/pages/front/validations') ? 'active' : ''}`}>
-                  {t('employeeWorkspace.frontValidationsLabel')} <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                </span>
-                <div className="fl-nav-dropdown-menu">
-                  <Link
-                    to="/pages/front/validations?tab=dossiers"
-                    className={`fl-nav-dropdown-item ${location.pathname.startsWith('/pages/front/validations') && (location.search.includes('tab=dossiers') || !location.search || (!location.search.includes('tab=') )) ? 'active' : ''}`}
-                  >
-                    <FileText size={14} /> {t('frontNav.validationFiles')}
-                  </Link>
-                  <Link
-                    to="/pages/front/validations?tab=fivewhy"
-                    className={`fl-nav-dropdown-item ${location.search.includes('tab=fivewhy') ? 'active' : ''}`}
-                  >
-                    <ShieldCheck size={14} /> {t('frontNav.validationFiveWhy')}
-                  </Link>
-                  <Link
-                    to="/pages/front/validations?tab=capa"
-                    className={`fl-nav-dropdown-item ${location.search.includes('tab=capa') ? 'active' : ''}`}
-                  >
-                    <BadgeCheck size={14} /> {t('frontNav.validationCapa')}
-                  </Link>
-                  <Link
-                    to="/pages/front/validations?tab=rejected"
-                    className={`fl-nav-dropdown-item ${location.search.includes('tab=rejected') ? 'active' : ''}`}
-                  >
-                    <BadgeCheck size={14} /> {t('frontNav.validationRejected')}
-                  </Link>
-                </div>
-              </div>
-            )}
-
-            {/* ── Analyses Qualité 8D ── */}
-            {isAuthenticated && (
-              <div className="fl-nav-dropdown-wrap">
-                <span className={`fl-nav-link ${isActive(QUALITY_ANALYSIS_PATH) || isActive('/pages/front/my-claims') || isActive('/alerts') || isActive('/pages/front/alerts') ? 'active' : ''}`}>
-                  {t('employeeWorkspace.frontQuality')}
-                  <ChevronDown size={12} style={{ opacity: 0.7 }} />
-                </span>
-                <div className="fl-nav-dropdown-menu">
-                  <Link
-                    to="/alerts"
-                    className={`fl-nav-dropdown-item ${location.pathname === '/alerts' || location.pathname === '/pages/front/alerts' ? 'active' : ''}`}
-                  >
-                    <AlertTriangle size={14} /> {t('employeeWorkspace.frontAlerts')}
-                  </Link>
-                  {isAdmin ? (
-                    <>
-                      <Link
-                        to={QUALITY_ANALYSIS_PATH}
-                        className={`fl-nav-dropdown-item ${location.pathname === QUALITY_ANALYSIS_PATH && !location.search ? 'active' : ''}`}
-                      >
-                        <ShieldCheck size={14} /> {t('claimsList.phaseAll')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/managed`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/managed` ? 'active' : ''}`}
-                      >
-                        <Users size={14} /> {t('frontNav.myCreatedClaims')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}?status=ASSIGNED`}
-                        className={`fl-nav-dropdown-item ${location.search.includes('status=ASSIGNED') && !location.search.includes('hasAssignee') ? 'active' : ''}`}
-                      >
-                        <Users size={14} /> {t('frontNav.allAssigned')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}?hasAssignee=false`}
-                        className={`fl-nav-dropdown-item ${location.search.includes('hasAssignee=false') ? 'active' : ''}`}
-                      >
-                        <Users size={14} /> {t('frontNav.unassigned')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}?status=IN_ANALYSIS`}
-                        className={`fl-nav-dropdown-item ${location.search.includes('status=IN_ANALYSIS') ? 'active' : ''}`}
-                      >
-                        <PlayCircle size={14} className="text-emerald-400" /> {t('frontNav.analysesInProgress')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}?status=VALIDATED`}
-                        className={`fl-nav-dropdown-item ${location.search.includes('status=VALIDATED') ? 'active' : ''}`}
-                      >
-                        <CheckCircle2 size={14} className="text-blue-400" /> {t('frontNav.analysesValidated')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/history`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/history` ? 'active' : ''}`}
-                      >
-                        <History size={14} /> {t('frontNav.history')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/parcours`}
-                        className={`fl-nav-dropdown-item ${location.pathname.startsWith(`${QUALITY_ANALYSIS_PATH}/parcours`) ? 'active' : ''}`}
-                      >
-                        <BookOpen size={14} /> {t('frontNav.guide')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/drafts`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/drafts` ? 'active' : ''}`}
-                      >
-                        <FileText size={14} /> {t('drafts.title')}
-                      </Link>
-                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/new`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/new` || location.pathname === `${QUALITY_ANALYSIS_PATH}/create` ? 'active' : ''}`}
-                        style={{ color: '#60a5fa', fontWeight: 600 }}
-                      >
-                        <PlusCircle size={14} /> {t('claimsList.newClaim')}
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <Link
-                        to={QUALITY_ANALYSIS_PATH}
-                        className={`fl-nav-dropdown-item ${
-                          (location.pathname === QUALITY_ANALYSIS_PATH ||
-                            location.pathname === '/pages/front/my-claims' ||
-                            location.pathname === `${QUALITY_ANALYSIS_PATH}/assigned`) &&
-                          !location.pathname.endsWith('/closed')
-                            ? 'active'
-                            : ''
-                        }`}
-                      >
-                        <ShieldCheck size={14} /> {t('claimsList.phaseAll')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/closed`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/closed` ? 'active' : ''}`}
-                      >
-                        <CheckCircle2 size={14} className="text-blue-400" /> {t('closedArchive.title')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/history`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/history` ? 'active' : ''}`}
-                      >
-                        <History size={14} /> {t('frontNav.history')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/parcours`}
-                        className={`fl-nav-dropdown-item ${location.pathname.startsWith(`${QUALITY_ANALYSIS_PATH}/parcours`) ? 'active' : ''}`}
-                      >
-                        <BookOpen size={14} /> {t('frontNav.guide')}
-                      </Link>
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/drafts`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/drafts` ? 'active' : ''}`}
-                      >
-                        <FileText size={14} /> {t('drafts.title')}
-                      </Link>
-                      <div style={{ height: '1px', background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
-                      <Link
-                        to={`${QUALITY_ANALYSIS_PATH}/new`}
-                        className={`fl-nav-dropdown-item ${location.pathname === `${QUALITY_ANALYSIS_PATH}/new` || location.pathname === `${QUALITY_ANALYSIS_PATH}/create` ? 'active' : ''}`}
-                        style={{ color: '#60a5fa', fontWeight: 600 }}
-                      >
-                        <PlusCircle size={14} /> {t('claimsList.newClaim')}
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            ))}
           </div>
 
           <div className="fl-right">
@@ -607,6 +465,25 @@ const FrontLayout = () => {
 
       {/* ─── MAIN CONTENT ─── */}
       <main className="fl-main">
+        <nav className="fl-subnav fl-narrownav" aria-label={t('frontNav.sectionMenu')}>
+          {mainLinks.map((l) => (
+            <Link key={l.to} to={l.to} className={`fl-subnav-link${l.active ? ' active' : ''}`}>{l.label}</Link>
+          ))}
+        </nav>
+        {subLinks.length > 0 && (
+          <nav className="fl-subnav" aria-label={t('frontNav.sectionMenu')}>
+            {subLinks.map((l) => (
+              <Link key={l.to} to={l.to} className={`fl-subnav-link${l.active ? ' active' : ''}`}>
+                {l.icon} {l.label}
+              </Link>
+            ))}
+            {subAction && (
+              <Link to={subAction.to} className="fl-subnav-action">
+                <PlusCircle size={14} /> {subAction.label}
+              </Link>
+            )}
+          </nav>
+        )}
         <Outlet />
       </main>
 

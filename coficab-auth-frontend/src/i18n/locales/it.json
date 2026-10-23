@@ -3217,6 +3217,9 @@
     "noProgress": "Nessuno storico di avanzamento."
   },
   "frontNav": {
+    "sectionMenu": "Menu della sezione",
+    "claimsDirectory": "Elenco",
+    "myClaims": "I miei reclami",
     "validationFiles": "Dossier",
     "validationFiveWhy": "Analisi 5 Why",
     "validationCapa": "CAPA · D5",
