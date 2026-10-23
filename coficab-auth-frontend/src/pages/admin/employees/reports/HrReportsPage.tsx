@@ -13,6 +13,7 @@ import {
   type HrReportEmployeePayload,
 } from '../../../../services/hrReportService';
 import { activityStatusLabel, normalizeActivityStatus } from '../../../../utils/activityStatus';
+import { buildTeamSummary } from '../../../../utils/teamSummary';
 import { downloadCapaReportPdf, type CapaPdfExportOpts } from '../../../../utils/capaPdfExport';
 import { inferWorkFieldsFromDepartment } from '../../../../utils/employeeWorkFields';
 import type { Department } from '../../../../types/department';
@@ -191,7 +192,7 @@ export default function HrReportsPage() {
       setDepartments(Object.keys(deptMap).sort((a, b) => a.localeCompare(b, 'fr')));
 
       try {
-        const perf = await fetchEmployeePerformance(accessToken, merged);
+        const perf = await fetchEmployeePerformance(accessToken, merged, { aligned: true });
         setPerfById(new Map(perf.map((r) => [r.userId.toLowerCase(), r])));
       } catch {
         setPerfById(new Map());
@@ -285,6 +286,16 @@ export default function HrReportsPage() {
           closureRate: perf?.closureRate ?? 0,
           overdueCount: perf?.overdueCount ?? 0,
           avgDelayDays: perf?.avgDelayDays ?? 0,
+          claimsOpen: perf?.claims?.open,
+          claimsClosureRate: perf?.claims?.rate,
+          claimsLate: perf?.claims?.late,
+          plansOpen: perf?.plans?.open,
+          plansClosureRate: perf?.plans?.rate,
+          plansLate: perf?.plans?.late,
+          actionsLate: perf?.actions?.late,
+          actionsToValidate: perf?.actions?.toValidate,
+          plansActivity: perf?.activity?.plans,
+          claimsActivity: perf?.activity?.claims,
           workload: perf?.workload ?? 'low',
           recentActionCount: e.recentActionCount,
           competencyLevels: levels,
@@ -314,6 +325,22 @@ export default function HrReportsPage() {
     setSummary('');
     setReportRows([]);
     const payload = buildPayload(scopedEmployees);
+
+    // the figures never depend on the AI: when it is not available the report is shown with an automatic summary
+    const showWithoutAi = (reason: string) => {
+      const createdAt = new Date().toISOString();
+      const text = buildTeamSummary((k, o) => i18n.t(k, o as any) as string, payload);
+      setSummary(text);
+      setGeneratedAt(createdAt);
+      setReportRows(payload);
+      setError(i18n.t('hrReports.aiUnavailable', { reason }));
+      setHistory(
+        pushHrReportHistory({
+          id: `hr-${Date.now()}`, createdAt, periodStart: params.periodStart, periodEnd: params.periodEnd,
+          department: params.department, employeeCount: payload.length, summary: text, rows: payload,
+        }),
+      );
+    };
     try {
       const res = await generateHrReport(accessToken, {
         periodStart: params.periodStart || null,
@@ -322,9 +349,7 @@ export default function HrReportsPage() {
         employees: payload,
       });
       if (!res.summary?.trim()) {
-        setError(i18n.t('hrReports.emptySummary'));
-        setReportRows(payload);
-        setSummary('');
+        showWithoutAi(i18n.t('hrReports.emptySummary'));
         return;
       }
       const createdAt = res.generatedAt || new Date().toISOString();
@@ -350,7 +375,7 @@ export default function HrReportsPage() {
         || (err?.code === 'ECONNABORTED' ? i18n.t('hrReports.timeout') : null)
         || err?.message
         || i18n.t('hrReports.generateFailed');
-      setError(String(msg));
+      showWithoutAi(String(msg));
     } finally {
       setGenerating(false);
     }
@@ -378,10 +403,12 @@ export default function HrReportsPage() {
         columns: [
           { key: 'name', label: i18n.t('hrReports.colEmployee') },
           { key: 'department', label: i18n.t('planDetail.department') },
-          { key: 'activity', label: i18n.t('activityTracking.activity') },
-          { key: 'dossiers', label: i18n.t('hrReports.colFiles') },
+          { key: 'activityPlans', label: i18n.t('hrReports.colActivityPlans') },
+          { key: 'activityClaims', label: i18n.t('hrReports.colActivityClaims') },
+          { key: 'claims', label: i18n.t('hrReports.colClaims') },
+          { key: 'plans', label: i18n.t('hrReports.colPlans') },
           { key: 'capacity', label: i18n.t('hrReports.colCapacity') },
-          { key: 'closure', label: i18n.t('recognition.closure') },
+          { key: 'toValidate', label: i18n.t('hrReports.colToValidate') },
           { key: 'overdue', label: i18n.t('comparator.late') },
           { key: 'workload', label: i18n.t('comparator.load') },
           { key: 'badges', label: i18n.t('employeesAdmin.tabBadges') },
@@ -389,10 +416,12 @@ export default function HrReportsPage() {
         rows: rows.map((r) => ({
           name: r.fullName,
           department: r.department,
-          activity: activityStatusLabel(r.activityStatus),
-          dossiers: r.activeDossiers,
+          activityPlans: activityStatusLabel(r.plansActivity ?? r.activityStatus),
+          activityClaims: activityStatusLabel(r.claimsActivity ?? r.activityStatus),
+          claims: r.claimsOpen == null ? '—' : `${r.claimsOpen} · ${r.claimsClosureRate ?? 0}%`,
+          plans: r.plansOpen == null ? '—' : `${r.plansOpen} · ${r.plansClosureRate ?? 0}%`,
           capacity: r.remainingCapacity,
-          closure: `${r.closureRate}%`,
+          toValidate: r.actionsToValidate ?? '—',
           overdue: r.overdueCount,
           workload: r.workload,
           badges: (r.badges || []).slice(0, 4).join(', ') || '—',

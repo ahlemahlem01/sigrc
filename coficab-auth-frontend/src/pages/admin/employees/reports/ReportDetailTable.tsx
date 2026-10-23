@@ -66,10 +66,12 @@ export default function ReportDetailTable({ rows }: Props) {
             <thead>
               <tr>
                 <th>{t('hrReports.colEmployee')}</th>
-                <th>{t('activityTracking.activity')}</th>
-                <th>{t('hrReports.colFiles')}</th>
+                <th>{t('hrReports.colActivityPlans')}</th>
+                <th>{t('hrReports.colActivityClaims')}</th>
+                <th>{t('hrReports.colClaims')}</th>
+                <th>{t('hrReports.colPlans')}</th>
                 <th>{t('hrReports.colCapacity')}</th>
-                <th>{t('recognition.closure')}</th>
+                <th>{t('hrReports.colToValidate')}</th>
                 <th>{t('comparator.late')}</th>
                 <th>{t('comparator.load')}</th>
                 <th>{t('skills.radarName')}</th>
@@ -90,11 +92,15 @@ export default function ReportDetailTable({ rows }: Props) {
                       </div>
                     </td>
                     <td>
-                      <span className="hrt-pill">{activityStatusLabel(r.activityStatus)}</span>
+                      <span className="hrt-pill">{activityStatusLabel(r.plansActivity ?? r.activityStatus)}</span>
                     </td>
-                    <td>{r.activeDossiers}</td>
+                    <td>
+                      <span className="hrt-pill">{activityStatusLabel(r.claimsActivity ?? r.activityStatus)}</span>
+                    </td>
+                    <td>{r.claimsOpen == null ? r.activeDossiers : <>{r.claimsOpen} <span className="hrt-muted">· {r.claimsClosureRate ?? 0}%</span></>}</td>
+                    <td>{r.plansOpen == null ? '—' : <>{r.plansOpen} <span className="hrt-muted">· {r.plansClosureRate ?? 0}%</span></>}</td>
                     <td>{r.remainingCapacity}</td>
-                    <td>{r.closureRate}%</td>
+                    <td>{r.actionsToValidate ?? '—'}</td>
                     <td>{r.overdueCount}</td>
                     <td>{workloadLabel(r.workload)}</td>
                     <td>

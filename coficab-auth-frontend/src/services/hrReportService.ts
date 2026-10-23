@@ -21,6 +21,17 @@ export type HrReportEmployeePayload = {
   competencyLevels: Record<string, string>;
   badges: string[];
   timelineHighlights: string[];
+  /** per source (from the server): claims, plans and sub-actions are no longer mixed in one figure */
+  claimsOpen?: number;
+  claimsClosureRate?: number;
+  claimsLate?: number;
+  plansOpen?: number;
+  plansClosureRate?: number;
+  plansLate?: number;
+  actionsLate?: number;
+  actionsToValidate?: number;
+  plansActivity?: string;
+  claimsActivity?: string;
 };
 
 export type GenerateHrReportRequest = {

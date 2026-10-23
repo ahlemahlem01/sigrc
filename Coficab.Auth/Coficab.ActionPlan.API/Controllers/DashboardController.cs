@@ -60,6 +60,40 @@ public class DashboardController : ControllerBase
             cancellationToken));
     }
 
+    public sealed record TeamPerformanceItem(
+        string UserId, int ClaimsOpen, int ClaimsClosed, int ClaimsLate, double? ClaimsAvgClosureDays,
+        int PlansOpen, int PlansClosed, int PlansLate, int ActionsOpen, int ActionsLate, int ActionsToValidate, int ActionsDoneLast30Days,
+        string PlansActivity, string ClaimsActivity);
+
+    /// <summary>
+    /// Figures per person for the team reports, from the server: claims (assigned person, else creator), plans and
+    /// sub-actions (as in the workload page) and the activity of each stream. The same rules as everywhere else.
+    /// </summary>
+    [HttpGet("team-performance")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<IReadOnlyList<TeamPerformanceItem>>> GetTeamPerformance(
+        [FromQuery] string? organizationIds = null,
+        [FromServices] Coficab.ActionPlan.Application.Interfaces.IEmployeeActivityService? activity = null,
+        CancellationToken cancellationToken = default)
+    {
+        var workload = await _mediator.Send(new GetCapaWorkloadQuery(ParseOrganizations(organizationIds)), cancellationToken);
+        var claims = await _mediator.Send(new Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims.GetClaimsByPersonQuery(organizationIds), cancellationToken);
+        var plansActivity = activity == null ? new() : (await activity.GetScopedSummaryAsync("plans", cancellationToken)).Items.ToDictionary(i => i.UserId, i => i.ActivityStatus.ToString(), StringComparer.OrdinalIgnoreCase);
+        var claimsActivity = activity == null ? new() : (await activity.GetScopedSummaryAsync("claims", cancellationToken)).Items.ToDictionary(i => i.UserId, i => i.ActivityStatus.ToString(), StringComparer.OrdinalIgnoreCase);
+
+        var ids = workload.People.Select(p => p.UserId).Concat(claims.Select(c => c.UserId)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        var items = ids.Select(id =>
+        {
+            var w = workload.People.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase));
+            var c = claims.FirstOrDefault(x => string.Equals(x.UserId, id, StringComparison.OrdinalIgnoreCase));
+            return new TeamPerformanceItem(
+                id, c?.Open ?? 0, c?.Closed ?? 0, c?.Late ?? 0, c?.AvgClosureDays,
+                w?.OpenPlans ?? 0, w?.ClosedPlans ?? 0, w?.LatePlans ?? 0, w?.OpenActions ?? 0, w?.LateActions ?? 0, w?.ActionsToValidate ?? 0, w?.ActionsDoneLast30Days ?? 0,
+                plansActivity.TryGetValue(id, out var pa) ? pa : "Inactive", claimsActivity.TryGetValue(id, out var ca) ? ca : "Inactive");
+        }).ToList();
+        return Ok(items);
+    }
+
     /// <summary>The targets the overview's traffic lights are compared with.</summary>
     [HttpGet("overview/targets")]
     [Authorize(Policy = "AdminOnly")]

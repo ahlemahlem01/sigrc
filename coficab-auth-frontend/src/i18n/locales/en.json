@@ -1,4 +1,14 @@
 {
+  "teamSummary": {
+    "people": "{{count}} employee(s) analysed.",
+    "claims": "Claims: {{open}} open, {{late}} of them late.",
+    "plans": "Action plans: {{open}} open, {{late}} of them late.",
+    "toValidate": "{{count}} finished sub-action(s) are waiting for validation.",
+    "busiest": "Most loaded: {{list}}.",
+    "mostLate": "Most late items: {{list}}.",
+    "idle": "{{count}} employee(s) have no open file: spare capacity.",
+    "inactive": "No recent activity: {{plans}} on action plans, {{claims}} on claims."
+  },
   "reportSchedules": {
     "scopeAll": "All organizations",
     "scopeSelected": "{{count}} followed organization(s)",
@@ -4060,6 +4070,7 @@
     "subtitle": "Organizations, their departments and employees. Click an employee for details, or drop a card on another department to move them (with confirmation)."
   },
   "hrReports": {
+    "aiUnavailable": "The AI summary is not available ({{reason}}). The report is shown with an automatic summary.",
     "aiSummary": "AI summary",
     "generatedOn": "Generated on {{date}}",
     "downloading": "Downloading…",
@@ -4093,7 +4104,7 @@
     "capacityTitle": "Remaining capacity before overload",
     "remainingCapacity": "Remaining capacity",
     "paramsTitle": "Report settings",
-    "paramsSub": "Period, employee scope and department (Quality, Production, Maintenance…). Indicators are aggregated before the summary is generated.",
+    "paramsSub": "Period, employee scope and department. Indicators are aggregated before the summary is generated.",
     "startDate": "Start date",
     "endDate": "End date",
     "employees": "Employees",
@@ -4125,8 +4136,13 @@
     "generateBeforeDownload": "Generate a report before downloading.",
     "downloadFailed": "Could not download the report. Try again.",
     "title": "Team reports",
-    "subtitle": "Operational summary for Quality, Production, Maintenance and process — indicators and report download.",
-    "loadingBase": "Loading employee data…"
+    "subtitle": "Operational summary per employee: claims, action plans and sub-actions, with the activity of each stream — indicators and report download.",
+    "loadingBase": "Loading employee data…",
+    "colActivityPlans": "Plans activity",
+    "colActivityClaims": "Claims activity",
+    "colClaims": "Open claims · closure",
+    "colPlans": "Open plans · closure",
+    "colToValidate": "To validate"
   },
   "resetPassword": {
     "invalidLink": "Invalid or expired link."

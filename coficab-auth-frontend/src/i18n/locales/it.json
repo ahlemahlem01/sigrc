@@ -1,4 +1,14 @@
 {
+  "teamSummary": {
+    "people": "{{count}} collaboratore/i analizzato/i.",
+    "claims": "Reclami: {{open}} aperti, di cui {{late}} in ritardo.",
+    "plans": "Piani d'azione: {{open}} aperti, di cui {{late}} in ritardo.",
+    "toValidate": "{{count}} azione/i terminata/e in attesa di convalida.",
+    "busiest": "I più carichi: {{list}}.",
+    "mostLate": "Più ritardi: {{list}}.",
+    "idle": "{{count}} collaboratore/i senza pratiche aperte: capacità disponibile.",
+    "inactive": "Senza attività recente: {{plans}} sui piani d'azione, {{claims}} sui reclami."
+  },
   "reportSchedules": {
     "scopeAll": "Tutte le organizzazioni",
     "scopeSelected": "{{count}} organizzazione/i seguita/e",
@@ -4060,6 +4070,7 @@
     "subtitle": "Le organizzazioni, i loro reparti e dipendenti. Clicca un collaboratore per i dettagli, o rilascia la sua scheda su un altro reparto per spostarlo (con conferma)."
   },
   "hrReports": {
+    "aiUnavailable": "La sintesi IA non è disponibile ({{reason}}). Il rapporto è mostrato con una sintesi automatica.",
     "aiSummary": "Sintesi IA",
     "generatedOn": "Generata il {{date}}",
     "downloading": "Download in corso…",
@@ -4093,7 +4104,7 @@
     "capacityTitle": "Capacità residua prima del sovraccarico",
     "remainingCapacity": "Capacità residua",
     "paramsTitle": "Parametri del report",
-    "paramsSub": "Periodo, perimetro dei collaboratori e reparto (Qualità, Produzione, Manutenzione…). Gli indicatori vengono aggregati prima della generazione della sintesi.",
+    "paramsSub": "Periodo, perimetro dei collaboratori e reparto. Gli indicatori vengono aggregati prima della generazione della sintesi.",
     "startDate": "Data inizio",
     "endDate": "Data fine",
     "employees": "Collaboratori",
@@ -4125,8 +4136,13 @@
     "generateBeforeDownload": "Genera un report prima di scaricarlo.",
     "downloadFailed": "Impossibile scaricare il report. Riprova.",
     "title": "Report dei team",
-    "subtitle": "Sintesi operativa per Qualità, Produzione, Manutenzione e processi — indicatori e download del report.",
-    "loadingBase": "Caricamento dei dati dei collaboratori…"
+    "subtitle": "Sintesi operativa per collaboratore: reclami, piani d'azione e azioni, con l'attività di ogni flusso — indicatori e download del report.",
+    "loadingBase": "Caricamento dei dati dei collaboratori…",
+    "colActivityPlans": "Attività piani",
+    "colActivityClaims": "Attività reclami",
+    "colClaims": "Reclami aperti · chiusura",
+    "colPlans": "Piani aperti · chiusura",
+    "colToValidate": "Da convalidare"
   },
   "resetPassword": {
     "invalidLink": "Link non valido o scaduto."

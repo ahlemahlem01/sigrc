@@ -1,4 +1,14 @@
 {
+  "teamSummary": {
+    "people": "{{count}} collaborateur(s) analysé(s).",
+    "claims": "Réclamations : {{open}} ouvertes, dont {{late}} en retard.",
+    "plans": "Plans d'action : {{open}} ouverts, dont {{late}} en retard.",
+    "toValidate": "{{count}} sous-action(s) terminée(s) attendent une validation.",
+    "busiest": "Les plus chargés : {{list}}.",
+    "mostLate": "Le plus de retards : {{list}}.",
+    "idle": "{{count}} collaborateur(s) n'ont aucun dossier ouvert : de la capacité disponible.",
+    "inactive": "Sans activité récente : {{plans}} sur les plans d'action, {{claims}} sur les réclamations."
+  },
   "reportSchedules": {
     "scopeAll": "Toutes les organisations",
     "scopeSelected": "{{count}} organisation(s) suivie(s)",
@@ -4060,6 +4070,7 @@
     "subtitle": "Les organisations, leurs départements et leurs employés. Cliquez un collaborateur pour les détails, ou déposez sa carte sur un autre département pour le déplacer (avec confirmation)."
   },
   "hrReports": {
+    "aiUnavailable": "La synthèse IA n'est pas disponible ({{reason}}). Le rapport est affiché avec une synthèse automatique.",
     "aiSummary": "Synthèse IA",
     "generatedOn": "Générée le {{date}}",
     "downloading": "Téléchargement…",
@@ -4093,7 +4104,7 @@
     "capacityTitle": "Capacité restante avant surcharge",
     "remainingCapacity": "Capacité restante",
     "paramsTitle": "Paramètres du rapport",
-    "paramsSub": "Période, périmètre collaborateurs et département (Qualité, Production, Maintenance…). Les indicateurs sont agrégés avant génération de la synthèse.",
+    "paramsSub": "Période, périmètre collaborateurs et département. Les indicateurs sont agrégés avant génération de la synthèse.",
     "startDate": "Date début",
     "endDate": "Date fin",
     "employees": "Collaborateurs",
@@ -4125,8 +4136,13 @@
     "generateBeforeDownload": "Générez un rapport avant de télécharger.",
     "downloadFailed": "Impossible de télécharger le rapport. Réessayez.",
     "title": "Rapports équipes",
-    "subtitle": "Synthèse opérationnelle pour Qualité, Production, Maintenance et process — indicateurs et téléchargement du rapport.",
-    "loadingBase": "Chargement des données collaborateurs…"
+    "subtitle": "Synthèse opérationnelle par collaborateur : réclamations, plans d'action et sous-actions, avec l'activité de chaque flux — indicateurs et téléchargement du rapport.",
+    "loadingBase": "Chargement des données collaborateurs…",
+    "colActivityPlans": "Activité plans",
+    "colActivityClaims": "Activité réclamations",
+    "colClaims": "Réclamations ouvertes · clôture",
+    "colPlans": "Plans ouverts · clôture",
+    "colToValidate": "À valider"
   },
   "resetPassword": {
     "invalidLink": "Lien invalide ou expiré."

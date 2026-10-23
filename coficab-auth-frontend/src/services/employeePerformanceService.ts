@@ -3,6 +3,7 @@ import { qualityAnalysisService } from './qualityAnalysisService';
 import { ACTION_PLAN_API_URL } from '../config/apiEnv';
 import type { Claim } from '../types/qualityAnalysis';
 import type { ClaimsHistoryRow } from '../types/qualityAnalysis';
+import { scopeParams } from './organizationScopeStore';
 import i18n from '../i18n';
 
 export type WorkloadLevel = 'low' | 'medium' | 'high';
@@ -37,6 +38,26 @@ export interface RecentDossier {
   date: string;
 }
 
+/** One person's figures from the server (the same rules as the workload page). */
+export interface TeamPerformanceFigures {
+  userId: string;
+  claimsOpen: number; claimsClosed: number; claimsLate: number; claimsAvgClosureDays?: number | null;
+  plansOpen: number; plansClosed: number; plansLate: number;
+  actionsOpen: number; actionsLate: number; actionsToValidate: number; actionsDoneLast30Days: number;
+  plansActivity: string; claimsActivity: string;
+}
+
+const pct = (closed: number, total: number) => (total > 0 ? Math.round((100 * closed) / total) : 0);
+
+export async function fetchTeamPerformance(token: string): Promise<TeamPerformanceFigures[]> {
+  const res = await fetch(
+    `${ACTION_PLAN_API_URL}/dashboard/team-performance${scopeParams().organizationIds ? `?organizationIds=${encodeURIComponent(scopeParams().organizationIds!)}` : ''}`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) throw new Error('team-performance');
+  return (await res.json()) as TeamPerformanceFigures[];
+}
+
 export interface EmployeePerformanceRow {
   userId: string;
   fullName: string;
@@ -57,6 +78,11 @@ export interface EmployeePerformanceRow {
   competencies: CompetencyScores;
   competencyLevels: CompetencyLevels;
   recentDossiers: RecentDossier[];
+  /** per source, from the server: claims, plans, sub-actions and the activity of each stream */
+  claims?: { open: number; closed: number; late: number; rate: number };
+  plans?: { open: number; closed: number; late: number; rate: number };
+  actions?: { open: number; late: number; toValidate: number; doneLast30Days: number };
+  activity?: { plans: string; claims: string };
 }
 
 /** Score 0–100 → Débutant / Confirmé / Expert */
@@ -243,16 +269,23 @@ export async function fetchEmployeePerformance(
     phone?: string;
     department?: string;
   }[],
+  /** aligned: the figures come from the server with the rules of the other admin pages (used by the team report only). */
+  options: { aligned?: boolean } = {},
 ): Promise<EmployeePerformanceRow[]> {
   const hdrs = { Authorization: `Bearer ${token}` };
 
-  const [assignmentsRes, claimsRes, overdueRes, historyRes, plansRes] = await Promise.allSettled([
+  const [assignmentsRes, claimsRes, overdueRes, historyRes, plansRes, teamRes] = await Promise.allSettled([
     getAllAssignments(token),
     fetch(`${ACTION_PLAN_API_URL}/QualityAnalysis/claims?status=all`, { headers: hdrs }),
     getOverduePlanActions(token),
     qualityAnalysisService.getClaimsHistory({ page: 1, pageSize: 1000 }, token),
     getActionPlans(token),
+    options.aligned ? fetchTeamPerformance(token) : Promise.resolve([] as TeamPerformanceFigures[]),
   ]);
+
+  const serverById = new Map<string, TeamPerformanceFigures>(
+    (teamRes.status === 'fulfilled' ? teamRes.value : []).map((f) => [f.userId.toLowerCase(), f]),
+  );
 
   const assignments: RawAssignment[] =
     assignmentsRes.status === 'fulfilled' ? assignmentsRes.value : [];
@@ -279,11 +312,12 @@ export async function fetchEmployeePerformance(
     const userEmail = (emp.email ?? '').toLowerCase();
     const userPlans = assignments.filter((a) => matchUserId(a.assignedToId, userId));
     const userFullPlans = allPlans.filter((p) => matchUserId(pickPlanAssigned(p), userId));
-    const userClaims = claims.filter(
-      (c) =>
-        matchUserId(c.createdById, userId) ||
-        (!!userEmail && String(c.createdBy ?? '').toLowerCase() === userEmail),
-    );
+    // a claim belongs to the person it is assigned to, else to its creator (the rule of the other pages)
+    const userClaims = claims.filter((c) => {
+      const assignee = options.aligned ? String((c as any).assignedToId ?? '').trim() : '';
+      if (assignee) return matchUserId(assignee, userId);
+      return matchUserId(c.createdById, userId) || (!!userEmail && String(c.createdBy ?? '').toLowerCase() === userEmail);
+    });
     const userHistory = historyItems.filter(
       (r) =>
         matchUserId(r.createdById, userId) ||
@@ -292,7 +326,8 @@ export async function fetchEmployeePerformance(
 
     const activeClaims = userClaims.filter((c) => !isClaimClosed(c.statusCode));
     const activePlans = userPlans.filter((p) => !isPlanClosed(p.status, p.progress));
-    const activeDossiers = activeClaims.length + activePlans.length;
+    const srv = serverById.get(String(userId).toLowerCase());
+    const activeDossiers = srv ? srv.claimsOpen + srv.plansOpen : activeClaims.length + activePlans.length;
 
     const totalItems = userClaims.length + userPlans.length;
     const closedItems =
@@ -319,7 +354,7 @@ export async function fetchEmployeePerformance(
       );
     });
 
-    const overdueCount = userOverdueActions.length + overduePlans.length;
+    const overdueCount = srv ? srv.claimsLate + srv.plansLate : userOverdueActions.length + overduePlans.length;
 
     const delaySamples: number[] = [];
     userOverdueActions.forEach((a) => {
@@ -380,6 +415,12 @@ export async function fetchEmployeePerformance(
       competencies,
       competencyLevels: levelsFromScores(competencies),
       recentDossiers: buildRecentDossiers(userClaims, userPlans),
+      ...(srv ? {
+        claims: { open: srv.claimsOpen, closed: srv.claimsClosed, late: srv.claimsLate, rate: pct(srv.claimsClosed, srv.claimsOpen + srv.claimsClosed) },
+        plans: { open: srv.plansOpen, closed: srv.plansClosed, late: srv.plansLate, rate: pct(srv.plansClosed, srv.plansOpen + srv.plansClosed) },
+        actions: { open: srv.actionsOpen, late: srv.actionsLate, toValidate: srv.actionsToValidate, doneLast30Days: srv.actionsDoneLast30Days },
+        activity: { plans: srv.plansActivity, claims: srv.claimsActivity },
+      } : {}),
     };
   });
 }
