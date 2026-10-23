@@ -5,6 +5,8 @@ namespace Coficab.ActionPlan.Core.Entities;
 
 public class ActionPlan : BaseEntity
 {
+    /// <summary>Permanent reference, e.g. PAC-2026-0042: type, year of creation, running number per type and year. Never reused.</summary>
+    public string? Reference { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public ActionPlanType Type { get; set; }

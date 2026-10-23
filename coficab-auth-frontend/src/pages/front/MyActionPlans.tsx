@@ -14,6 +14,7 @@ import './MyActionPlans.styles.css';
 
 interface AssignedPlan {
   id: string;
+  reference?: string | null;
   title: string;
   description?: string;
   status: number;
@@ -174,7 +175,8 @@ const earliestDate = (dates: string[]): string | null => {
   return [...dates].sort((a, b) => new Date(a).getTime() - new Date(b).getTime())[0];
 };
 
-function planKey(id: string): string {
+function planKey(id: string, reference?: string | null): string {
+  if (reference) return reference;
   return `CAPA-${id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
 }
 
@@ -640,7 +642,7 @@ export default function MyActionPlans() {
       list = list.filter(
         (p) =>
           (p.title || '').toLowerCase().includes(term) ||
-          planKey(p.id).toLowerCase().includes(term) ||
+          planKey(p.id, p.reference).toLowerCase().includes(term) ||
           (p.description || '').toLowerCase().includes(term)
       );
     }
@@ -963,7 +965,7 @@ export default function MyActionPlans() {
                       onClick={() => openPlan(plan)}
                     >
                       <td>
-                        <span className="map-key">{planKey(plan.id)}</span>
+                        <span className="map-key">{planKey(plan.id, plan.reference)}</span>
                       </td>
                       <td>
                         <p className="map-title">{plan.title}</p>

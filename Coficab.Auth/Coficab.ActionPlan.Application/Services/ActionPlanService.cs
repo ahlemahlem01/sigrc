@@ -657,6 +657,7 @@ public class ActionPlanService : IActionPlanService
             byId[a.ActionPlanId] = new AssignedActionPlanDto
             {
                 Id = a.ActionPlanId.ToString(),
+                Reference = a.ActionPlan.Reference,
                 Title = a.ActionPlan.Title,
                 Description = a.ActionPlan.Description,
                 Type = (int)a.ActionPlan.Type,
@@ -698,6 +699,7 @@ public class ActionPlanService : IActionPlanService
             byId[plan.Id] = new AssignedActionPlanDto
             {
                 Id = plan.Id.ToString(),
+                Reference = plan.Reference,
                 Title = plan.Title,
                 Description = plan.Description,
                 Type = (int)plan.Type,
@@ -747,6 +749,7 @@ public class ActionPlanService : IActionPlanService
         return new AssignedActionPlanDto
         {
             Id = plan.Id.ToString(),
+            Reference = plan.Reference,
             Title = plan.Title,
             Description = plan.Description,
             Type = (int)plan.Type,
@@ -806,6 +809,7 @@ public class ActionPlanService : IActionPlanService
         return assignments.Select(a => new AssignedActionPlanDto
         {
             Id = a.ActionPlanId.ToString(),
+            Reference = a.ActionPlan.Reference,
             Title = a.ActionPlan.Title,
             Description = a.ActionPlan.Description,
             Status = (int)a.ActionPlan.Status,

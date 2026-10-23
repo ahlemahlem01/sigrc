@@ -18,6 +18,7 @@ public class ActionPlanPermissions
 public class AssignedActionPlanDto
 {
     public string Id { get; set; } = string.Empty;
+    public string? Reference { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     /// <summary>1 PA (preventive), 2 PAC (corrective), 3 PAP (improvement)</summary>

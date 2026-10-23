@@ -64,6 +64,47 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<EightDVersion> EightDVersions => Set<EightDVersion>();
     public DbSet<OverviewSetting> OverviewSettings => Set<OverviewSetting>();
 
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AssignPlanReferencesAsync(CancellationToken.None).GetAwaiter().GetResult();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        await AssignPlanReferencesAsync(cancellationToken);
+        return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    /// <summary>Gives every new plan its reference (type-year-number) so that no creation path can forget it.</summary>
+    private async Task AssignPlanReferencesAsync(CancellationToken ct)
+    {
+        var added = ChangeTracker.Entries<CoreEntities.ActionPlan>()
+            .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.Reference))
+            .Select(e => e.Entity)
+            .OrderBy(p => p.CreatedAt)
+            .ToList();
+        if (added.Count == 0) return;
+
+        var last = new Dictionary<string, int>();
+        foreach (var plan in added)
+        {
+            var year = (plan.CreatedAt == default ? DateTime.UtcNow : plan.CreatedAt).Year;
+            var code = plan.Type switch { Coficab.ActionPlan.Core.Enums.ActionPlanType.PAC => "PAC", Coficab.ActionPlan.Core.Enums.ActionPlanType.PAP => "PAP", _ => "PA" };
+            var prefix = $"{code}-{year}-";
+            if (!last.TryGetValue(prefix, out var n))
+            {
+                var top = await ActionPlans.IgnoreQueryFilters().AsNoTracking()
+                    .Where(p => p.Reference != null && p.Reference.StartsWith(prefix))
+                    .Select(p => p.Reference!)
+                    .ToListAsync(ct);
+                n = top.Select(r => int.TryParse(r[prefix.Length..], out var v) ? v : 0).DefaultIfEmpty(0).Max();
+            }
+            last[prefix] = ++n;
+            plan.Reference = $"{prefix}{n:0000}";
+        }
+    }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("actionplan");
@@ -452,6 +493,8 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Function>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<UserFunction>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<CoreEntities.ActionPlan>().HasQueryFilter(e => !e.IsArchived);
+        modelBuilder.Entity<CoreEntities.ActionPlan>().Property(p => p.Reference).HasMaxLength(32);
+        modelBuilder.Entity<CoreEntities.ActionPlan>().HasIndex(p => p.Reference).IsUnique().HasFilter("[Reference] IS NOT NULL");
         modelBuilder.Entity<CoreEntities.ActionPlan>()
             .HasOne<Alert>()
             .WithMany()

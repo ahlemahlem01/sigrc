@@ -131,6 +131,10 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<int>("Progress")
                         .HasColumnType("int");
 
+                    b.Property<string>("Reference")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -155,6 +159,10 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.HasIndex("DepartmentId");
 
                     b.HasIndex("OrganizationId");
+
+                    b.HasIndex("Reference")
+                        .IsUnique()
+                        .HasFilter("[Reference] IS NOT NULL");
 
                     b.ToTable("ActionPlans", "actionplan");
                 });

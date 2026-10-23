@@ -158,7 +158,7 @@ function mapRawPlans(
     const type = toUiType(p.type ?? p.Type ?? p.planType ?? p.PlanType);
     const planId = String(p.id || p.Id);
     const planTitle = String(p.title || p.Title || '');
-    const planCode = p.code || p.Code || undefined;
+    const planCode = p.reference || p.Reference || p.code || p.Code || undefined;
     const claimIdRaw = p.claimId || p.ClaimId;
     const claimId = claimIdRaw ? String(claimIdRaw) : undefined;
     const process = String(p.departmentName || p.DepartmentName || p.department?.name || '—');
