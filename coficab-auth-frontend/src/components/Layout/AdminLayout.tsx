@@ -108,6 +108,7 @@ const NAV: NavItem[] = [
       { label: 'adminNav.assignments', icon: 'ti-user-check', path: '/admin/action-plans/assignments' },
       { label: 'adminNav.tracking', icon: 'ti-list-check', path: '/admin/action-plans/tracking' },
       { label: 'adminNav.reports', icon: 'ti-report-analytics', path: '/admin/action-plans/report' },
+      { label: 'adminNav.planReference', icon: 'ti-barcode', path: '/admin/action-plans/reference' },
     ],
   },
   {
@@ -118,6 +119,7 @@ const NAV: NavItem[] = [
       { label: 'adminNav.claimAssignments', icon: 'ti-user-check', path: '/admin/claims/assignments' },
       { label: 'adminNav.importHistory', icon: 'ti-file-import', path: '/admin/claims/import-history' },
       { label: 'adminNav.analysesHub', icon: 'ti-git-fork', path: '/admin/claims/analyses' },
+      { label: 'adminNav.claimReference', icon: 'ti-barcode', path: '/admin/claims/reference' },
     ],
   },
   {
@@ -141,7 +143,6 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.preferences', icon: 'ti-adjustments', path: '/admin/preferences' },
       { label: 'adminNav.thresholds', icon: 'ti-gauge', path: '/admin/settings/thresholds' },
-      { label: 'adminNav.planReference', icon: 'ti-barcode', path: '/admin/action-plans/reference' },
       { label: 'adminNav.referenceLists', icon: 'ti-list-details', path: '/admin/claims/reference-lists' },
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
     ],
@@ -161,7 +162,8 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/action-plans/report':        { title: 'adminNav.reports', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/actions-report':{ title: 'adminNav.reporting', crumb: 'adminNav.applications' },
     '/admin/action-plans/indicators':    { title: 'adminNav.indicators', crumb: 'adminNav.actionPlans' },
-    '/admin/action-plans/reference':     { title: 'adminNav.planReference', crumb: 'adminNav.settings' },
+    '/admin/action-plans/reference':     { title: 'adminNav.planReference', crumb: 'adminNav.actionPlans' },
+    '/admin/claims/reference':           { title: 'adminNav.claimReference', crumb: 'adminNav.claimsQuality' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
     '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },
     '/admin/action-plans/create':        { title: 'adminNav.newPlan', crumb: 'adminNav.actionPlans' },

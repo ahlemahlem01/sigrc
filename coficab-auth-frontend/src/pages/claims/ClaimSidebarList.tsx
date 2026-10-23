@@ -120,7 +120,7 @@ export const ClaimSidebarList: React.FC<ClaimSidebarListProps> = ({
               style={{ borderLeft: `4px solid ${st.color}`, background: isSelected ? '#fff' : st.bg }}
               onClick={() => onSelect(claim.id)}
             >
-              <div className="pfe-item-title">{claim.title}</div>
+              <div className="pfe-item-title">{claim.reference && <span className="font-mono text-[11px] text-slate-400 mr-1.5">{claim.reference}</span>}{claim.title}</div>
               <div className="pfe-item-meta">
                 <span>{clientVal}</span>
                 <span

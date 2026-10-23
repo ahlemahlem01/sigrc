@@ -528,7 +528,7 @@ export const useClaimsDirectory = (accessToken: string | null) => {
       const fold = (v: unknown) => String(v ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const words = fold(q).split(/\s+/).filter(Boolean);
       const local = source.filter((c) => {
-        const hay = fold([c.title, c.description, (c as any).defectType, c.clientId, (c as any).lotNumber, (c as any).productionLine].join(' '));
+        const hay = fold([(c as any).reference, c.title, c.description, (c as any).defectType, c.clientId, (c as any).lotNumber, (c as any).productionLine].join(' '));
         return words.every((w) => hay.includes(w));
       });
       if (!semanticClaimIds || semanticClaimIds.length === 0) return local;

@@ -13,6 +13,7 @@ export enum IshikawaCategory {
 
 export interface Claim {
   id: string;
+  reference?: string | null;
   title: string;
   clientId: string;
   defectType: string;

@@ -41,6 +41,7 @@ import HrReportsPage from './pages/admin/employees/reports/HrReportsPage';
 import CapaReportsPage from './pages/admin/CapaReportsPage';
 import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
+import AdminClaimsReference from './pages/admin/AdminClaimsReference';
 import PreferencesPage from './pages/admin/PreferencesPage';
 import ThresholdsPage from './pages/admin/ThresholdsPage';
 import CapaBoardPage from './pages/admin/CapaBoardPage';
@@ -207,6 +208,7 @@ const App = () => {
               <Route path="/admin/claims/dashboard"             element={<ClaimsBoardPage />} />
               <Route path="/admin/claims/indicators"            element={<Navigate to="/admin/claims/dashboard?tab=indicators" replace />} />
               <Route path="/admin/claims/list"                  element={<AdminClaimsList />} />
+              <Route path="/admin/claims/reference"             element={<AdminClaimsReference />} />
               <Route path="/admin/claims/assignments"           element={<AdminManagedClaimsPage scope="all" />} />
               <Route path="/admin/claims/analyses"              element={<ClaimsAnalysesHubPage />} />
               <Route path="/admin/claims/eight-d/:claimId"      element={<EightDPage />} />

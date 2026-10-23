@@ -2,6 +2,8 @@ namespace Coficab.ActionPlan.Core.Entities;
 public class Claim
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    /// <summary>Permanent reference, e.g. REC-2026-0042: year of creation and running number. Never reused.</summary>
+    public string? Reference { get; set; }
     public string Title { get; set; } = string.Empty;
     public string ClientId { get; set; } = string.Empty;
     public string DefectType { get; set; } = string.Empty;

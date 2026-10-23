@@ -79,6 +79,8 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     /// <summary>Gives every new plan its reference (type-year-number) so that no creation path can forget it.</summary>
     private async Task AssignPlanReferencesAsync(CancellationToken ct)
     {
+        await AssignClaimReferencesAsync(ct);
+
         var added = ChangeTracker.Entries<CoreEntities.ActionPlan>()
             .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.Reference))
             .Select(e => e.Entity)
@@ -102,6 +104,34 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             }
             last[prefix] = ++n;
             plan.Reference = $"{prefix}{n:0000}";
+        }
+    }
+
+    /// <summary>Same for claims: REC-year-number, numbered per year.</summary>
+    private async Task AssignClaimReferencesAsync(CancellationToken ct)
+    {
+        var added = ChangeTracker.Entries<CoreEntities.Claim>()
+            .Where(e => e.State == EntityState.Added && string.IsNullOrEmpty(e.Entity.Reference))
+            .Select(e => e.Entity)
+            .OrderBy(c => c.CreatedAt)
+            .ToList();
+        if (added.Count == 0) return;
+
+        var last = new Dictionary<string, int>();
+        foreach (var claim in added)
+        {
+            var year = (claim.CreatedAt == default ? DateTime.UtcNow : claim.CreatedAt).Year;
+            var prefix = $"REC-{year}-";
+            if (!last.TryGetValue(prefix, out var n))
+            {
+                var refs = await Claims.IgnoreQueryFilters().AsNoTracking()
+                    .Where(c => c.Reference != null && c.Reference.StartsWith(prefix))
+                    .Select(c => c.Reference!)
+                    .ToListAsync(ct);
+                n = refs.Select(r => int.TryParse(r[prefix.Length..], out var v) ? v : 0).DefaultIfEmpty(0).Max();
+            }
+            last[prefix] = ++n;
+            claim.Reference = $"{prefix}{n:0000}";
         }
     }
 
@@ -508,6 +538,8 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
 
         // 🆕 Soft-delete filters pour le Module 2
         modelBuilder.Entity<CoreEntities.Claim>().HasQueryFilter(e => !e.IsArchived);
+        modelBuilder.Entity<CoreEntities.Claim>().Property(c => c.Reference).HasMaxLength(32);
+        modelBuilder.Entity<CoreEntities.Claim>().HasIndex(c => c.Reference).IsUnique().HasFilter("[Reference] IS NOT NULL");
         modelBuilder.Entity<FiveWhyAnalysis>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<FiveWhyStep>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<IshikawaCause>().HasQueryFilter(e => !e.IsArchived);

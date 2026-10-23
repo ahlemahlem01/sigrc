@@ -766,6 +766,10 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<string>("ProductionLine")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Reference")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<string>("SerialNumber")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -809,6 +813,10 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.HasIndex("DetectionDate");
 
                     b.HasIndex("LotNumber");
+
+                    b.HasIndex("Reference")
+                        .IsUnique()
+                        .HasFilter("[Reference] IS NOT NULL");
 
                     b.HasIndex("StatusCode");
 
