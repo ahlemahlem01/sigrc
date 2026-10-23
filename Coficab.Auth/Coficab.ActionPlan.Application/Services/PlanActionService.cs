@@ -339,7 +339,7 @@ public class PlanActionService : IPlanActionService
         var activeActions = plan.PlanActions.Where(a => !a.IsArchived).ToList();
         if (!activeActions.Any()) return;
 
-        var avgProgress = (int)Math.Round(activeActions.Average(a => (double)(int)a.Progress));
+        var avgProgress = PlanProgress.FromActions(activeActions.Select(a => a.Progress), plan.Progress);
         var wasAlready100 = plan.Progress == 100;
         plan.Progress = avgProgress;
         plan.UpdatedBy = updatedBy;

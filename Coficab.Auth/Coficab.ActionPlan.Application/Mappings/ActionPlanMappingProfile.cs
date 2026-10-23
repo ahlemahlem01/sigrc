@@ -37,12 +37,13 @@ public class ActionPlanMappingProfile : Profile
             .ForMember(dest => dest.DepartmentName,
                        opt => opt.MapFrom(src => DisplayDepartment(src.Department)))
             .ForMember(dest => dest.Progress,
-                       opt => opt.MapFrom(src =>
+                       opt => opt.MapFrom((src, _) =>
                            src.Status == Core.Enums.ActionPlanStatus.Closed
                            || src.Status == Core.Enums.ActionPlanStatus.Archived
                            || src.IsArchived
                                ? 100
-                               : src.Progress));
+                               : Coficab.ActionPlan.Application.Services.PlanProgress.FromActions(
+                                   (src.PlanActions ?? new List<PlanAction>()).Where(a => !a.IsArchived).Select(a => a.Progress), src.Progress)));
         CreateMap<CreateActionPlanDto, CoreEntities.ActionPlan>();
         CreateMap<UpdateActionPlanDto, CoreEntities.ActionPlan>()
    .ForMember(dest => dest.Id, opt => opt.Ignore())

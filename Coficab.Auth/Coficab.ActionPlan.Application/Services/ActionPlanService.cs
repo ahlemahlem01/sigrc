@@ -637,12 +637,8 @@ public class ActionPlanService : IActionPlanService
         if (plan.Status is ActionPlanStatus.Closed or ActionPlanStatus.Archived)
             return 100;
 
-        if (plan.PlanActions != null && plan.PlanActions.Any(a => !a.IsArchived))
-        {
-            return (int)Math.Round(
-                plan.PlanActions.Where(a => !a.IsArchived).Average(p => (double)p.Progress), 0);
-        }
-        return plan.Progress;
+        return PlanProgress.FromActions(
+            (plan.PlanActions ?? []).Where(a => !a.IsArchived).Select(a => a.Progress), plan.Progress);
     }
 
     public async Task<IEnumerable<AssignedActionPlanDto>> GetUserAssignedPlansAsync(string userId)
