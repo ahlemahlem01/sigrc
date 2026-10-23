@@ -28,6 +28,30 @@ async function fetchPrefs(token: string): Promise<StoredPrefs> {
   };
 }
 
+/**
+ * Blue-grey ramp of the dark theme, per colour channel. Input 0 (white things after the inversion: cards) maps to the card
+ * tone, the next two steps dip to the darker canvas tone, then it climbs linearly to the soft white of the text.
+ */
+const RAMP_STEPS = 40;
+const RAMP_CARD = [36, 43, 66];
+const RAMP_CANVAS = [20, 26, 42];
+const RAMP_TEXT = [236, 240, 250];
+const DARK_RAMP = [0, 1, 2].map((ch) => {
+  const card = RAMP_CARD[ch] / 255;
+  const canvas = RAMP_CANVAS[ch] / 255;
+  const text = RAMP_TEXT[ch] / 255;
+  const values = [card, canvas, canvas];
+  for (let k = 3; k <= RAMP_STEPS; k += 1) values.push(canvas + (text - canvas) * ((k - 2) / (RAMP_STEPS - 2)));
+  return values.map((v) => v.toFixed(4)).join(' ');
+});
+/** Inverse of the climbing part of the ramp, for pictures (their darkest tones are clipped at the canvas tone). */
+const DARK_UNRAMP = [0, 1, 2].map((ch) => {
+  const canvas = RAMP_CANVAS[ch] / 255;
+  const text = RAMP_TEXT[ch] / 255;
+  const slope = (RAMP_STEPS - 2) / (RAMP_STEPS * (text - canvas));
+  return { slope: slope.toFixed(4), intercept: (2 / RAMP_STEPS - canvas * slope).toFixed(4) };
+});
+
 export function PreferencesProvider({ children }: { children: React.ReactNode }) {
   const { accessToken } = useAuth();
   const [prefs, setPrefs] = useState<StoredPrefs>(readPrefs());
@@ -70,16 +94,34 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   return (
     <PreferencesContext.Provider value={{ ...prefs, ready, save }}>
+      <svg aria-hidden="true" width="0" height="0" style={{ position: 'absolute' }} focusable="false">
+        <defs>
+          <filter id="coficab-dark-ramp" colorInterpolationFilters="sRGB">
+            <feComponentTransfer>
+              <feFuncR type="table" tableValues={DARK_RAMP[0]} />
+              <feFuncG type="table" tableValues={DARK_RAMP[1]} />
+              <feFuncB type="table" tableValues={DARK_RAMP[2]} />
+            </feComponentTransfer>
+          </filter>
+          <filter id="coficab-dark-ramp-inverse" colorInterpolationFilters="sRGB">
+            <feComponentTransfer>
+              <feFuncR type="linear" slope={DARK_UNRAMP[0].slope} intercept={DARK_UNRAMP[0].intercept} />
+              <feFuncG type="linear" slope={DARK_UNRAMP[1].slope} intercept={DARK_UNRAMP[1].intercept} />
+              <feFuncB type="linear" slope={DARK_UNRAMP[2].slope} intercept={DARK_UNRAMP[2].intercept} />
+            </feComponentTransfer>
+          </filter>
+        </defs>
+      </svg>
       <style>{`
+        /*
+         * Dark theme (blue-grey): the page is inverted (lightness flips, hues kept by the rotation) and then mapped onto a
+         * blue-grey ramp, so every screen follows without a rule per component. The ramp keeps the page canvas darker than the
+         * cards, and the text soft white. Pictures and avatars get the opposite filter to keep their real colours.
+         */
         html[data-theme="dark"] {
-          color-scheme: dark;
-          --ink: #e8ebf2;
-          --muted: #a7b0c2;
-          --canvas: #161820;
-          --surface: #1f2330;
-          --surface-2: #282d3c;
-          --line: #353b4d;
-          --accent: #c5cffc;
+          background: #f6f6f6;
+          filter: invert(1) hue-rotate(180deg) url(#coficab-dark-ramp);
+          color-scheme: light;
         }
         html[data-theme="dark"] body,
         html[data-theme="dark"] #root,
@@ -87,89 +129,15 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
         html[data-theme="dark"] .al-content-shell,
         html[data-theme="dark"] .al-page,
         html[data-theme="dark"] .al-main {
-          background: var(--canvas);
-          color: var(--ink);
+          background: #f6f6f6;
         }
-        html[data-theme="dark"] .al-sidebar,
-        html[data-theme="dark"] .al-sidebar.expanded {
-          background: #1a1d27;
-          border-right-color: var(--line);
-          box-shadow: none;
-        }
-        html[data-theme="dark"] .al-topbar,
-        html[data-theme="dark"] .al-tb-ico,
-        html[data-theme="dark"] .al-tb-user-btn,
-        html[data-theme="dark"] .al-tb-dropdown {
-          background: #1c2030;
-          border-color: var(--line);
-          color: var(--ink);
-        }
-        html[data-theme="dark"] .al-tb-title,
-        html[data-theme="dark"] [class*="text-[#000168]"],
-        html[data-theme="dark"] .al-sidebar-link.active,
-        html[data-theme="dark"] .al-sidebar-sublink.active {
-          color: var(--accent);
-        }
-        html[data-theme="dark"] .al-tb-user-name,
-        html[data-theme="dark"] .al-tb-drop-name,
-        html[data-theme="dark"] .al-sidebar-link,
-        html[data-theme="dark"] .al-sidebar-accordion-btn,
-        html[data-theme="dark"] .al-sidebar-sublink {
-          color: #d5dbeb;
-        }
-        html[data-theme="dark"] .al-sidebar-link i,
-        html[data-theme="dark"] .al-sidebar-accordion-btn i,
-        html[data-theme="dark"] .al-tb-user-role,
-        html[data-theme="dark"] .al-tb-crumb,
-        html[data-theme="dark"] .al-tb-date,
-        html[data-theme="dark"] .text-slate-500,
-        html[data-theme="dark"] .text-slate-400,
-        html[data-theme="dark"] .text-slate-600 {
-          color: var(--muted);
-        }
-        html[data-theme="dark"] .text-slate-900,
-        html[data-theme="dark"] .text-slate-800,
-        html[data-theme="dark"] .text-slate-700,
-        html[data-theme="dark"] h1,
-        html[data-theme="dark"] h2 {
-          color: var(--ink);
-        }
-        html[data-theme="dark"] .bg-white,
-        html[data-theme="dark"] .asl-card,
-        html[data-theme="dark"] .asl-kpi,
-        html[data-theme="dark"] .al-tb-date {
-          background: var(--surface);
-          border-color: var(--line);
-        }
-        html[data-theme="dark"] .border-slate-200,
-        html[data-theme="dark"] .border-slate-100,
-        html[data-theme="dark"] .al-sidebar-divider,
-        html[data-theme="dark"] .al-tb-drop-divider,
-        html[data-theme="dark"] .al-tb-drop-header {
-          border-color: var(--line);
-        }
-        html[data-theme="dark"] .bg-slate-50,
-        html[data-theme="dark"] [class*="hover:bg-slate-50"]:hover,
-        html[data-theme="dark"] .al-sidebar.expanded .al-sidebar-link:hover,
-        html[data-theme="dark"] .al-sidebar.expanded .al-sidebar-accordion-btn:hover,
-        html[data-theme="dark"] .al-sidebar-sublink:hover,
-        html[data-theme="dark"] .al-sidebar.expanded .al-sidebar-link.active,
-        html[data-theme="dark"] .al-sidebar-sublink.active {
-          background: var(--surface-2);
-        }
-        html[data-theme="dark"] input,
-        html[data-theme="dark"] select,
-        html[data-theme="dark"] textarea {
-          background: #171a24;
-          color: var(--ink);
-          border-color: var(--line);
-        }
-        html[data-theme="dark"] thead,
-        html[data-theme="dark"] tr {
-          border-color: var(--line);
-        }
-        html[data-theme="dark"] th {
-          color: var(--muted);
+        html[data-theme="dark"] img,
+        html[data-theme="dark"] video,
+        html[data-theme="dark"] picture,
+        html[data-theme="dark"] iframe,
+        html[data-theme="dark"] [style*="background-image"],
+        html[data-theme="dark"] .keep-colors {
+          filter: url(#coficab-dark-ramp-inverse) hue-rotate(180deg) invert(1);
         }
       `}</style>
       {children}

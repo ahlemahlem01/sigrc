@@ -29,10 +29,10 @@ const WorkflowConfigPage: React.FC = () => {
   const canEdit = hasRole('superadmin');
 
   // the seeded French names follow the language of the interface; a status renamed by an administrator keeps its own name
-  const shown = (code: string, stored: string) => {
+  const shown = useCallback((code: string, stored: string) => {
     const known = DEFAULT_LABELS[code];
     return known && known.fr === stored ? t(`claimStatus.${known.key}`) : stored;
-  };
+  }, [t]);
 
   const [config, setConfig] = useState<WorkflowConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -62,7 +62,7 @@ const WorkflowConfigPage: React.FC = () => {
   const labelOf = useMemo(() => {
     const map = new Map((config?.statuses ?? []).map((s) => [s.code, shown(s.code, s.label)]));
     return (code: string) => map.get(code) || code;
-  }, [config]);
+  }, [config, shown]);
 
   const change = (next: WorkflowConfig) => {
     setConfig(next);

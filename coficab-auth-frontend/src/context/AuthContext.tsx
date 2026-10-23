@@ -254,7 +254,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const data = await loginService(email, password);
       applyTokens(data);
 
-      const fullUser = await fetchFullUserProfile(data.access_token);
+      // The password was accepted: a hiccup while loading the profile (API still waking up) must not look like a wrong password.
+      let fullUser: UserInfo | null = null;
+      let lastError: unknown;
+      for (let attempt = 0; attempt < 3 && !fullUser; attempt += 1) {
+        try {
+          fullUser = await fetchFullUserProfile(data.access_token);
+        } catch (err) {
+          lastError = err;
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        }
+      }
+      if (!fullUser) {
+        clearAccessToken();
+        localStorage.removeItem('refresh_token');
+        setAccessToken(null);
+        throw Object.assign(lastError instanceof Error ? lastError : new Error('profile'), { loginStage: 'profile' });
+      }
       setUser(fullUser);
     } finally {
       setIsLoading(false);

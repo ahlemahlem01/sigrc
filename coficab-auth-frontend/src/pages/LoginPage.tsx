@@ -53,7 +53,16 @@ const LoginPage = () => {
       await login(email, password);
       setRedirecting(true);
     } catch (err: any) {
-      setError(t('login.error'));
+      console.error('Login failed:', err);
+      const status = Number(err?.response?.status);
+      const code = err?.response?.data?.error;
+      setError(
+        err?.loginStage === 'profile' ? t('login.errorProfile')
+          : code === 'account_locked' ? t('login.errorLocked')
+          : !err?.response ? t('login.errorNetwork')
+          : status >= 500 ? t('login.errorServer')
+          : t('login.error'),
+      );
       setLoading(false);
     }
   };
