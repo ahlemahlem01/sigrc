@@ -5040,6 +5040,8 @@
     "importFromClaims": "Riprendi quelli dei reclami",
     "emptyList": "Nessun valore: aggiungine o riprendi quelli dei reclami.",
     "alreadyListed": "\"{{value}}\" è già nell'elenco.",
+    "searchList": "Cerca nell'elenco…",
+    "noMatch": "Nessun valore corrisponde alla ricerca.",
     "vocab": {
       "client": { "title": "Clienti", "help": "Proposti quando si crea o modifica un reclamo. La digitazione libera resta possibile.", "placeholder": "Es. STELLANTIS-01" },
       "production-line": { "title": "Linee di produzione", "help": "Proposte quando si compilano i dati di produzione di un reclamo.", "placeholder": "Es. WR-04" },

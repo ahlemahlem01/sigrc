@@ -16,6 +16,8 @@ const LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const VOCABULARY: ReferenceListKey[] = ['client', 'production-line', 'shift', 'defect-type'];
 const TABS: ReferenceListKey[] = [...VOCABULARY, 'severity'];
 const STRICT_KEYS: ReferenceListKey[] = ['client', 'production-line', 'shift'];
+const PAGE_SIZE = 10;
+const fold = (v: string) => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
 const ReferenceListsPage: React.FC = () => {
   const { t } = useTranslation();
@@ -25,6 +27,8 @@ const ReferenceListsPage: React.FC = () => {
   const [newValue, setNewValue] = useState<Record<string, string>>({});
   const [strict, setStrict] = useState<Record<string, boolean>>({});
   const [tab, setTab] = useState<ReferenceListKey>('client');
+  const [search, setSearch] = useState<Record<string, string>>({});
+  const [pageOf, setPageOf] = useState<Record<string, number>>({});
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [duplicates, setDuplicates] = useState<DuplicateGroup[]>([]);
@@ -91,6 +95,8 @@ const ReferenceListsPage: React.FC = () => {
     setLists({ ...lists, [key]: [...lists[key], { value, label: null, sortOrder, isActive: true, mergedInto: null }] });
     setDirty({ ...dirty, [key]: true });
     setNewValue({ ...newValue, [key]: '' });
+    setSearch({ ...search, [key]: '' });
+    setPageOf({ ...pageOf, [key]: Math.ceil((lists[key].filter((i) => !i.mergedInto).length + 1) / PAGE_SIZE) });
     setMessage(null);
   };
 
@@ -206,7 +212,12 @@ const ReferenceListsPage: React.FC = () => {
           )}
 
           {VOCABULARY.filter((k) => k === tab).map((key) => {
-            const items = lists[key].filter((i) => !i.mergedInto);
+            const all = lists[key].filter((i) => !i.mergedInto);
+            const words = fold(search[key] ?? '').split(/\s+/).filter(Boolean);
+            const items = all.filter((i) => words.every((w) => fold(i.value).includes(w)));
+            const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+            const page = Math.min(pageOf[key] ?? 1, pageCount);
+            const visible = items.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
             return (
               <section key={key} className="rounded-xl bg-white shadow-sm p-4 mb-4" style={card}>
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
@@ -239,12 +250,18 @@ const ReferenceListsPage: React.FC = () => {
                     {t('referenceLists.add')}
                   </button>
                 </div>
-                {items.length === 0 ? (
+                {all.length > 0 && (
+                  <input className={`${input} w-full mb-3`} type="search" placeholder={t('referenceLists.searchList')} value={search[key] ?? ''}
+                    onChange={(e) => { setSearch({ ...search, [key]: e.target.value }); setPageOf({ ...pageOf, [key]: 1 }); }} />
+                )}
+                {all.length === 0 ? (
                   <p className="text-sm text-slate-400 m-0">{t('referenceLists.emptyList')}</p>
+                ) : items.length === 0 ? (
+                  <p className="text-sm text-slate-400 m-0">{t('referenceLists.noMatch')}</p>
                 ) : (
                   <table className="w-full text-sm">
                     <tbody>
-                      {items.map((i) => (
+                      {visible.map((i) => (
                         <tr key={i.value} className={i.isActive ? '' : 'opacity-50'}>
                           <td className="py-1 pr-2">{i.value}</td>
                           <td className="py-1 pr-2 w-20">
@@ -261,6 +278,18 @@ const ReferenceListsPage: React.FC = () => {
                       ))}
                     </tbody>
                   </table>
+                )}
+                {items.length > PAGE_SIZE && (
+                  <div className="flex flex-wrap items-center justify-between gap-2 mt-3 pt-3 text-sm text-slate-600" style={{ borderTop: `1px solid ${LINE}` }}>
+                    <span>{(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, items.length)} {t('permMatrix.of')} {items.length}</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white disabled:opacity-40" style={{ borderColor: LINE }}
+                        disabled={page <= 1} onClick={() => setPageOf({ ...pageOf, [key]: page - 1 })}>{t('qualityHistory.previous')}</button>
+                      <span className="tabular-nums text-xs">{page} / {pageCount}</span>
+                      <button type="button" className="px-2.5 py-1 text-xs font-semibold rounded-lg border bg-white disabled:opacity-40" style={{ borderColor: LINE }}
+                        disabled={page >= pageCount} onClick={() => setPageOf({ ...pageOf, [key]: page + 1 })}>{t('qualityHistory.next')}</button>
+                    </div>
+                  </div>
                 )}
               </section>
             );

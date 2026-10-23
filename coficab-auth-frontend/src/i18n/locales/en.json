@@ -5040,6 +5040,8 @@
     "importFromClaims": "Take those used by claims",
     "emptyList": "No value: add some or take those used by claims.",
     "alreadyListed": "\"{{value}}\" is already in the list.",
+    "searchList": "Search the list…",
+    "noMatch": "No value matches the search.",
     "vocab": {
       "client": { "title": "Customers", "help": "Suggested when a claim is created or edited. Free typing is still possible.", "placeholder": "e.g. STELLANTIS-01" },
       "production-line": { "title": "Production lines", "help": "Suggested when a claim's production data is filled in.", "placeholder": "e.g. WR-04" },
