@@ -1,15 +1,11 @@
-import axios from 'axios';
 import { useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import {
-  createActionPlan,
-  createPlanAction,
   getPlanActions,
   getUserActionPlans,
 } from '../../services/actionPlanService';
-import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import './MyActionPlans.styles.css';
 
 interface AssignedPlan {
@@ -60,48 +56,6 @@ const SEVERITY_LABEL_KEYS: Record<number, string> = {
   1: 'myActionPlans.severityLow',
   0: '',
 };
-type PlanType = 'preventif' | 'correctif' | 'amelioration';
-type Priority = 'low' | 'medium' | 'high';
-
-interface OrgItem {
-  id: string;
-  name: string;
-}
-
-interface DeptItem {
-  id: string;
-  name: string;
-  organizationId?: string;
-}
-
-interface DraftAction {
-  id: string;
-  title: string;
-  description: string;
-  priority: Priority;
-  deadline: string;
-}
-
-const TYPE_OPTION_IDS: PlanType[] = ['preventif', 'correctif', 'amelioration'];
-
-const TYPE_TO_NUM: Record<PlanType, number> = {
-  preventif: 1,
-  correctif: 2,
-  amelioration: 3,
-};
-
-const PRIORITY_TO_NUM: Record<Priority, number> = {
-  low: 1,
-  medium: 2,
-  high: 3,
-};
-
-const PRIORITY_LABEL_KEYS: Record<Priority, string> = {
-  low: 'myActionPlans.priorityLow',
-  medium: 'myActionPlans.priorityMedium',
-  high: 'myActionPlans.priorityHigh',
-};
-
 function fixMojibake(text?: string): string {
   if (!text || !/[\u00C3\u00C2\u00E2]/.test(text)) return text ?? '';
   try {
@@ -184,11 +138,12 @@ function statusMeta(
   plan: EnrichedPlan,
   t: (key: string) => string
 ): { label: string; cls: string } {
-  if (plan.isOverdue && plan.status !== 3 && plan.status !== 4) {
-    return { label: t('myActionPlans.statusLate'), cls: 'late' };
-  }
+  // finished work is never "overdue": a plan at 100 % only waits for its validation
   if (plan.status === 3 || plan.status === 4 || plan.progress >= 100) {
     return { label: t('myActionPlans.statusDone'), cls: 'done' };
+  }
+  if (plan.isOverdue) {
+    return { label: t('myActionPlans.statusLate'), cls: 'late' };
   }
   if (plan.status === 2 || plan.progress > 0) {
     return { label: t('myActionPlans.statusDoing'), cls: 'doing' };
@@ -282,13 +237,6 @@ export default function MyActionPlans() {
       ? 'it-IT'
       : 'fr-FR';
 
-  const typeLabel = (id: PlanType) =>
-    id === 'preventif'
-      ? t('myActionPlans.typePreventive')
-      : id === 'correctif'
-        ? t('myActionPlans.typeCorrective')
-        : t('myActionPlans.typeImprovement');
-
   const [plans, setPlans] = useState<EnrichedPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -300,30 +248,6 @@ export default function MyActionPlans() {
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [isSeverityOpen, setIsSeverityOpen] = useState(false);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
-  const [organizations, setOrganizations] = useState<OrgItem[]>([]);
-  const [filteredDepts, setFilteredDepts] = useState<DeptItem[]>([]);
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    type: 'preventif' as PlanType,
-    organizationId: '',
-    departmentId: '',
-    deadline: '',
-    claimId: '',
-  });
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [draftActions, setDraftActions] = useState<DraftAction[]>([]);
-  const [newAction, setNewAction] = useState({
-    title: '',
-    description: '',
-    priority: 'medium' as Priority,
-    deadline: '',
-  });
-  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
 
   const currentUserId = resolveUserId(user as Record<string, unknown> | null);
   const displayName =
@@ -400,7 +324,7 @@ export default function MyActionPlans() {
             .filter((a) => a.deadline)
             .map((a) => a.deadline as string);
 
-          const planOpen = plan.status !== 3 && plan.status !== 4;
+          const planOpen = plan.status !== 3 && plan.status !== 4 && progress < 100;
           const candidates = [
             ...openDeadlines,
             ...(planOpen && plan.deadline ? [plan.deadline] : []),
@@ -454,161 +378,6 @@ export default function MyActionPlans() {
       setError(t('myActionPlans.loadError'));
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadOrgs = async () => {
-    if (!accessToken) return;
-    try {
-      const r = await axios.get(`${ACTION_PLAN_API_URL}/organization`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const list = unwrapList<any>(r.data).map((o: any) => ({
-        id: String(o.id ?? o.Id),
-        name: String(o.name ?? o.Name ?? ''),
-      }));
-      setOrganizations(list.filter((o) => o.id));
-    } catch {
-      setOrganizations([]);
-    }
-  };
-
-  const loadDeptsForOrg = async (orgId: string) => {
-    if (!accessToken || !orgId) {
-      setFilteredDepts([]);
-      return;
-    }
-    try {
-      const r = await axios.get(
-        `${ACTION_PLAN_API_URL}/department/by-organization/${orgId}`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      );
-      const list = unwrapList<any>(r.data).map((d: any) => ({
-        id: String(d.id ?? d.Id),
-        name: String(d.name ?? d.Name ?? ''),
-        organizationId: String(d.organizationId ?? d.OrganizationId ?? orgId),
-      }));
-      setFilteredDepts(list.filter((d) => d.id));
-    } catch {
-      setFilteredDepts([]);
-    }
-  };
-
-  const resetCreateForm = () => {
-    const orgId = String((user as any)?.organizationId || '').trim();
-    const deptId = String(
-      (user as any)?.departmentId || (user as any)?.DepartmentId || ''
-    ).trim();
-    setFormData({
-      title: '',
-      description: '',
-      type: 'preventif',
-      organizationId: orgId,
-      departmentId: deptId,
-      deadline: '',
-      claimId: '',
-    });
-    setFormErrors({});
-    setDraftActions([]);
-    setNewAction({ title: '', description: '', priority: 'medium', deadline: '' });
-    setActionErrors({});
-    setCreateError(null);
-    if (orgId) void loadDeptsForOrg(orgId);
-    else setFilteredDepts([]);
-  };
-
-  const openCreateModal = async () => {
-    resetCreateForm();
-    setShowCreate(true);
-    await loadOrgs();
-    const orgId = String((user as any)?.organizationId || '').trim();
-    if (orgId) await loadDeptsForOrg(orgId);
-  };
-
-  const handleOrgChange = (orgId: string) => {
-    setFormData((p) => ({ ...p, organizationId: orgId, departmentId: '' }));
-    void loadDeptsForOrg(orgId);
-  };
-
-  const validateForm = () => {
-    const e: Record<string, string> = {};
-    if (!formData.title.trim()) e.title = t('myActionPlans.titleRequired');
-    if (!formData.organizationId) e.organizationId = t('myActionPlans.orgRequired');
-    if (!formData.departmentId) e.departmentId = t('myActionPlans.deptRequired');
-    if (!currentUserId) e.assigned = t('myActionPlans.userUnknown');
-    setFormErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const validateAction = () => {
-    const e: Record<string, string> = {};
-    if (!newAction.title.trim()) e.title = t('myActionPlans.titleRequired');
-    if (!newAction.deadline) e.deadline = t('myActionPlans.dateTo');
-    setActionErrors(e);
-    return Object.keys(e).length === 0;
-  };
-
-  const addDraftAction = () => {
-    if (!validateAction()) return;
-    setDraftActions((prev) => [
-      ...prev,
-      {
-        id: `temp-${Date.now()}`,
-        title: newAction.title.trim(),
-        description: newAction.description.trim(),
-        priority: newAction.priority,
-        deadline: newAction.deadline,
-      },
-    ]);
-    setNewAction({ title: '', description: '', priority: 'medium', deadline: '' });
-    setActionErrors({});
-  };
-
-  const handleCreate = async () => {
-    if (!validateForm() || !accessToken || !currentUserId) return;
-    setSubmitting(true);
-    setCreateError(null);
-    try {
-      const res = await createActionPlan(accessToken, {
-        title: formData.title.trim(),
-        description: formData.description.trim() || undefined,
-        type: TYPE_TO_NUM[formData.type],
-        departmentId: formData.departmentId,
-        organizationId: formData.organizationId,
-        assignedToId: currentUserId,
-        deadline: formData.deadline || undefined,
-        claimId: formData.claimId.trim() || undefined,
-      });
-      const id = String(res.data?.id ?? res.data?.Id ?? '');
-
-      if (draftActions.length && id) {
-        await Promise.all(
-          draftActions.map((pa) =>
-            createPlanAction(accessToken, {
-              title: pa.title,
-              description: pa.description || undefined,
-              deadline: new Date(pa.deadline).toISOString(),
-              priority: PRIORITY_TO_NUM[pa.priority],
-              assignedToId: currentUserId,
-              actionPlanId: id,
-            })
-          )
-        );
-      }
-
-      setShowCreate(false);
-      resetCreateForm();
-      await load();
-    } catch (e: any) {
-      console.error(e);
-      const msg =
-        e?.response?.data?.error ||
-        e?.response?.data?.title ||
-        e?.message ||
-        t('myActionPlans.createFailed');
-      setCreateError(String(msg));
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -692,8 +461,6 @@ export default function MyActionPlans() {
     );
   };
 
-  const today = new Date().toISOString().split('T')[0];
-
   return (
     <div className="map-page">
       <div className="map-inner">
@@ -715,16 +482,6 @@ export default function MyActionPlans() {
                 aria-label={t('myActionPlans.search')}
               />
             </label>
-            <button
-              type="button"
-              className="map-create-btn"
-              onClick={() => void openCreateModal()}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-              </svg>
-              {t('myActionPlans.create')}
-            </button>
             <button
               type="button"
               className={`map-icon-btn${loading ? ' is-loading' : ''}`}
@@ -887,9 +644,6 @@ export default function MyActionPlans() {
                     <SortTh field="progress" label={t('myActionPlans.colProgress')} />
                     <th>{t('myActionPlans.colStatus')}</th>
                     <SortTh field="date" label={t('myActionPlans.colDate')} />
-                    <SortTh field="severity" label={t('myActionPlans.colSeverity')} />
-                    <SortTh field="assignee" label={t('myActionPlans.colAssignee')} hide />
-                    <th className="map-hide">{t('myActionPlans.colOpenActions')}</th>
                     <th aria-hidden style={{ width: 28 }} />
                   </tr>
                 </thead>
@@ -909,9 +663,6 @@ export default function MyActionPlans() {
                       </td>
                       <td><span className="map-skel st" /></td>
                       <td><span className="map-skel due" /></td>
-                      <td><span className="map-skel st" /></td>
-                      <td className="map-hide"><span className="map-skel due" /></td>
-                      <td className="map-hide"><span className="map-skel act" /></td>
                       <td />
                     </tr>
                   ))}
@@ -922,9 +673,6 @@ export default function MyActionPlans() {
         ) : filtered.length === 0 ? (
           <div className="map-empty">
             {t('myActionPlans.emptyFilter')}
-            <button type="button" className="map-empty-create" onClick={() => void openCreateModal()}>
-              {t('myActionPlans.createFirst')}
-            </button>
           </div>
         ) : (
           <div className="map-table-wrap">
@@ -936,9 +684,6 @@ export default function MyActionPlans() {
                   <SortTh field="progress" label={t('myActionPlans.colProgress')} />
                   <th>{t('myActionPlans.colStatus')}</th>
                   <SortTh field="date" label={t('myActionPlans.colDate')} />
-                  <SortTh field="severity" label={t('myActionPlans.colSeverity')} />
-                  <SortTh field="assignee" label={t('myActionPlans.colAssignee')} hide />
-                  <th className="map-hide">{t('myActionPlans.colOpenActions')}</th>
                   <th aria-hidden style={{ width: 28 }} />
                 </tr>
               </thead>
@@ -970,15 +715,28 @@ export default function MyActionPlans() {
                       <td>
                         <p className="map-title">{plan.title}</p>
                         {plan.description ? <p className="map-sub">{plan.description}</p> : null}
-                        {plan.claimId ? (
-                          <Link
-                            className="map-dossier-link"
-                            to={`/pages/front/quality-analyses/8d/${encodeURIComponent(plan.claimId)}`}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {t('myActionPlans.viewDossier')}
-                          </Link>
-                        ) : null}
+                        <div className="map-metaline">
+                          {SEVERITY_LABEL_KEYS[plan.severity] ? (
+                            <span className={`map-sev ${sevCls}`}>{t(SEVERITY_LABEL_KEYS[plan.severity])}</span>
+                          ) : null}
+                          {plan.totalActions > 0 ? (
+                            <span className="map-actions" title={t('myActionPlans.colOpenActions')}>
+                              {t('myActionPlans.actionsShort', { open: plan.openActions, total: plan.totalActions })}
+                            </span>
+                          ) : null}
+                          {plan.assigneeLabel && plan.assigneeLabel !== displayName && !/^[0-9a-f]{8}$/i.test(plan.assigneeLabel) ? (
+                            <span className="map-assignee">{plan.assigneeLabel}</span>
+                          ) : null}
+                          {plan.claimId ? (
+                            <Link
+                              className="map-dossier-link"
+                              to={`/pages/front/quality-analyses/8d/${encodeURIComponent(plan.claimId)}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {t('myActionPlans.viewDossier')}
+                            </Link>
+                          ) : null}
+                        </div>
                       </td>
                       <td>
                         <div
@@ -1001,21 +759,6 @@ export default function MyActionPlans() {
                         </span>
                       </td>
                       <td>
-                        <span className={`map-sev ${sevCls}`}>
-                          {SEVERITY_LABEL_KEYS[plan.severity]
-                            ? t(SEVERITY_LABEL_KEYS[plan.severity])
-                            : '—'}
-                        </span>
-                      </td>
-                      <td className="map-hide">
-                        <span className="map-assignee">{plan.assigneeLabel}</span>
-                      </td>
-                      <td className="map-hide">
-                        <span className="map-actions">
-                          {plan.openActions}/{plan.totalActions}
-                        </span>
-                      </td>
-                      <td>
                         <svg className="map-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
                           <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                         </svg>
@@ -1029,239 +772,6 @@ export default function MyActionPlans() {
         )}
       </div>
 
-      {showCreate && (
-        <div
-          className="map-modal-backdrop"
-          role="presentation"
-          onClick={() => !submitting && setShowCreate(false)}
-        >
-          <div
-            className="map-modal"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="map-create-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="map-modal-head">
-              <div>
-                <h2 id="map-create-title">{t('myActionPlans.createTitle')}</h2>
-                <p>{t('myActionPlans.createSub')}</p>
-              </div>
-              <button
-                type="button"
-                className="map-modal-close"
-                onClick={() => !submitting && setShowCreate(false)}
-                aria-label={t('myActionPlans.close')}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="map-modal-body">
-              {createError && <div className="map-error">{createError}</div>}
-              {formErrors.assigned && <div className="map-error">{formErrors.assigned}</div>}
-
-              <label className="map-field">
-                <span>{t('myActionPlans.fieldTitle')} <em>*</em></span>
-                <input
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  placeholder={t('myActionPlans.titlePh')}
-                  className={formErrors.title ? 'is-invalid' : ''}
-                />
-                {formErrors.title && <small>{formErrors.title}</small>}
-              </label>
-
-              <label className="map-field">
-                <span>{t('myActionPlans.fieldDesc')}</span>
-                <textarea
-                  rows={2}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder={t('myActionPlans.descPh')}
-                />
-              </label>
-
-              <div className="map-field">
-                <span>{t('myActionPlans.fieldType')} <em>*</em></span>
-                <div className="map-type-row">
-                  {TYPE_OPTION_IDS.map((typeId) => (
-                    <button
-                      key={typeId}
-                      type="button"
-                      className={`map-type-btn${formData.type === typeId ? ' on' : ''}`}
-                      onClick={() => setFormData({ ...formData, type: typeId })}
-                    >
-                      {typeLabel(typeId)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="map-field-grid">
-                <label className="map-field">
-                  <span>{t('myActionPlans.fieldOrg')} <em>*</em></span>
-                  <select
-                    value={formData.organizationId}
-                    onChange={(e) => handleOrgChange(e.target.value)}
-                    className={formErrors.organizationId ? 'is-invalid' : ''}
-                  >
-                    <option value="">{t('myActionPlans.select')}</option>
-                    {organizations.map((o) => (
-                      <option key={o.id} value={o.id}>{o.name}</option>
-                    ))}
-                  </select>
-                  {formErrors.organizationId && <small>{formErrors.organizationId}</small>}
-                </label>
-                <label className="map-field">
-                  <span>{t('myActionPlans.fieldDept')} <em>*</em></span>
-                  <select
-                    value={formData.departmentId}
-                    onChange={(e) => setFormData({ ...formData, departmentId: e.target.value })}
-                    disabled={!formData.organizationId}
-                    className={formErrors.departmentId ? 'is-invalid' : ''}
-                  >
-                    <option value="">
-                      {!formData.organizationId
-                        ? t('myActionPlans.chooseOrg')
-                        : filteredDepts.length === 0
-                          ? t('myActionPlans.noDept')
-                          : t('myActionPlans.select')}
-                    </option>
-                    {filteredDepts.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                  {formErrors.departmentId && <small>{formErrors.departmentId}</small>}
-                </label>
-              </div>
-
-              <div className="map-field-grid">
-                <div className="map-field">
-                  <span>{t('myActionPlans.fieldAssignee')}</span>
-                  <div className="map-self-assign">
-                    <span className="map-self-dot" aria-hidden />
-                    {displayName}
-                    <em>{t('myActionPlans.you')}</em>
-                  </div>
-                </div>
-                <label className="map-field">
-                  <span>{t('myActionPlans.deadline')}</span>
-                  <input
-                    type="date"
-                    min={today}
-                    value={formData.deadline}
-                    onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  />
-                </label>
-              </div>
-
-              <label className="map-field">
-                <span>{t('myActionPlans.linkedClaim')}</span>
-                <input
-                  value={formData.claimId}
-                  onChange={(e) => setFormData({ ...formData, claimId: e.target.value })}
-                  placeholder={t('myActionPlans.claimIdPh')}
-                />
-              </label>
-
-              <div className="map-actions-block">
-                <div className="map-actions-head">
-                  <span>{t('myActionPlans.subActions')}</span>
-                  <em>{draftActions.length}</em>
-                </div>
-
-                {draftActions.length > 0 && (
-                  <ul className="map-draft-list">
-                    {draftActions.map((pa, idx) => (
-                      <li key={pa.id}>
-                        <div>
-                          <strong>{pa.title}</strong>
-                          <span>
-                            {t(PRIORITY_LABEL_KEYS[pa.priority])}
-                            {pa.deadline ? ` · ${formatDate(pa.deadline, dateLocale)}` : ''}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          aria-label={t('myActionPlans.remove')}
-                          onClick={() =>
-                            setDraftActions((prev) => prev.filter((_, i) => i !== idx))
-                          }
-                        >
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                <div className="map-draft-add">
-                  <p>{t('myActionPlans.addSubAction')}</p>
-                  <input
-                    value={newAction.title}
-                    onChange={(e) => setNewAction({ ...newAction, title: e.target.value })}
-                    placeholder={`${t('myActionPlans.fieldTitle')} *`}
-                    className={actionErrors.title ? 'is-invalid' : ''}
-                  />
-                  <textarea
-                    rows={2}
-                    value={newAction.description}
-                    onChange={(e) => setNewAction({ ...newAction, description: e.target.value })}
-                    placeholder={t('myActionPlans.descriptionPh')}
-                  />
-                  <div className="map-field-grid map-field-grid-2">
-                    <select
-                      value={newAction.priority}
-                      onChange={(e) =>
-                        setNewAction({ ...newAction, priority: e.target.value as Priority })
-                      }
-                    >
-                      <option value="low">{t('myActionPlans.priorityLow')}</option>
-                      <option value="medium">{t('myActionPlans.priorityMedium')}</option>
-                      <option value="high">{t('myActionPlans.priorityHigh')}</option>
-                    </select>
-                    <input
-                      type="date"
-                      min={today}
-                      value={newAction.deadline}
-                      onChange={(e) => setNewAction({ ...newAction, deadline: e.target.value })}
-                      className={actionErrors.deadline ? 'is-invalid' : ''}
-                    />
-                  </div>
-                  {(actionErrors.title || actionErrors.deadline) && (
-                    <small className="map-inline-err">
-                      {actionErrors.title || actionErrors.deadline}
-                    </small>
-                  )}
-                  <button type="button" className="map-add-action" onClick={addDraftAction}>
-                    + {t('ishikawa.add')}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="map-modal-foot">
-              <button
-                type="button"
-                className="map-btn-ghost"
-                disabled={submitting}
-                onClick={() => setShowCreate(false)}
-              >
-                {t('myActionPlans.cancel')}
-              </button>
-              <button
-                type="button"
-                className="map-btn-primary"
-                disabled={submitting}
-                onClick={() => void handleCreate()}
-              >
-                {submitting ? t('employeeProfile.saving') : t('myActionPlans.submit')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -7,6 +7,7 @@ import { employeeService } from '../../services/employeeService';
 import { Award } from 'lucide-react';
 import BadgeEmblem from '../../components/BadgeEmblem';
 import { BADGE_COLOR, BADGE_DEFINITIONS, computeEarnedBadges } from '../../utils/badges';
+import { engineBadgeText } from '../../utils/badgeText';
 import './EmployeeBadgesPage.css';
 
 type EarnedBadge = {
@@ -173,10 +174,17 @@ export default function EmployeeBadgesPage() {
           return keys;
         })
       );
+      // "First plan" and "Fast" say the same as the engine's "Premier plan CAPA" / "CAPA dans les délais": not listed twice
+      const engineHasFirstPlan = fromApi.some((b) => b.category === 'first_plan');
+      const engineHasPlanOnTime = fromApi.some((b) => b.category === 'speed' && b.name === 'CAPA dans les délais');
       const merged = [
         ...fromApi,
         ...computed.filter(
-          (b) => !seen.has(normalizeKey(b.name)) && !seen.has(normalizeKey(b.id))
+          (b) =>
+            !seen.has(normalizeKey(b.name)) &&
+            !seen.has(normalizeKey(b.id)) &&
+            !(b.defId === 'first-plan' && engineHasFirstPlan) &&
+            !(b.defId === 'fast-completer' && engineHasPlanOnTime)
         ),
       ].sort((a, b) => new Date(b.earnedAt ?? 0).getTime() - new Date(a.earnedAt ?? 0).getTime());
 
@@ -228,7 +236,7 @@ export default function EmployeeBadgesPage() {
         description: t(`employeeBadges.defs.${defId}.description`),
       };
     }
-    return { name: b.name, description: b.description };
+    return engineBadgeText(b, t) ?? { name: b.name, description: b.description };
   };
 
   const lockedCount = catalog.filter((c) => !c.earned).length;
@@ -265,7 +273,7 @@ export default function EmployeeBadgesPage() {
           <article className="ebp-summary-card">
             <span className="ebp-summary-label">{t('employeeBadges.locked')}</span>
             <strong className="ebp-summary-value">{loading ? '—' : lockedCount}</strong>
-            <span className="ebp-summary-hint">{t('employeeBadges.lockedHint')}</span>
+            <span className="ebp-summary-hint">{t('employeeBadges.lockedHint', { total: BADGE_DEFINITIONS.length })}</span>
           </article>
           <article className="ebp-summary-card wide">
             <span className="ebp-summary-label">{t('employeeBadges.latest')}</span>
@@ -323,7 +331,7 @@ export default function EmployeeBadgesPage() {
                         <span>{fmtDate(b.earnedAt)}</span>
                         {(() => {
                           const chip = (b.typeLabel || b.category || '').trim();
-                          if (!chip) return null;
+                          if (!chip || engineBadgeText(b, t)) return null;
                           const chipDef = resolveBadgeDefId({
                             name: chip,
                             category: chip,

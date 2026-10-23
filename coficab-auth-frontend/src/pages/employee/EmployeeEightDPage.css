@@ -368,3 +368,13 @@
     display: none;
   }
 }
+
+.e8d-sort { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #64748b; font-weight: 600; }
+.e8d-sort select { height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; color: #0f172a; font: inherit; font-weight: 600; }
+.e8d-ref { font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: #64748b; margin-right: 8px; }
+.e8d-stale { margin-top: 14px; padding: 12px 14px; border: 1px dashed #cbd5e1; border-radius: 12px; background: #f8fafc; }
+.e8d-stale-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.e8d-stale-head strong { font-size: 13px; color: #0f172a; }
+.e8d-stale-head p { margin: 2px 0 0; font-size: 12px; color: #64748b; }
+.e8d-stale-toggle { padding: 6px 14px; border-radius: 8px; border: 1px solid #c7d2fe; background: #eef2ff; color: #000168; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.e8d-stale .e8d-list { margin-top: 12px; }

@@ -5,16 +5,19 @@ import { BookOpen, ChevronRight, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getEmployeeWorkspace, type WorkspaceEightD } from '../../services/employeeWorkspaceService';
 import { resolveClaimStatus } from '../../utils/Claimutils';
+import { STALE_DAYS } from '../../utils/workspaceStats';
 import type { Claim } from '../../types/qualityAnalysis';
 import './EmployeeEightDPage.css';
 
 type Tab = 'open' | 'closed' | 'all';
+type SortKey = 'urgency' | 'deadline' | 'progress';
 
 const CLOSED = new Set(['CLOTUREE', 'VALIDATED', 'ARCHIVED']);
 const TOTAL_STEPS = 8;
 
 type Row = {
   id: string;
+  ref?: string;
   title: string;
   client: string;
   lot: string;
@@ -49,6 +52,8 @@ export default function EmployeeEightDPage() {
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('open');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortKey>('urgency');
+  const [showStale, setShowStale] = useState(false);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -80,6 +85,7 @@ export default function EmployeeEightDPage() {
         const closed = CLOSED.has(status) || ['CLOSED', 'VALIDATED'].includes(String(dossier?.statusCode || '').toUpperCase());
         return {
           id,
+          ref: (c as any).reference || undefined,
           title: c.title || dossier?.claimTitle || id.slice(0, 8),
           client: String((c as any).clientId || ''),
           lot: String((c as any).lotNumber || ''),
@@ -102,13 +108,34 @@ export default function EmployeeEightDPage() {
     [rows],
   );
 
-  const visible = useMemo(() => {
+  /** Open files overdue by more than STALE_DAYS are listed apart: they need a decision, not more red rows on top. */
+  const isStale = (r: Row) => !r.closed && !r.pendingValidation && r.daysLeft != null && r.daysLeft < -STALE_DAYS;
+
+  const compare = useMemo(() => {
+    const days = (r: Row) => r.daysLeft ?? Number.POSITIVE_INFINITY;
+    // urgency: late (most late first), then due within a week, later, no deadline, and what only waits for a reviewer last
+    const rank = (r: Row) => {
+      if (r.closed) return 5;
+      if (r.pendingValidation) return 4;
+      if (r.daysLeft == null) return 3;
+      if (r.daysLeft < 0) return 0;
+      return r.daysLeft <= 7 ? 1 : 2;
+    };
+    return (a: Row, b: Row) => {
+      if (sort === 'progress') return a.completed - b.completed || days(a) - days(b);
+      if (sort === 'deadline') return days(a) - days(b);
+      return rank(a) - rank(b) || days(a) - days(b);
+    };
+  }, [sort]);
+
+  const { visible, stale } = useMemo(() => {
     const term = search.trim().toLowerCase();
-    return rows
+    const matching = rows
       .filter((r) => tab === 'all' || (tab === 'open' ? !r.closed : r.closed))
-      .filter((r) => !term || [r.title, r.client, r.lot].some((v) => v.toLowerCase().includes(term)))
-      .sort((a, b) => (a.daysLeft ?? Number.POSITIVE_INFINITY) - (b.daysLeft ?? Number.POSITIVE_INFINITY));
-  }, [rows, tab, search]);
+      .filter((r) => !term || [r.title, r.client, r.lot, r.ref ?? ''].some((v) => v.toLowerCase().includes(term)))
+      .sort(compare);
+    return { visible: matching.filter((r) => !isStale(r)), stale: matching.filter(isStale) };
+  }, [rows, tab, search, compare]);
 
   const formatDate = (iso?: string) => {
     if (!iso) return '';
@@ -124,6 +151,40 @@ export default function EmployeeEightDPage() {
     if (r.daysLeft < 0) return { text: t('employeeEightD.late', { count: -r.daysLeft }), tone: 'late' };
     if (r.daysLeft === 0) return { text: t('employeeEightD.today'), tone: 'soon' };
     return { text: t('employeeEightD.dueOn', { date: formatDate(r.deadline) }), tone: r.daysLeft <= 7 ? 'soon' : 'muted' };
+  };
+
+  const renderRow = (r: Row) => {
+    const due = dueLabel(r);
+    const pct = Math.round((r.completed / TOTAL_STEPS) * 100);
+    return (
+      <li key={r.id}>
+        <button type="button" className="e8d-row" onClick={() => navigate(`/pages/front/quality-analyses/8d/${r.id}`)}>
+          <span className={`e8d-step${r.closed ? ' done' : ''}`} aria-hidden>
+            {r.closed ? '8D' : r.stepCode || 'D1'}
+          </span>
+          <span className="e8d-main">
+            <span className="e8d-name">{r.ref && <span className="e8d-ref">{r.ref}</span>}{r.title}</span>
+            <span className="e8d-meta">
+              {r.client && <span>{r.client}</span>}
+              {r.lot && <span>{t('employeeEightD.lot', { lot: r.lot })}</span>}
+              <span>
+                {r.closed
+                  ? t('employeeEightD.allStepsDone')
+                  : r.pendingValidation
+                    ? t('employeeEightD.awaitingValidation')
+                    : t('employeeEightD.currentStep', { step: `${r.stepCode ?? 'D1'} · ${r.stepLabel ?? ''}`.replace(/ · $/, '') })}
+              </span>
+            </span>
+          </span>
+          <span className="e8d-progress" title={t('employeeEightD.progress', { done: r.completed, total: TOTAL_STEPS })}>
+            <span className="e8d-bar"><span style={{ width: `${pct}%` }} /></span>
+            <small>{r.completed}/{TOTAL_STEPS}</small>
+          </span>
+          <span className={`e8d-due ${due.tone}`}>{due.text}</span>
+          <ChevronRight size={16} className="e8d-chev" aria-hidden />
+        </button>
+      </li>
+    );
   };
 
   return (
@@ -148,6 +209,14 @@ export default function EmployeeEightDPage() {
               </button>
             ))}
           </div>
+          <label className="e8d-sort">
+            <span>{t('employeeEightD.sortLabel')}</span>
+            <select value={sort} onChange={(e) => setSort(e.target.value as SortKey)}>
+              <option value="urgency">{t('employeeEightD.sort_urgency')}</option>
+              <option value="deadline">{t('employeeEightD.sort_deadline')}</option>
+              <option value="progress">{t('employeeEightD.sort_progress')}</option>
+            </select>
+          </label>
           <label className="e8d-search">
             <Search size={15} aria-hidden />
             <input
@@ -166,47 +235,29 @@ export default function EmployeeEightDPage() {
             <ul className="e8d-list" aria-hidden>
               {Array.from({ length: 4 }, (_, i) => <li key={i} className="e8d-skel" />)}
             </ul>
-          ) : visible.length === 0 ? (
+          ) : visible.length === 0 && stale.length === 0 ? (
             <div className="e8d-empty">
               <strong>{rows.length === 0 ? t('employeeEightD.emptyTitle') : t('employeeEightD.noResults')}</strong>
               {rows.length === 0 && <p>{t('employeeEightD.emptyHint')}</p>}
             </div>
           ) : (
-            <ul className="e8d-list">
-              {visible.map((r) => {
-                const due = dueLabel(r);
-                const pct = Math.round((r.completed / TOTAL_STEPS) * 100);
-                return (
-                  <li key={r.id}>
-                    <button type="button" className="e8d-row" onClick={() => navigate(`/pages/front/quality-analyses/8d/${r.id}`)}>
-                      <span className={`e8d-step${r.closed ? ' done' : ''}`} aria-hidden>
-                        {r.closed ? '8D' : r.stepCode || 'D1'}
-                      </span>
-                      <span className="e8d-main">
-                        <span className="e8d-name">{r.title}</span>
-                        <span className="e8d-meta">
-                          {r.client && <span>{r.client}</span>}
-                          {r.lot && <span>{t('employeeEightD.lot', { lot: r.lot })}</span>}
-                          <span>
-                            {r.closed
-                              ? t('employeeEightD.allStepsDone')
-                              : r.pendingValidation
-                                ? t('employeeEightD.awaitingValidation')
-                                : t('employeeEightD.currentStep', { step: `${r.stepCode ?? 'D1'} · ${r.stepLabel ?? ''}`.replace(/ · $/, '') })}
-                          </span>
-                        </span>
-                      </span>
-                      <span className="e8d-progress" title={t('employeeEightD.progress', { done: r.completed, total: TOTAL_STEPS })}>
-                        <span className="e8d-bar"><span style={{ width: `${pct}%` }} /></span>
-                        <small>{r.completed}/{TOTAL_STEPS}</small>
-                      </span>
-                      <span className={`e8d-due ${due.tone}`}>{due.text}</span>
-                      <ChevronRight size={16} className="e8d-chev" aria-hidden />
+            <>
+              {visible.length > 0 && <ul className="e8d-list">{visible.map(renderRow)}</ul>}
+              {stale.length > 0 && (
+                <div className="e8d-stale">
+                  <div className="e8d-stale-head">
+                    <div>
+                      <strong>{t('employeeEightD.staleTitle')} · {stale.length}</strong>
+                      <p>{t('employeeEightD.staleSub', { count: stale.length, days: STALE_DAYS })}</p>
+                    </div>
+                    <button type="button" className="e8d-stale-toggle" aria-expanded={showStale} onClick={() => setShowStale((v) => !v)}>
+                      {showStale ? t('employeeEightD.staleHide') : t('employeeEightD.staleShow')}
                     </button>
-                  </li>
-                );
-              })}
-            </ul>
+                  </div>
+                  {showStale && <ul className="e8d-list">{stale.map(renderRow)}</ul>}
+                </div>
+              )}
+            </>
           )}
         </section>
       </div>

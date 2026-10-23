@@ -10,6 +10,7 @@ import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import OrganizationScopePicker from '../OrganizationScopePicker';
 import { useEffect, useRef } from 'react';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
+import { useSidebarScroll } from './useSidebarScroll';
 
 type NavLink = { label: string; icon: string; path: string };
 type NavSection = { id: string; label: string; children: NavLink[] };
@@ -217,6 +218,7 @@ export default function AdminLayout() {
     readLsIds(LS_AP_SECTIONS, DEFAULT_AP_SECTIONS),
   );
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useSidebarScroll(sidebarExpanded, location.pathname);
 
   const toggleGroup = (id: string) =>
     setOpenGroups((prev) => {
@@ -591,6 +593,7 @@ export default function AdminLayout() {
       <div className="al-body">
         {/* ─── SIDEBAR ─── */}
         <div
+          ref={sidebarRef}
           className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}`}
           onMouseEnter={() => setSidebarExpanded(true)}
           onMouseLeave={() => setSidebarExpanded(false)}

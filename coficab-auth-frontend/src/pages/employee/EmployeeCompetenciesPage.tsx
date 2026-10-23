@@ -4,8 +4,13 @@ import { Trans, useTranslation } from 'react-i18next';
 import CompetencyRadar from '../admin/employees/CompetencyRadar';
 import { useAuth } from '../../context/AuthContext';
 import { employeeService } from '../../services/employeeService';
+import { getEmployeeWorkspace } from '../../services/employeeWorkspaceService';
+import { closureStats, type ClosureStats } from '../../utils/workspaceStats';
 import {
   fetchEmployeePerformance,
+  levelsFromScores,
+  scoreCapa,
+  scoreDeadlines,
   type CompetencyScores,
   type EmployeePerformanceRow,
   type SkillLevel,
@@ -43,6 +48,7 @@ export default function EmployeeCompetenciesPage() {
   const navigate = useNavigate();
 
   const [row, setRow] = useState<EmployeePerformanceRow | null>(null);
+  const [closure, setClosure] = useState<ClosureStats | null>(null);
   const [apiSkills, setApiSkills] = useState<ApiSkill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +63,7 @@ export default function EmployeeCompetenciesPage() {
       const name =
         String((user as any)?.fullName || (user as any)?.name || email.split('@')[0] || 'Collaborateur');
 
-      const [perfRows, skillsRaw] = await Promise.all([
+      const [perfRows, skillsRaw, workspace] = await Promise.all([
         userId
           ? fetchEmployeePerformance(accessToken, [
               {
@@ -69,12 +75,30 @@ export default function EmployeeCompetenciesPage() {
                 department: (user as any)?.department,
                 profilePictureUrl: (user as any)?.profilePictureUrl,
               },
-            ])
+            ], { assignedFiles: true })
           : Promise.resolve([] as EmployeePerformanceRow[]),
         employeeService.getSkills(accessToken).catch(() => []),
+        getEmployeeWorkspace(accessToken).catch(() => null),
       ]);
 
-      setRow(perfRows[0] ?? null);
+      // the same files as the dashboard: what is assigned to this employee
+      setClosure(workspace ? closureStats(workspace.claims, workspace.plans as any[]) : null);
+
+      // An employee cannot read the team-wide assignments, so the plan axes come from the plans assigned to them (the dashboard's files).
+      let perf = perfRows[0] ?? null;
+      if (perf && workspace) {
+        const today = Date.now();
+        const myPlans = (workspace.plans as any[]).map((p) => ({
+          status: Number(p.status ?? 0),
+          progress: Number(p.progress ?? 0),
+          deadline: p.deadline as string | undefined,
+        }));
+        const open = myPlans.filter((p) => !(p.status === 3 || p.status === 4 || p.progress >= 100));
+        const overdue = open.filter((p) => p.deadline && new Date(p.deadline).getTime() < today).length;
+        const competencies = { ...perf.competencies, capa: scoreCapa(myPlans), deadlines: scoreDeadlines(myPlans, overdue) };
+        perf = { ...perf, competencies, competencyLevels: levelsFromScores(competencies) };
+      }
+      setRow(perf);
       const skillsList = Array.isArray(skillsRaw)
         ? skillsRaw
         : Array.isArray((skillsRaw as any)?.data)
@@ -178,9 +202,13 @@ export default function EmployeeCompetenciesPage() {
           <article className="ecp-summary-card">
             <span className="ecp-summary-label">{t('employeeCompetencies.closureRate')}</span>
             <strong className="ecp-summary-value">
-              {loading || !row ? '—' : `${row.closureRate}%`}
+              {loading ? '—' : closure ? `${closure.rate}%` : row ? `${row.closureRate}%` : '—'}
             </strong>
-            <span className="ecp-summary-hint">{t('employeeCompetencies.closureHint')}</span>
+            <span className="ecp-summary-hint">
+              {closure
+                ? t('employeeCompetencies.closureCounts', { closed: closure.closed, total: closure.total })
+                : t('employeeCompetencies.closureHint')}
+            </span>
           </article>
         </section>
 

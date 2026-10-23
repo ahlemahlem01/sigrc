@@ -243,6 +243,8 @@ export interface ClaimsHistoryRow {
   isOnTime?: boolean | null;
   createdBy?: string | null;
   createdById?: string | null;
+  assignedToId?: string | null;
+  assignedToName?: string | null;
   productionLine?: string | null;
   shift?: string | null;
   producedQuantity?: number | null;

@@ -7,6 +7,7 @@ import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
+import { useSidebarScroll } from './useSidebarScroll';
 
 type NavChild = { labelKey: string; icon: string; path: string };
 type NavGroup = { id: string; labelKey: string; icon: string; children: NavChild[] };
@@ -65,6 +66,8 @@ const NAV: NavItem[] = [
   },
 ];
 
+const SIDEBAR_PIN_KEY = 'coficab_user_sidebar_pinned_v2';
+
 function getPageMeta(
   pathname: string,
   t: (key: string) => string
@@ -99,7 +102,18 @@ export default function UserLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  // As before, the menu is an icon rail that slides open on hover; a user who wants the labels always visible can pin it open.
+  const [pinned, setPinned] = useState(() => {
+    try { return localStorage.getItem(SIDEBAR_PIN_KEY) === '1'; } catch { return false; }
+  });
+  const [hovered, setHovered] = useState(false);
+  const sidebarExpanded = pinned || hovered;
+  const togglePinned = () =>
+    setPinned((prev) => {
+      try { localStorage.setItem(SIDEBAR_PIN_KEY, prev ? '0' : '1'); } catch { /* storage unavailable */ }
+      return !prev;
+    });
+  const sidebarRef = useSidebarScroll(sidebarExpanded, location.pathname);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(['actionplans']);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -410,9 +424,10 @@ export default function UserLayout() {
       <div className="al-body">
         {/* ─── SIDEBAR ─── */}
         <div
+          ref={sidebarRef}
           className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}`}
-          onMouseEnter={() => setSidebarExpanded(true)}
-          onMouseLeave={() => setSidebarExpanded(false)}
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
         >
           {/* Logo */}
           <div className="al-sb-logo-wrap">
@@ -469,6 +484,17 @@ export default function UserLayout() {
               </div>
             );
           })}
+
+          <button
+            type="button"
+            className="al-sidebar-link"
+            style={{ marginTop: 'auto' }}
+            onClick={togglePinned}
+            title={pinned ? t('employeeNav.collapseMenu') : t('employeeNav.pinMenu')}
+          >
+            <i className={`ti ${pinned ? 'ti-layout-sidebar-left-collapse' : 'ti-layout-sidebar-left-expand'}`} />
+            <span className="al-sidebar-label">{pinned ? t('employeeNav.collapseMenu') : t('employeeNav.pinMenu')}</span>
+          </button>
         </div>
 
         {/* ─── MAIN CONTENT SHELL ─── */}

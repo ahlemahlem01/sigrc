@@ -58,6 +58,12 @@ export const EmployeeDocuments: React.FC = () => {
     void load();
   }, [load]);
 
+  /** The saved file keeps its extension (the name shown in the list has none). */
+  const fileNameOf = (doc: DocumentDto) => {
+    const ext = (String((doc as any).filePath ?? '').match(/\.([a-z0-9]{2,5})$/i)?.[1] ?? String(doc.type ?? '')).toLowerCase();
+    return ext && !doc.name.toLowerCase().endsWith('.' + ext) ? `${doc.name}.${ext}` : doc.name;
+  };
+
   const handleDownload = async (doc: DocumentDto) => {
     if (!accessToken || downloadingId) return;
     setDownloadingId(doc.id);
@@ -67,7 +73,7 @@ export const EmployeeDocuments: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = doc.name;
+      link.download = fileNameOf(doc);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

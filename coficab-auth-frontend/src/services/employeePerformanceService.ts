@@ -215,7 +215,7 @@ const scoreEightD = (rows: ClaimsHistoryRow[]) => {
   return Math.min(100, Math.round((with8d / rows.length) * 80));
 };
 
-const scoreCapa = (plans: RawAssignment[]) => {
+export const scoreCapa = (plans: { status: number; progress: number }[]) => {
   if (plans.length === 0) return 0;
   const closed = plans.filter((p) => isPlanClosed(p.status, p.progress)).length;
   const avgProgress =
@@ -223,7 +223,7 @@ const scoreCapa = (plans: RawAssignment[]) => {
   return Math.min(100, Math.round((closed / plans.length) * 60 + avgProgress * 0.4));
 };
 
-const scoreDeadlines = (plans: RawAssignment[], overdueForUser: number) => {
+export const scoreDeadlines = (plans: { status: number; progress: number }[], overdueForUser: number) => {
   if (plans.length === 0) return overdueForUser === 0 ? 50 : 20;
   const penalty = Math.min(80, overdueForUser * 12);
   const closedOnTime = plans.filter((p) => isPlanClosed(p.status, p.progress)).length;
@@ -270,7 +270,7 @@ export async function fetchEmployeePerformance(
     department?: string;
   }[],
   /** aligned: the figures come from the server with the rules of the other admin pages (used by the team report only). */
-  options: { aligned?: boolean } = {},
+  options: { aligned?: boolean; assignedFiles?: boolean } = {},
 ): Promise<EmployeePerformanceRow[]> {
   const hdrs = { Authorization: `Bearer ${token}` };
 
@@ -313,16 +313,21 @@ export async function fetchEmployeePerformance(
     const userPlans = assignments.filter((a) => matchUserId(a.assignedToId, userId));
     const userFullPlans = allPlans.filter((p) => matchUserId(pickPlanAssigned(p), userId));
     // a claim belongs to the person it is assigned to, else to its creator (the rule of the other pages)
+    const byAssignee = options.aligned || options.assignedFiles;
     const userClaims = claims.filter((c) => {
-      const assignee = options.aligned ? String((c as any).assignedToId ?? '').trim() : '';
+      const assignee = byAssignee ? String((c as any).assignedToId ?? '').trim() : '';
       if (assignee) return matchUserId(assignee, userId);
       return matchUserId(c.createdById, userId) || (!!userEmail && String(c.createdBy ?? '').toLowerCase() === userEmail);
     });
-    const userHistory = historyItems.filter(
-      (r) =>
+    // the skills come from the files the person works on: the assignee, else the creator
+    const userHistory = historyItems.filter((r) => {
+      const assignee = byAssignee ? String(r.assignedToId ?? '').trim() : '';
+      if (assignee) return matchUserId(assignee, userId);
+      return (
         matchUserId(r.createdById, userId) ||
-        (!!userEmail && String(r.createdBy ?? '').toLowerCase() === userEmail),
-    );
+        (!!userEmail && String(r.createdBy ?? '').toLowerCase() === userEmail)
+      );
+    });
 
     const activeClaims = userClaims.filter((c) => !isClaimClosed(c.statusCode));
     const activePlans = userPlans.filter((p) => !isPlanClosed(p.status, p.progress));

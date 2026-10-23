@@ -143,6 +143,7 @@ export default function EmployeeProfile({
   );
   const [, setAvatarDirty] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [showAvatars, setShowAvatars] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -811,6 +812,10 @@ export default function EmployeeProfile({
         }
         .ep-secondary:hover { background: #eef2ff; color: #000168; }
         .ep-ok { font-size: 13px; font-weight: 600; color: #15803d; }
+        .ep-link { margin-top: 8px; padding: 0; border: none; background: none; color: #000168; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; text-decoration: underline; }
+        .ep-tones-block[hidden] { display: none; }
+        .ep-val { display: flex; flex-direction: column; align-items: flex-end; }
+        .ep-note { display: block; margin-top: 2px; font-size: 11px; font-weight: 400; color: #64748b; text-align: right; }
 
         .ep-side-list {
           list-style: none;
@@ -915,23 +920,29 @@ export default function EmployeeProfile({
               <h1 className="ep-name">{displayName}</h1>
               <p className="ep-email">{meta.email || t('employeeProfile.emailUnavailable')}</p>
               <div className="ep-meta">
-                <span>{roleLabel(meta.role, t)}</span>
                 {meta.department ? <span>{meta.department}</span> : null}
                 {meta.organizationName ? <span>{meta.organizationName}</span> : null}
               </div>
-              <div className="ep-status-row" aria-label={t('employeeProfile.statuses')}>
-                <span className={`ep-status-pill act-${activityStatusClass(meta.activityStatus)}`}>
-                  <span className="ep-status-k">{t('employeeProfile.activityStatus')}</span>
-                  {t(`employeeProfile.activity.${normalizeActivityStatus(meta.activityStatus)}`)}
-                </span>
-                <span className={`ep-status-pill acct-${meta.isLockedOut ? 'locked' : 'ok'}`}>
-                  <span className="ep-status-k">{t('employeeProfile.account')}</span>
-                  {meta.isLockedOut ? t('employeeProfile.locked') : t('employeeProfile.active')}
-                </span>
-              </div>
+              {(meta.isLockedOut || normalizeActivityStatus(meta.activityStatus) !== 'Active') && (
+                <div className="ep-status-row" aria-label={t('employeeProfile.statuses')}>
+                  <span className={`ep-status-pill act-${activityStatusClass(meta.activityStatus)}`}>
+                    <span className="ep-status-k">{t('employeeProfile.activityStatus')}</span>
+                    {t(`employeeProfile.activity.${normalizeActivityStatus(meta.activityStatus)}`)}
+                  </span>
+                  {meta.isLockedOut && (
+                    <span className="ep-status-pill acct-locked">
+                      <span className="ep-status-k">{t('employeeProfile.account')}</span>
+                      {t('employeeProfile.locked')}
+                    </span>
+                  )}
+                </div>
+              )}
+              <button type="button" className="ep-link" aria-expanded={showAvatars} onClick={() => setShowAvatars((v) => !v)}>
+                {showAvatars ? t('employeeProfile.avatarClose') : t('employeeProfile.avatarChange')}
+              </button>
             </div>
 
-            <div className="ep-tones-block">
+            <div className="ep-tones-block" hidden={!showAvatars}>
               <div className="ep-tones-title">{t('employeeProfile.avatarSuggestions')}</div>
               <div className="ep-tones" role="group" aria-label={t('employeeProfile.avatarsSuggested')}>
                 {AVATAR_PRESETS.map((p) => (
@@ -1040,7 +1051,10 @@ export default function EmployeeProfile({
               </li>
               <li>
                 <span>{t('employeeProfile.manager')}</span>
-                <strong>{meta.managerName || t('employeeProfile.unassigned')}</strong>
+                <div className="ep-val">
+                  <strong>{meta.managerName || t('employeeProfile.unassigned')}</strong>
+                  {!meta.managerName && <small className="ep-note">{t('employeeProfile.managerHint')}</small>}
+                </div>
               </li>
               <li>
                 <span>{t('employeeProfile.activityStatus')}</span>
