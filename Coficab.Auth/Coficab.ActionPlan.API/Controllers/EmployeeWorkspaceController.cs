@@ -94,13 +94,13 @@ public class EmployeeWorkspaceController : ControllerBase
             .Select(d => new { d.Id, d.Name, d.Type, d.CreatedAt })
             .ToListAsync(ct);
 
-        var recentBadges = await _db.Badges
-            .AsNoTracking()
-            .Where(b => b.UserId == userId)
-            .OrderByDescending(b => b.EarnedAt)
+        var recentBadges = Coficab.ActionPlan.Application.Badges.BadgeDuplicates.Distinct(await _db.Badges
+                .AsNoTracking()
+                .Where(b => b.UserId == userId)
+                .ToListAsync(ct))
             .Take(RecentCount)
             .Select(b => new { b.Id, b.Name, b.Description, b.Color, b.Category, b.EarnedAt })
-            .ToListAsync(ct);
+            .ToList();
 
         return Ok(new { claims, plans, planActions, eightD, rejectedPlans, recentDocuments, recentBadges });
     }

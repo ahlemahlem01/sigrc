@@ -30,10 +30,9 @@ public class BadgesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return Unauthorized(new { message = "Utilisateur non authentifié" });
 
-        var badges = await _context.Badges
+        var badges = Coficab.ActionPlan.Application.Badges.BadgeDuplicates.Distinct(await _context.Badges
             .Where(b => b.UserId == userId)
-            .OrderByDescending(b => b.EarnedAt)
-            .ToListAsync();
+            .ToListAsync());
 
         return Ok(new { data = badges });
     }
@@ -48,10 +47,9 @@ public class BadgesController : ControllerBase
         if (string.IsNullOrEmpty(userId))
             return BadRequest(new { message = "UserId requis" });
 
-        var badges = await _context.Badges
+        var badges = Coficab.ActionPlan.Application.Badges.BadgeDuplicates.Distinct(await _context.Badges
             .Where(b => b.UserId == userId)
-            .OrderByDescending(b => b.EarnedAt)
-            .ToListAsync();
+            .ToListAsync());
 
         return Ok(new { data = badges });
     }

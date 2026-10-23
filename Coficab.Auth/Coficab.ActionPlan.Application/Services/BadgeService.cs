@@ -8,6 +8,9 @@ using Microsoft.EntityFrameworkCore;
 namespace Coficab.ActionPlan.Application.Services;
 public class BadgeService : IBadgeService
 {
+    /// <summary>One award at a time per person: two claims closed together must not both pass the "already earned?" check.</summary>
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, SemaphoreSlim> AwardLocks = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly IApplicationDbContext _context;
     private readonly IMapper _mapper;
     private readonly ITimelineService _timelineService;
@@ -19,10 +22,9 @@ public class BadgeService : IBadgeService
     }
     public async Task<IEnumerable<BadgeDto>> GetUserBadgesAsync(string userId)
     {
-        var badges = await _context.Badges
+        var badges = BadgeDuplicates.Distinct(await _context.Badges
             .Where(b => b.UserId == userId)
-            .OrderByDescending(b => b.EarnedAt)
-            .ToListAsync();
+            .ToListAsync());
         var profile = await _context.UserProfiles
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.UserId == userId);
@@ -30,10 +32,15 @@ public class BadgeService : IBadgeService
     }
     public async Task<BadgeDto?> AwardBadgeAsync(string userId, AwardBadgeDto dto)
     {
-        // One badge per (category, name): tiers and periods have their own names, so an employee can earn several.
-        if (await _context.Badges.AnyAsync(b => b.UserId == userId && b.Category == dto.Category && b.Name == dto.Name))
-            return null;
-        var badge = new Badge
+        var gate = AwardLocks.GetOrAdd(userId, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        Badge badge;
+        try
+        {
+            // One badge per (category, name): tiers and periods have their own names, so an employee can earn several.
+            if (await _context.Badges.AnyAsync(b => b.UserId == userId && b.Category == dto.Category && b.Name == dto.Name))
+                return null;
+            badge = new Badge
         {
             UserId = userId,
             Name = dto.Name,
@@ -43,9 +50,14 @@ public class BadgeService : IBadgeService
             Category = dto.Category,
             PlanId = dto.PlanId,
             PlanTitle = dto.PlanTitle
-        };
-        _context.Badges.Add(badge);
-        await _context.SaveChangesAsync();
+            };
+            _context.Badges.Add(badge);
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            gate.Release();
+        }
         await _timelineService.AutoLogBadgeEarnedAsync(userId, badge.Id, badge.Name);
         return MapBadge(badge, null);
     }
@@ -106,9 +118,7 @@ public class BadgeService : IBadgeService
     }
     public async Task<IEnumerable<BadgeDto>> GetAllBadgesAsync()
     {
-        var badges = await _context.Badges
-            .OrderByDescending(b => b.EarnedAt)
-            .ToListAsync();
+        var badges = BadgeDuplicates.Distinct(await _context.Badges.ToListAsync());
         var profiles = await _context.UserProfiles
             .AsNoTracking()
             .ToDictionaryAsync(p => p.UserId, p => p, StringComparer.OrdinalIgnoreCase);
