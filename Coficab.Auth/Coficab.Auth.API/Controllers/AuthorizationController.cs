@@ -81,6 +81,16 @@ public class AuthorizationController : ControllerBase
                     detail: $"Account locked until {lockoutEnd:dd/MM/yyyy HH:mm} UTC after too many failed attempts.");
             }
 
+            if (result.IsLockedOut)
+            {
+                var until = await _userManager.GetLockoutEndDateAsync(user);
+                return Forbid(
+                    CreateErrorProperties(
+                        $"The account is locked after too many failed attempts{(until.HasValue && until.Value < DateTimeOffset.UtcNow.AddYears(1) ? $" until {until.Value.UtcDateTime:HH:mm} UTC" : "")}.",
+                        "account_locked"),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
             if (!result.Succeeded)
                 return Forbid(
                     CreateErrorProperties("The email or password is incorrect."),
@@ -168,12 +178,11 @@ public class AuthorizationController : ControllerBase
         return principal;
     }
 
-    private static AuthenticationProperties CreateErrorProperties(string description)
+    private static AuthenticationProperties CreateErrorProperties(string description, string error = OpenIddictConstants.Errors.InvalidGrant)
     {
         return new AuthenticationProperties(new Dictionary<string, string?>
         {
-            [OpenIddictServerAspNetCoreConstants.Properties.Error] =
-                OpenIddictConstants.Errors.InvalidGrant,
+            [OpenIddictServerAspNetCoreConstants.Properties.Error] = error,
             [OpenIddictServerAspNetCoreConstants.Properties.ErrorDescription] =
                 description
         });

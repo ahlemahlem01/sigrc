@@ -131,6 +131,9 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<int>("Progress")
                         .HasColumnType("int");
 
+                    b.Property<string>("Reference")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
