@@ -123,6 +123,48 @@ public class DashboardController : ControllerBase
         return Ok(await OverviewTargetsStore.LoadAsync(_db, _configuration, cancellationToken));
     }
 
+    /// <summary>All the thresholds an administrator may tune (targets, activity days, overload). Readable by admins.</summary>
+    [HttpGet("thresholds")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<ActionResult<ThresholdsDto>> GetThresholds(CancellationToken cancellationToken)
+        => Ok(await ThresholdsStore.LoadAsync(_db, _configuration, cancellationToken));
+
+    /// <summary>The built-in values, to show next to the saved ones.</summary>
+    [HttpGet("thresholds/defaults")]
+    [Authorize(Policy = "AdminOnly")]
+    public ActionResult<ThresholdsDto> GetThresholdDefaults() => Ok(ThresholdsStore.Defaults(_configuration));
+
+    /// <summary>Saves the thresholds (superadmin only) and recomputes the activity statuses with the new days.</summary>
+    [HttpPut("thresholds")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> SetThresholds(
+        [FromBody] ThresholdsDto thresholds,
+        [FromServices] Coficab.ActionPlan.Application.Interfaces.IEmployeeActivityService? activity,
+        CancellationToken cancellationToken)
+    {
+        if (!IsSuperAdmin()) return Forbid();
+        var problem = ThresholdsStore.Validate(thresholds);
+        if (problem != null) return BadRequest(new { field = problem });
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        await ThresholdsStore.SaveAsync(_db, thresholds, userId, cancellationToken);
+        if (activity != null) await activity.RecalculateAllAsync(cancellationToken);
+        return Ok(await ThresholdsStore.LoadAsync(_db, _configuration, cancellationToken));
+    }
+
+    /// <summary>Back to the default values: they are saved as such (superadmin only).</summary>
+    [HttpDelete("thresholds")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> ResetThresholds(
+        [FromServices] Coficab.ActionPlan.Application.Interfaces.IEmployeeActivityService? activity,
+        CancellationToken cancellationToken)
+    {
+        if (!IsSuperAdmin()) return Forbid();
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        await ThresholdsStore.SaveAsync(_db, ThresholdsStore.Defaults(_configuration), userId, cancellationToken);
+        if (activity != null) await activity.RecalculateAllAsync(cancellationToken);
+        return Ok(await ThresholdsStore.LoadAsync(_db, _configuration, cancellationToken));
+    }
+
     private static IReadOnlyList<Guid>? ParseOrganizations(string? raw) => OrganizationFilter.Parse(raw);
 
     private bool IsSuperAdmin() => User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))

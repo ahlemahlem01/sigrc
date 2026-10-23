@@ -55,7 +55,9 @@ export default function CapaWorkload() {
   );
 
   const average = data?.summary.averageOpen ?? 0;
-  const isHeavy = (p: Workload['people'][number]) => p.openPlans >= 4 && p.openPlans >= 1.5 * average;
+  const overloadMin = data?.summary.overloadMin ?? 4;
+  const overloadFactor = data?.summary.overloadFactor ?? 1.5;
+  const isHeavy = (p: Workload['people'][number]) => p.openPlans >= overloadMin && p.openPlans >= overloadFactor * average;
   const isIdle = (p: Workload['people'][number]) => p.openPlans === 0 && p.openActions === 0;
   const base = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -246,7 +248,7 @@ export default function CapaWorkload() {
             <tbody>
               {paged.rows.map((p) => {
                 const expanded = openId === p.userId;
-                const heavy = p.openPlans >= 4 && p.openPlans >= 1.5 * average;
+                const heavy = isHeavy(p);
                 const withClosed = showClosed.has(p.userId);
                 const plans = p.plans.filter((x) => withClosed || !x.closed);
                 return (

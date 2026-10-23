@@ -42,6 +42,7 @@ import CapaReportsPage from './pages/admin/CapaReportsPage';
 import AdminCapaSettings from './pages/admin/AdminCapaSettings';
 import AdminCapaPlanReference from './pages/admin/AdminCapaPlanReference';
 import PreferencesPage from './pages/admin/PreferencesPage';
+import ThresholdsPage from './pages/admin/ThresholdsPage';
 import CapaBoardPage from './pages/admin/CapaBoardPage';
 import AdminEightDList from './pages/admin/AdminEightDList';
 import CapaAssignmentsPage from './pages/admin/CapaAssignmentsPage';
@@ -197,6 +198,7 @@ const App = () => {
               <Route path="/admin/action-plans/actions-report"  element={<Navigate to="/admin/action-plans/report?tab=actions" replace />} />
               <Route path="/admin/action-plans/archive"         element={<Navigate to="/admin/action-plans?status=4" replace />} />
               <Route path="/admin/preferences"              element={<PreferencesPage />} />
+              <Route path="/admin/settings/thresholds"      element={<ThresholdsPage />} />
               <Route path="/admin/action-plans/settings"        element={<AdminCapaSettings />} />
               <Route path="/admin/action-plans/reference"       element={<AdminCapaPlanReference />} />
               <Route path="/admin/action-plans/history"         element={<HistoryRedirect />} />

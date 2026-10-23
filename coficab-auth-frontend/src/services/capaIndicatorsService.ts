@@ -64,7 +64,7 @@ export interface CapaWorkloadPerson {
 
 export interface CapaWorkload {
   generatedAt: string;
-  summary: { people: number; averageOpen: number; overloaded: number; withoutOpenPlan: number; lateActions: number; actionsToValidate: number };
+  summary: { people: number; averageOpen: number; overloaded: number; withoutOpenPlan: number; lateActions: number; actionsToValidate: number; overloadMin?: number; overloadFactor?: number };
   people: CapaWorkloadPerson[];
 }
 

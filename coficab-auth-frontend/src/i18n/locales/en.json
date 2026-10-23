@@ -1,4 +1,87 @@
 {
+  "thresholds": {
+    "title": "Thresholds and targets",
+    "subtitle": "The levels that colour the dashboards and decide who is active or overloaded. Only a superadmin can change them.",
+    "loadError": "Could not load the thresholds.",
+    "saved": "Thresholds saved. The activity statuses were recalculated.",
+    "resetDone": "Default values restored.",
+    "reset": "Restore default values",
+    "resetTitle": "Restore default values",
+    "resetText": "Every threshold goes back to its original value. The activity statuses are recalculated.",
+    "resetConfirm": "Restore",
+    "readOnly": "Read only: only a superadmin can change the thresholds.",
+    "usedBy": "Used by:",
+    "defaultValue": "default value",
+    "defaultIs": "default: {{value}}",
+    "err": {
+      "generic": "The thresholds could not be saved. Only a superadmin can change them.",
+      "onTimeGreen": "The green level must be between 1 and 100.",
+      "onTimeOrange": "The orange level must be between 1 and 100.",
+      "onTimeOrderOrange": "The orange level must be lower than the green level.",
+      "resolutionDays": "The resolution target must be between 1 and 365 days.",
+      "ppmTolerancePct": "The tolerance must be between 0 and 100.",
+      "activeDays": "The active days must be between 1 and 365.",
+      "lowActivityDays": "The low-activity limit must exceed the active one and stay under 730 days.",
+      "overloadMin": "The minimum number of plans must be between 1 and 100.",
+      "overloadFactor": "The multiple must be between 1 and 10."
+    },
+    "section": {
+      "targets": {
+        "title": "Traffic light targets",
+        "sub": "The overview colours its figures by comparing them with these levels."
+      },
+      "activity": {
+        "title": "Employee activity",
+        "sub": "Days without activity after which an employee is no longer considered active."
+      },
+      "workload": {
+        "title": "Workload",
+        "sub": "When is an employee considered overloaded?"
+      }
+    },
+    "field": {
+      "onTimeGreen": {
+        "label": "On time: green from",
+        "hint": "Share of claims closed on time at which the light is green.",
+        "used": "overview"
+      },
+      "onTimeOrange": {
+        "label": "On time: orange from",
+        "hint": "Below this share the light is red. It must stay under the green level.",
+        "used": "overview"
+      },
+      "resolutionDays": {
+        "label": "Resolution time: target",
+        "hint": "Average days to close a claim. Up to 1.5 times this target is orange, beyond that red.",
+        "used": "overview"
+      },
+      "ppmTolerancePct": {
+        "label": "PPM: tolerance before red",
+        "hint": "Rise of the PPM compared with the previous period that stays orange; beyond it the light is red.",
+        "used": "overview"
+      },
+      "activeDays": {
+        "label": "Active up to",
+        "hint": "Days without activity during which an employee stays \"active\".",
+        "used": "activity tracking, team reports, dashboard widgets"
+      },
+      "lowActivityDays": {
+        "label": "Low activity up to",
+        "hint": "Beyond this number of days without activity the employee is \"inactive\".",
+        "used": "activity tracking, team reports, dashboard widgets"
+      },
+      "overloadMin": {
+        "label": "Overload: minimum open plans",
+        "hint": "Below this number of open plans nobody is considered overloaded.",
+        "used": "workload per person, CAPA dashboard"
+      },
+      "overloadFactor": {
+        "label": "Overload: multiple of the average",
+        "hint": "An employee is overloaded when they hold at least this multiple of the team's average of open plans.",
+        "used": "workload per person, CAPA dashboard"
+      }
+    }
+  },
   "teamSummary": {
     "title": "Automatic summary",
     "hint": "Editable before download — it restates the figures of the report.",
@@ -532,6 +615,7 @@
     }
   },
   "adminNav": {
+    "thresholds": "Thresholds and targets",
     "analysesSummary": "Summary",
     "capaSteering": "Steering",
     "analysesHub": "Analyses & reports",

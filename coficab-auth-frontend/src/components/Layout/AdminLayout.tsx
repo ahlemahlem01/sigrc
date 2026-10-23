@@ -140,6 +140,7 @@ const NAV: NavItem[] = [
     id: 'settings', label: 'adminNav.settings', icon: 'ti-settings',
     children: [
       { label: 'adminNav.preferences', icon: 'ti-adjustments', path: '/admin/preferences' },
+      { label: 'adminNav.thresholds', icon: 'ti-gauge', path: '/admin/settings/thresholds' },
       { label: 'adminNav.planReference', icon: 'ti-barcode', path: '/admin/action-plans/reference' },
       { label: 'adminNav.referenceLists', icon: 'ti-list-details', path: '/admin/claims/reference-lists' },
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
@@ -162,6 +163,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/action-plans/indicators':    { title: 'adminNav.indicators', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/reference':     { title: 'adminNav.planReference', crumb: 'adminNav.settings' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
+    '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },
     '/admin/action-plans/create':        { title: 'adminNav.newPlan', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assignments':   { title: 'adminNav.assignments', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assign':        { title: 'adminNav.overview', crumb: 'adminNav.actionPlans' },

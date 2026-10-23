@@ -15,6 +15,20 @@ public class EmployeeActivityService : IEmployeeActivityService
 {
     private static readonly TimeSpan StaleAfter = TimeSpan.FromHours(6);
 
+    // days since the last activity: active up to _activeDays, low activity up to _lowDays (thresholds page)
+    private double _activeDays = Dashboard.ThresholdsStore.DefaultActiveDays;
+    private double _lowDays = Dashboard.ThresholdsStore.DefaultLowActivityDays;
+    private bool _thresholdsLoaded;
+
+    private async Task LoadThresholdsAsync(CancellationToken ct)
+    {
+        if (_thresholdsLoaded) return;
+        var (active, low, _, _) = await Dashboard.ThresholdsStore.LoadCoreAsync(_db, ct);
+        _activeDays = active;
+        _lowDays = low;
+        _thresholdsLoaded = true;
+    }
+
     private readonly IApplicationDbContext _db;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -40,15 +54,16 @@ public class EmployeeActivityService : IEmployeeActivityService
         if (lastActivityUtc == null)
             return ActivityStatus.Inactive;
 
-        // Jours calendaires (pas fractionnaires) : ≤15 / ≤60
+        // Jours calendaires (pas fractionnaires), seuils réglables (par défaut ≤15 / ≤60)
         var days = (utcNow.Date - lastActivityUtc.Value.ToUniversalTime().Date).TotalDays;
-        if (days <= 15) return ActivityStatus.Active;
-        if (days <= 60) return ActivityStatus.LowActivity;
+        if (days <= _activeDays) return ActivityStatus.Active;
+        if (days <= _lowDays) return ActivityStatus.LowActivity;
         return ActivityStatus.Inactive;
     }
 
     public async Task RecalculateUserAsync(string userId, DateTime? lastLoginAt = null, CancellationToken ct = default)
     {
+        await LoadThresholdsAsync(ct);
         var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
         if (profile == null) return;
 
@@ -78,6 +93,7 @@ public class EmployeeActivityService : IEmployeeActivityService
 
     public async Task<EmployeeActivitySummaryDto> GetSummaryAsync(bool forceRecalculate = false, CancellationToken ct = default)
     {
+        await LoadThresholdsAsync(ct);
         if (forceRecalculate)
             return await RecalculateAllAsync(ct);
 
@@ -112,6 +128,7 @@ public class EmployeeActivityService : IEmployeeActivityService
     /// </summary>
     public async Task<EmployeeActivitySummaryDto> GetScopedSummaryAsync(string scope, CancellationToken ct = default)
     {
+        await LoadThresholdsAsync(ct);
         var profiles = await _db.UserProfiles.AsNoTracking().ToListAsync(ct);
         var metrics = await GetBusinessActivityMetricsAsync(profiles.Select(p => p.UserId).Distinct().ToList(), ct, scope);
         var now = DateTime.UtcNow;
@@ -136,6 +153,7 @@ public class EmployeeActivityService : IEmployeeActivityService
 
     public async Task<EmployeeActivitySummaryDto> RecalculateAllAsync(CancellationToken ct = default)
     {
+        await LoadThresholdsAsync(ct);
         var profiles = await _db.UserProfiles.ToListAsync(ct);
         if (profiles.Count == 0)
         {

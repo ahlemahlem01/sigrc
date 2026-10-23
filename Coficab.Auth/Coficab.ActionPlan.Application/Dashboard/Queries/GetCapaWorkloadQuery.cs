@@ -30,7 +30,7 @@ public record CapaWorkloadPersonDto(
     IReadOnlyDictionary<string, int> OpenByType,
     IReadOnlyList<CapaWorkloadActionDto> Actions);
 
-public record CapaWorkloadSummaryDto(int People, double AverageOpen, int Overloaded, int WithoutOpenPlan, int LateActions = 0, int ActionsToValidate = 0);
+public record CapaWorkloadSummaryDto(int People, double AverageOpen, int Overloaded, int WithoutOpenPlan, int LateActions = 0, int ActionsToValidate = 0, double OverloadMin = 4, double OverloadFactor = 1.5);
 
 public record CapaWorkloadDto(DateTime GeneratedAt, CapaWorkloadSummaryDto Summary, IReadOnlyList<CapaWorkloadPersonDto> People);
 
@@ -54,6 +54,7 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
     {
         var now = DateTime.UtcNow;
         var today = now.Date;
+        var (_, _, overloadMin, overloadFactor) = await ThresholdsStore.LoadCoreAsync(_context, ct);
 
         var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Where(p => !p.IsArchived);
         if (request.OrganizationIds is { Count: > 0 } orgs) query = query.Where(p => orgs.Contains(p.OrganizationId));
@@ -172,8 +173,8 @@ public class GetCapaWorkloadQueryHandler : IRequestHandler<GetCapaWorkloadQuery,
 
         var withOpen = people.Where(p => p.OpenPlans > 0).ToList();
         var average = withOpen.Count == 0 ? 0 : withOpen.Average(p => (double)p.OpenPlans);
-        var overloaded = withOpen.Count(p => p.OpenPlans >= OverloadMin && p.OpenPlans >= OverloadFactor * average);
+        var overloaded = withOpen.Count(p => p.OpenPlans >= overloadMin && p.OpenPlans >= overloadFactor * average);
 
-        return new CapaWorkloadDto(now, new CapaWorkloadSummaryDto(withOpen.Count, Math.Round(average, 1), overloaded, idle, people.Sum(p => p.LateActions), people.Sum(p => p.ActionsToValidate)), people.Concat(idleRows).ToList());
+        return new CapaWorkloadDto(now, new CapaWorkloadSummaryDto(withOpen.Count, Math.Round(average, 1), overloaded, idle, people.Sum(p => p.LateActions), people.Sum(p => p.ActionsToValidate), overloadMin, overloadFactor), people.Concat(idleRows).ToList());
     }
 }

@@ -1,4 +1,87 @@
 {
+  "thresholds": {
+    "title": "Soglie e obiettivi",
+    "subtitle": "I livelli che colorano i cruscotti e decidono chi è attivo o sovraccarico. Solo un superadmin può modificarli.",
+    "loadError": "Impossibile caricare le soglie.",
+    "saved": "Soglie salvate. Gli stati di attività sono stati ricalcolati.",
+    "resetDone": "Valori predefiniti ripristinati.",
+    "reset": "Ripristina i valori predefiniti",
+    "resetTitle": "Ripristina i valori predefiniti",
+    "resetText": "Tutte le soglie tornano ai valori originali. Gli stati di attività vengono ricalcolati.",
+    "resetConfirm": "Ripristina",
+    "readOnly": "Sola lettura: solo un superadmin può modificare le soglie.",
+    "usedBy": "Usato da:",
+    "defaultValue": "valore predefinito",
+    "defaultIs": "predefinito: {{value}}",
+    "err": {
+      "generic": "Impossibile salvare le soglie. Solo un superadmin può modificarle.",
+      "onTimeGreen": "Il livello verde deve essere tra 1 e 100.",
+      "onTimeOrange": "Il livello arancione deve essere tra 1 e 100.",
+      "onTimeOrderOrange": "Il livello arancione deve essere inferiore al verde.",
+      "resolutionDays": "L'obiettivo di tempo deve essere tra 1 e 365 giorni.",
+      "ppmTolerancePct": "La tolleranza deve essere tra 0 e 100.",
+      "activeDays": "I giorni di attività devono essere tra 1 e 365.",
+      "lowActivityDays": "La soglia «poco attivo» deve superare quella di «attivo» e restare sotto 730 giorni.",
+      "overloadMin": "Il numero minimo di piani deve essere tra 1 e 100.",
+      "overloadFactor": "Il multiplo deve essere tra 1 e 10."
+    },
+    "section": {
+      "targets": {
+        "title": "Obiettivi dei semafori",
+        "sub": "La panoramica colora i suoi dati confrontandoli con questi livelli."
+      },
+      "activity": {
+        "title": "Attività dei collaboratori",
+        "sub": "Giorni senza attività dopo i quali un collaboratore non è più considerato attivo."
+      },
+      "workload": {
+        "title": "Carico di lavoro",
+        "sub": "Quando un collaboratore è considerato sovraccarico?"
+      }
+    },
+    "field": {
+      "onTimeGreen": {
+        "label": "Nei tempi: verde da",
+        "hint": "Quota di reclami chiusi nei tempi da cui il semaforo è verde.",
+        "used": "panoramica"
+      },
+      "onTimeOrange": {
+        "label": "Nei tempi: arancione da",
+        "hint": "Sotto questa quota il semaforo è rosso. Deve restare sotto il livello verde.",
+        "used": "panoramica"
+      },
+      "resolutionDays": {
+        "label": "Tempo di risoluzione: obiettivo",
+        "hint": "Giorni medi per chiudere un reclamo. Fino a 1,5 volte l'obiettivo è arancione, oltre rosso.",
+        "used": "panoramica"
+      },
+      "ppmTolerancePct": {
+        "label": "PPM: tolleranza prima del rosso",
+        "hint": "Aumento del PPM rispetto al periodo precedente che resta arancione; oltre il semaforo è rosso.",
+        "used": "panoramica"
+      },
+      "activeDays": {
+        "label": "Attivo fino a",
+        "hint": "Giorni senza attività durante i quali un collaboratore resta «attivo».",
+        "used": "monitoraggio attività, rapporti di squadra, widget"
+      },
+      "lowActivityDays": {
+        "label": "Poco attivo fino a",
+        "hint": "Oltre questo numero di giorni senza attività il collaboratore è «inattivo».",
+        "used": "monitoraggio attività, rapporti di squadra, widget"
+      },
+      "overloadMin": {
+        "label": "Sovraccarico: minimo di piani aperti",
+        "hint": "Sotto questo numero di piani aperti nessuno è considerato sovraccarico.",
+        "used": "carico per persona, cruscotto CAPA"
+      },
+      "overloadFactor": {
+        "label": "Sovraccarico: multiplo della media",
+        "hint": "Un collaboratore è sovraccarico se ha almeno questo multiplo della media di piani aperti della squadra.",
+        "used": "carico per persona, cruscotto CAPA"
+      }
+    }
+  },
   "teamSummary": {
     "title": "Sintesi automatica",
     "hint": "Testo modificabile prima del download — riprende i dati del rapporto.",
@@ -532,6 +615,7 @@
     }
   },
   "adminNav": {
+    "thresholds": "Soglie e obiettivi",
     "analysesSummary": "Sintesi",
     "capaSteering": "Pilotaggio",
     "analysesHub": "Analisi e report",

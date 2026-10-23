@@ -1,4 +1,87 @@
 {
+  "thresholds": {
+    "title": "Seuils et objectifs",
+    "subtitle": "Les niveaux qui colorent les tableaux de bord et décident qui est actif ou surchargé. Seul un superadmin peut les modifier.",
+    "loadError": "Impossible de charger les seuils.",
+    "saved": "Seuils enregistrés. Les statuts d'activité ont été recalculés.",
+    "resetDone": "Valeurs par défaut rétablies.",
+    "reset": "Rétablir les valeurs par défaut",
+    "resetTitle": "Rétablir les valeurs par défaut",
+    "resetText": "Tous les seuils reviennent à leurs valeurs d'origine. Les statuts d'activité sont recalculés.",
+    "resetConfirm": "Rétablir",
+    "readOnly": "Lecture seule : seul un superadmin peut modifier les seuils.",
+    "usedBy": "Utilisé par :",
+    "defaultValue": "valeur par défaut",
+    "defaultIs": "défaut : {{value}}",
+    "err": {
+      "generic": "Impossible d'enregistrer les seuils. Seul un superadmin peut les modifier.",
+      "onTimeGreen": "Le niveau vert doit être compris entre 1 et 100.",
+      "onTimeOrange": "Le niveau orange doit être compris entre 1 et 100.",
+      "onTimeOrderOrange": "Le niveau orange doit être inférieur au niveau vert.",
+      "resolutionDays": "L'objectif de délai doit être compris entre 1 et 365 jours.",
+      "ppmTolerancePct": "La tolérance doit être comprise entre 0 et 100.",
+      "activeDays": "Les jours d'activité doivent être compris entre 1 et 365.",
+      "lowActivityDays": "Le seuil « peu actif » doit dépasser celui d'« actif » et rester sous 730 jours.",
+      "overloadMin": "Le nombre minimal de plans doit être compris entre 1 et 100.",
+      "overloadFactor": "Le coefficient doit être compris entre 1 et 10."
+    },
+    "section": {
+      "targets": {
+        "title": "Objectifs des voyants",
+        "sub": "La vue d'ensemble colore ses chiffres en les comparant à ces niveaux."
+      },
+      "activity": {
+        "title": "Activité des collaborateurs",
+        "sub": "Nombre de jours sans activité à partir duquel un collaborateur n'est plus considéré comme actif."
+      },
+      "workload": {
+        "title": "Charge de travail",
+        "sub": "Quand un collaborateur est-il considéré comme surchargé ?"
+      }
+    },
+    "field": {
+      "onTimeGreen": {
+        "label": "Dans les délais : vert à partir de",
+        "hint": "Part de réclamations clôturées dans les délais à partir de laquelle le voyant est vert.",
+        "used": "vue d'ensemble"
+      },
+      "onTimeOrange": {
+        "label": "Dans les délais : orange à partir de",
+        "hint": "En dessous de cette part, le voyant est rouge. Elle doit rester inférieure au niveau vert.",
+        "used": "vue d'ensemble"
+      },
+      "resolutionDays": {
+        "label": "Délai de résolution : objectif",
+        "hint": "Nombre moyen de jours pour clôturer une réclamation. Jusqu'à 1,5 fois cet objectif le voyant est orange, au-delà rouge.",
+        "used": "vue d'ensemble"
+      },
+      "ppmTolerancePct": {
+        "label": "PPM : tolérance avant le rouge",
+        "hint": "Hausse du PPM par rapport à la période précédente qui reste orange ; au-delà le voyant est rouge.",
+        "used": "vue d'ensemble"
+      },
+      "activeDays": {
+        "label": "Actif jusqu'à",
+        "hint": "Jours sans activité pendant lesquels un collaborateur reste « actif ».",
+        "used": "suivi d'activité, rapports d'équipe, widgets de tableau de bord"
+      },
+      "lowActivityDays": {
+        "label": "Peu actif jusqu'à",
+        "hint": "Au-delà de ce nombre de jours sans activité, le collaborateur est « inactif ».",
+        "used": "suivi d'activité, rapports d'équipe, widgets de tableau de bord"
+      },
+      "overloadMin": {
+        "label": "Surcharge : nombre minimal de plans ouverts",
+        "hint": "En dessous de ce nombre de plans ouverts, personne n'est considéré comme surchargé.",
+        "used": "charge par personne, tableau de bord CAPA"
+      },
+      "overloadFactor": {
+        "label": "Surcharge : multiple de la moyenne",
+        "hint": "Un collaborateur est surchargé s'il a au moins ce multiple de la moyenne de plans ouverts de l'équipe.",
+        "used": "charge par personne, tableau de bord CAPA"
+      }
+    }
+  },
   "teamSummary": {
     "title": "Synthèse automatique",
     "hint": "Texte éditable avant téléchargement — il reprend les chiffres du rapport.",
@@ -532,6 +615,7 @@
     }
   },
   "adminNav": {
+    "thresholds": "Seuils et objectifs",
     "analysesSummary": "Synthèse",
     "capaSteering": "Pilotage",
     "analysesHub": "Analyses et rapports",
