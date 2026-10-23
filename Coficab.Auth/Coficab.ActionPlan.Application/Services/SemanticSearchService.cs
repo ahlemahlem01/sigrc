@@ -33,6 +33,8 @@ public interface ISemanticSearchService
         bool adminScope = false,
         CancellationToken cancellationToken = default);
     Task<int> BackfillMissingAsync(int maxItems = 200, CancellationToken cancellationToken = default);
+    /// <summary>Rebuilds only the vectors whose text changed since they were built (cheap: no new vector is created for the others).</summary>
+    Task<int> RefreshStaleAsync(int maxItems = 50, CancellationToken cancellationToken = default);
 }
 
 public class SemanticSearchService : ISemanticSearchService
@@ -59,13 +61,13 @@ public class SemanticSearchService : ISemanticSearchService
     public async Task UpsertClaimAsync(Claim claim, CancellationToken cancellationToken = default)
     {
         var text = BuildClaimText(claim);
-        await UpsertAsync(SemanticEntityTypes.Claim, claim.Id, text, cancellationToken);
+        _ = await UpsertAsync(SemanticEntityTypes.Claim, claim.Id, text, cancellationToken);
     }
 
     public async Task UpsertActionPlanAsync(Core.Entities.ActionPlan plan, CancellationToken cancellationToken = default)
     {
         var text = BuildPlanText(plan);
-        await UpsertAsync(SemanticEntityTypes.ActionPlan, plan.Id, text, cancellationToken);
+        _ = await UpsertAsync(SemanticEntityTypes.ActionPlan, plan.Id, text, cancellationToken);
     }
 
     public async Task<SemanticSearchResultDto> SearchAsync(
@@ -324,7 +326,7 @@ public class SemanticSearchService : ISemanticSearchService
         {
             try
             {
-                await UpsertClaimAsync(c, cancellationToken);
+                if (!await UpsertAsync(SemanticEntityTypes.Claim, c.Id, BuildClaimText(c), cancellationToken)) return n;
                 n++;
             }
             catch (Exception ex)
@@ -337,7 +339,7 @@ public class SemanticSearchService : ISemanticSearchService
         {
             try
             {
-                await UpsertActionPlanAsync(p, cancellationToken);
+                if (!await UpsertAsync(SemanticEntityTypes.ActionPlan, p.Id, BuildPlanText(p), cancellationToken)) return n;
                 n++;
             }
             catch (Exception ex)
@@ -346,23 +348,87 @@ public class SemanticSearchService : ISemanticSearchService
             }
         }
 
+        // Vectors built from a text that has changed since (edits outside the normal save path, imports, data fixes).
+        if (n < maxItems)
+            n += await RefreshStaleAsync(maxItems - n, cancellationToken);
+
         return n;
     }
 
-    private async Task UpsertAsync(
+    /// <summary>
+    /// Re-embeds the claims and plans whose current text no longer matches the hash stored with their vector.
+    /// Only the fields that make up the indexed text are read (no attachments).
+    /// </summary>
+    public async Task<int> RefreshStaleAsync(int budget = 50, CancellationToken cancellationToken = default)
+    {
+        budget = Math.Clamp(budget, 1, 500);
+        var stored = await _db.SemanticEmbeddings.AsNoTracking()
+            .Where(e => e.EntityType == SemanticEntityTypes.Claim || e.EntityType == SemanticEntityTypes.ActionPlan)
+            .Select(e => new { e.EntityType, e.EntityId, e.ContentHash })
+            .ToListAsync(cancellationToken);
+        var claimHashes = stored.Where(e => e.EntityType == SemanticEntityTypes.Claim).ToDictionary(e => e.EntityId, e => e.ContentHash);
+        var planHashes = stored.Where(e => e.EntityType == SemanticEntityTypes.ActionPlan).ToDictionary(e => e.EntityId, e => e.ContentHash);
+
+        var claims = await _db.Claims.AsNoTracking()
+            .Where(c => !c.IsArchived)
+            .Select(c => new Claim
+            {
+                Id = c.Id, Title = c.Title, Description = c.Description, ClientId = c.ClientId, DefectType = c.DefectType,
+                Severity = c.Severity, ProductionLine = c.ProductionLine, LotNumber = c.LotNumber,
+            })
+            .ToListAsync(cancellationToken);
+        var staleClaims = claims
+            .Where(c => claimHashes.TryGetValue(c.Id, out var h) && !string.Equals(h, Sha256(BuildClaimText(c)), StringComparison.OrdinalIgnoreCase))
+            .Take(budget)
+            .ToList();
+
+        var plans = await _db.ActionPlans.AsNoTracking()
+            .Where(p => !p.IsArchived)
+            .Select(p => new Core.Entities.ActionPlan { Id = p.Id, Title = p.Title, Description = p.Description, Type = p.Type, Status = p.Status })
+            .ToListAsync(cancellationToken);
+        var stalePlans = plans
+            .Where(p => planHashes.TryGetValue(p.Id, out var h) && !string.Equals(h, Sha256(BuildPlanText(p)), StringComparison.OrdinalIgnoreCase))
+            .Take(Math.Max(0, budget - staleClaims.Count))
+            .ToList();
+
+        var n = 0;
+        var refused = false;   // Gemini said no (quota, key): no further call in this round
+        foreach (var c in staleClaims)
+        {
+            try
+            {
+                if (!await UpsertAsync(SemanticEntityTypes.Claim, c.Id, BuildClaimText(c), cancellationToken)) { refused = true; break; }
+                n++;
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Refresh of the claim embedding failed for {Id}", c.Id); }
+        }
+        foreach (var p in refused ? new List<Core.Entities.ActionPlan>() : stalePlans)
+        {
+            try
+            {
+                if (!await UpsertAsync(SemanticEntityTypes.ActionPlan, p.Id, BuildPlanText(p), cancellationToken)) break;
+                n++;
+            }
+            catch (Exception ex) { _logger.LogWarning(ex, "Refresh of the plan embedding failed for {Id}", p.Id); }
+        }
+        if (n > 0) _logger.LogInformation("Semantic refresh: {Count} stale embeddings rebuilt", n);
+        return n;
+    }
+
+    private async Task<bool> UpsertAsync(
         string entityType,
         Guid entityId,
         string text,
         CancellationToken cancellationToken)
     {
-        if (string.IsNullOrWhiteSpace(text)) return;
+        if (string.IsNullOrWhiteSpace(text)) return true;
 
         var hash = Sha256(text);
         var existing = await _db.SemanticEmbeddings
             .FirstOrDefaultAsync(e => e.EntityType == entityType && e.EntityId == entityId, cancellationToken);
 
         if (existing != null && string.Equals(existing.ContentHash, hash, StringComparison.OrdinalIgnoreCase))
-            return;
+            return true;
 
         float[] vector;
         try
@@ -372,7 +438,7 @@ public class SemanticSearchService : ISemanticSearchService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Embedding failed for {Type}/{Id}", entityType, entityId);
-            return;
+            return false;
         }
 
             var model = _configuration["Gemini:EmbeddingModel"] ?? "gemini-embedding-001";
@@ -401,6 +467,7 @@ public class SemanticSearchService : ISemanticSearchService
         }
 
         await _db.SaveChangesAsync(cancellationToken);
+        return true;
     }
 
     public static string BuildClaimText(Claim claim)

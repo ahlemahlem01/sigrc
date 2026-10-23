@@ -18,6 +18,7 @@ public class SemanticEmbeddingHostedService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<SemanticEmbeddingHostedService> _logger;
     private readonly bool _enabled;
+    private readonly bool _refreshStale;
     private readonly TimeSpan _idleDelay;
 
     public SemanticEmbeddingHostedService(
@@ -28,16 +29,20 @@ public class SemanticEmbeddingHostedService : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
         _enabled = configuration.GetValue("Semantic:BackfillEnabled", true);
+        // Even with the full backfill off, a vector whose text changed is rebuilt (few Gemini calls: only what changed).
+        _refreshStale = configuration.GetValue("Semantic:RefreshStaleEnabled", true);
         _idleDelay = TimeSpan.FromMinutes(Math.Max(1, configuration.GetValue("Semantic:IdleMinutes", 30)));
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!_enabled)
+        if (!_enabled && !_refreshStale)
         {
             _logger.LogInformation("Semantic backfill disabled (Semantic:BackfillEnabled=false)");
             return;
         }
+        if (!_enabled)
+            _logger.LogInformation("Semantic backfill disabled; only the vectors whose text changed are rebuilt");
 
         if (!await WaitAsync(TimeSpan.FromSeconds(15), stoppingToken)) return;
 
@@ -49,7 +54,9 @@ public class SemanticEmbeddingHostedService : BackgroundService
             {
                 using var scope = _scopeFactory.CreateScope();
                 var semantic = scope.ServiceProvider.GetRequiredService<ISemanticSearchService>();
-                var n = await semantic.BackfillMissingAsync(12, stoppingToken);
+                var n = _enabled
+                    ? await semantic.BackfillMissingAsync(12, stoppingToken)
+                    : await semantic.RefreshStaleAsync(12, stoppingToken);
                 if (n > 0)
                     _logger.LogInformation("Semantic backfill: {Count} embeddings added", n);
                 errorDelay = TimeSpan.FromMinutes(1);
