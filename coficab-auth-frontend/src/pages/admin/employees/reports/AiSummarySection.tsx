@@ -9,6 +9,8 @@ type Props = {
   canDownload?: boolean;
   downloading?: boolean;
   onDownload?: () => void;
+  /** the text was written from the figures, not by the AI */
+  automatic?: boolean;
 };
 
 const NAVY = '#000168';
@@ -22,6 +24,7 @@ export default function AiSummarySection({
   canDownload = false,
   downloading = false,
   onDownload,
+  automatic = false,
 }: Props) {
   const { t } = useTranslation();
   const stamp = generatedAt
@@ -71,7 +74,7 @@ export default function AiSummarySection({
 
       <div className="hra-head">
         <div>
-          <h2 className="hra-title">{t('hrReports.aiSummary')}</h2>
+          <h2 className="hra-title">{automatic ? t('teamSummary.title') : t('hrReports.aiSummary')}</h2>
           <div className="hra-meta">
             {stamp ? t('hrReports.generatedOn', { date: stamp }) : null}
             {employeeCount != null ? ` · ${t('recognition.employeesShort', { count: employeeCount })}` : null}
@@ -90,7 +93,7 @@ export default function AiSummarySection({
         ) : null}
       </div>
       <p className="hra-hint">
-        {t('hrReports.aiHint')}
+        {automatic ? t('teamSummary.hint') : t('hrReports.aiHint')}
       </p>
       <textarea
         value={value}

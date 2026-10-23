@@ -1,5 +1,7 @@
 {
   "teamSummary": {
+    "title": "Automatic summary",
+    "hint": "Editable before download — it restates the figures of the report.",
     "people": "{{count}} employee(s) analysed.",
     "claims": "Claims: {{open}} open, {{late}} of them late.",
     "plans": "Action plans: {{open}} open, {{late}} of them late.",
@@ -4070,7 +4072,9 @@
     "subtitle": "Organizations, their departments and employees. Click an employee for details, or drop a card on another department to move them (with confirmation)."
   },
   "hrReports": {
-    "aiUnavailable": "The AI summary is not available ({{reason}}). The report is shown with an automatic summary.",
+    "shortPlans": "Plans",
+    "shortClaims": "Claims",
+    "aiUnavailable": "The AI summary is not available right now: an automatic summary, written from the figures, is shown instead.",
     "aiSummary": "AI summary",
     "generatedOn": "Generated on {{date}}",
     "downloading": "Downloading…",

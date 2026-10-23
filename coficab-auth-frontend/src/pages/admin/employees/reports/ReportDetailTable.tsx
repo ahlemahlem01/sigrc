@@ -35,23 +35,34 @@ export default function ReportDetailTable({ rows }: Props) {
         .hrt-title { margin: 0 0 4px; font-size: 14px; font-weight: 700; color: #0d1340; }
         .hrt-sub { margin: 0 0 12px; font-size: 12px; color: #64748b; }
         .hrt-scroll { overflow-x: auto; }
-        .hrt table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 920px; }
+        .hrt table { width: 100%; border-collapse: collapse; font-size: 12.5px; min-width: 0; }
         .hrt th {
           text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 650;
           color: #64748b; text-transform: uppercase; letter-spacing: .04em;
-          border-bottom: 1px solid ${LINE}; background: #f8f9fc; white-space: nowrap;
+          border-bottom: 1px solid ${LINE}; background: #f8f9fc; line-height: 1.25;
         }
         .hrt td {
-          padding: 10px 12px; border-bottom: 1px solid #f0f2f8; color: #0d1340;
-          vertical-align: top;
+          padding: 8px 10px; border-bottom: 1px solid #f0f2f8; color: #0d1340;
+          vertical-align: middle;
         }
+        .hrt td.nw { white-space: nowrap; }
+        .hrt th { padding: 8px 10px; }
+        .hrt-line { display: flex; align-items: center; gap: 6px; }
+        .hrt-line + .hrt-line { margin-top: 3px; }
+        .hrt-k { width: 40px; font-size: 10.5px; color: #64748b; }
+        .hrt-clip { max-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+        .hrt-lv { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 210px; }
+        .hrt-lv span { white-space: nowrap; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 650; }
+        .hrt-lv .e { background: #dcfce7; color: #166534; }
+        .hrt-lv .c { background: #dbeafe; color: #1e40af; }
+        .hrt-lv .b { background: #f1f5f9; color: #475569; }
         .hrt tr:last-child td { border-bottom: none; }
         .hrt-name { font-weight: 650; }
         .hrt-muted { color: #64748b; font-size: 11.5px; margin-top: 2px; }
         .hrt-empty { padding: 24px; text-align: center; color: #64748b; font-size: 13px; }
         .hrt-pill {
           display: inline-flex; align-items: center; height: 22px; padding: 0 8px;
-          border-radius: 6px; font-size: 11px; font-weight: 650; background: #eef2ff; color: ${NAVY};
+          border-radius: 6px; font-size: 11px; font-weight: 650; background: #eef2ff; color: ${NAVY}; white-space: nowrap;
         }
       `}</style>
 
@@ -66,8 +77,7 @@ export default function ReportDetailTable({ rows }: Props) {
             <thead>
               <tr>
                 <th>{t('hrReports.colEmployee')}</th>
-                <th>{t('hrReports.colActivityPlans')}</th>
-                <th>{t('hrReports.colActivityClaims')}</th>
+                <th>{t('activityTracking.activity')}</th>
                 <th>{t('hrReports.colClaims')}</th>
                 <th>{t('hrReports.colPlans')}</th>
                 <th>{t('hrReports.colCapacity')}</th>
@@ -80,39 +90,39 @@ export default function ReportDetailTable({ rows }: Props) {
             </thead>
             <tbody>
               {rows.map((r) => {
-                const levels = Object.entries(r.competencyLevels || {})
-                  .map(([k, v]) => `${k}: ${levelLabel(v)}`)
-                  .join(' · ');
+                const levels = Object.entries(r.competencyLevels || {});
+                const count = (names: string[]) => levels.filter(([, v]) => names.includes(String(v).toLowerCase())).length;
+                const expert = count(['expert']);
+                const confirmed = count(['confirme', 'confirmé', 'confirmed']);
+                const beginner = levels.length - expert - confirmed;
+                const detail = levels.map(([k, v]) => `${k}: ${levelLabel(v)}`).join(' · ');
+                const badges = r.badges || [];
                 return (
                   <tr key={r.userId}>
                     <td>
                       <div className="hrt-name">{r.fullName}</div>
-                      <div className="hrt-muted">
-                        {[r.department, r.role].filter(Boolean).join(' · ') || '—'}
-                      </div>
+                      <div className="hrt-muted">{r.department || '—'}</div>
                     </td>
-                    <td>
-                      <span className="hrt-pill">{activityStatusLabel(r.plansActivity ?? r.activityStatus)}</span>
+                    <td className="nw">
+                      <div className="hrt-line"><span className="hrt-k">{t('hrReports.shortPlans')}</span><span className="hrt-pill">{activityStatusLabel(r.plansActivity ?? r.activityStatus)}</span></div>
+                      <div className="hrt-line"><span className="hrt-k">{t('hrReports.shortClaims')}</span><span className="hrt-pill">{activityStatusLabel(r.claimsActivity ?? r.activityStatus)}</span></div>
                     </td>
-                    <td>
-                      <span className="hrt-pill">{activityStatusLabel(r.claimsActivity ?? r.activityStatus)}</span>
+                    <td className="nw">{r.claimsOpen == null ? r.activeDossiers : <>{r.claimsOpen} <span className="hrt-muted">· {r.claimsClosureRate ?? 0}%</span></>}</td>
+                    <td className="nw">{r.plansOpen == null ? '—' : <>{r.plansOpen} <span className="hrt-muted">· {r.plansClosureRate ?? 0}%</span></>}</td>
+                    <td className="nw">{r.remainingCapacity}</td>
+                    <td className="nw">{r.actionsToValidate ?? '—'}</td>
+                    <td className="nw">{r.overdueCount}</td>
+                    <td className="nw">{workloadLabel(r.workload)}</td>
+                    <td title={detail}>
+                      {levels.length === 0 ? '—' : (
+                        <span className="hrt-lv">
+                          {expert > 0 && <span className="e">{levelLabel('expert')} {expert}</span>}
+                          {confirmed > 0 && <span className="c">{levelLabel('confirme')} {confirmed}</span>}
+                          {beginner > 0 && <span className="b">{levelLabel('debutant')} {beginner}</span>}
+                        </span>
+                      )}
                     </td>
-                    <td>{r.claimsOpen == null ? r.activeDossiers : <>{r.claimsOpen} <span className="hrt-muted">· {r.claimsClosureRate ?? 0}%</span></>}</td>
-                    <td>{r.plansOpen == null ? '—' : <>{r.plansOpen} <span className="hrt-muted">· {r.plansClosureRate ?? 0}%</span></>}</td>
-                    <td>{r.remainingCapacity}</td>
-                    <td>{r.actionsToValidate ?? '—'}</td>
-                    <td>{r.overdueCount}</td>
-                    <td>{workloadLabel(r.workload)}</td>
-                    <td>
-                      <div className="hrt-muted" style={{ maxWidth: 220 }}>
-                        {levels || '—'}
-                      </div>
-                    </td>
-                    <td>
-                      <div className="hrt-muted" style={{ maxWidth: 160 }}>
-                        {(r.badges || []).slice(0, 3).join(', ') || '—'}
-                      </div>
-                    </td>
+                    <td className="nw" title={badges.join(', ')}>{badges.length || '—'}</td>
                   </tr>
                 );
               })}

@@ -1,5 +1,7 @@
 {
   "teamSummary": {
+    "title": "Sintesi automatica",
+    "hint": "Testo modificabile prima del download — riprende i dati del rapporto.",
     "people": "{{count}} collaboratore/i analizzato/i.",
     "claims": "Reclami: {{open}} aperti, di cui {{late}} in ritardo.",
     "plans": "Piani d'azione: {{open}} aperti, di cui {{late}} in ritardo.",
@@ -4070,7 +4072,9 @@
     "subtitle": "Le organizzazioni, i loro reparti e dipendenti. Clicca un collaboratore per i dettagli, o rilascia la sua scheda su un altro reparto per spostarlo (con conferma)."
   },
   "hrReports": {
-    "aiUnavailable": "La sintesi IA non è disponibile ({{reason}}). Il rapporto è mostrato con una sintesi automatica.",
+    "shortPlans": "Piani",
+    "shortClaims": "Recl.",
+    "aiUnavailable": "La sintesi IA non è disponibile al momento: viene mostrata una sintesi automatica, scritta a partire dai dati.",
     "aiSummary": "Sintesi IA",
     "generatedOn": "Generata il {{date}}",
     "downloading": "Download in corso…",

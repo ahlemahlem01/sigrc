@@ -1,5 +1,7 @@
 {
   "teamSummary": {
+    "title": "Synthèse automatique",
+    "hint": "Texte éditable avant téléchargement — il reprend les chiffres du rapport.",
     "people": "{{count}} collaborateur(s) analysé(s).",
     "claims": "Réclamations : {{open}} ouvertes, dont {{late}} en retard.",
     "plans": "Plans d'action : {{open}} ouverts, dont {{late}} en retard.",
@@ -4070,7 +4072,9 @@
     "subtitle": "Les organisations, leurs départements et leurs employés. Cliquez un collaborateur pour les détails, ou déposez sa carte sur un autre département pour le déplacer (avec confirmation)."
   },
   "hrReports": {
-    "aiUnavailable": "La synthèse IA n'est pas disponible ({{reason}}). Le rapport est affiché avec une synthèse automatique.",
+    "shortPlans": "Plans",
+    "shortClaims": "Récl.",
+    "aiUnavailable": "La synthèse IA n'est pas disponible pour le moment : une synthèse automatique, écrite à partir des chiffres, est affichée à la place.",
     "aiSummary": "Synthèse IA",
     "generatedOn": "Générée le {{date}}",
     "downloading": "Téléchargement…",

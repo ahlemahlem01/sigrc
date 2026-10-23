@@ -95,6 +95,8 @@ export default function HrReportsPage() {
   const [reportRows, setReportRows] = useState<HrReportEmployeePayload[]>([]);
   const [history, setHistory] = useState<HrReportHistoryEntry[]>(() => loadHrReportHistory());
   const [exporting, setExporting] = useState(false);
+  const [notice, setNotice] = useState('');
+  const [automaticSummary, setAutomaticSummary] = useState(false);
 
   const loadBase = useCallback(async () => {
     if (!accessToken) {
@@ -322,6 +324,8 @@ export default function HrReportsPage() {
 
     setGenerating(true);
     setError('');
+    setNotice('');
+    setAutomaticSummary(false);
     setSummary('');
     setReportRows([]);
     const payload = buildPayload(scopedEmployees);
@@ -333,7 +337,10 @@ export default function HrReportsPage() {
       setSummary(text);
       setGeneratedAt(createdAt);
       setReportRows(payload);
-      setError(i18n.t('hrReports.aiUnavailable', { reason }));
+      // the reason (a missing key, a time-out…) is for the administrators of the server, not for this page
+      console.warn('[team report] AI summary unavailable:', reason);
+      setAutomaticSummary(true);
+      setNotice(i18n.t('hrReports.aiUnavailable'));
       setHistory(
         pushHrReportHistory({
           id: `hr-${Date.now()}`, createdAt, periodStart: params.periodStart, periodEnd: params.periodEnd,
@@ -479,6 +486,10 @@ export default function HrReportsPage() {
         }
         .hrp-title { margin: 0; font-size: 20px; font-weight: 700; }
         .hrp-sub { margin: 6px 0 0; font-size: 13px; color: #64748b; max-width: 560px; line-height: 1.45; }
+        .hrp-note {
+          margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
+          background: #eff6ff; color: #1e40af; font-size: 13px; border: 1px solid #bfdbfe;
+        }
         .hrp-err {
           margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
           background: #fef2f2; color: #b91c1c; font-size: 13px; border: 1px solid #fecaca;
@@ -498,6 +509,7 @@ export default function HrReportsPage() {
       </div>
 
       {error ? <div className="hrp-err">{error}</div> : null}
+      {notice ? <div className="hrp-note">{notice}</div> : null}
       {loadingBase ? (
         <div className="hrp-loading">{t('hrReports.loadingBase')}</div>
       ) : (
@@ -533,6 +545,7 @@ export default function HrReportsPage() {
             canDownload={reportRows.length > 0}
             downloading={exporting}
             onDownload={() => onDownload(reportRows, summary)}
+            automatic={automaticSummary}
           />
           <ReportCharts rows={reportRows} />
           <ReportDetailTable rows={reportRows} />
