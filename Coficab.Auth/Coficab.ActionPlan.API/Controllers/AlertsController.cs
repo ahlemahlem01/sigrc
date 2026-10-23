@@ -87,14 +87,11 @@ public class AlertsController : ControllerBase
                 return Ok(new { data = Array.Empty<object>() });
 
             var deptId = profile.DepartmentId;
-            var line = profile.LigneProduction?.Trim() ?? string.Empty;
-            var lineLower = line.ToLowerInvariant();
+            var lines = await MyLinesAsync(profile.LigneProduction, cancellationToken);
 
             query = query.Where(a =>
                 (deptId != null && a.DepartmentId == deptId)
-                || (!string.IsNullOrEmpty(line)
-                    && a.ProductionLine != null
-                    && a.ProductionLine.ToLower() == lineLower));
+                || (a.ProductionLine != null && lines.Contains(a.ProductionLine.ToLower())));
         }
 
         var alerts = await query
@@ -485,9 +482,27 @@ public class AlertsController : ControllerBase
             .FirstOrDefaultAsync(p => p.UserId == UserId, cancellationToken);
         if (profile == null) return false;
 
-        var line = profile.LigneProduction?.Trim() ?? string.Empty;
+        var lines = await MyLinesAsync(profile.LigneProduction, cancellationToken);
         return (profile.DepartmentId != null && alert.DepartmentId == profile.DepartmentId)
-            || (!string.IsNullOrEmpty(line) && string.Equals(alert.ProductionLine, line, StringComparison.OrdinalIgnoreCase));
+            || (!string.IsNullOrEmpty(alert.ProductionLine) && lines.Contains(alert.ProductionLine.ToLowerInvariant()));
+    }
+
+    /// <summary>
+    /// The production lines an employee follows: the one on the profile plus those of the files they handle
+    /// (assigned to them or created by them, still open).
+    /// </summary>
+    private async Task<List<string>> MyLinesAsync(string? profileLine, CancellationToken cancellationToken)
+    {
+        var lines = await _db.Claims.AsNoTracking()
+            .Where(c => !c.IsArchived && c.ProductionLine != null
+                && (c.AssignedToId == UserId || c.CreatedById == UserId)
+                && c.StatusCode != "CLOTUREE" && c.StatusCode != "CLOSED" && c.StatusCode != "VALIDATED" && c.StatusCode != "ARCHIVED")
+            .Select(c => c.ProductionLine!.ToLower())
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        var own = profileLine?.Trim().ToLowerInvariant();
+        if (!string.IsNullOrEmpty(own) && !lines.Contains(own)) lines.Add(own);
+        return lines;
     }
 
     public class AlertTextRequest

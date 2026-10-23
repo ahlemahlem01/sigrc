@@ -26,8 +26,8 @@
 
 .fwh-top {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: stretch;
   gap: 16px;
   margin-bottom: 14px;
 }
@@ -864,7 +864,9 @@
 .fwh-ref { font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600; color: var(--muted); margin-right: 8px; }
 
 /* Actions du haut : nouvelle réclamation, reprendre, actualiser */
-.fwh-top-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+.fwh-top-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+.fwh-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; }
+.fwh-updated { font-size: 12.5px; color: var(--muted); font-weight: 600; }
 .fwh-refresh.primary { background: var(--navy); border-color: var(--navy); color: #fff; }
 .fwh-refresh.primary:hover { background: #00009e; }
 
@@ -914,3 +916,6 @@
   .fwh-duo { grid-template-columns: 1fr; }
   .fwh-top-actions { justify-content: flex-start; }
 }
+
+.fwh-todo-li { display: flex; align-items: center; gap: 4px; }
+.fwh-todo-li > .fwh-todo { flex: 1; min-width: 0; }

@@ -51,6 +51,20 @@ const NAV: NavItem[] = [
     solo: true,
   },
   {
+    id: 'declarations',
+    labelKey: 'employeeNav.declarations',
+    icon: 'ti-clipboard-list',
+    path: '/declarations',
+    solo: true,
+  },
+  {
+    id: 'activity',
+    labelKey: 'employeeNav.activity',
+    icon: 'ti-chart-line',
+    path: '/activity',
+    solo: true,
+  },
+  {
     id: 'actionplans',
     labelKey: 'employeeNav.myActionPlans',
     icon: 'ti-file-description',
@@ -78,6 +92,8 @@ function getPageMeta(
     '/competences': { title: t('employeeNav.titles.competences'), crumb: t('employeeNav.crumbs.competences') },
     '/badges': { title: t('employeeNav.titles.badges'), crumb: t('employeeNav.crumbs.badges') },
     '/documents': { title: t('employeeNav.titles.documents'), crumb: t('employeeNav.crumbs.documents') },
+    '/activity': { title: t('employeeNav.titles.activity'), crumb: t('employeeNav.crumbs.activity') },
+    '/declarations': { title: t('employeeNav.titles.declarations'), crumb: t('employeeNav.crumbs.declarations') },
     '/eight-d': { title: t('employeeNav.titles.eightD'), crumb: t('employeeNav.crumbs.eightD') },
     '/action-plans': { title: t('employeeNav.titles.actionPlans'), crumb: t('employeeNav.crumbs.actionPlans') },
     '/pages/front': { title: t('employeeNav.titles.frontPortal'), crumb: t('employeeNav.crumbs.portal') },
@@ -246,10 +262,10 @@ export default function UserLayout() {
         /* ─── Main Nav Links ─── */
         .al-sidebar-link {
           display: flex; align-items: center; gap: 12px;
-          padding: 10px 12px; border-radius: 8px; text-decoration: none;
+          padding: 11px 12px; border-radius: 8px; text-decoration: none;
           font-size: 12.5px; font-weight: 500; color: #374151;
           transition: background .13s, color .13s;
-          margin-bottom: 2px; white-space: nowrap; border: none; background: none; cursor: pointer;
+          margin-bottom: 8px; white-space: nowrap; border: none; background: none; cursor: pointer;
           font-family: inherit; width: 100%; text-align: left;
         }
         .al-sidebar-link i { flex-shrink: 0; font-size: 16px; color: #6b7280; }

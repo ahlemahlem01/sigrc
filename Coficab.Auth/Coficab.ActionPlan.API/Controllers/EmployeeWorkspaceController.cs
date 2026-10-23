@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using Coficab.ActionPlan.Application.Dashboard;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace Coficab.ActionPlan.API.Controllers;
 
@@ -28,17 +30,20 @@ public class EmployeeWorkspaceController : ControllerBase
     private readonly IActionPlanService _actionPlans;
     private readonly IEightDService _eightD;
     private readonly IApplicationDbContext _db;
+    private readonly IConfiguration _configuration;
 
     public EmployeeWorkspaceController(
         IMediator mediator,
         IActionPlanService actionPlans,
         IEightDService eightD,
-        IApplicationDbContext db)
+        IApplicationDbContext db,
+        IConfiguration configuration)
     {
         _mediator = mediator;
         _actionPlans = actionPlans;
         _eightD = eightD;
         _db = db;
+        _configuration = configuration;
     }
 
     [HttpGet]
@@ -104,6 +109,146 @@ public class EmployeeWorkspaceController : ControllerBase
 
         return Ok(new { claims, plans, planActions, eightD, rejectedPlans, recentDocuments, recentBadges });
     }
+
+    /// <summary>
+    /// The employee's load against the team's, anonymous: only the caller's own numbers and the team average are returned.
+    /// Administrators and deactivated accounts are not part of the team (same rule as the workload view of the admins).
+    /// </summary>
+    [HttpGet("workload")]
+    public async Task<IActionResult> Workload(CancellationToken ct)
+    {
+        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        var (_, _, overloadMin, overloadFactor) = await ThresholdsStore.LoadCoreAsync(_db, ct);
+
+        var staff = (await _db.UserProfiles.AsNoTracking()
+                .Select(u => new { u.UserId, u.Role, u.Status })
+                .ToListAsync(ct))
+            .Where(u => !string.Equals(u.Status, "inactive", StringComparison.OrdinalIgnoreCase)
+                        && !(u.Role ?? string.Empty).Contains("admin", StringComparison.OrdinalIgnoreCase))
+            .Select(u => u.UserId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var today = DateTime.UtcNow.Date;
+        var plans = (await _db.ActionPlans.AsNoTracking()
+                .Where(p => !p.IsArchived && p.AssignedToId != null)
+                .ToListAsync(ct))
+            .Where(PlanDeadlines.IsOpen)
+            .ToList();
+        var claims = (await _db.Claims.AsNoTracking()
+                .Where(c => !c.IsArchived && c.AssignedToId != null)
+                .Select(c => new { c.AssignedToId, c.StatusCode })
+                .ToListAsync(ct))
+            .Where(c => !ClosedClaimMarkers.Any((c.StatusCode ?? string.Empty).ToUpperInvariant().Contains))
+            .ToList();
+
+        // Open files per person: plans + claims, only for the team.
+        var perPerson = staff.ToDictionary(id => id, _ => 0, StringComparer.OrdinalIgnoreCase);
+        foreach (var p in plans) if (perPerson.ContainsKey(p.AssignedToId!)) perPerson[p.AssignedToId!]++;
+        foreach (var c in claims) if (perPerson.ContainsKey(c.AssignedToId!)) perPerson[c.AssignedToId!]++;
+
+        var active = perPerson.Values.Where(v => v > 0).ToList();
+        var average = active.Count == 0 ? 0 : Math.Round(active.Average(), 1);
+        var minePlans = plans.Count(p => string.Equals(p.AssignedToId, userId, StringComparison.OrdinalIgnoreCase));
+        var mineClaims = claims.Count(c => string.Equals(c.AssignedToId, userId, StringComparison.OrdinalIgnoreCase));
+        var mine = minePlans + mineClaims;
+        var latePlans = plans.Count(p => string.Equals(p.AssignedToId, userId, StringComparison.OrdinalIgnoreCase) && PlanDeadlines.OverdueDays(p, today) > 0);
+        var teamPlansAvg = active.Count == 0 ? 0 : Math.Round(plans.Count(p => perPerson.ContainsKey(p.AssignedToId!)) / (double)active.Count, 1);
+
+        var state = average <= 0 || mine == 0 ? "none"
+            : mine >= overloadMin && mine >= overloadFactor * average ? "high"
+            : mine < average * 0.6 ? "light"
+            : "normal";
+
+        return Ok(new
+        {
+            mine,
+            minePlans,
+            mineClaims,
+            latePlans,
+            teamAverage = average,
+            teamPlansAverage = teamPlansAvg,
+            teamSize = active.Count,
+            overloadMin,
+            overloadFactor,
+            state,
+        });
+    }
+
+    /// <summary>
+    /// My activity over the last 12 weeks against the team's (anonymous): closed claims and open claims at the end of each
+    /// week (mine / average per person of the team), plus the closing time and on-time rate over the last 90 days.
+    /// </summary>
+    [HttpGet("activity")]
+    public async Task<IActionResult> Activity(CancellationToken ct)
+    {
+        var userId = User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
+        const int weeks = 12;
+        var targets = await OverviewTargetsStore.LoadAsync(_db, _configuration, ct);
+        var staff = (await _db.UserProfiles.AsNoTracking().Select(u => new { u.UserId, u.Role, u.Status }).ToListAsync(ct))
+            .Where(u => !string.Equals(u.Status, "inactive", StringComparison.OrdinalIgnoreCase)
+                        && !(u.Role ?? string.Empty).Contains("admin", StringComparison.OrdinalIgnoreCase))
+            .Select(u => u.UserId)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var rows = await _db.Claims.AsNoTracking()
+            .Where(c => !c.IsArchived && c.AssignedToId != null)
+            .Select(c => new ClaimRow(c.AssignedToId, c.AssignedAt, c.CreatedAt, c.CompletedAt, c.IsOnTime))
+            .ToListAsync(ct);
+        var team = rows.Where(r => staff.Contains(r.AssignedToId!)).ToList();
+        var teamPeople = team.Select(r => r.AssignedToId!).Distinct(StringComparer.OrdinalIgnoreCase).Count();
+        bool Mine(string? id) => string.Equals(id, userId, StringComparison.OrdinalIgnoreCase);
+        DateTime Start(DateTime? assignedAt, DateTime createdAt) => assignedAt ?? createdAt;
+
+        var today = DateTime.UtcNow.Date;
+        var monday = today.AddDays(-(((int)today.DayOfWeek + 6) % 7));
+        var series = new List<object>();
+        for (var i = weeks - 1; i >= 0; i--)
+        {
+            var from = monday.AddDays(-7 * i);
+            var to = from.AddDays(7);
+            int Closed(IReadOnlyCollection<ClaimRow> src) => src.Count(r => r.CompletedAt != null && r.CompletedAt >= from && r.CompletedAt < to);
+            int Open(IReadOnlyCollection<ClaimRow> src) => src.Count(r => Start(r.AssignedAt, r.CreatedAt) < to && (r.CompletedAt == null || r.CompletedAt >= to));
+            var mineRows = rows.Where(r => Mine(r.AssignedToId)).ToList();
+            var teamRows = team.ToList();
+            series.Add(new
+            {
+                weekStart = from,
+                closed = Closed(mineRows),
+                open = Open(mineRows),
+                teamClosed = teamPeople == 0 ? 0 : Math.Round(Closed(teamRows) / (double)teamPeople, 1),
+                teamOpen = teamPeople == 0 ? 0 : Math.Round(Open(teamRows) / (double)teamPeople, 1),
+            });
+        }
+
+        var since = today.AddDays(-90);
+        (double? Days, double? OnTime, int Count) Stats(IReadOnlyCollection<ClaimRow> src)
+        {
+            var done = src.Where(r => r.CompletedAt != null && r.CompletedAt >= since).ToList();
+            if (done.Count == 0) return (null, null, 0);
+            var days = done.Average(r => Math.Max(0, (r.CompletedAt!.Value - Start(r.AssignedAt, r.CreatedAt)).TotalDays));
+            var judged = done.Where(r => r.IsOnTime != null).ToList();
+            double? onTime = judged.Count == 0 ? null : Math.Round(100.0 * judged.Count(r => r.IsOnTime == true) / judged.Count);
+            return (Math.Round(days, 1), onTime, done.Count);
+        }
+        var m = Stats(rows.Where(r => Mine(r.AssignedToId)).ToList());
+        var tm = Stats(team.ToList());
+
+        return Ok(new
+        {
+            weeks = series,
+            target = new { resolutionDays = targets.ResolutionDays, onTimeGreen = targets.OnTimeGreen },
+            mine = new { avgDays = m.Days, onTimeRate = m.OnTime, closed90 = m.Count },
+            team = new { avgDays = tm.Days, onTimeRate = tm.OnTime, closed90PerPerson = teamPeople == 0 ? 0 : Math.Round(tm.Count / (double)teamPeople, 1), size = teamPeople },
+        });
+    }
+
+    private sealed record ClaimRow(string? AssignedToId, DateTime? AssignedAt, DateTime CreatedAt, DateTime? CompletedAt, bool? IsOnTime);
 
     private static bool IsOpen(Core.Entities.Claim claim)
     {

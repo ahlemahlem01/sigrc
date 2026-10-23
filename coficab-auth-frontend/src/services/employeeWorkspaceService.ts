@@ -56,3 +56,47 @@ export async function getEmployeeWorkspace(token: string): Promise<EmployeeWorks
     recentBadges: list<WorkspaceBadge>(data?.recentBadges),
   };
 }
+
+export interface EmployeeWorkload {
+  mine: number;
+  minePlans: number;
+  mineClaims: number;
+  latePlans: number;
+  teamAverage: number;
+  teamPlansAverage: number;
+  teamSize: number;
+  overloadMin: number;
+  overloadFactor: number;
+  state: 'none' | 'light' | 'normal' | 'high';
+}
+
+/** My open files against the team average (anonymous: the server only returns my numbers and the average). */
+export async function getEmployeeWorkload(token: string): Promise<EmployeeWorkload> {
+  const { data } = await axios.get(`${ACTION_PLAN_API_URL}/employee/workspace/workload`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data as EmployeeWorkload;
+}
+
+export interface ActivityWeek {
+  weekStart: string;
+  closed: number;
+  open: number;
+  teamClosed: number;
+  teamOpen: number;
+}
+
+export interface EmployeeActivity {
+  weeks: ActivityWeek[];
+  target: { resolutionDays: number; onTimeGreen: number };
+  mine: { avgDays: number | null; onTimeRate: number | null; closed90: number };
+  team: { avgDays: number | null; onTimeRate: number | null; closed90PerPerson: number; size: number };
+}
+
+/** My last 12 weeks against the team average (anonymous), plus closing time and on-time rate over 90 days. */
+export async function getEmployeeActivity(token: string): Promise<EmployeeActivity> {
+  const { data } = await axios.get(`${ACTION_PLAN_API_URL}/employee/workspace/activity`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  return data as EmployeeActivity;
+}

@@ -63,6 +63,8 @@ import FrontActionPlans from './pages/front/FrontActionPlans';
 import { FrontAdminRoute } from './pages/front/FrontAdminRoute';
 import FrontLandingPage from './pages/front/FrontLandingPage';
 import FrontWorkspaceHome from './pages/front/FrontWorkspaceHome';
+import EmployeeDeclarationsPage from './pages/front/EmployeeDeclarationsPage';
+import EmployeeActivityPage from './pages/front/EmployeeActivityPage';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
 import MyActionPlanDetail from './pages/front/MyActionPlanDetail';
@@ -157,6 +159,8 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route element={<UserLayout />}>
               <Route path="/dashboard"                    element={<FrontWorkspaceHome />} />
+              <Route path="/declarations"                 element={<EmployeeDeclarationsPage />} />
+              <Route path="/activity"                     element={<EmployeeActivityPage />} />
               <Route path="/profile"                      element={<EmployeeProfile />} />
               <Route path="/competences"                  element={<EmployeeCompetenciesPage />} />
               <Route path="/badges"                       element={<EmployeeBadgesPage />} />

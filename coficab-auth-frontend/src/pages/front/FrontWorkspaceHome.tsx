@@ -15,6 +15,8 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { STALE_DAYS } from '../../utils/workspaceStats';
 import { useNotifications } from '../../hooks/useNotifications';
+import { usePins } from '../../hooks/usePins';
+import WorkspaceExtras, { PinStar } from '../../components/employee/WorkspaceExtras';
 
 import { Award } from 'lucide-react';
 import BadgeEmblem from '../../components/BadgeEmblem';
@@ -211,6 +213,8 @@ export default function FrontWorkspaceHome() {
   const [rejectedPlans, setRejectedPlans] = useState<AssignedPlan[]>([]);
   const [activeAlerts, setActiveAlerts] = useState<QualityAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
+  const { pins, toggle: togglePin } = usePins((user as any)?.id || (user as any)?.userId || (user as any)?.email);
 
   const displayName =
     (user as any)?.fullName ||
@@ -266,6 +270,7 @@ export default function FrontWorkspaceHome() {
           }))
           .filter((a) => a.id),
       );
+      setUpdatedAt(new Date());
     } finally {
       if (!silent) setLoading(false);
     }
@@ -613,6 +618,22 @@ export default function FrontWorkspaceHome() {
     [notifications]
   );
 
+  /** The priorities list as a CSV file (semicolon-separated and with a BOM, so Excel opens it with the accents right). */
+  const exportCsv = () => {
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const kindLabel = (k: Priority['kind']) =>
+      k === 'claim' ? t('employeeWorkspace.kindClaim') : k === 'plan' ? t('employeeWorkspace.kindPlan') : t('employeeWorkspace.kindAlert');
+    const head = [t('employeeWorkspace.csvType'), t('employeeWorkspace.csvRef'), t('employeeWorkspace.csvTitle'), t('employeeWorkspace.csvAction'), t('employeeWorkspace.csvDue'), t('employeeWorkspace.csvState')];
+    const lines = [head, ...listed.map((p) => [kindLabel(p.kind), p.ref ?? '', p.title, p.action, p.due, t(`employeeWorkspace.flag.${p.bucket}`)])];
+    const blob = new Blob(['\ufeff' + lines.map((l) => l.map(cell).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `mes-priorites-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const firstName = useMemo(() => {
     const raw = String(displayName || '').trim();
     if (!raw) return 'Collaborateur';
@@ -647,18 +668,31 @@ export default function FrontWorkspaceHome() {
             </h1>
             <p className="fwh-sub">{t('employeeWorkspace.subtitle')}</p>
           </div>
-          <div className="fwh-top-actions">
-            <button type="button" className="fwh-refresh primary" onClick={() => navigate('/pages/front/quality-analyses/new')}>
-              + {t('employeeWorkspace.newClaim')}
-            </button>
-            {resume && (
-              <button type="button" className="fwh-refresh" onClick={() => navigate(resume.path)} title={resume.title}>
-                {t('employeeWorkspace.resume8d')}
+          <div className="fwh-toolbar">
+            <div className="fwh-top-actions">
+              <button type="button" className="fwh-refresh primary" onClick={() => navigate('/pages/front/quality-analyses/new')}>
+                + {t('employeeWorkspace.newClaim')}
               </button>
+              {resume && (
+                <button type="button" className="fwh-refresh" onClick={() => navigate(resume.path)} title={resume.title}>
+                  {t('employeeWorkspace.resume8d')}
+                </button>
+              )}
+              <button type="button" className="fwh-refresh" onClick={() => void load()} disabled={loading}>
+                {t('employeeWorkspace.refresh')}
+              </button>
+              <button type="button" className="fwh-refresh" onClick={exportCsv} disabled={loading || listed.length === 0}>
+                {t('employeeWorkspace.exportCsv')}
+              </button>
+            </div>
+            {updatedAt && (
+              <span className="fwh-updated">
+                {t('employeeWorkspace.updatedAt', {
+                  date: updatedAt.toLocaleDateString(locale, { day: '2-digit', month: 'long', year: 'numeric' }),
+                  time: updatedAt.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }),
+                })}
+              </span>
             )}
-            <button type="button" className="fwh-refresh" onClick={() => void load()} disabled={loading}>
-              {t('employeeWorkspace.refresh')}
-            </button>
           </div>
         </header>
 
@@ -815,7 +849,7 @@ export default function FrontWorkspaceHome() {
               {shown.map((item) => {
                 const tone = item.bucket === 'redo' || item.bucket === 'overdue' || item.bucket === 'stale' ? 'late' : item.bucket === 'today' ? 'today' : 'soon';
                 return (
-                  <li key={item.id}>
+                  <li key={item.id} className="fwh-todo-li">
                     <button type="button" className={`fwh-todo ${tone}`} onClick={() => navigate(item.path)}>
                       <span className={`fwh-todo-badge ${item.kind}`}>
                         {item.kind === 'claim' ? t('employeeWorkspace.kindClaim') : item.kind === 'plan' ? t('employeeWorkspace.kindPlan') : t('employeeWorkspace.kindAlert')}
@@ -827,6 +861,7 @@ export default function FrontWorkspaceHome() {
                       <span className={`fwh-todo-flag ${tone}`}>{t(`employeeWorkspace.flag.${item.bucket}`)}</span>
                       <span className="fwh-todo-chev" aria-hidden>›</span>
                     </button>
+                    <PinStar pin={{ id: item.id, kind: item.kind, title: item.title, ref: item.ref, path: item.path }} pins={pins} onToggle={togglePin} />
                   </li>
                 );
               })}
@@ -907,6 +942,10 @@ export default function FrontWorkspaceHome() {
             )}
           </section>
         </div>
+
+        {accessToken && (
+          <WorkspaceExtras accessToken={accessToken} assigned={claims} pins={pins} onTogglePin={togglePin} locale={locale} />
+        )}
 
         <section className="fwh-next" aria-label={t('employeeWorkspace.quickAria')}>
           <div className="fwh-quick">
