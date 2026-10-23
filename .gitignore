@@ -40,3 +40,6 @@ logs/
 
 # Database backups
 *.bak
+
+# Data-cleanup restore scripts (local only: they hold the former test values)
+scripts/restore-*-2026*.sql
