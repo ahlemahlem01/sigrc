@@ -12,10 +12,27 @@ import {
 const NAVY = '#000168';
 const LINE = '#e4e8f2';
 
+const DEFAULT_LABELS: Record<string, { fr: string; key: string }> = {
+  DRAFT: { fr: 'Brouillon', key: 'draft' },
+  OUVERTE: { fr: 'Ouverte', key: 'open' },
+  ASSIGNED: { fr: 'Assignée', key: 'assigned' },
+  EN_ANALYSE: { fr: 'En analyse', key: 'inAnalysis' },
+  PENDING_VALIDATION: { fr: 'En attente de validation', key: 'pendingValidation' },
+  CLOTUREE: { fr: 'Clôturée', key: 'closed' },
+  VALIDATED: { fr: 'Validée', key: 'validated' },
+  REJECTED: { fr: 'Rejetée', key: 'rejected' },
+};
+
 const WorkflowConfigPage: React.FC = () => {
   const { t } = useTranslation();
   const { accessToken, hasRole } = useAuth();
   const canEdit = hasRole('superadmin');
+
+  // the seeded French names follow the language of the interface; a status renamed by an administrator keeps its own name
+  const shown = (code: string, stored: string) => {
+    const known = DEFAULT_LABELS[code];
+    return known && known.fr === stored ? t(`claimStatus.${known.key}`) : stored;
+  };
 
   const [config, setConfig] = useState<WorkflowConfig | null>(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +60,7 @@ const WorkflowConfigPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
 
   const labelOf = useMemo(() => {
-    const map = new Map((config?.statuses ?? []).map((s) => [s.code, s.label]));
+    const map = new Map((config?.statuses ?? []).map((s) => [s.code, shown(s.code, s.label)]));
     return (code: string) => map.get(code) || code;
   }, [config]);
 
@@ -239,12 +256,12 @@ const WorkflowConfigPage: React.FC = () => {
               <div className="flex flex-wrap items-center gap-2 mt-3">
                 <select className={input} value={newMove.from} onChange={(e) => setNewMove({ ...newMove, from: e.target.value })}>
                   <option value="">{t('workflowConfig.from')}</option>
-                  {activeStatuses.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
+                  {activeStatuses.map((s) => <option key={s.code} value={s.code}>{shown(s.code, s.label)}</option>)}
                 </select>
                 <span>→</span>
                 <select className={input} value={newMove.to} onChange={(e) => setNewMove({ ...newMove, to: e.target.value })}>
                   <option value="">{t('workflowConfig.to')}</option>
-                  {activeStatuses.map((s) => <option key={s.code} value={s.code}>{s.label}</option>)}
+                  {activeStatuses.map((s) => <option key={s.code} value={s.code}>{shown(s.code, s.label)}</option>)}
                 </select>
                 <button type="button" onClick={addMove} className="px-3 py-1 text-sm font-semibold rounded-lg border" style={{ color: NAVY, borderColor: NAVY }}>
                   {t('workflowConfig.addTransition')}

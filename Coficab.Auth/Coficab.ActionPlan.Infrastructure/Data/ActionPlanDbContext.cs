@@ -533,7 +533,9 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
                 new WorkflowStatus { Id = Guid.Parse("5c4b8ef9-9e47-5c8e-9455-2ee447a84c23"), WorkflowKey = "claim", Code = "ASSIGNED", Label = "Assignée", SortOrder = 3, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
                 new WorkflowStatus { Id = Guid.Parse("b5e3f5fa-7fe9-5a4d-99e6-1ae2c8849870"), WorkflowKey = "claim", Code = "EN_ANALYSE", Label = "En analyse", SortOrder = 4, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
                 new WorkflowStatus { Id = Guid.Parse("ec63beb7-8bd5-5223-a057-6c9d882a1a95"), WorkflowKey = "claim", Code = "PENDING_VALIDATION", Label = "En attente de validation", SortOrder = 5, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("0a6c9443-6062-5a62-8677-7f32789530ff"), WorkflowKey = "claim", Code = "CLOTUREE", Label = "Clôturée", SortOrder = 6, IsFinal = true, IsActive = true, UpdatedAt = seededAt });
+                new WorkflowStatus { Id = Guid.Parse("0a6c9443-6062-5a62-8677-7f32789530ff"), WorkflowKey = "claim", Code = "CLOTUREE", Label = "Clôturée", SortOrder = 6, IsFinal = true, IsActive = true, UpdatedAt = seededAt },
+                new WorkflowStatus { Id = Guid.Parse("1bdc033b-895c-550c-a865-fa3b6b47cac9"), WorkflowKey = "claim", Code = "VALIDATED", Label = "Validée", SortOrder = 7, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
+                new WorkflowStatus { Id = Guid.Parse("e4c8d374-d934-58e3-927d-6288f7faa1e4"), WorkflowKey = "claim", Code = "REJECTED", Label = "Rejetée", SortOrder = 8, IsFinal = false, IsActive = true, UpdatedAt = seededAt });
         });
 
         modelBuilder.Entity<WorkflowTransition>(entity =>
@@ -559,7 +561,11 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
                 new WorkflowTransition { Id = Guid.Parse("fcfc676c-39cb-5d67-9332-d3818931f051"), WorkflowKey = "claim", FromCode = "EN_ANALYSE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
                 new WorkflowTransition { Id = Guid.Parse("893aad5f-345a-53ed-8398-b86fe1743456"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
                 new WorkflowTransition { Id = Guid.Parse("46e1ca00-2ba1-5a5f-aff7-50bad42816bc"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("ecbba46d-3347-5a9c-a5f3-08e8b2d76c40"), WorkflowKey = "claim", FromCode = "CLOTUREE", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt });
+                new WorkflowTransition { Id = Guid.Parse("ecbba46d-3347-5a9c-a5f3-08e8b2d76c40"), WorkflowKey = "claim", FromCode = "CLOTUREE", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
+                new WorkflowTransition { Id = Guid.Parse("b0055ee5-8cd3-57c6-b034-4b6a592fe8e3"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "CLOTUREE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
+                new WorkflowTransition { Id = Guid.Parse("5604ff62-a2f0-5e1d-9428-ca8b1c6bf310"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
+                new WorkflowTransition { Id = Guid.Parse("41c20e8a-6e6a-526e-93e7-4bc23bdcd1d6"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
+                new WorkflowTransition { Id = Guid.Parse("5d583d3e-99ac-5ea5-b59e-eeb0f6ac348a"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "OUVERTE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt });
         });
 
         // --- Multi-industry reference lists: defect types (free vocabulary) and severity wording (4 fixed levels) ---

@@ -2796,6 +2796,28 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                             SortOrder = 6,
                             UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("1bdc033b-895c-550c-a865-fa3b6b47cac9"),
+                            Code = "VALIDATED",
+                            IsActive = true,
+                            IsFinal = false,
+                            Label = "Validée",
+                            SortOrder = 7,
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("e4c8d374-d934-58e3-927d-6288f7faa1e4"),
+                            Code = "REJECTED",
+                            IsActive = true,
+                            IsFinal = false,
+                            Label = "Rejetée",
+                            SortOrder = 8,
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
                         });
                 });
 
@@ -2980,6 +3002,46 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                             FromCode = "CLOTUREE",
                             IsActive = true,
                             ToCode = "EN_ANALYSE",
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("b0055ee5-8cd3-57c6-b034-4b6a592fe8e3"),
+                            AllowedRoles = "user,admin,superadmin",
+                            FromCode = "VALIDATED",
+                            IsActive = true,
+                            ToCode = "CLOTUREE",
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("5604ff62-a2f0-5e1d-9428-ca8b1c6bf310"),
+                            AllowedRoles = "user,admin,superadmin",
+                            FromCode = "VALIDATED",
+                            IsActive = true,
+                            ToCode = "EN_ANALYSE",
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("41c20e8a-6e6a-526e-93e7-4bc23bdcd1d6"),
+                            AllowedRoles = "user,admin,superadmin",
+                            FromCode = "REJECTED",
+                            IsActive = true,
+                            ToCode = "EN_ANALYSE",
+                            UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            WorkflowKey = "claim"
+                        },
+                        new
+                        {
+                            Id = new Guid("5d583d3e-99ac-5ea5-b59e-eeb0f6ac348a"),
+                            AllowedRoles = "user,admin,superadmin",
+                            FromCode = "REJECTED",
+                            IsActive = true,
+                            ToCode = "OUVERTE",
                             UpdatedAt = new DateTime(2026, 10, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             WorkflowKey = "claim"
                         });
