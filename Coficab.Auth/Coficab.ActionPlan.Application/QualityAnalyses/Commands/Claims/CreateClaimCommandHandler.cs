@@ -34,6 +34,8 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
 
     public async Task<Guid> Handle(CreateClaimCommand request, CancellationToken cancellationToken)
     {
+        await StrictLists.EnsureAllowedAsync(_context, ReferenceListKeys.Client, request.ClientId, "Le client", cancellationToken);
+
         // Whatever spelling was typed, the claim stores the one kept by the administrator.
         request.DefectType = (await DefectTypeResolver.LoadAsync(_context, cancellationToken)).Resolve(request.DefectType);
 

@@ -715,7 +715,7 @@
     "alerts": "Alertes",
     "importHistory": "Importer l’historique",
     "workflowConfig": "Workflow des réclamations",
-    "referenceLists": "Types de défaut et gravités"
+    "referenceLists": "Listes de référence"
   },
   "overviewPage": {
     "ppm": "PPM des réclamations",
@@ -5036,9 +5036,24 @@
     "note": "Les statuts inconnus du workflow (anciennes valeurs) ne sont jamais bloqués. Les actions automatiques du système ne sont pas concernées, seulement les changements faits par un utilisateur."
   },
   "referenceLists": {
+    "add": "Ajouter",
+    "importFromClaims": "Reprendre celles des réclamations",
+    "emptyList": "Aucune valeur : ajoutez-en ou reprenez celles des réclamations.",
+    "alreadyListed": "« {{value}} » est déjà dans la liste.",
+    "vocab": {
+      "client": { "title": "Clients", "help": "Proposés quand on crée ou modifie une réclamation. La saisie libre reste possible.", "placeholder": "Ex. STELLANTIS-01" },
+      "production-line": { "title": "Lignes de production", "help": "Proposées quand on renseigne les données de production d'une réclamation.", "placeholder": "Ex. WR-04" },
+      "shift": { "title": "Équipes", "help": "Proposées quand on renseigne les données de production d'une réclamation.", "placeholder": "Ex. Matin" },
+      "defect-type": { "title": "Types de défaut", "help": "Les types de défaut connus. Les doublons d'orthographe se fusionnent plus haut.", "placeholder": "Ex. Coupure fil" }
+    },
     "eyebrow": "Paramétrage",
-    "title": "Types de défaut et gravités",
-    "subtitle": "Les libellés des niveaux de gravité et la fusion des orthographes en double des types de défaut. Les types de défaut proposés dans les formulaires viennent automatiquement des réclamations existantes.",
+    "title": "Listes de référence",
+    "subtitle": "Les valeurs proposées dans les formulaires de réclamation (clients, lignes, équipes, types de défaut), le libellé des niveaux de gravité et la fusion des orthographes en double.",
+    "strictLabel": "N'accepter que les valeurs de la liste",
+    "strictHelp": "Une réclamation ne pourra plus utiliser une valeur absente de la liste (la liste vide ne bloque rien). Les réclamations existantes ne changent pas.",
+    "strictSaveFirst": "Enregistrez d'abord vos modifications de la liste.",
+    "unsaved": "Modifications non enregistrées",
+    "notInList": "« {{value}} » n'est pas dans la liste de référence des clients. Choisissez une valeur proposée.",
     "loadFailed": "Impossible de charger les listes.",
     "saveFailed": "Enregistrement impossible : vérifiez les valeurs saisies.",
     "saved": "Liste enregistrée.",

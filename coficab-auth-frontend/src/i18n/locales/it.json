@@ -715,7 +715,7 @@
     "alerts": "Allerte",
     "importHistory": "Importa lo storico",
     "workflowConfig": "Workflow dei reclami",
-    "referenceLists": "Tipi di difetto e gravità"
+    "referenceLists": "Elenchi di riferimento"
   },
   "overviewPage": {
     "ppm": "PPM dei reclami",
@@ -5036,9 +5036,24 @@
     "note": "Gli stati sconosciuti al workflow (valori storici) non sono mai bloccati. Le azioni automatiche del sistema non sono interessate, solo le modifiche fatte da un utente."
   },
   "referenceLists": {
+    "add": "Aggiungi",
+    "importFromClaims": "Riprendi quelli dei reclami",
+    "emptyList": "Nessun valore: aggiungine o riprendi quelli dei reclami.",
+    "alreadyListed": "\"{{value}}\" è già nell'elenco.",
+    "vocab": {
+      "client": { "title": "Clienti", "help": "Proposti quando si crea o modifica un reclamo. La digitazione libera resta possibile.", "placeholder": "Es. STELLANTIS-01" },
+      "production-line": { "title": "Linee di produzione", "help": "Proposte quando si compilano i dati di produzione di un reclamo.", "placeholder": "Es. WR-04" },
+      "shift": { "title": "Turni", "help": "Proposti quando si compilano i dati di produzione di un reclamo.", "placeholder": "Es. Mattina" },
+      "defect-type": { "title": "Tipi di difetto", "help": "I tipi di difetto noti. I doppioni di ortografia si uniscono sopra.", "placeholder": "Es. Rottura filo" }
+    },
     "eyebrow": "Configurazione",
-    "title": "Tipi di difetto e gravità",
-    "subtitle": "Le etichette dei livelli di gravità e l'unione delle grafie duplicate dei tipi di difetto. I tipi di difetto suggeriti nei moduli provengono automaticamente dai reclami esistenti.",
+    "title": "Elenchi di riferimento",
+    "subtitle": "I valori proposti nei moduli dei reclami (clienti, linee, turni, tipi di difetto), l'etichetta dei livelli di gravità e l'unione delle grafie duplicate.",
+    "strictLabel": "Accetta solo i valori dell'elenco",
+    "strictHelp": "Un reclamo non potrà più usare un valore assente dall'elenco (un elenco vuoto non blocca nulla). I reclami esistenti non cambiano.",
+    "strictSaveFirst": "Salva prima le modifiche all'elenco.",
+    "unsaved": "Modifiche non salvate",
+    "notInList": "\"{{value}}\" non è nell'elenco dei clienti. Scegli un valore proposto.",
     "loadFailed": "Impossibile caricare gli elenchi.",
     "saveFailed": "Salvataggio impossibile: controlla i valori.",
     "saved": "Elenco salvato.",

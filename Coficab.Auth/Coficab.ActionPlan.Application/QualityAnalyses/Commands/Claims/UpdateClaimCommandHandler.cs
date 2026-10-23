@@ -40,7 +40,12 @@ public class UpdateClaimCommandHandler : IRequestHandler<UpdateClaimCommand, boo
         var justClosed = false;
 
         if (!string.IsNullOrWhiteSpace(request.Title)) claim.Title = request.Title;
-        if (!string.IsNullOrWhiteSpace(request.ClientId)) claim.ClientId = request.ClientId;
+        if (!string.IsNullOrWhiteSpace(request.ClientId))
+        {
+            if (!string.Equals(request.ClientId.Trim(), (claim.ClientId ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+                await Coficab.ActionPlan.Application.ReferenceLists.StrictLists.EnsureAllowedAsync(_context, Coficab.ActionPlan.Core.Entities.ReferenceListKeys.Client, request.ClientId, "Le client", cancellationToken);
+            claim.ClientId = request.ClientId;
+        }
         if (!string.IsNullOrWhiteSpace(request.DefectType))
             claim.DefectType = (await DefectTypeResolver.LoadAsync(_context, cancellationToken)).Resolve(request.DefectType);
         if (!string.IsNullOrWhiteSpace(request.LotNumber)) claim.LotNumber = request.LotNumber;

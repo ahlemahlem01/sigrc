@@ -36,6 +36,10 @@ export function useReferenceLists() {
 
   const defectTypes = data?.defectTypeSuggestions ?? [];
 
+  /** The active entries of a listed vocabulary (customers, production lines, shifts), in the configured order. */
+  const listed = (key: 'client' | 'production-line' | 'shift'): string[] =>
+    (data?.lists[key] ?? []).filter((i) => i.isActive && !i.mergedInto).sort((a, b) => a.sortOrder - b.sortOrder || a.value.localeCompare(b.value)).map((i) => i.value);
+
   const severityItems = data?.lists.severity ?? [];
 
   /** Configured wording of a level, or null to keep the default translated wording. */
@@ -48,5 +52,13 @@ export function useReferenceLists() {
     return active.length > 0 ? active : [...LEVELS];
   };
 
-  return { defectTypes, severityLabel, activeSeverities };
+  /** True when the list is strict, has active values, and the value is not one of them (same rule as the server). */
+  const isRefused = (key: 'client' | 'production-line' | 'shift', value: string): boolean => {
+    if (!data?.strict?.[key]) return false;
+    const allowed = listed(key);
+    const text = value.trim().toLowerCase();
+    return allowed.length > 0 && text.length > 0 && !allowed.some((a) => a.trim().toLowerCase() === text);
+  };
+
+  return { isRefused, defectTypes, severityLabel, activeSeverities, clients: listed('client'), productionLines: listed('production-line'), shifts: listed('shift') };
 }

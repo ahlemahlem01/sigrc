@@ -715,7 +715,7 @@
     "alerts": "Alerts",
     "importHistory": "Import history",
     "workflowConfig": "Claims workflow",
-    "referenceLists": "Defect types and severities"
+    "referenceLists": "Reference lists"
   },
   "overviewPage": {
     "ppm": "PPM of claims",
@@ -5036,9 +5036,24 @@
     "note": "Statuses unknown to the workflow (legacy values) are never blocked. Automatic system actions are not affected, only changes made by a user."
   },
   "referenceLists": {
+    "add": "Add",
+    "importFromClaims": "Take those used by claims",
+    "emptyList": "No value: add some or take those used by claims.",
+    "alreadyListed": "\"{{value}}\" is already in the list.",
+    "vocab": {
+      "client": { "title": "Customers", "help": "Suggested when a claim is created or edited. Free typing is still possible.", "placeholder": "e.g. STELLANTIS-01" },
+      "production-line": { "title": "Production lines", "help": "Suggested when a claim's production data is filled in.", "placeholder": "e.g. WR-04" },
+      "shift": { "title": "Shifts", "help": "Suggested when a claim's production data is filled in.", "placeholder": "e.g. Morning" },
+      "defect-type": { "title": "Defect types", "help": "The known defect types. Spelling duplicates are merged above.", "placeholder": "e.g. Wire break" }
+    },
     "eyebrow": "Configuration",
-    "title": "Defect types and severities",
-    "subtitle": "The wording of the severity levels and the merge of duplicate defect-type spellings. The defect types suggested in the forms come automatically from the existing claims.",
+    "title": "Reference lists",
+    "subtitle": "The values suggested in the claim forms (customers, lines, shifts, defect types), the wording of the severity levels and the merge of duplicate spellings.",
+    "strictLabel": "Only accept values from this list",
+    "strictHelp": "A claim can no longer use a value that is not in the list (an empty list blocks nothing). Existing claims do not change.",
+    "strictSaveFirst": "Save your changes to the list first.",
+    "unsaved": "Unsaved changes",
+    "notInList": "\"{{value}}\" is not in the customer reference list. Choose a suggested value.",
     "loadFailed": "Unable to load the lists.",
     "saveFailed": "Unable to save: please check the values.",
     "saved": "List saved.",

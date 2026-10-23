@@ -9,7 +9,8 @@ namespace Coficab.ActionPlan.Application.ReferenceLists;
 public record ReferenceItemDto(string Value, string? Label, int SortOrder, bool IsActive, string? MergedInto = null);
 
 /// <param name="DefectTypeSuggestions">What the claim forms suggest: the defect types really used by the claims (merged spellings counted once).</param>
-public record ReferenceListsDto(Dictionary<string, List<ReferenceItemDto>> Lists, List<string> DefectTypeSuggestions);
+/// <param name="Strict">Per list (customers, production lines, shifts): claims may only use the values of the list.</param>
+public record ReferenceListsDto(Dictionary<string, List<ReferenceItemDto>> Lists, List<string> DefectTypeSuggestions, Dictionary<string, bool> Strict);
 
 public record GetReferenceListsQuery : IRequest<ReferenceListsDto>;
 
@@ -29,7 +30,7 @@ public class GetReferenceListsQueryHandler : IRequestHandler<GetReferenceListsQu
             key => key,
             key => rows.Where(r => r.ListKey == key)
                 .Select(r => new ReferenceItemDto(r.Value, r.Label, r.SortOrder, r.IsActive, r.MergedInto)).ToList());
-        return new ReferenceListsDto(lists, await DefectTypeSuggestions.BuildAsync(_db, rows.Where(r => r.ListKey == ReferenceListKeys.DefectType).ToList(), ct));
+        return new ReferenceListsDto(lists, await DefectTypeSuggestions.BuildAsync(_db, rows.Where(r => r.ListKey == ReferenceListKeys.DefectType).ToList(), ct), await StrictLists.LoadAsync(_db, ct));
     }
 }
 
@@ -63,7 +64,7 @@ public class SaveReferenceListCommandHandler : IRequestHandler<SaveReferenceList
                 existing.Add(row);
             }
             // Defect types are stored as typed on the claims: a separate display label would only mislead.
-            row.Label = request.ListKey == ReferenceListKeys.DefectType || string.IsNullOrWhiteSpace(input.Label) ? null : input.Label.Trim();
+            row.Label = request.ListKey != ReferenceListKeys.Severity || string.IsNullOrWhiteSpace(input.Label) ? null : input.Label.Trim();
             row.SortOrder = input.SortOrder;
             // A merged spelling stays inactive; only an explicit unmerge brings it back.
             row.IsActive = string.IsNullOrWhiteSpace(row.MergedInto) && input.IsActive;
@@ -311,6 +312,53 @@ public class ImportExistingDefectTypesCommandHandler : IRequestHandler<ImportExi
     }
 }
 
+/// <summary>Adds (never replaces) the customers, production lines or shifts already used by the claims.</summary>
+public record ImportExistingValuesCommand(string ListKey, string UpdatedBy) : IRequest<ReferenceListsDto>;
+
+public class ImportExistingValuesCommandHandler : IRequestHandler<ImportExistingValuesCommand, ReferenceListsDto>
+{
+    private readonly IApplicationDbContext _db;
+    private readonly IMediator _mediator;
+
+    public ImportExistingValuesCommandHandler(IApplicationDbContext db, IMediator mediator)
+    {
+        _db = db;
+        _mediator = mediator;
+    }
+
+    public async Task<ReferenceListsDto> Handle(ImportExistingValuesCommand request, CancellationToken ct)
+    {
+        // Archived claims count too: they are part of the history.
+        var claims = _db.Claims.IgnoreQueryFilters().AsNoTracking();
+        var used = request.ListKey switch
+        {
+            ReferenceListKeys.Client => await claims.Select(c => c.ClientId).Distinct().ToListAsync(ct),
+            ReferenceListKeys.ProductionLine => await claims.Select(c => c.ProductionLine).Distinct().ToListAsync(ct),
+            ReferenceListKeys.Shift => await claims.Select(c => c.Shift).Distinct().ToListAsync(ct),
+            ReferenceListKeys.DefectType => await claims.Select(c => c.DefectType).Distinct().ToListAsync(ct),
+            _ => throw new ValidationException("Cette liste ne peut pas être alimentée depuis les réclamations."),
+        };
+        var known = (await _db.ReferenceItems.Where(r => r.ListKey == request.ListKey)
+            .Select(r => r.Value).ToListAsync(ct)).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var order = known.Count;
+        var now = DateTime.UtcNow;
+        foreach (var value in used.Select(u => (u ?? string.Empty).Trim()).Where(u => u.Length > 0 && u.Length <= 100)
+                     .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(u => u))
+        {
+            if (!known.Add(value)) continue;
+            _db.ReferenceItems.Add(new ReferenceItem
+            {
+                ListKey = request.ListKey, Value = value, SortOrder = ++order,
+                IsActive = true, UpdatedAt = now, UpdatedBy = request.UpdatedBy,
+            });
+        }
+
+        await _db.SaveChangesAsync(ct);
+        return await _mediator.Send(new GetReferenceListsQuery(), ct);
+    }
+}
+
 public class SaveReferenceListCommandValidator : AbstractValidator<SaveReferenceListCommand>
 {
     public SaveReferenceListCommandValidator()
@@ -318,7 +366,7 @@ public class SaveReferenceListCommandValidator : AbstractValidator<SaveReference
         RuleFor(x => x.UpdatedBy).NotEmpty();
         RuleFor(x => x.ListKey)
             .Must(k => ReferenceListKeys.All.Contains(k))
-            .WithMessage("Liste inconnue : types de défaut (defect-type) ou gravité (severity).");
+            .WithMessage("Liste inconnue : defect-type, severity, client, production-line ou shift.");
         RuleFor(x => x.Items).NotNull();
 
         RuleForEach(x => x.Items).ChildRules(item =>

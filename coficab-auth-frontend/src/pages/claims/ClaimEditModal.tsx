@@ -38,7 +38,7 @@ export const ClaimEditModal: React.FC<ClaimEditModalProps> = ({
   canAssign = false,
 }) => {
   const { t } = useTranslation();
-  const { defectTypes } = useReferenceLists();
+  const { defectTypes, clients } = useReferenceLists();
   const recommendEmployees = useMemo(
     () =>
       assignableUsers.map((u) => ({
@@ -85,7 +85,10 @@ export const ClaimEditModal: React.FC<ClaimEditModalProps> = ({
         <div className="pfe-form-row">
           <div className="pfe-form-group" style={{ marginBottom: 0 }}>
             <label>{t('claimDetail.clientId')}</label>
-            <input type="text" name="clientId" value={formData.clientId || ''} onChange={onChange} />
+            <input type="text" name="clientId" list="reference-clients-edit" value={formData.clientId || ''} onChange={onChange} />
+            <datalist id="reference-clients-edit">
+              {clients.map((d) => <option key={d} value={d} />)}
+            </datalist>
           </div>
           <div className="pfe-form-group" style={{ marginBottom: 0 }}>
             <label>{t('claimDetail.defectType')}</label>

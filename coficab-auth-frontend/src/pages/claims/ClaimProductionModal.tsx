@@ -1,6 +1,7 @@
-import React from 'react';
+﻿import React from 'react';
 import { X, AlertCircle, Factory, Users, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
 
 interface ClaimProductionModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const ClaimProductionModal: React.FC<ClaimProductionModalProps> = ({
   onSubmit,
 }) => {
   const { t } = useTranslation();
+  const { productionLines, shifts } = useReferenceLists();
   if (!isOpen) return null;
 
   return (
@@ -90,10 +92,11 @@ export const ClaimProductionModal: React.FC<ClaimProductionModalProps> = ({
               {t('productionModal.line')}
             </label>
             <input
-              type="text" name="productionLine" value={formData.productionLine || ''} onChange={onChange}
+              type="text" name="productionLine" list="reference-production-lines" value={formData.productionLine || ''} onChange={onChange}
               placeholder={t('productionModal.linePlaceholder')} required
               style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
             />
+            <datalist id="reference-production-lines">{productionLines.map((d) => <option key={d} value={d} />)}</datalist>
           </div>
 
           <div style={{ marginBottom: '18px' }}>
@@ -102,10 +105,11 @@ export const ClaimProductionModal: React.FC<ClaimProductionModalProps> = ({
               {t('productionModal.shift')}
             </label>
             <input
-              type="text" name="shift" value={formData.shift || ''} onChange={onChange}
+              type="text" name="shift" list="reference-shifts" value={formData.shift || ''} onChange={onChange}
               placeholder={t('productionModal.shiftPlaceholder')} required
               style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none', boxSizing: 'border-box' }}
             />
+            <datalist id="reference-shifts">{shifts.map((d) => <option key={d} value={d} />)}</datalist>
           </div>
 
           <div style={{ marginBottom: '24px' }}>

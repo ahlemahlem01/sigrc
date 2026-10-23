@@ -39,8 +39,18 @@ namespace Coficab.ActionPlan.Application.Claims.Commands.StartClaimAnalysis
             }
 
             // Persistance des champs de traçabilité
-            if (request.ProductionLine != null) claim.ProductionLine = request.ProductionLine;
-            if (request.Shift != null) claim.Shift = request.Shift;
+            if (request.ProductionLine != null)
+            {
+                if (!string.Equals(request.ProductionLine.Trim(), (claim.ProductionLine ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+                    await Coficab.ActionPlan.Application.ReferenceLists.StrictLists.EnsureAllowedAsync(_context, Coficab.ActionPlan.Core.Entities.ReferenceListKeys.ProductionLine, request.ProductionLine, "La ligne de production", cancellationToken);
+                claim.ProductionLine = request.ProductionLine;
+            }
+            if (request.Shift != null)
+            {
+                if (!string.Equals(request.Shift.Trim(), (claim.Shift ?? string.Empty).Trim(), StringComparison.OrdinalIgnoreCase))
+                    await Coficab.ActionPlan.Application.ReferenceLists.StrictLists.EnsureAllowedAsync(_context, Coficab.ActionPlan.Core.Entities.ReferenceListKeys.Shift, request.Shift, "L'équipe", cancellationToken);
+                claim.Shift = request.Shift;
+            }
             if (request.AnalysisNotes != null) claim.AnalysisNotes = request.AnalysisNotes;
 
             claim.UpdatedAt = DateTime.UtcNow;

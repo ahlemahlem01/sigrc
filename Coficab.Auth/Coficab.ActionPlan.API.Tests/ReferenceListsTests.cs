@@ -111,4 +111,27 @@ public class ReferenceListsTests : IClassFixture<ActionPlanApiFactory>
 
         Assert.Single(lists.GetProperty("defect-type").EnumerateArray(), e => e.GetProperty("value").GetString() == "Isolation endommagée");
     }
+
+    [Fact]
+    public async Task StrictCustomerList_RefusesUnlistedValues_AndNeverBlocksAnEmptyList()
+    {
+        var admin = ClientAs("admin");
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<Coficab.ActionPlan.Application.Interfaces.IApplicationDbContext>();
+        var check = () => Coficab.ActionPlan.Application.ReferenceLists.StrictLists.EnsureAllowedAsync(db, ReferenceListKeys.Client, "Inconnu", "Le client", CancellationToken.None);
+
+        // strict but empty: nothing is blocked
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/reference-lists/client/strict", new { strict = true })).StatusCode);
+        await check();
+
+        await admin.PutAsJsonAsync("/api/reference-lists/client",
+            new { items = new[] { new { value = "ACME", sortOrder = 1, isActive = true } } });
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(check);
+        await Coficab.ActionPlan.Application.ReferenceLists.StrictLists.EnsureAllowedAsync(db, ReferenceListKeys.Client, " acme ", "Le client", CancellationToken.None);
+
+        // switched off again: anything goes, and a plain user cannot change the option
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").PutAsJsonAsync("/api/reference-lists/client/strict", new { strict = false })).StatusCode);
+        await admin.PutAsJsonAsync("/api/reference-lists/client/strict", new { strict = false });
+        await check();
+    }
 }

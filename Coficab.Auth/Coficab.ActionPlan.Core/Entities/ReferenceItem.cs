@@ -31,6 +31,13 @@ public static class ReferenceListKeys
     /// <summary>The four levels are fixed (LOW, MEDIUM, HIGH, CRITICAL, used by scoring and the ML model); their wording and visibility can be changed.</summary>
     public const string Severity = "severity";
 
-    public static readonly string[] All = { DefectType, Severity };
+    /// <summary>Customers, production lines and shifts: suggestions for the claim forms, typed freely on the claims.</summary>
+    public const string Client = "client";
+    public const string ProductionLine = "production-line";
+    public const string Shift = "shift";
+
+    public static readonly string[] All = { DefectType, Severity, Client, ProductionLine, Shift };
+    /// <summary>The lists whose values are plain names (no wording, no fixed levels) and can be filled from the claims.</summary>
+    public static readonly string[] Vocabulary = { DefectType, Client, ProductionLine, Shift };
     public static readonly string[] SeverityLevels = { "LOW", "MEDIUM", "HIGH", "CRITICAL" };
 }

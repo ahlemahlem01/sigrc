@@ -41,6 +41,27 @@ public class ReferenceListsController : ControllerBase
         return Ok(await _mediator.Send(new ImportExistingDefectTypesCommand(UserId()), ct));
     }
 
+    public sealed class StrictRequest
+    {
+        public bool Strict { get; set; }
+    }
+
+    /// <summary>"Only accept the values of the list" for customers, production lines or shifts.</summary>
+    [HttpPut("{listKey}/strict")]
+    public async Task<IActionResult> SetStrict(string listKey, [FromBody] StrictRequest request, CancellationToken ct)
+    {
+        if (!IsAdmin()) return Forbid();
+        return Ok(await _mediator.Send(new SetListStrictCommand(listKey, request?.Strict ?? false, UserId()), ct));
+    }
+
+    /// <summary>Fills a list (customers, production lines, shifts) with the values the claims already use.</summary>
+    [HttpPost("{listKey}/import-existing")]
+    public async Task<IActionResult> ImportExistingValues(string listKey, CancellationToken ct)
+    {
+        if (!IsAdmin()) return Forbid();
+        return Ok(await _mediator.Send(new ImportExistingValuesCommand(listKey, UserId()), ct));
+    }
+
     public sealed class MergeRequest
     {
         public string Canonical { get; set; } = string.Empty;

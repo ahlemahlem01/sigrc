@@ -169,6 +169,10 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
         setError(t('createClaim.step1Required'));
         return false;
       }
+      if (referenceLists.isRefused('client', formData.clientId)) {
+        setError(t('referenceLists.notInList', { value: formData.clientId.trim() }));
+        return false;
+      }
     }
     if (step === 2) {
       if (!formData.lotNumber.trim() || !formData.detectionDate.trim()) {
@@ -830,6 +834,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                           <input
                             type="text"
                             name="clientId"
+                            list="reference-clients"
                             value={formData.clientId}
                             onChange={handleChange}
                             placeholder={t('createClaim.examplePrefix', { value: 'STELLANTIS-01' })}
@@ -853,6 +858,9 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       </div>
                     </div>
 
+                    <datalist id="reference-clients">
+                      {referenceLists.clients.map((d) => <option key={d} value={d} />)}
+                    </datalist>
                     <datalist id="reference-defect-types">
                       {referenceLists.defectTypes.map((d) => <option key={d} value={d} />)}
                     </datalist>
