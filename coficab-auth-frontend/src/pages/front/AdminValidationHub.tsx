@@ -475,7 +475,7 @@ export const AdminValidationHub: React.FC = () => {
                       <span>{claim.clientId || '—'}</span>
                       <span>{claim.defectType || '—'}</span>
                       <span>{claim.severity || '—'}</span>
-                      {claim.lotNumber && <span>{t('closedArchive.lot')} {claim.lotNumber}</span>}
+                      {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
                       {claim.createdAt && (
                         <span>{t('validationHub.submitted')} {new Date(claim.createdAt).toLocaleDateString(dateLocale())}</span>
                       )}

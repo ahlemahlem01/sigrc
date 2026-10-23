@@ -100,3 +100,36 @@ export async function getEmployeeActivity(token: string): Promise<EmployeeActivi
   });
   return data as EmployeeActivity;
 }
+
+export interface PilotageItem {
+  id: string;
+  reference?: string | null;
+  title: string;
+  detail?: string | null;
+  who?: string | null;
+  waitingDays?: number;
+  lateDays?: number;
+}
+
+export interface Pilotage {
+  generatedAt: string;
+  validations: { claims: { count: number; items: PilotageItem[] }; plans: { count: number; items: PilotageItem[] } };
+  late: { claims: { count: number; items: PilotageItem[] }; plans: { count: number; items: PilotageItem[] }; actions: number };
+  alerts: { count: number; items: Array<{ id: string; defectType: string; productionLine: string; zScore: number; detectedAt: string }> };
+  load: {
+    people: number;
+    average: number;
+    overloaded: number;
+    idle: number;
+    busiest: Array<{ userId: string; name: string; department: string; openPlans: number; latePlans: number; lateActions: number }>;
+  };
+}
+
+/** What an administrator has to decide or watch (validations, delays, alerts, load), in one request. */
+export async function getPilotage(token: string, scope: { organizationIds?: string; departmentId?: string } = {}): Promise<Pilotage> {
+  const { data } = await axios.get(`${ACTION_PLAN_API_URL}/admin/pilotage`, {
+    headers: { Authorization: `Bearer ${token}` },
+    params: { organizationIds: scope.organizationIds || undefined, departmentId: scope.departmentId || undefined },
+  });
+  return data as Pilotage;
+}

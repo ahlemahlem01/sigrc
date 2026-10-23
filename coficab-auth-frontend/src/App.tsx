@@ -65,6 +65,7 @@ import FrontLandingPage from './pages/front/FrontLandingPage';
 import FrontWorkspaceHome from './pages/front/FrontWorkspaceHome';
 import EmployeeDeclarationsPage from './pages/front/EmployeeDeclarationsPage';
 import EmployeeActivityPage from './pages/front/EmployeeActivityPage';
+import PilotagePage from './pages/front/PilotagePage';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
 import MyActionPlanDetail from './pages/front/MyActionPlanDetail';
@@ -269,6 +270,7 @@ const App = () => {
 
               {/* Admin-only front pages */}
               <Route element={<FrontAdminRoute />}>
+                <Route path="/pages/front/pilotage"                      element={<PilotagePage />} />
                 <Route path="/pages/front/validations"                   element={<AdminValidationHub />} />
                 <Route path="/pages/front/quality-analyses/managed"      element={<AdminManagedClaimsPage />} />
                 <Route path="/pages/front/action-plans"                   element={<FrontActionPlans />} />

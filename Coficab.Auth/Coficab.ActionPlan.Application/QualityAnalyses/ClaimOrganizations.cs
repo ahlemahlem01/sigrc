@@ -18,10 +18,10 @@ public static class ClaimOrganizations
         return ids.Count == 0 ? null : ids;
     }
 
-    public static async Task<IQueryable<Claim>> ApplyAsync(IApplicationDbContext context, IQueryable<Claim> query, IReadOnlyList<Guid> organizationIds, CancellationToken ct)
+    public static async Task<IQueryable<Claim>> ApplyAsync(IApplicationDbContext context, IQueryable<Claim> query, IReadOnlyList<Guid> organizationIds, CancellationToken ct, Guid? departmentId = null)
     {
         var placed = context.UserProfiles.AsNoTracking().Where(p => p.DepartmentId != null && p.Department != null);
-        var inScope = await placed.Where(p => organizationIds.Contains(p.Department!.OrganizationId)).Select(p => p.UserId).ToListAsync(ct);
+        var inScope = await placed.Where(p => organizationIds.Contains(p.Department!.OrganizationId) && (departmentId == null || p.DepartmentId == departmentId)).Select(p => p.UserId).ToListAsync(ct);
         var everyPlaced = await placed.Select(p => p.UserId).ToListAsync(ct);
         return query.Where(c =>
             (c.AssignedToId != null && inScope.Contains(c.AssignedToId))

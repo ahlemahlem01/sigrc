@@ -334,6 +334,12 @@ const FrontLayout = () => {
               {t('employeeWorkspace.frontHome')}
             </Link>
 
+            {isAdmin && (
+              <Link to="/pages/front/pilotage" className={`fl-nav-link ${isActive('/pages/front/pilotage') ? 'active' : ''}`}>
+                {t('pilotage.nav')}
+              </Link>
+            )}
+
             {/* ── Plans d'action ── */}
             {isAdmin ? (
               <div className="fl-nav-dropdown-wrap">

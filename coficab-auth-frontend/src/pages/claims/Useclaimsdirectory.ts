@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { adminEmployeeService } from '../../services/adminEmployeeService';
@@ -253,6 +253,33 @@ export const useClaimsDirectory = (accessToken: string | null) => {
     return cleanName(claim.createdBy) || formatEmailToName(currentUser?.email) || 'Utilisateur';
   }, [currentUser, userNameMap, fetchUserName]);
 
+  const enrichRun = useRef(0);
+  const enrichWithFiveWhy = useCallback(async (list: Claim[]) => {
+    const getFiveWhyFn = (qualityAnalysisService as any).getFiveWhy || (qualityAnalysisService as any).getFiveWhyAnalysis;
+    if (typeof getFiveWhyFn !== 'function' || !accessToken) return;
+    const run = ++enrichRun.current;
+    const inProgress = list.filter((c) => {
+      const st = resolveClaimStatus(c);
+      return st !== 'DRAFT' && st !== 'CLOTUREE' && st !== 'CLOSED' && st !== 'VALIDATED' && st !== 'ARCHIVED';
+    });
+    const found = new Map<string, unknown>();
+    let next = 0;
+    const worker = async () => {
+      while (next < inProgress.length && run === enrichRun.current) {
+        const claim = inProgress[next++];
+        try {
+          const fiveWhy = await getFiveWhyFn(claim.id, accessToken);
+          if (fiveWhy) found.set(String(claim.id), fiveWhy);
+        } catch {
+          // no 5-Why analysis for this claim
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 6 }, worker));
+    if (run !== enrichRun.current || found.size === 0) return;
+    setClaims((prev) => prev.map((c) => (found.has(String(c.id)) ? ({ ...c, fiveWhyAnalysis: found.get(String(c.id)) } as Claim) : c)));
+  }, [accessToken]);
+
   const fetchClaims = useCallback(async () => {
     if (isAuthLoading) return;
     if (!accessToken) {
@@ -291,23 +318,10 @@ export const useClaimsDirectory = (accessToken: string | null) => {
                 : undefined
       );
       const claimsData = data || [];
-      const getFiveWhyFn = (qualityAnalysisService as any).getFiveWhy || (qualityAnalysisService as any).getFiveWhyAnalysis;
-
-      const enrichedClaims = await Promise.all(
-        claimsData.map(async (claim: any) => {
-          if (typeof getFiveWhyFn === 'function') {
-            try {
-              const fiveWhy = await getFiveWhyFn(claim.id, accessToken);
-              if (fiveWhy) return { ...claim, fiveWhyAnalysis: fiveWhy };
-            } catch (e) {
-              // Ignore missing 5-why analysis
-            }
-          }
-          return claim;
-        })
-      );
-
-      setClaims(enrichedClaims);
+      // The list is shown at once. The 5-Why status (only used by the status filter) is then fetched in the background,
+      // for the files still in progress only: it used to be one request per claim, i.e. thousands before anything showed.
+      setClaims(claimsData);
+      void enrichWithFiveWhy(claimsData);
     } catch (err: any) {
       const apiMessage =
         err?.response?.data?.message ||
@@ -317,7 +331,7 @@ export const useClaimsDirectory = (accessToken: string | null) => {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, isAuthLoading, claimScope, hasAssigneeFilter, alertIdParam]);
+  }, [accessToken, isAuthLoading, claimScope, hasAssigneeFilter, alertIdParam, enrichWithFiveWhy]);
 
   useEffect(() => {
     fetchClaims();

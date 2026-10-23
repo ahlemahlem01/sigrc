@@ -33,3 +33,7 @@
 .fwh-decl-tabs button span { margin-left: 4px; font-variant-numeric: tabular-nums; }
 .fwh-decl-tabs button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
 .fwh-decl-search { min-width: 220px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 13px; }
+.fwh-filters { display: flex; flex-wrap: wrap; gap: 12px; }
+.fwh-filters label { display: flex; flex-direction: column; gap: 3px; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.fwh-filters select { min-width: 200px; height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; font: inherit; font-size: 13px; color: var(--navy-text); }
+.fwh-filters select:disabled { opacity: .55; }

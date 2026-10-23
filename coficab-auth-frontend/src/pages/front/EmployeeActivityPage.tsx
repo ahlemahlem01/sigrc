@@ -76,12 +76,12 @@ export default function EmployeeActivityPage() {
                 <strong className="fwh-stat-value">{activity.mine.closed90}</strong>
                 <span className="fwh-stat-hint">{t('employeeWorkspace.actKpiClosedHint', { avg: fmt(activity.team.closed90PerPerson) })}</span>
               </div>
-              <div className={`fwh-stat tone-${daysTone === 'bad' ? 'red' : 'navy'}`}>
+              <div className={`fwh-stat tone-${daysTone === 'bad' ? 'danger' : 'navy'}`}>
                 <span className="fwh-stat-label">{t('employeeWorkspace.actKpiDays')}</span>
                 <strong className="fwh-stat-value">{fmt(days, ' j')}</strong>
                 <span className="fwh-stat-hint">{t('employeeWorkspace.actKpiDaysHint', { target, avg: fmt(activity.team.avgDays, ' j') })}</span>
               </div>
-              <div className={`fwh-stat tone-${rateTone === 'bad' ? 'red' : 'navy'}`}>
+              <div className={`fwh-stat tone-${rateTone === 'bad' ? 'danger' : 'navy'}`}>
                 <span className="fwh-stat-label">{t('employeeWorkspace.actKpiOnTime')}</span>
                 <strong className="fwh-stat-value">{fmt(activity.mine.onTimeRate, ' %')}</strong>
                 <span className="fwh-stat-hint">{t('employeeWorkspace.actKpiOnTimeHint', { target: activity.target.onTimeGreen, avg: fmt(activity.team.onTimeRate, ' %') })}</span>

@@ -90,7 +90,7 @@ function isActionDone(progress: number): boolean {
 
 function isClaimClosed(claim: Claim): boolean {
   const s = resolveClaimStatus(claim);
-  return s === 'CLOTUREE' || s === 'ARCHIVED';
+  return s === 'CLOTUREE' || s === 'VALIDATED' || s === 'ARCHIVED';
 }
 
 function urgencyOf(dateStr: string, closed: boolean): Urgency {

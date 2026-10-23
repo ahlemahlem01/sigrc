@@ -563,7 +563,7 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
                         <div className="amc-info-val">{selected.defectType || '—'}</div>
                       </div>
                       <div className="amc-info-card">
-                        <div className="amc-info-lbl">{t('closedArchive.lot')}</div>
+                        <div className="amc-info-lbl">{t('drafts.fieldLot')}</div>
                         <div className="amc-info-val">{selected.lotNumber || '—'}</div>
                       </div>
                       <div className="amc-info-card">
