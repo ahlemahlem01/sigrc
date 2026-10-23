@@ -1,5 +1,7 @@
 {
   "thresholds": {
+    "on": "On",
+    "off": "Off",
     "title": "Thresholds and targets",
     "subtitle": "The levels that colour the dashboards and decide who is active or overloaded. Only a superadmin can change them.",
     "loadError": "Could not load the thresholds.",
@@ -23,7 +25,8 @@
       "activeDays": "The active days must be between 1 and 365.",
       "lowActivityDays": "The low-activity limit must exceed the active one and stay under 730 days.",
       "overloadMin": "The minimum number of plans must be between 1 and 100.",
-      "overloadFactor": "The multiple must be between 1 and 10."
+      "overloadFactor": "The multiple must be between 1 and 10.",
+      "autoCloseNeedsValidation": "Automatic closure requires sub-action validation to be mandatory."
     },
     "section": {
       "targets": {
@@ -37,6 +40,10 @@
       "workload": {
         "title": "Workload",
         "sub": "When is an employee considered overloaded?"
+      },
+      "circuit": {
+        "title": "CAPA plan validation circuit",
+        "sub": "Who validates, and when can a plan be closed?"
       }
     },
     "field": {
@@ -79,6 +86,21 @@
         "label": "Overload: multiple of the average",
         "hint": "An employee is overloaded when they hold at least this multiple of the team's average of open plans.",
         "used": "workload per person, CAPA dashboard"
+      },
+      "requireActionValidation": {
+        "label": "Sub-action validation required",
+        "hint": "A plan can only be closed when each of its sub-actions has been validated (not just completed at 100%).",
+        "used": "plan closure, plans page"
+      },
+      "validatorsSuperOnly": {
+        "label": "Validation restricted to superadmin",
+        "hint": "Only a superadmin can validate or reject a sub-action, and close or send back a plan. Admins keep read access.",
+        "used": "Validate / Reject / Close buttons on plans"
+      },
+      "autoCloseOnValidation": {
+        "label": "Automatic plan closure",
+        "hint": "The plan closes as soon as its last sub-action is validated, with no further step.",
+        "used": "sub-action validation"
       }
     }
   },

@@ -18,11 +18,13 @@ public class PlanActionController : ControllerBase
 {
     private readonly IPlanActionService _service;
     private readonly IActionPlanService _actionPlanService;
+    private readonly Coficab.ActionPlan.Application.Interfaces.IApplicationDbContext _db;
 
-    public PlanActionController(IPlanActionService service, IActionPlanService actionPlanService)
+    public PlanActionController(IPlanActionService service, IActionPlanService actionPlanService, Coficab.ActionPlan.Application.Interfaces.IApplicationDbContext db)
     {
         _service = service;
         _actionPlanService = actionPlanService;
+        _db = db;
     }
 
     private string? CurrentUserId() =>
@@ -169,11 +171,15 @@ public class PlanActionController : ControllerBase
     {
         if (!IsQualityAdmin()) return Forbid();
         var userId = CurrentUserId() ?? "system";
+        var circuit = await Coficab.ActionPlan.Application.Dashboard.ThresholdsStore.LoadCircuitAsync(_db, HttpContext.RequestAborted);
+        if (circuit.ValidatorsSuperOnly && !IsSuperAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Selon le circuit de validation, seul un superadmin peut valider une sous-action." });
 
         try
         {
             await _service.ValidateAsync(id, userId, dto?.Note);
-            return Ok(new { message = "Sous-action validée." });
+            var closed = circuit.AutoCloseOnValidation && await TryAutoCloseAsync(id, userId);
+            return Ok(new { message = closed ? "Sous-action validée : le plan est clôturé." : "Sous-action validée.", planClosed = closed });
         }
         catch (InvalidOperationException ex)
         {
@@ -190,6 +196,9 @@ public class PlanActionController : ControllerBase
     public async Task<IActionResult> Reject(Guid id, [FromBody] PlanActionMessageDto dto)
     {
         if (!IsQualityAdmin()) return Forbid();
+        var circuit = await Coficab.ActionPlan.Application.Dashboard.ThresholdsStore.LoadCircuitAsync(_db, HttpContext.RequestAborted);
+        if (circuit.ValidatorsSuperOnly && !IsSuperAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Selon le circuit de validation, seul un superadmin peut rejeter une sous-action." });
         return await RunAdminActionAsync(() => _service.RejectAsync(id, CurrentUserId() ?? "system", dto.Message), "Sous-action rejetée.");
     }
 
@@ -199,6 +208,24 @@ public class PlanActionController : ControllerBase
     {
         if (!IsQualityAdmin()) return Forbid();
         return await RunAdminActionAsync(() => _service.WarnAsync(id, CurrentUserId() ?? "system", dto.Message), "Avertissement envoyé.");
+    }
+
+    /// <summary>Closes the plan of a sub-action when every one of its sub-actions is now validated (circuit option).</summary>
+    private async Task<bool> TryAutoCloseAsync(Guid planActionId, string userId)
+    {
+        var action = (await _service.GetByIdAsync(planActionId));
+        if (action == null) return false;
+        var plan = await _actionPlanService.GetByIdAsync(action.ActionPlanId);
+        if (plan == null || plan.Status == ActionPlanStatus.Closed || plan.Status == ActionPlanStatus.Archived) return false;
+        var all = (await _service.GetByActionPlanAsync(action.ActionPlanId)).ToList();
+        if (all.Count == 0 || all.Any(a => a.Progress != ActionProgress.Validated)) return false;
+
+        await _actionPlanService.UpdateAsync(plan.Id, new Coficab.ActionPlan.Core.DTOs.ActionPlan.UpdateActionPlanDto
+        {
+            Title = plan.Title, Description = plan.Description, Status = ActionPlanStatus.Closed, Type = plan.Type,
+            OrganizationId = plan.OrganizationId, DepartmentId = plan.DepartmentId, AssignedToId = plan.AssignedToId, Deadline = plan.Deadline,
+        }, userId);
+        return true;
     }
 
     private async Task<IActionResult> RunAdminActionAsync(Func<Task> run, string done)

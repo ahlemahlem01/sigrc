@@ -10,9 +10,10 @@ import { normalizeRoles } from '../../utils/roles';
 type Thresholds = {
   onTimeGreen: number; onTimeOrange: number; resolutionDays: number; ppmTolerancePct: number;
   activeDays: number; lowActivityDays: number; overloadMin: number; overloadFactor: number;
+  requireActionValidation: number; validatorsSuperOnly: number; autoCloseOnValidation: number;
 };
 
-type Field = { key: keyof Thresholds; unit: string; min: number; max: number; step?: number };
+type Field = { key: keyof Thresholds; unit: string; min: number; max: number; step?: number; toggle?: boolean };
 
 const SECTIONS: { id: string; fields: Field[] }[] = [
   {
@@ -36,6 +37,14 @@ const SECTIONS: { id: string; fields: Field[] }[] = [
     fields: [
       { key: 'overloadMin', unit: '', min: 1, max: 100 },
       { key: 'overloadFactor', unit: '×', min: 1, max: 10, step: 0.1 },
+    ],
+  },
+  {
+    id: 'circuit',
+    fields: [
+      { key: 'requireActionValidation', unit: '', min: 0, max: 1, toggle: true },
+      { key: 'validatorsSuperOnly', unit: '', min: 0, max: 1, toggle: true },
+      { key: 'autoCloseOnValidation', unit: '', min: 0, max: 1, toggle: true },
     ],
   },
 ];
@@ -169,6 +178,19 @@ export default function ThresholdsPage() {
                       <div className="text-[11px] text-slate-400 mt-0.5">{t('thresholds.usedBy')} {t(`thresholds.field.${f.key}.used`)}</div>
                     </div>
                     <div className="flex items-center gap-2">
+                      {f.toggle ? (
+                        <label className="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Number(values[f.key]) === 1}
+                            disabled={!canEdit || busy}
+                            onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.checked ? '1' : '0' }))}
+                            className="w-4 h-4 accent-blue-600"
+                            aria-label={t(`thresholds.field.${f.key}.label`)}
+                          />
+                          {Number(values[f.key]) === 1 ? t('thresholds.on') : t('thresholds.off')}
+                        </label>
+                      ) : (<>
                       <input
                         type="number"
                         inputMode="decimal"
@@ -182,9 +204,10 @@ export default function ThresholdsPage() {
                         aria-label={t(`thresholds.field.${f.key}.label`)}
                       />
                       <span className="text-xs text-slate-500 w-4">{f.unit}</span>
+                      </>)}
                     </div>
                     <div className="w-32 text-[11px] text-slate-400">
-                      {defaults ? (isDefault ? t('thresholds.defaultValue') : t('thresholds.defaultIs', { value: Number((defaults as any)[f.key]).toLocaleString(i18n.language) })) : ''}
+                      {defaults ? (isDefault ? t('thresholds.defaultValue') : t('thresholds.defaultIs', { value: f.toggle ? t(Number((defaults as any)[f.key]) === 1 ? 'thresholds.on' : 'thresholds.off') : Number((defaults as any)[f.key]).toLocaleString(i18n.language) })) : ''}
                     </div>
                   </div>
                 );

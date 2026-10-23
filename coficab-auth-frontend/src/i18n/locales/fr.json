@@ -1,5 +1,7 @@
 {
   "thresholds": {
+    "on": "Activé",
+    "off": "Désactivé",
     "title": "Seuils et objectifs",
     "subtitle": "Les niveaux qui colorent les tableaux de bord et décident qui est actif ou surchargé. Seul un superadmin peut les modifier.",
     "loadError": "Impossible de charger les seuils.",
@@ -23,7 +25,8 @@
       "activeDays": "Les jours d'activité doivent être compris entre 1 et 365.",
       "lowActivityDays": "Le seuil « peu actif » doit dépasser celui d'« actif » et rester sous 730 jours.",
       "overloadMin": "Le nombre minimal de plans doit être compris entre 1 et 100.",
-      "overloadFactor": "Le coefficient doit être compris entre 1 et 10."
+      "overloadFactor": "Le coefficient doit être compris entre 1 et 10.",
+      "autoCloseNeedsValidation": "La clôture automatique exige que la validation des sous-actions soit obligatoire."
     },
     "section": {
       "targets": {
@@ -37,6 +40,10 @@
       "workload": {
         "title": "Charge de travail",
         "sub": "Quand un collaborateur est-il considéré comme surchargé ?"
+      },
+      "circuit": {
+        "title": "Circuit de validation des plans CAPA",
+        "sub": "Qui valide, et quand un plan peut-il être clôturé ?"
       }
     },
     "field": {
@@ -79,6 +86,21 @@
         "label": "Surcharge : multiple de la moyenne",
         "hint": "Un collaborateur est surchargé s'il a au moins ce multiple de la moyenne de plans ouverts de l'équipe.",
         "used": "charge par personne, tableau de bord CAPA"
+      },
+      "requireActionValidation": {
+        "label": "Validation des sous-actions obligatoire",
+        "hint": "Un plan ne peut être clôturé que si chacune de ses sous-actions a été validée (et pas seulement terminée à 100 %).",
+        "used": "clôture d'un plan, page des plans"
+      },
+      "validatorsSuperOnly": {
+        "label": "Validation réservée au superadmin",
+        "hint": "Seul un superadmin peut valider ou rejeter une sous-action, et clôturer ou renvoyer un plan. Les admins gardent la consultation.",
+        "used": "boutons Valider / Rejeter / Clôturer des plans"
+      },
+      "autoCloseOnValidation": {
+        "label": "Clôture automatique du plan",
+        "hint": "Le plan est clôturé dès que sa dernière sous-action est validée, sans action supplémentaire.",
+        "used": "validation des sous-actions"
       }
     }
   },

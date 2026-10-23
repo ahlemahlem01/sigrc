@@ -13,7 +13,9 @@ namespace Coficab.ActionPlan.Application.Dashboard;
 public record ThresholdsDto(
     double OnTimeGreen, double OnTimeOrange, double ResolutionDays, double PpmTolerancePct,
     double ActiveDays, double LowActivityDays,
-    double OverloadMin, double OverloadFactor);
+    double OverloadMin, double OverloadFactor,
+    // validation circuit of the CAPA plans (0 / 1)
+    double RequireActionValidation = 0, double ValidatorsSuperOnly = 0, double AutoCloseOnValidation = 0);
 
 public static class ThresholdsStore
 {
@@ -21,6 +23,9 @@ public static class ThresholdsStore
     public const string LowActivityDays = "LowActivityDays";
     public const string OverloadMin = "OverloadMin";
     public const string OverloadFactor = "OverloadFactor";
+    public const string RequireActionValidation = "CapaRequireActionValidation";
+    public const string ValidatorsSuperOnly = "CapaValidatorsSuperOnly";
+    public const string AutoCloseOnValidation = "CapaAutoCloseOnValidation";
 
     public const double DefaultActiveDays = 15;
     public const double DefaultLowActivityDays = 60;
@@ -31,7 +36,7 @@ public static class ThresholdsStore
     {
         var t = OverviewTargetsStore.Defaults(configuration);
         return new ThresholdsDto(t.OnTimeGreen, t.OnTimeOrange, t.ResolutionDays, t.PpmTolerancePct,
-            DefaultActiveDays, DefaultLowActivityDays, DefaultOverloadMin, DefaultOverloadFactor);
+            DefaultActiveDays, DefaultLowActivityDays, DefaultOverloadMin, DefaultOverloadFactor, 0, 0, 0);
     }
 
     public static async Task<ThresholdsDto> LoadAsync(IApplicationDbContext db, IConfiguration configuration, CancellationToken ct)
@@ -43,7 +48,21 @@ public static class ThresholdsStore
             Pick(OverviewTargetsStore.OnTimeGreen, d.OnTimeGreen), Pick(OverviewTargetsStore.OnTimeOrange, d.OnTimeOrange),
             Pick(OverviewTargetsStore.ResolutionDays, d.ResolutionDays), Pick(OverviewTargetsStore.PpmTolerancePct, d.PpmTolerancePct),
             Pick(ActiveDays, d.ActiveDays), Pick(LowActivityDays, d.LowActivityDays),
-            Pick(OverloadMin, d.OverloadMin), Pick(OverloadFactor, d.OverloadFactor));
+            Pick(OverloadMin, d.OverloadMin), Pick(OverloadFactor, d.OverloadFactor),
+            Pick(RequireActionValidation, 0), Pick(ValidatorsSuperOnly, 0), Pick(AutoCloseOnValidation, 0));
+    }
+
+    /// <summary>
+    /// How CAPA plans are validated: whether a plan can only be closed when every sub-action was validated, whether only a
+    /// superadmin (not an admin) validates and rejects, and whether a plan closes by itself once all its sub-actions are validated.
+    /// </summary>
+    public static async Task<(bool RequireActionValidation, bool ValidatorsSuperOnly, bool AutoCloseOnValidation)> LoadCircuitAsync(IApplicationDbContext db, CancellationToken ct)
+    {
+        var saved = await db.OverviewSettings.AsNoTracking()
+            .Where(s => s.Key == RequireActionValidation || s.Key == ValidatorsSuperOnly || s.Key == AutoCloseOnValidation)
+            .ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+        bool On(string key) => saved.TryGetValue(key, out var v) && v >= 0.5;
+        return (On(RequireActionValidation), On(ValidatorsSuperOnly), On(AutoCloseOnValidation));
     }
 
     /// <summary>The thresholds used where no configuration is at hand (activity status, workload): saved value or default.</summary>
@@ -65,6 +84,10 @@ public static class ThresholdsStore
         if (t.LowActivityDays <= t.ActiveDays || t.LowActivityDays > 730) return "lowActivityDays";
         if (t.OverloadMin is < 1 or > 100) return "overloadMin";
         if (t.OverloadFactor is < 1 or > 10) return "overloadFactor";
+        if (t.RequireActionValidation is not (0 or 1)) return "requireActionValidation";
+        if (t.ValidatorsSuperOnly is not (0 or 1)) return "validatorsSuperOnly";
+        if (t.AutoCloseOnValidation is not (0 or 1)) return "autoCloseOnValidation";
+        if (t.AutoCloseOnValidation == 1 && t.RequireActionValidation != 1) return "autoCloseNeedsValidation";
         return null;
     }
 
@@ -80,6 +103,9 @@ public static class ThresholdsStore
             [LowActivityDays] = t.LowActivityDays,
             [OverloadMin] = t.OverloadMin,
             [OverloadFactor] = t.OverloadFactor,
+            [RequireActionValidation] = t.RequireActionValidation,
+            [ValidatorsSuperOnly] = t.ValidatorsSuperOnly,
+            [AutoCloseOnValidation] = t.AutoCloseOnValidation,
         };
         var existing = await db.OverviewSettings.ToDictionaryAsync(s => s.Key, ct);
         foreach (var (key, value) in values)

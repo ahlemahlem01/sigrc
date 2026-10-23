@@ -637,6 +637,9 @@ public class ActionPlanController : ControllerBase
     public async Task<IActionResult> CloseActionPlan(Guid id)
     {
         var userId = GetCurrentUserId() ?? "system";  // ✅ FIXED
+        var circuit = await Coficab.ActionPlan.Application.Dashboard.ThresholdsStore.LoadCircuitAsync(_db, HttpContext.RequestAborted);
+        if (circuit.ValidatorsSuperOnly && !IsSuperAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Selon le circuit de validation, seul un superadmin peut clôturer un plan." });
 
         try
         {
@@ -650,6 +653,8 @@ public class ActionPlanController : ControllerBase
 
             if (!allCompleted)
                 return BadRequest(new { error = "Toutes les sous-actions doivent être terminées." });
+            if (circuit.RequireActionValidation && planActions.Any(pa => pa.Progress != ActionProgress.Validated))
+                return BadRequest(new { error = "Toutes les sous-actions doivent être validées avant la clôture du plan." });
 
             var updateDto = new UpdateActionPlanDto
             {
@@ -813,6 +818,9 @@ public class ActionPlanController : ControllerBase
         var comment = request?.Comment?.Trim();
         if (string.IsNullOrEmpty(comment))
             return BadRequest(new { error = "Le motif du renvoi est obligatoire." });
+        var circuit = await Coficab.ActionPlan.Application.Dashboard.ThresholdsStore.LoadCircuitAsync(_db, HttpContext.RequestAborted);
+        if (circuit.ValidatorsSuperOnly && !IsSuperAdmin())
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Selon le circuit de validation, seul un superadmin peut renvoyer un plan." });
 
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
