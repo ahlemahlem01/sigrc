@@ -88,6 +88,9 @@ services:
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
       # The semantic search backfill is only useful with a Gemini key.
       Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}
+    volumes:
+      # Documents uploaded by the administrators (private folder): they must survive a rebuild of the container.
+      - appdata:/app/App_Data
 
   ml-service:
     build:
@@ -119,3 +122,4 @@ services:
 volumes:
   sqldata:
   authkeys:
+  appdata:
