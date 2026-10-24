@@ -39,7 +39,8 @@ public class GetClaimsReportQueryHandler : IRequestHandler<GetClaimsReportQuery,
     private static bool IsClosed(string? status)
     {
         var s = (status ?? string.Empty).ToUpperInvariant();
-        return s.Contains("CLOTUR") || s.Contains("CLOSED");
+        // a validated (legacy) or archived claim is finished like a closed one
+        return s.Contains("CLOTUR") || s.Contains("CLOSED") || s == "VALIDATED" || s == "ARCHIVED";
     }
 
     public async Task<ClaimsReportDto> Handle(GetClaimsReportQuery request, CancellationToken ct)

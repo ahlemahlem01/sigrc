@@ -145,4 +145,25 @@ public class ValidationsDeskTests : IClassFixture<ActionPlanApiFactory>
         request.Headers.Add(TestAuthHandler.RoleHeader, "user");
         Assert.Equal(HttpStatusCode.Forbidden, (await _client.SendAsync(request)).StatusCode);
     }
+
+    [Fact]
+    public async Task ValidatedClaims_AreNotCountedAsLate_InTheClaimStatistics()
+    {
+        var tag = "FINI" + Guid.NewGuid().ToString("N")[..8];
+        var late = await SeedClaimAsync("OUVERTE");
+        var validated = await SeedClaimAsync("VALIDATED");
+        await _factory.SeedAsync(async db =>
+        {
+            foreach (var c in db.Claims.Where(c => c.Id == late || c.Id == validated))
+            {
+                c.Deadline = DateTime.UtcNow.AddDays(-9);
+                c.Title = $"{tag} {c.StatusCode}";
+            }
+            await Task.CompletedTask;
+        });
+
+        var body = await _client.GetFromJsonAsync<JsonElement>($"/api/QualityAnalysis/claims/history?pageSize=50&search={tag}", JsonOpts);
+        var stats = body.GetProperty("stats");
+        Assert.Equal(1, stats.GetProperty("claimsLate").GetInt32());
+    }
 }

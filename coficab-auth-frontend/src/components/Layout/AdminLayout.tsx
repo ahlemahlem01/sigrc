@@ -594,6 +594,16 @@ export default function AdminLayout() {
         .al-page .em-wrap, .al-page .cmp-page, .al-page .rec-wrap, .al-page .ol-wrap, .al-page .dept-page, .al-page .hi-page { padding-top: 0 !important; }
         .al-page .dept-page, .al-page .dept-page :is(h1, h2, h3, p, span, div, td, th, button, input, select, label, a, small) { font-family: Inter, sans-serif !important; }
 
+        /* Header buttons, row buttons and cards: the same size, radius and shadow on every page */
+        .al-page .ad-tb-add, .al-page .ol-add-btn, .al-page .dept-btn-primary {
+          height: 36px; border-radius: 8px; font-size: 12.5px; font-weight: 600;
+        }
+        .al-page .ol-ab, .al-page .dept-action-btn, .al-page .em-btn { border-radius: 8px; }
+        .al-page .ad-kpi, .al-page .ad-tcard, .al-page .em-shell, .al-page .em-list, .al-page .ol-kpi, .al-page .ol-card,
+        .al-page .dept-stat-card, .al-page .rounded-2xl, .al-page .rounded-xl {
+          border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
+
         @media (max-width: 768px) {
           .al-tb-user-info { display: none; }
           .al-tb-date { display: none; }

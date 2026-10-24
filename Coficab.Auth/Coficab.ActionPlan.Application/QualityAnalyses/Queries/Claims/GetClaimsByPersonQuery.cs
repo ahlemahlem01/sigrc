@@ -34,11 +34,12 @@ public class GetClaimsByPersonQueryHandler : IRequestHandler<GetClaimsByPersonQu
             {
                 var owner = !string.IsNullOrWhiteSpace(c.AssignedToId) ? c.AssignedToId! : c.CreatedById;
                 var status = (c.StatusCode ?? string.Empty).ToUpperInvariant();
-                var closed = status.Contains("CLOTUR") || status.Contains("CLOSED");
+                var strictlyClosed = status.Contains("CLOTUR") || status.Contains("CLOSED");
+                var closed = strictlyClosed || status == "VALIDATED" || status == "ARCHIVED"; // finished: neither open nor late
                 var end = c.CompletedAt ?? c.UpdatedAt;
                 return (Owner: owner, Closed: closed,
                     Late: !closed && c.Deadline.HasValue && c.Deadline.Value.Date < today,
-                    Days: closed && end.HasValue ? Math.Max(0, (end.Value - c.CreatedAt).TotalDays) : (double?)null);
+                    Days: strictlyClosed && end.HasValue ? Math.Max(0, (end.Value - c.CreatedAt).TotalDays) : (double?)null);
             })
             .Where(x => !string.IsNullOrWhiteSpace(x.Owner))
             .GroupBy(x => x.Owner!, StringComparer.OrdinalIgnoreCase)

@@ -202,9 +202,11 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
 
         var scope = request.Scope?.Trim().ToLowerInvariant();
         if (scope == "open")
-            claims = claims.Where(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED"));
+            claims = claims.Where(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+                && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED");
         else if (scope == "closed")
-            claims = claims.Where(c => c.StatusCode.ToUpper().Contains("CLOTUR") || c.StatusCode.ToUpper().Contains("CLOSED"));
+            claims = claims.Where(c => c.StatusCode.ToUpper().Contains("CLOTUR") || c.StatusCode.ToUpper().Contains("CLOSED")
+                || c.StatusCode.ToUpper() == "VALIDATED" || c.StatusCode.ToUpper() == "ARCHIVED");
 
         if (!string.IsNullOrWhiteSpace(request.ClientId))
             claims = claims.Where(c => c.ClientId == request.ClientId);
@@ -329,6 +331,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         {
             "nofivewhy" => claims.Where(c => !fiveWhy.Any(f => f.ClaimId == c.Id)),
             "eightd" => claims.Where(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+                && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED"
                 && (!eightD.Any(d => d.ClaimId == c.Id)
                     || (c.Deadline != null && c.Deadline < nowUtc
                         && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED"))))),
@@ -498,6 +501,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         var stats = new ClaimsHistoryStatsDto { Total = total };
         stats.NoFiveWhy = await unfocused.CountAsync(c => !fiveWhy.Any(f => f.ClaimId == c.Id), cancellationToken);
         stats.EightDToHandle = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+                    && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED"
             && (!eightD.Any(d => d.ClaimId == c.Id)
                 || (c.Deadline != null && c.Deadline < nowUtc
                     && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED")))), cancellationToken);
