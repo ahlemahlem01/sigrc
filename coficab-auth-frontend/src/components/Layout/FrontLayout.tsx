@@ -341,6 +341,13 @@ const FrontLayout = () => {
           display: inline-flex; align-items: center; gap: 6px; padding: 12px 14px; white-space: nowrap;
           font-size: 13px; font-weight: 600; color: #475569; text-decoration: none; border-bottom: 2px solid transparent;
         }
+        /* ─── Same finish on every page of the front office: one title style, one width, one gutter ─── */
+        .fl-main:not(.is-landing) h1 {
+          font-family: Inter, sans-serif !important; font-size: 22px !important; font-weight: 800 !important;
+          color: #0f2b5c !important; letter-spacing: -0.02em !important; line-height: 1.25 !important;
+        }
+        .fl-main .dl-inner, .fl-main .aph-inner, .fl-main .asm-inner, .fl-main .fwh-inner, .fl-main .avh-shell { max-width: 1100px; margin: 0 auto; }
+        .fl-main .dl-inner, .fl-main .aph-inner, .fl-main .asm-inner, .fl-main .fwh-inner { padding: 20px 24px 48px; }
         .fl-narrownav { display: none; background: #f1f4fb; }
         @media (max-width: 1024px) { .fl-narrownav { display: flex; } .fl-narrownav + .fl-subnav { top: 100px; } }
         .fl-subnav-link:hover { color: #000168; }
@@ -464,7 +471,7 @@ const FrontLayout = () => {
       </nav>
 
       {/* ─── MAIN CONTENT ─── */}
-      <main className="fl-main">
+      <main className={`fl-main${location.pathname === '/pages/front' ? ' is-landing' : ''}`}>
         <nav className="fl-subnav fl-narrownav" aria-label={t('frontNav.sectionMenu')}>
           {mainLinks.map((l) => (
             <Link key={l.to} to={l.to} className={`fl-subnav-link${l.active ? ' active' : ''}`}>{l.label}</Link>
