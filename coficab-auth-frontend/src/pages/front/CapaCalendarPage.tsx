@@ -844,7 +844,7 @@ export default function CapaCalendarPage() {
         }
         .cal-toolbar {
           display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-          padding:12px 20px; border-bottom:1px solid #e2e8f0; background:#fff;
+          padding:12px 24px; border-bottom:1px solid #e2e8f0; background:#fff;
           position:sticky; top:56px; z-index:20;
         }
         .cal-toolbar h1 { margin:0; font-size:20px; font-weight:700; color:#0f2b5c; letter-spacing:-0.02em; }
@@ -859,15 +859,15 @@ export default function CapaCalendarPage() {
         .cal-title { font-size:16px; font-weight:700; min-width:200px; text-align:center; text-transform:capitalize; color:#0f2b5c; }
         .cal-hint { font-size:12px; color:#80868b; }
         .cal-banner {
-          margin:10px 20px 0; padding:8px 12px; border-radius:8px; background:#eef2ff; color:#000168; font-size:12px;
+          margin:10px 24px 0; padding:8px 12px; border-radius:8px; background:#eef2ff; color:#000168; font-size:12px;
         }
         .cal-banner.warn { background:#fef7e0; color:#b06000; }
-        .cal-legend { display:flex; gap:14px; flex-wrap:wrap; padding:8px 20px 0; font-size:12px; color:#5f6368; }
+        .cal-legend { display:flex; gap:14px; flex-wrap:wrap; padding:8px 24px 0; font-size:12px; color:#5f6368; }
         .cal-legend span { display:inline-flex; align-items:center; gap:6px; }
         .cal-dot { width:10px; height:10px; border-radius:50%; }
         .cal-shell {
           display:grid; grid-template-columns: minmax(0,1fr) 280px; gap:14px;
-          padding:12px 16px 28px; align-items:start;
+          padding:12px 24px 28px; align-items:start;
         }
         @media (max-width:980px) {
           .cal-shell { grid-template-columns: 1fr; }

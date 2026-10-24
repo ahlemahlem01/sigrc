@@ -348,6 +348,16 @@ const FrontLayout = () => {
         }
         .fl-main .dl-inner, .fl-main .aph-inner, .fl-main .asm-inner, .fl-main .fwh-inner, .fl-main .avh-shell { max-width: 1100px; margin: 0 auto; }
         .fl-main .dl-inner, .fl-main .aph-inner, .fl-main .asm-inner, .fl-main .fwh-inner { padding: 20px 24px 48px; }
+        /* Header buttons and cards: the same size, radius and border everywhere */
+        .fl-main .avh-btn, .fl-main .fap-cta, .fl-main .asm-btn, .fl-main .cal-btn {
+          height: 36px; padding: 0 14px; border-radius: 8px; font-size: 12.5px; font-family: inherit;
+          display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .fl-main .avh-btn, .fl-main .asm-btn, .fl-main .cal-btn { font-weight: 600; }
+        .fl-main .fap-cta { font-weight: 700; }
+        .fl-main .avh-card, .fl-main .aph-panel, .fl-main .dl-panel, .fl-main .fap-chart, .fl-main .fap-toolbar, .fl-main .fap-list {
+          border-radius: 12px; border-color: #e2e8f0; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+        }
         .fl-narrownav { display: none; background: #f1f4fb; }
         @media (max-width: 1024px) { .fl-narrownav { display: flex; } .fl-narrownav + .fl-subnav { top: 100px; } }
         .fl-subnav-link:hover { color: #000168; }
