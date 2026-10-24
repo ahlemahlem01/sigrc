@@ -201,7 +201,10 @@ public class GetDashboardSummaryQueryHandler : IRequestHandler<GetDashboardSumma
         static bool IsClaimClosed(string status) =>
             string.Equals(status, "CLOTUREE", StringComparison.OrdinalIgnoreCase)
             || string.Equals(status, "CLOSED", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "CLOTURE", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(status, "CLOTURE", StringComparison.OrdinalIgnoreCase)
+            // a validated or archived claim is finished: it is neither open nor late
+            || string.Equals(status, "VALIDATED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(status, "ARCHIVED", StringComparison.OrdinalIgnoreCase);
 
         static bool IsClaimDraft(string status) =>
             string.Equals(status, "DRAFT", StringComparison.OrdinalIgnoreCase)

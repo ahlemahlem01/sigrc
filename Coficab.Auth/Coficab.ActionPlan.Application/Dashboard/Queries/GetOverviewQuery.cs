@@ -253,7 +253,10 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         static bool IsClosed(string s) =>
             string.Equals(s, "CLOTUREE", StringComparison.OrdinalIgnoreCase)
             || string.Equals(s, "CLOSED", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(s, "CLOTURE", StringComparison.OrdinalIgnoreCase);
+            || string.Equals(s, "CLOTURE", StringComparison.OrdinalIgnoreCase)
+            // a validated or archived claim is finished: it is neither open nor late
+            || string.Equals(s, "VALIDATED", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(s, "ARCHIVED", StringComparison.OrdinalIgnoreCase);
         static bool IsDraft(string s) =>
             string.Equals(s, "DRAFT", StringComparison.OrdinalIgnoreCase)
             || string.Equals(s, "BROUILLON", StringComparison.OrdinalIgnoreCase);

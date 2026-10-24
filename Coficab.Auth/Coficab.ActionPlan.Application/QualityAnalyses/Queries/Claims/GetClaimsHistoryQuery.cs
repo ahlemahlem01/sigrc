@@ -503,6 +503,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                     && !eightD.Any(d => d.ClaimId == c.Id && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED")))), cancellationToken);
         stats.InAnalysisNoCapa = await unfocused.CountAsync(c => c.StatusCode.ToUpper().Contains("ANALYS") && !capas.Any(p => p.ClaimId == c.Id), cancellationToken);
         stats.ClaimsLate = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
+            && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED" && c.StatusCode.ToUpper() != "DRAFT"
             && c.Deadline != null && c.Deadline < nowUtc, cancellationToken);
         stats.CapaLate = await unfocused.CountAsync(c => latePlans.Any(p => p.ClaimId == c.Id), cancellationToken);
         if (total > 0)

@@ -82,11 +82,13 @@ public class PilotageController : ControllerBase
             .Select(c => new { c.Id, c.Reference, c.Title, Who = c.AssignedToName, LateDays = Days(c.Deadline!.Value) })
             .ToList();
 
-        // A plan is late when its own deadline is past and it is not finished (same rule as the deadlines page).
-        var latePlans = (await plansBase
-                .Where(p => (p.Status == ActionPlanStatus.Created || p.Status == ActionPlanStatus.Ongoing) && p.Progress < 100 && p.Deadline != null && p.Deadline < now)
-                .OrderBy(p => p.Deadline)
-                .ToListAsync(ct));
+        // A plan is late by the rule shared with the dashboards: one of its unfinished sub-actions is past its deadline
+        // (a plan without sub-actions: its own deadline).
+        var latePlans = (await plansBase.Include(p => p.PlanActions).ToListAsync(ct))
+            .Where(PlanDeadlines.IsOpen)
+            .Where(p => PlanDeadlines.OverdueDays(p, today) > 0)
+            .OrderByDescending(p => PlanDeadlines.OverdueDays(p, today))
+            .ToList();
         var planIdsInScope = plansBase.Where(p => p.Status == ActionPlanStatus.Created || p.Status == ActionPlanStatus.Ongoing).Select(p => p.Id);
         var lateActionCount = await _db.PlanActions.AsNoTracking()
             .CountAsync(a => !a.IsArchived && a.Deadline != null && a.Deadline < now && (int)a.Progress < 100 && planIdsInScope.Contains(a.ActionPlanId), ct);
@@ -129,7 +131,7 @@ public class PilotageController : ControllerBase
                     count = latePlans.Count,
                     items = latePlans.Take(Top).Select(p => new
                     {
-                        p.Id, p.Reference, p.Title, Who = (string?)null, LateDays = Days(p.Deadline!.Value),
+                        p.Id, p.Reference, p.Title, Who = (string?)null, LateDays = PlanDeadlines.MaxLagDays(p, today),
                     }),
                 },
                 actions = lateActionCount,

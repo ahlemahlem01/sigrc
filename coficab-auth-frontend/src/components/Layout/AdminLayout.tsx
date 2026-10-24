@@ -584,6 +584,16 @@ export default function AdminLayout() {
 
         .al-page { padding: 20px 24px; min-height: calc(100dvh - 52px); min-width: 0; max-width: 100%; box-sizing: border-box; }
 
+        /* ─── Same finish on every back-office page: one title style, one gutter (the layout's 24 px, never doubled) ─── */
+        .al-page h1 {
+          font-family: Inter, sans-serif !important; font-size: 22px !important; font-weight: 800 !important;
+          color: #0f2b5c !important; letter-spacing: -0.02em !important; line-height: 1.25 !important;
+        }
+        .al-page .em-wrap, .al-page .cmp-page, .al-page .rec-wrap, .al-page .ol-wrap, .al-page .dept-page, .al-page .hi-page,
+        .al-page > div:not([class]) { padding-left: 0 !important; padding-right: 0 !important; }
+        .al-page .em-wrap, .al-page .cmp-page, .al-page .rec-wrap, .al-page .ol-wrap, .al-page .dept-page, .al-page .hi-page { padding-top: 0 !important; }
+        .al-page .dept-page, .al-page .dept-page :is(h1, h2, h3, p, span, div, td, th, button, input, select, label, a, small) { font-family: Inter, sans-serif !important; }
+
         @media (max-width: 768px) {
           .al-tb-user-info { display: none; }
           .al-tb-date { display: none; }
