@@ -190,14 +190,42 @@ def train_and_save(X: pd.DataFrame, y: pd.Series, source: str) -> dict:
     return meta
 
 
+MIN_ROWS_PER_NEW_CODE = 30  # a defect code needs this many labelled rows before the model can learn anything from it
+
+
+def readiness(X: pd.DataFrame, y: pd.Series, min_per_code: int) -> dict:
+    """Is a retraining worthwhile? Compares the defect codes of the data with those the deployed model knows."""
+    meta_path = Path(__file__).resolve().parent / "artifacts" / "feature_meta.json"
+    known = set(json.loads(meta_path.read_text(encoding="utf-8")).get("defect_types", [])) if meta_path.exists() else set()
+    counts = X["DefectType"].value_counts()
+    unknown = {code: int(n) for code, n in counts.items() if code not in known}
+    learnable = {code: n for code, n in unknown.items() if n >= min_per_code}
+    return {
+        "rows": int(len(X)),
+        "both_outcomes": bool(y.nunique() >= 2),
+        "enough_rows": bool(len(X) >= MIN_ROWS and y.nunique() >= 2),
+        "codes_known_by_the_model": len(known),
+        "codes_not_known_by_the_model": unknown,
+        "codes_with_enough_rows": learnable,
+        "ready": bool(len(X) >= MIN_ROWS and y.nunique() >= 2 and learnable),
+        "rule": f"at least {MIN_ROWS} labelled rows in total and {min_per_code} rows for each new defect code to be learned",
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--check", action="store_true", help="only report whether a retraining is worthwhile (no training, nothing saved)")
+    ap.add_argument("--min-per-code", type=int, default=MIN_ROWS_PER_NEW_CODE, help="rows needed for a new defect code to count as learnable")
     ap.add_argument("--csv", help="read the dataset from a CSV instead of the API")
     ap.add_argument("--insecure", action="store_true", help="do not verify TLS certificates (local development)")
     ap.add_argument("--source-label", default="claims database", help="what the data are, recorded in the artifacts")
     args = ap.parse_args()
 
     X, y = prepare(load(args))
+    if args.check:
+        report = readiness(X, y, args.min_per_code)
+        print(json.dumps(report, indent=2, ensure_ascii=False))
+        return 0 if report["ready"] else 2
     if len(X) < MIN_ROWS or y.nunique() < 2:
         print(f"ERROR: need at least {MIN_ROWS} labelled rows with both outcomes (got {len(X)}).", file=sys.stderr)
         return 1
