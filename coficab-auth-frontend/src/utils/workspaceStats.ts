@@ -18,7 +18,7 @@ export interface ClosureStats {
 /** A claim is finished once it is closed or validated. */
 export function isClaimFinished(claim: Claim): boolean {
   const status = resolveClaimStatus(claim);
-  return status === 'CLOTUREE' || status === 'VALIDATED';
+  return status === 'CLOTUREE' || status === 'VALIDATED' || status === 'ARCHIVED';
 }
 
 /** A plan is finished when it is closed/archived, or when all its work is done (it then only waits for its validation). */

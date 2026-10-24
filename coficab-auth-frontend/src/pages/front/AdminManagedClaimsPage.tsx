@@ -91,7 +91,7 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
       const rows = scope === 'all'
         ? (await qualityAnalysisService.getClaims(undefined, accessToken)).filter((c: any) => {
             const s = resolveClaimStatus(c);
-            return s !== 'CLOTUREE' && s !== 'DRAFT';
+            return s !== 'CLOTUREE' && s !== 'VALIDATED' && s !== 'ARCHIVED' && s !== 'DRAFT';
           })
         : await qualityAnalysisService.getAdminManagedClaims(accessToken);
       const list = (Array.isArray(rows) ? rows : []).map(normalizeClaim);

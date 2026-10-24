@@ -164,6 +164,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/action-plans/actions-report':{ title: 'adminNav.reporting', crumb: 'adminNav.applications' },
     '/admin/action-plans/indicators':    { title: 'adminNav.indicators', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/reference':     { title: 'adminNav.planReference', crumb: 'adminNav.actionPlans' },
+    '/admin/action-plans/settings':      { title: 'adminNav.capaSettings', crumb: 'adminNav.actionPlans' },
     '/admin/claims/reference':           { title: 'adminNav.claimReference', crumb: 'adminNav.claimsQuality' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
     '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },

@@ -125,7 +125,7 @@ export default function AdminClaimsList() {
       if (filterStatus !== 'all' && status !== filterStatus) return false;
       if (filterSeverity !== 'all' && severityKey(claim.severity) !== filterSeverity) return false;
       if (filterDeadline !== 'all') {
-        const open = status !== 'CLOTUREE' && status !== 'DRAFT';
+        const open = status !== 'CLOTUREE' && status !== 'VALIDATED' && status !== 'ARCHIVED' && status !== 'DRAFT';
         const deadline = dayStamp(claim.deadline);
         if (filterDeadline === 'none' && !(open && deadline == null)) return false;
         const today = new Date();
