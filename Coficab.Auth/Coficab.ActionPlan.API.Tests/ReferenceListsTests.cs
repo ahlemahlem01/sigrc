@@ -60,7 +60,7 @@ public class ReferenceListsTests : IClassFixture<ActionPlanApiFactory>
 
         var items = after.GetProperty("defect-type").EnumerateArray().Where(e => e.GetProperty("value").GetString()!.ToLower() == "corrosion").ToList();
         Assert.Single(items); // same value (any case) updates the entry instead of duplicating it
-        Assert.Equal(JsonValueKind.Null, items[0].GetProperty("label").ValueKind); // no display label for defect types
+        Assert.Equal("Corrosion de surface", items[0].GetProperty("label").GetString()); // a defect type may carry a display label
         Assert.False(items[0].GetProperty("isActive").GetBoolean());
     }
 

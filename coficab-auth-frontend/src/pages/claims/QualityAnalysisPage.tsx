@@ -22,6 +22,7 @@ import {
   canValidateAnalysis, 
   canViewGlobalAnalytics 
 } from '../../utils/permissions';
+import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 
 // Extended type interface to support Step 3 traceability fields locally
 interface ExtendedClaim extends Claim {
@@ -371,7 +372,7 @@ const handleStartAnalysis = async () => {
               </div>
               <div>
                 <span className="text-gray-500 font-semibold block uppercase">Type Défaut</span>
-                <span className="font-medium text-gray-800">{activeClaim.defectType || 'N/A'}</span>
+                <span className="font-medium text-gray-800">{defectLabel(activeClaim.defectType) || 'N/A'}</span>
               </div>
               <div>
                 <span className="text-gray-500 font-semibold block uppercase">Sévérité / Statut</span>
@@ -492,7 +493,7 @@ const handleStartAnalysis = async () => {
               </div>
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">Type de Défaut</label>
-                <input type="text" name="defectType" value={editFormData.defectType || ''} onChange={handleInputChange} className="w-full px-3 py-2 text-sm border rounded-md" />
+                <input type="text" name="defectType" value={defectLabel(editFormData.defectType)} onChange={(e) => { e.target.value = defectValueFromInput(e.target.value); handleInputChange(e); }} className="w-full px-3 py-2 text-sm border rounded-md" />
               </div>
             </div>
 

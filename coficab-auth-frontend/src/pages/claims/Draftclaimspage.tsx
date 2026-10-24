@@ -24,6 +24,7 @@ import {
 } from '../../utils/claimDateSort';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 
 // Fields considered when scoring how "ready" a draft claim is (labels are i18n keys).
 const READINESS_FIELDS: { label: string; getValue: (c: any) => any }[] = [
@@ -1392,7 +1393,7 @@ export const DraftClaimsPage: React.FC = () => {
               </div>
               <div className="pfe-form-group" style={{ marginBottom: 0 }}>
                 <label>{t('claimDetail.defectType')}</label>
-                <input type="text" name="defectType" value={editFormData.defectType || ''} onChange={handleInputChange} />
+                <input type="text" name="defectType" value={defectLabel(editFormData.defectType)} onChange={(e) => { e.target.value = defectValueFromInput(e.target.value); handleInputChange(e); }} />
               </div>
             </div>
 
@@ -1468,7 +1469,7 @@ export const DraftClaimsPage: React.FC = () => {
               <div className="pfe-submit-preview-row">
                 <span className="pfe-submit-preview-label">{t('claimDetail.defectType')}</span>
                 <span className="pfe-submit-preview-value">
-                  {selectedClaim.defectType || (selectedClaim as any).defect_type || '—'}
+                  {defectLabel(selectedClaim.defectType || (selectedClaim as any).defect_type) || '—'}
                 </span>
               </div>
               <div className="pfe-submit-preview-row">

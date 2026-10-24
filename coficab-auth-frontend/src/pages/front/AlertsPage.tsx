@@ -27,6 +27,7 @@ import {
 import './AlertsPage.css';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 type SeverityLevel = 'attention' | 'eleve' | 'critique';
 
@@ -65,7 +66,7 @@ function severityFromZ(z: number): { level: SeverityLevel; label: string } {
 }
 
 function buildPlainSummary(a: QualityAlert): string {
-  const defect = sanitizeUserText(a.defectType) || i18n.t('alerts.thisDefect');
+  const defect = defectLabel(sanitizeUserText(a.defectType)) || i18n.t('alerts.thisDefect');
   const line = sanitizeUserText(a.productionLine) || i18n.t('alerts.thisLine');
   const current = Number.isFinite(a.currentCount) ? a.currentCount : 0;
   const mean = formatMean(a.baselineMean);
@@ -188,7 +189,7 @@ export default function AlertsPage() {
   const visibleAlerts = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return alerts.filter((alert) => {
-      const defect = sanitizeUserText(alert.defectType);
+      const defect = `${sanitizeUserText(alert.defectType)} ${defectLabel(sanitizeUserText(alert.defectType))}`;
       const line = sanitizeUserText(alert.productionLine);
       const severity = severityFromZ(Number.isFinite(alert.zScore) ? alert.zScore : 0);
       if (severityFilter !== 'all' && severity.level !== severityFilter) return false;
@@ -325,7 +326,7 @@ export default function AlertsPage() {
             const claimsHref = claimsLinkForAlert(a);
             const z = Number.isFinite(a.zScore) ? a.zScore : 0;
             const severity = severityFromZ(z);
-            const defect = sanitizeUserText(a.defectType) || '—';
+            const defect = defectLabel(sanitizeUserText(a.defectType)) || '—';
             const line = sanitizeUserText(a.productionLine) || '—';
             const formOpen = formAlertId === a.id;
             const history: AlertHistory = histories[a.id] ?? emptyAlertHistory;

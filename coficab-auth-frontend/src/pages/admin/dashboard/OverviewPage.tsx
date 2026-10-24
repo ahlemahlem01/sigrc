@@ -15,6 +15,7 @@ import { severityKey } from '../../../utils/overviewSeverity';
 import type { OverviewAging, OverviewData, OverviewMetric, RankedItem } from '../../../types/dashboardOverview';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
+import { defectLabel } from '../../../utils/defectLabel';
 
 type Tone = 'green' | 'orange' | 'red' | 'neutral';
 type Period = '30' | '90' | '365';
@@ -591,7 +592,7 @@ export default function OverviewPage() {
                   <li key={a.id} className="px-4 py-2 flex items-center gap-3 text-xs" style={{ borderBottom: `1px solid ${COFICAB.line}` }}>
                     <span className="font-bold" style={{ color: COFICAB.danger }}>{t('overviewPage.alert')}</span>
                     <span className="flex-1 min-w-0 truncate" style={{ color: COFICAB.ink }}>
-                      {a.defectType} · {a.productionLine || '—'} · {t('overviewPage.alertLine', { count: a.currentCount, z: a.zScore })}
+                      {defectLabel(a.defectType)} · {a.productionLine || '—'} · {t('overviewPage.alertLine', { count: a.currentCount, z: a.zScore })}
                     </span>
                     <button type="button" className="font-semibold hover:underline" style={{ color: COFICAB.navy }} onClick={() => navigate('/alerts')}>
                       {t('adminDashboard.view')}
@@ -700,7 +701,7 @@ export default function OverviewPage() {
             aside={<span className="text-[11px]" style={{ color: COFICAB.muted }}>{t('overviewPage.claimsInPeriod', { count: data.problems.claimsInPeriod, days })}</span>}
           >
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              <RankedList title={t('overviewPage.topDefects')} rows={data.problems.topDefects} color={CLAIMS_ACCENT} empty={t('adminDashboard.noData')} />
+              <RankedList title={t('overviewPage.topDefects')} rows={data.problems.topDefects.map((r) => ({ ...r, name: defectLabel(r.name) }))} color={CLAIMS_ACCENT} empty={t('adminDashboard.noData')} />
               <RankedList title={t('overviewPage.topLines')} rows={data.problems.topLines} color={PLANS_ACCENT} empty={t('adminDashboard.noData')} />
               <RankedList title={t('overviewPage.topClients')} rows={data.problems.topClients} color={COFICAB.warn} empty={t('adminDashboard.noData')} />
             </div>
@@ -711,7 +712,7 @@ export default function OverviewPage() {
                 <span style={{ color: COFICAB.muted }}>{t('overviewPage.noRising')}</span>
               ) : data.problems.rising.map((r) => (
                 <span key={r.defectType} className="px-2 py-0.5 rounded-full font-semibold" style={{ background: COFICAB.dangerSoft, color: COFICAB.danger }}>
-                  {t('overviewPage.risingLine', { defect: r.defectType, recent: r.recent, previous: r.previous })}
+                  {t('overviewPage.risingLine', { defect: defectLabel(r.defectType), recent: r.recent, previous: r.previous })}
                 </span>
               ))}
             </div>
@@ -824,7 +825,7 @@ export default function OverviewPage() {
                     </div>
                     {data.watch.recurrence.topPairs.map((p) => (
                       <div key={`${p.defectType}-${p.productionLine}`} className="flex justify-between gap-2" style={{ color: COFICAB.muted }}>
-                        <span className="truncate">{p.defectType} · {p.productionLine}</span>
+                        <span className="truncate">{defectLabel(p.defectType)} · {p.productionLine}</span>
                         <b className="tabular-nums shrink-0" style={{ color: COFICAB.ink }}>{p.claims}</b>
                       </div>
                     ))}

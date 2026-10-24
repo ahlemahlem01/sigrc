@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ReferenceLists, referenceListsService } from '../services/referenceListsService';
+import { setDefectItems } from '../utils/defectLabel';
 
 const LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 
@@ -10,6 +11,7 @@ let inflight: Promise<ReferenceLists> | null = null;
 /** Forget the cached lists (after an admin changed them). */
 export function resetReferenceListsCache(next?: ReferenceLists) {
   cache = next ?? null;
+  if (next) setDefectItems(next.lists['defect-type'] ?? []);
   inflight = null;
 }
 
@@ -28,6 +30,7 @@ export function useReferenceLists() {
     inflight
       .then((lists) => {
         cache = lists;
+        setDefectItems(lists.lists['defect-type'] ?? []);
         if (!cancelled) setData(lists);
       })
       .catch(() => { inflight = null; });

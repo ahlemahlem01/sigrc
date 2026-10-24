@@ -58,6 +58,7 @@ public static class ClaimsReportGenerator
         }
 
         var today = nowUtc.Date;
+        var defectNames = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(context, ct);
         var source = context.Claims.AsNoTracking().Where(c => !c.IsArchived && c.StatusCode != "DRAFT");
         if (ClaimOrganizations.Parse(organizationIds) is { } followed)
             source = await ClaimOrganizations.ApplyAsync(context, source, followed, ct);
@@ -105,7 +106,7 @@ public static class ClaimsReportGenerator
         {
             "responsible" => (string.IsNullOrWhiteSpace(r.AssignedToId) ? "—" : r.AssignedToId!, string.IsNullOrWhiteSpace(r.AssignedToName) ? "—" : r.AssignedToName!),
             "status" => (r.StatusCode, r.StatusCode),
-            "defect" => (string.IsNullOrWhiteSpace(r.DefectType) ? "—" : r.DefectType, string.IsNullOrWhiteSpace(r.DefectType) ? "—" : r.DefectType),
+            "defect" => (string.IsNullOrWhiteSpace(r.DefectType) ? "—" : r.DefectType, string.IsNullOrWhiteSpace(r.DefectType) ? "—" : defectNames.DisplayName(r.DefectType)),
             "client" => (string.IsNullOrWhiteSpace(r.ClientId) ? "—" : r.ClientId, string.IsNullOrWhiteSpace(r.ClientId) ? "—" : r.ClientId),
             "department" => (string.IsNullOrWhiteSpace(r.Department) ? "—" : r.Department, string.IsNullOrWhiteSpace(r.Department) ? "—" : r.Department),
             _ => (r.Severity, r.Severity),

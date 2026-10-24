@@ -6,6 +6,7 @@ import { ACTION_PLAN_API_URL as ACTION_API, AUTH_API_URL as AUTH_API } from '../
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { withScope } from '../../services/organizationScopeStore';
+import { defectLabel } from '../../utils/defectLabel';
 
 /** Page unique de traçabilité : comptes + workflow (CAPA, claims, RH, orgs…). */
 const PAGE_SIZE = 25;
@@ -410,7 +411,7 @@ function mapClaimsToEvents(claims: ClaimRow[], users: UserIndex, existing: Unifi
     if (!id) continue;
     const title = String(c.title ?? c.Title ?? `Claim ${id.slice(0, 8)}`);
     const status = String(c.statusCode ?? c.StatusCode ?? '—');
-    const defect = String(c.defectType ?? c.DefectType ?? '');
+    const defect = defectLabel(String(c.defectType ?? c.DefectType ?? ''));
     const client = String(c.clientId ?? c.ClientId ?? '');
     const createdAt = String(c.createdAt ?? c.CreatedAt ?? '');
     const updatedAt = String(c.updatedAt ?? c.UpdatedAt ?? '');

@@ -13,6 +13,7 @@ import SavedReportsBar from '../../components/SavedReportsBar';
 import ReportSchedulesBar from '../../components/ReportSchedulesBar';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
+import { defectLabel } from '../../utils/defectLabel';
 
 const COFICAB = '#000168';
 
@@ -149,7 +150,7 @@ export default function AdminClaimsReportGenerator() {
       switch (criteria.groupBy) {
         case 'responsible': return { key: c.assignedToId || '—', label: c.assignedToName || t('reportClaims.gen.unassigned') };
         case 'status': return { key: resolveClaimStatus(c), label: statusLabel(c) };
-        case 'defect': return { key: c.defectType || '—', label: c.defectType || '—' };
+        case 'defect': return { key: c.defectType || '—', label: defectLabel(c.defectType) || '—' };
         case 'client': return { key: c.clientId || '—', label: c.clientId || '—' };
         case 'department': return { key: departmentOf(c) || '—', label: departmentOf(c) || t('reportClaims.noDepartment') };
         default: return { key: severityKey(c.severity), label: sevLabel(c.severity) };
@@ -204,7 +205,7 @@ export default function AdminClaimsReportGenerator() {
     if (!report) return;
     const header = ['group', 'claim', 'client', 'defect', 'severity', 'status', 'detection', 'deadline', 'responsible', 'state'];
     const rows = report.groups.flatMap((g) => g.rows.map((r) => [
-      g.label, r.claim.title, r.claim.clientId, r.claim.defectType, sevLabel(r.claim.severity), statusLabel(r.claim),
+      g.label, r.claim.title, r.claim.clientId, defectLabel(r.claim.defectType), sevLabel(r.claim.severity), statusLabel(r.claim),
       r.claim.detectionDate || '', r.claim.deadline || '', r.claim.assignedToName || '', rowState(r),
     ]));
     const esc = (v: string) => `"${String(v).replace(/"/g, '""')}"`;
@@ -243,7 +244,7 @@ export default function AdminClaimsReportGenerator() {
       [t('actionsReport.colGroup'), t('reportClaims.gen.colClaim'), t('reportClaims.gen.colClient'), t('reportClaims.gen.colDefect'), t('reportClaims.gen.colSeverity'), t('actionsReport.status'), t('planDetail.department'), t('reportClaims.gen.colDeadline'), t('reportClaims.gen.colResponsible'), t('reportClaims.gen.colState')]
         .map((v): XlsxCell => ({ v, style: 'header' })),
       ...report.groups.flatMap((g) => g.rows.map((r): XlsxCell[] => [
-        g.label, r.claim.title, r.claim.clientId, r.claim.defectType, sevLabel(r.claim.severity), statusLabel(r.claim),
+        g.label, r.claim.title, r.claim.clientId, defectLabel(r.claim.defectType), sevLabel(r.claim.severity), statusLabel(r.claim),
         departmentOf(r.claim), fmtDate(r.claim.deadline), r.claim.assignedToName || t('reportClaims.gen.unassigned'), rowState(r),
       ])),
     ];
@@ -292,7 +293,7 @@ export default function AdminClaimsReportGenerator() {
         group: g.label,
         claim: r.claim.title,
         client: r.claim.clientId,
-        defect: r.claim.defectType,
+        defect: defectLabel(r.claim.defectType),
         severity: sevLabel(r.claim.severity),
         status: statusLabel(r.claim),
         deadline: fmtDate(r.claim.deadline),
@@ -557,7 +558,7 @@ export default function AdminClaimsReportGenerator() {
                                   <div className="min-w-0">
                                     <div className="text-sm font-medium text-slate-900 truncate">{r.claim.title}</div>
                                     <div className="text-[11px] text-slate-500 truncate">
-                                      {r.claim.clientId}{' · '}{r.claim.defectType}{' · '}{sevLabel(r.claim.severity)}{' · '}{fmtDate(r.claim.deadline)}
+                                      {r.claim.clientId}{' · '}{defectLabel(r.claim.defectType)}{' · '}{sevLabel(r.claim.severity)}{' · '}{fmtDate(r.claim.deadline)}
                                     </div>
                                   </div>
                                   <div className="flex items-center gap-3">

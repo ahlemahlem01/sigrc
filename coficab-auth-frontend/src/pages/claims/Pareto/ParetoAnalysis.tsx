@@ -18,6 +18,7 @@ import { Claim } from '../../../types/qualityAnalysis';
 import './ParetoAnalysis.styles.css';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { defectLabel } from '../../../utils/defectLabel';
 
 type ParetoMode = 'byDefect' | 'byLine';
 
@@ -123,7 +124,7 @@ export default function ParetoAnalysis() {
         {loadError && <p className="pareto-context" style={{ color: '#b91c1c' }}>{loadError}</p>}
         {claim && (
           <p className="pareto-context">
-            {t('pareto.context')} <strong style={{ color: '#334155', fontWeight: 650 }}>{claim.defectType || '—'}</strong>
+            {t('pareto.context')} <strong style={{ color: '#334155', fontWeight: 650 }}>{defectLabel(claim.defectType) || '—'}</strong>
             {' · '}
             {t('pareto.line')} <strong style={{ color: '#334155', fontWeight: 650 }}>{(claim as any).productionLine ?? 'N/A'}</strong>
           </p>

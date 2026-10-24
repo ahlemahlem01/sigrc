@@ -4759,6 +4759,13 @@
     "lateBy": "In ritardo di {{days}} g",
     "daysLeftWarn": "{{days}} g rimanenti — attenzione"
   },
+  "defectTypes": {
+    "CUT_INSULATION": "Taglio / intaccatura della guaina",
+    "COPPER_BLOOMING": "Fili di rame rotti / sporgenti",
+    "MARKING_DEFECT": "Difetto di marcatura (illeggibile / assente)",
+    "SPOOL_DAMAGE": "Bobina / imballaggio danneggiato",
+    "COLOR_MISMATCH": "Colore dell'isolante non conforme"
+  },
   "decisionDialog": {
     "reason": "Motivo",
     "optional": "facoltativo",

@@ -3,6 +3,7 @@ import { Info, Microscope } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../../context/AuthContext';
 import { MiningContext, MiningInsights, miningService } from '../../../services/miningService';
+import { defectLabel } from '../../../utils/defectLabel';
 
 /** Fetches the insights once; the page shares the result between the panel and the priority-cause card. */
 export function useMiningInsights(context: MiningContext | null) {
@@ -174,7 +175,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                   <li key={i} className={r.matchesCurrent ? 'match' : undefined}>
                     {t('mining.ruleSimple', {
                       conditions: r.antecedent.map((a) => attr(a.key, a.value)).join(' + '),
-                      defect: r.defect,
+                      defect: defectLabel(r.defect),
                       confidence: Math.round(r.confidence * 100),
                       support: r.support,
                       total: r.antecedentCount,
@@ -187,7 +188,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
 
           {data.trend?.sufficient && data.trend.current?.direction === 'up' && (
             <div className="mi-block">
-              <p className="mi-trend"><strong>{t('mining.trendTitle')} :</strong> {t('mining.trendSimpleUp', { defect: data.trend.defect ?? '' })}</p>
+              <p className="mi-trend"><strong>{t('mining.trendTitle')} :</strong> {t('mining.trendSimpleUp', { defect: defectLabel(data.trend.defect) })}</p>
             </div>
           )}
 
@@ -201,7 +202,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                   <li key={i} className={r.matchesCurrent ? 'match' : undefined}>
                     {t('mining.rule', {
                       conditions: r.antecedent.map((a) => attr(a.key, a.value)).join(' + '),
-                      defect: r.defect,
+                      defect: defectLabel(r.defect),
                       confidence: Math.round(r.confidence * 100),
                       support: r.support,
                       total: r.antecedentCount,
@@ -219,7 +220,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
               <h4>{t('mining.trendTitle')}</h4>
               {data.trend.current && data.trend.defect && (
                 <p className="mi-trend">
-                  <strong>{data.trend.defect}</strong> : {t(`mining.trend.${data.trend.current.direction}`, {
+                  <strong>{defectLabel(data.trend.defect)}</strong> : {t(`mining.trend.${data.trend.current.direction}`, {
                     recent: data.trend.current.recent,
                     expected: data.trend.current.expected,
                     ratio: data.trend.current.ratio,
@@ -240,7 +241,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                   <ul className="mi-list">
                     {data.trend.rising.map((r) => (
                       <li key={r.defect}>
-                        <strong>{r.defect}</strong> <span className="mi-muted">· {t('mining.trend.up', { recent: r.recent, expected: r.expected, ratio: r.ratio })}</span>
+                        <strong>{defectLabel(r.defect)}</strong> <span className="mi-muted">· {t('mining.trend.up', { recent: r.recent, expected: r.expected, ratio: r.ratio })}</span>
                       </li>
                     ))}
                   </ul>
@@ -285,7 +286,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                 <tbody>
                   {data.weightedPareto!.defectType.slice(0, 6).map((r) => (
                     <tr key={r.category}>
-                      <td>{r.category}</td>
+                      <td>{defectLabel(r.category)}</td>
                       <td>{r.count}</td>
                       <td>{r.sharePct} %</td>
                       <td>{r.ppm ?? '—'}</td>

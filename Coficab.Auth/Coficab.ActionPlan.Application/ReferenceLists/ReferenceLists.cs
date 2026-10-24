@@ -63,8 +63,10 @@ public class SaveReferenceListCommandHandler : IRequestHandler<SaveReferenceList
                 _db.ReferenceItems.Add(row);
                 existing.Add(row);
             }
-            // Defect types are stored as typed on the claims: a separate display label would only mislead.
-            row.Label = request.ListKey != ReferenceListKeys.Severity || string.IsNullOrWhiteSpace(input.Label) ? null : input.Label.Trim();
+            // Severity levels and defect types may carry a display wording (a defect code such as CUT_INSULATION is shown with its
+            // label); the value itself stays what the claims store. Customers, lines and shifts are plain names.
+            var labelled = request.ListKey == ReferenceListKeys.Severity || request.ListKey == ReferenceListKeys.DefectType;
+            row.Label = !labelled || string.IsNullOrWhiteSpace(input.Label) ? null : input.Label.Trim();
             row.SortOrder = input.SortOrder;
             // A merged spelling stays inactive; only an explicit unmerge brings it back.
             row.IsActive = string.IsNullOrWhiteSpace(row.MergedInto) && input.IsActive;

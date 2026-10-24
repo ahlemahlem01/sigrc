@@ -17,6 +17,7 @@ import { severityKey, type SeverityKey } from '../../utils/overviewSeverity';
 import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 const PAGE_SIZE = 12;
 const btnSecondary =
@@ -143,6 +144,7 @@ export default function AdminClaimsList() {
         claim.title,
         claim.clientId,
         claim.defectType,
+        defectLabel(claim.defectType),
         claim.lotNumber,
         claim.productionLine,
         person(claim),
@@ -339,7 +341,7 @@ export default function AdminClaimsList() {
                       </button>
                       <div className="text-[11px] text-slate-400">{claim.clientId || '—'} · {claim.lotNumber || t('adminLists.noLot')}</div>
                     </td>
-                    <td className="px-4 py-3.5 text-slate-700">{claim.defectType || '—'}</td>
+                    <td className="px-4 py-3.5 text-slate-700">{defectLabel(claim.defectType) || '—'}</td>
                     <td className="px-4 py-3.5 text-slate-700">{claim.productionLine || '—'}</td>
                     <td className="px-4 py-3.5 text-slate-700">{person(claim)}</td>
                     <td className="px-4 py-3.5"><span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${status.color}`}>{status.label}</span></td>

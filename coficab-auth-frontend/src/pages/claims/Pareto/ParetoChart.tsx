@@ -9,6 +9,7 @@ import { paretoService } from '../../../services/paretoService';
 import { useAuth } from '../../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { defectLabel } from '../../../utils/defectLabel';
 
 interface ParetoChartProps {
   dimension?: ParetoDimension;
@@ -67,13 +68,14 @@ export default function ParetoChart({
   // A flat distribution has no "vital few": highlighting most bars would be misleading.
   const vitalCount = data.filter((d) => d.isVitalFew).length;
   const flat = data.length >= 5 && vitalCount >= Math.ceil(data.length * 0.6);
+  const view = dimension === ParetoDimension.DefectType ? data.map((d) => ({ ...d, category: defectLabel(d.category) })) : data;
   const valueKey = measure === 'impact' ? 'impact' : 'count';
   const valueLabel = measure === 'impact' ? t('pareto.impactAxis') : t('pareto.occurrences');
 
   return (
     <div className="pareto-chart-card">
       <ResponsiveContainer width="100%" height={400}>
-        <ComposedChart data={data}>
+        <ComposedChart data={view}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
           <XAxis dataKey="category" angle={-20} textAnchor="end" height={60} tick={{ fontSize: 11 }} />
           <YAxis yAxisId="left" tick={{ fontSize: 11 }} label={{ value: valueLabel, angle: -90, position: 'insideLeft' }} />

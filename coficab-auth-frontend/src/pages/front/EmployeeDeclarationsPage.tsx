@@ -6,6 +6,7 @@ import { useMyDeclarations } from '../../hooks/useMyDeclarations';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { claimPath, shortDate, StatusPill } from '../../components/employee/WorkspaceExtras';
 import './FrontWorkspaceHome.styles.css';
+import { defectLabel } from '../../utils/defectLabel';
 
 type Tab = 'all' | 'draft' | 'running' | 'closed';
 const CLOSED = new Set(['CLOTUREE', 'VALIDATED', 'ARCHIVED']);
@@ -96,7 +97,7 @@ export default function EmployeeDeclarationsPage() {
                     <span className="fwh-row-main">
                       <span className="fwh-todo-title">{c.reference && <span className="fwh-ref">{c.reference}</span>}{c.title || t('employeeWorkspace.draftUntitled')}</span>
                       <span className="fwh-todo-meta">
-                        {[shortDate(c.createdAt, locale), c.defectType, c.productionLine, c.assignedToName].filter(Boolean).join(' · ')}
+                        {[shortDate(c.createdAt, locale), defectLabel(c.defectType), c.productionLine, c.assignedToName].filter(Boolean).join(' · ')}
                       </span>
                     </span>
                     <StatusPill claim={c} />

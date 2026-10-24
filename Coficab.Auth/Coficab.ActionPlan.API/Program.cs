@@ -54,6 +54,7 @@ builder.Services.AddScoped<IDocumentService, DocumentService>();
 builder.Services.AddScoped<ITimelineService, TimelineService>();
 builder.Services.AddScoped<IEmployeeActivityService, EmployeeActivityService>();
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.DatabaseMigrationHostedService>();
+builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.ProductionReferenceDataInitializer>();
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.EmployeeActivityHostedService>();
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.ReportScheduleHostedService>();
 // Anomaly detection is event-driven (ClaimCreated/ClaimClosed → MediatR handlers).

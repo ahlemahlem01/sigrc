@@ -26,6 +26,7 @@ import { resolveClaimStatus } from '../../utils/Claimutils';
 import type { Claim } from '../../types/qualityAnalysis';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 type ViewMode = 'month' | 'week' | 'day';
 type AudienceMode = 'all' | 'users' | 'departments';
@@ -361,7 +362,7 @@ export default function CapaCalendarPage() {
             workType: 'claim',
             claimId: id,
             claimScope: createdBy === myId && assignee !== myId ? 'created' : claimScope,
-            description: `${status}${claim.defectType ? ` · ${claim.defectType}` : ''}`,
+            description: `${status}${claim.defectType ? ` · ${defectLabel(claim.defectType)}` : ''}`,
           });
         }
       } catch (e) {

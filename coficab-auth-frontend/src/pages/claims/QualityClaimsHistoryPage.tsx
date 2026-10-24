@@ -37,6 +37,7 @@ import './QualityClaimsHistoryPage.styles.css';
 import { useTranslation } from 'react-i18next';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 const DEFAULT_FILTERS: ClaimsHistoryQuery = {
   page: 1,
@@ -426,7 +427,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
                         <div className="qh-sub">{t('closedArchive.lot', { lot: claim.lotNumber || '—' })}{claim.serialNumber ? ` · SN ${claim.serialNumber}` : ''}</div>
                       </td>
                       <td>
-                        <div>{claim.defectType || '—'}</div>
+                        <div>{defectLabel(claim.defectType) || '—'}</div>
                         <span className="pfe-badge" style={{ background: sev.bg, color: sev.color, border: `1px solid ${sev.border}`, padding: '2px 7px', fontSize: 10, marginTop: 4, display: 'inline-flex' }}>
                           {sev.label}
                         </span>

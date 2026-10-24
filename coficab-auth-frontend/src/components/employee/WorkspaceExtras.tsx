@@ -9,6 +9,7 @@ import type { Pin } from '../../hooks/usePins';
 import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import './WorkspaceExtras.styles.css';
+import { defectLabel } from '../../utils/defectLabel';
 
 const CLOSED = new Set(['CLOTUREE', 'VALIDATED', 'ARCHIVED']);
 export const DRAFTS_PATH = '/pages/front/quality-analyses/drafts';
@@ -228,7 +229,7 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
                   <div className="fwh-row" role="button" tabIndex={0} onClick={() => navigate('/alerts')}
                     onKeyDown={(e) => { if (e.key === 'Enter') navigate('/alerts'); }}>
                     <span className="fwh-row-main">
-                      <span className="fwh-todo-title">{a.defectType}</span>
+                      <span className="fwh-todo-title">{defectLabel(a.defectType)}</span>
                       <span className="fwh-todo-meta">{a.productionLine} · {shortDate(a.detectedAt, locale)}</span>
                     </span>
                     <span className={`fwh-pill ${a.zScore >= 3 ? 'bad' : 'run'}`}>z = {a.zScore.toFixed(1)}</span>
@@ -290,7 +291,7 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
                     onKeyDown={(e) => { if (e.key === 'Enter') navigate(`/pages/front/quality-analyses/8d/${c.id}`); }}>
                     <span className="fwh-row-main">
                       <span className="fwh-todo-title">{c.reference && <span className="fwh-ref">{c.reference}</span>}{c.title}</span>
-                      <span className="fwh-todo-meta">{[c.defectType, c.productionLine].filter(Boolean).join(' · ')}</span>
+                      <span className="fwh-todo-meta">{[defectLabel(c.defectType), c.productionLine].filter(Boolean).join(' · ')}</span>
                     </span>
                     <span className="fwh-pill ok">{t('employeeWorkspace.similarResolved')}</span>
                   </div>

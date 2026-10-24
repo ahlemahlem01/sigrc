@@ -20,6 +20,7 @@ import { resolveClaimStatus, getStatusBadge } from '../../utils/Claimutils';
 import { InvestigationWorkflows } from './InvestigationWorkflows';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 interface ClaimDetailCardProps {
   claim: Claim | null;
@@ -266,7 +267,7 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
             <div className="pfe-chip-icon"><Tag size={14} /></div>
             <div className="pfe-chip-info">
               <span className="pfe-chip-label">{t('claimDetail.defectType')}</span>
-              <span className="pfe-chip-value">{claim.defectType || (claim as any).defect_type || t('claimDetail.general')}</span>
+              <span className="pfe-chip-value">{defectLabel(claim.defectType || (claim as any).defect_type) || t('claimDetail.general')}</span>
             </div>
           </div>
           <div className="pfe-chip-card">

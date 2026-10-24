@@ -11,6 +11,7 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { isAdminUser } from '../../utils/roles';
 import './DeadlinesAgendaPage.styles.css';
+import { defectLabel } from '../../utils/defectLabel';
 
 type DeadlineKind = 'claim' | 'plan' | 'action';
 type TabKey = 'upcoming' | 'past';
@@ -182,7 +183,7 @@ export default function DeadlinesAgendaPage() {
           id: `claim-${id}`,
           kind: 'claim',
           title: c.title || t('employeeWorkspace.claimFallback', { id: id.slice(0, 8) }),
-          subtitle: c.defectType || undefined,
+          subtitle: defectLabel(c.defectType) || undefined,
           deadline: String(dl),
           statusLabel: closed ? closedLabel : resolveClaimStatus(c) || open,
           href: claimHref(id),

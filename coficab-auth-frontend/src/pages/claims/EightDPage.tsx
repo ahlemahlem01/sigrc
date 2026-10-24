@@ -33,6 +33,7 @@ import { D4ChainChecklist } from './D4Chain';
 import { useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 const NAVY = '#000168';
 
@@ -668,7 +669,7 @@ const EightDPage: React.FC = () => {
                   <b>{dossier?.claimTitle}</b>
                   <p className="e8d-hint" style={{ margin: '6px 0 0' }}>{dossier?.description}</p>
                   <p className="e8d-hint" style={{ margin: '8px 0 0' }}>
-                    {t('eightD.client', { client: dossier?.clientId })} · {dossier?.defectType} · {t('closedArchive.lot', { lot: dossier?.lotNumber })}
+                    {t('eightD.client', { client: dossier?.clientId })} · {defectLabel(dossier?.defectType)} · {t('closedArchive.lot', { lot: dossier?.lotNumber })}
                   </p>
                 </div>
               </>

@@ -7,6 +7,7 @@ import { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
+import { defectLabel } from '../../utils/defectLabel';
 
 const PAGE_SIZE = 12;
 const btn =
@@ -89,7 +90,7 @@ export default function AdminClaimsReference() {
         ref: refOf(c),
         title: fixMojibake(c.title || ''),
         client: c.clientId || '—',
-        defect: (c as any).defectType || '—',
+        defect: defectLabel((c as any).defectType) || '—',
         status: statusLabel(statusOf(c)),
         assignee: (c as any).assignedToName || t('claimRef.unassigned'),
       })),
@@ -163,7 +164,7 @@ export default function AdminClaimsReference() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="font-medium text-slate-900 max-w-[260px] truncate">{fixMojibake(c.title || '')}</div>
-                    <div className="text-[11px] text-slate-400">{(c as any).defectType || '—'}</div>
+                    <div className="text-[11px] text-slate-400">{defectLabel((c as any).defectType) || '—'}</div>
                   </td>
                   <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{c.clientId || '—'}</td>
                   <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{statusLabel(statusOf(c))}</td>

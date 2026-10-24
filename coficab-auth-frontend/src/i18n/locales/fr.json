@@ -4759,6 +4759,13 @@
     "lateBy": "En retard de {{days}} j",
     "daysLeftWarn": "{{days}} j restants — attention"
   },
+  "defectTypes": {
+    "CUT_INSULATION": "Coupure / Entaille sur gaine",
+    "COPPER_BLOOMING": "Brins de cuivre cassés / désaffleurants",
+    "MARKING_DEFECT": "Défaut de marquage (illisible / absent)",
+    "SPOOL_DAMAGE": "Touret / Emballage endommagé",
+    "COLOR_MISMATCH": "Couleur d'isolant non conforme"
+  },
   "decisionDialog": {
     "reason": "Motif",
     "optional": "facultatif",

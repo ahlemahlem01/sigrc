@@ -18,6 +18,7 @@ import { CsvImportButton } from '../../components/CsvImportButton';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 type AssignmentToggle = 'assigned' | 'unassigned';
 type WorkspaceMode = 'browse' | 'create';
@@ -560,7 +561,7 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
                       </div>
                       <div className="amc-info-card">
                         <div className="amc-info-lbl">{t('claimDetail.defectType')}</div>
-                        <div className="amc-info-val">{selected.defectType || '—'}</div>
+                        <div className="amc-info-val">{defectLabel(selected.defectType) || '—'}</div>
                       </div>
                       <div className="amc-info-card">
                         <div className="amc-info-lbl">{t('drafts.fieldLot')}</div>

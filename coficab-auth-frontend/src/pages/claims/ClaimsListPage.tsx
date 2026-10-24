@@ -14,6 +14,7 @@ import { useClaimsDirectory } from './Useclaimsdirectory';
 // @ts-ignore: CSS module type declarations are not available in this project setup.
 import './ClaimsListPage.styles.css';
 import { useTranslation } from 'react-i18next';
+import { defectLabel } from '../../utils/defectLabel';
 
 export const ClaimsListPage: React.FC = () => {
   const { t } = useTranslation();
@@ -127,7 +128,7 @@ export const ClaimsListPage: React.FC = () => {
             {(defectTypeFromUrl || productionLineFromUrl) && (
               <div className="pfe-status-filter-chip">
                 <Filter size={11} />
-                {defectTypeFromUrl ? t('claimsList.defectFilter', { defect: defectTypeFromUrl }) : null}
+                {defectTypeFromUrl ? t('claimsList.defectFilter', { defect: defectLabel(defectTypeFromUrl) }) : null}
                 {defectTypeFromUrl && productionLineFromUrl ? ' · ' : null}
                 {productionLineFromUrl ? t('claimsList.lineFilter', { line: productionLineFromUrl }) : null}
                 <button onClick={handleClearStatusFilter} title={t('claimsList.clearAlertFilter')}>

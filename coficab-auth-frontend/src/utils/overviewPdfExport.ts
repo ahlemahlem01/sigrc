@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import autoTable, { type RowInput } from 'jspdf-autotable';
 import type { OverviewData } from '../types/dashboardOverview';
 import { severityKey } from './overviewSeverity';
+import { defectLabel } from '../utils/defectLabel';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 
@@ -162,7 +163,7 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
   const ranked = (title: string, rows: { name: string; count: number; sharePct: number }[]) =>
     table(section(title), [t('overviewPage.colName'), t('overviewPage.colCount'), t('overviewPage.colShare')],
       rows.length === 0 ? [[{ content: t('adminDashboard.noData'), colSpan: 3 }]] : rows.map((r) => [r.name, num(r.count), pct(r.sharePct)]));
-  ranked(`${t('overviewPage.q3')} - ${t('overviewPage.topDefects')}`, p.topDefects);
+  ranked(`${t('overviewPage.q3')} - ${t('overviewPage.topDefects')}`, p.topDefects.map((r) => ({ ...r, name: defectLabel(r.name) })));
   ranked(t('overviewPage.topLines'), p.topLines);
   ranked(t('overviewPage.topClients'), p.topClients);
   table(

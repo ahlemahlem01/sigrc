@@ -17,15 +17,17 @@ public sealed class DefectTypeResolver
     private readonly Dictionary<string, string> _alias;
     private readonly Dictionary<string, string> _listed;
     private readonly Dictionary<string, string> _byKey;
+    private readonly Dictionary<string, string> _labels;
 
-    private DefectTypeResolver(Dictionary<string, string> alias, Dictionary<string, string> listed, Dictionary<string, string> byKey)
+    private DefectTypeResolver(Dictionary<string, string> alias, Dictionary<string, string> listed, Dictionary<string, string> byKey, Dictionary<string, string> labels)
     {
         _alias = alias;
         _listed = listed;
         _byKey = byKey;
+        _labels = labels;
     }
 
-    public static DefectTypeResolver Empty { get; } = new(new(), new(), new());
+    public static DefectTypeResolver Empty { get; } = new(new(), new(), new(), new());
 
     /// <summary>Same words once case, accents, punctuation and repeated spaces are ignored.</summary>
     public static string Key(string? text)
@@ -63,6 +65,7 @@ public sealed class DefectTypeResolver
         var alias = new Dictionary<string, string>();
         var listed = new Dictionary<string, string>();
         var byKey = new Dictionary<string, string>();
+        var labels = new Dictionary<string, string>();
 
         foreach (var item in all.Where(i => !string.IsNullOrWhiteSpace(i.MergedInto)))
             alias[item.Value.Trim().ToLowerInvariant()] = item.MergedInto!.Trim();
@@ -71,9 +74,17 @@ public sealed class DefectTypeResolver
         {
             listed.TryAdd(item.Value.Trim().ToLowerInvariant(), item.Value.Trim());
             if (item.IsActive) byKey.TryAdd(Key(item.Value), item.Value.Trim());
+            if (!string.IsNullOrWhiteSpace(item.Label)) labels.TryAdd(item.Value.Trim().ToLowerInvariant(), item.Label.Trim());
         }
 
-        return new DefectTypeResolver(alias, listed, byKey);
+        return new DefectTypeResolver(alias, listed, byKey, labels);
+    }
+
+    /// <summary>The wording the screens and reports show for a defect type: its label when the list has one, else the resolved name.</summary>
+    public string DisplayName(string? text)
+    {
+        var resolved = Resolve(text);
+        return resolved.Length > 0 && _labels.TryGetValue(resolved.ToLowerInvariant(), out var label) ? label : resolved;
     }
 
     public string Resolve(string? text)

@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { ClaimKpis } from '../../../services/qualityAnalysisService';
 import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
+import { defectLabel } from '../../../utils/defectLabel';
 
 const SHOWN = 8;
 
@@ -51,7 +52,7 @@ export default function ClaimKpiSection({ kpis, loading }: { kpis: ClaimKpis | n
                 <li key={d.defectType}>
                   <button type="button" onClick={() => open(d.defectType)} className="w-full text-left group" title={t('adminDashboard.claimKpis.openList')}>
                     <div className="flex items-baseline justify-between gap-2 text-xs">
-                      <span className="font-semibold text-slate-800 truncate group-hover:underline">{d.defectType}</span>
+                      <span className="font-semibold text-slate-800 truncate group-hover:underline">{defectLabel(d.defectType)}</span>
                       <span className="tabular-nums shrink-0 text-slate-600"><b className="text-slate-800">{d.claims}</b></span>
                     </div>
                     <div className="h-1.5 mt-1 rounded-full bg-slate-100 overflow-hidden">

@@ -20,6 +20,7 @@ import { isAdminUser } from '../../utils/roles';
 import './ClosedClaimsArchivePage.styles.css';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 const isClosedStatus = (claim: Claim) => {
   const s = resolveClaimStatus(claim);
@@ -214,7 +215,7 @@ export default function ClosedClaimsArchivePage() {
                       <p className="cc-sub">{claim.lotNumber ? t('closedArchive.lot', { lot: claim.lotNumber }) : claim.id.slice(0, 8)}</p>
                     </td>
                     <td>{claim.clientId || '—'}</td>
-                    <td>{claim.defectType || '—'}</td>
+                    <td>{defectLabel(claim.defectType) || '—'}</td>
                     <td>{fmtDate(closureDate(claim))}</td>
                     <td>
                       {onTime === true && (

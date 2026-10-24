@@ -32,6 +32,7 @@ import {
 import { ParetoImpactPreview } from './Pareto/ParetoImpactPreview';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 
 interface CreateClaimFormProps {
   onSuccess?: () => void; // called after a successful create (e.g. when rendered inside a modal); falls back to navigation + reload when absent
@@ -850,8 +851,8 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                             type="text"
                             name="defectType"
                             list="reference-defect-types"
-                            value={formData.defectType}
-                            onChange={handleChange}
+                            value={defectLabel(formData.defectType)}
+                            onChange={(e) => { e.target.value = defectValueFromInput(e.target.value); handleChange(e); }}
                             placeholder={t('createClaim.examplePrefix', { value: 'INTERMITTENT_CONTACT' })}
                           />
                         </div>
@@ -862,7 +863,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       {referenceLists.clients.map((d) => <option key={d} value={d} />)}
                     </datalist>
                     <datalist id="reference-defect-types">
-                      {referenceLists.defectTypes.map((d) => <option key={d} value={d} />)}
+                      {referenceLists.defectTypes.map((d) => <option key={d} value={defectLabel(d)} />)}
                     </datalist>
 
                     <div className="pfe-field">
@@ -1080,7 +1081,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
 
               <div className="pfe-prev-row">
                 <span className="pfe-prev-label">{t('claimDetail.defectType')}</span>
-                <span className="pfe-prev-val">{formData.defectType || '—'}</span>
+                <span className="pfe-prev-val">{defectLabel(formData.defectType) || '—'}</span>
               </div>
 
               <div className="pfe-prev-row">

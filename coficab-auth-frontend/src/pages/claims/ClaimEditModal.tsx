@@ -4,6 +4,7 @@ import { Claim } from '../../types/qualityAnalysis';
 import { EmployeeRecommendationBanner } from '../../components/EmployeeRecommendationBanner';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 
 export interface AssignableUserOption {
   id: string;
@@ -92,9 +93,9 @@ export const ClaimEditModal: React.FC<ClaimEditModalProps> = ({
           </div>
           <div className="pfe-form-group" style={{ marginBottom: 0 }}>
             <label>{t('claimDetail.defectType')}</label>
-            <input type="text" name="defectType" list="reference-defect-types-edit" value={formData.defectType || ''} onChange={onChange} />
+            <input type="text" name="defectType" list="reference-defect-types-edit" value={defectLabel(formData.defectType)} onChange={(e) => { e.target.value = defectValueFromInput(e.target.value); onChange(e); }} />
             <datalist id="reference-defect-types-edit">
-              {defectTypes.map((d) => <option key={d} value={d} />)}
+              {defectTypes.map((d) => <option key={d} value={defectLabel(d)} />)}
             </datalist>
           </div>
         </div>

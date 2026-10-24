@@ -21,6 +21,7 @@ import { computeIatfSla, slaToneStyles } from '../../utils/iatfSla';
 import DecisionDialog from '../../components/DecisionDialog';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { defectLabel } from '../../utils/defectLabel';
 
 type TabId = 'dossiers' | 'capa' | 'rejected' | 'fivewhy';
 type SortKey = 'oldest' | 'newest' | 'severity' | 'line';
@@ -549,7 +550,7 @@ export const AdminValidationHub: React.FC = () => {
                           <div className="avh-meta">
                             <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
                             <span>{claim.clientId || '—'}</span>
-                            <span>{claim.defectType || '—'}</span>
+                            <span>{defectLabel(claim.defectType) || '—'}</span>
                             <span>{claim.severity || '—'}</span>
                             {claim.productionLine && <span>{claim.productionLine}</span>}
                             {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
@@ -612,7 +613,7 @@ export const AdminValidationHub: React.FC = () => {
                       <span className="avh-pill">{t('validationHub.pillFiveWhy')}</span>
                       <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
                       <span>{item.clientId || '—'}</span>
-                      <span>{item.defectType || '—'}</span>
+                      <span>{defectLabel(item.defectType) || '—'}</span>
                       {item.assignedToName && <span>{item.assignedToName}</span>}
                     </div>
                     {item.rootCause && (

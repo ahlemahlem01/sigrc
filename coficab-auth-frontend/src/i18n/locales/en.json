@@ -4759,6 +4759,13 @@
     "lateBy": "{{days}} d late",
     "daysLeftWarn": "{{days}} d left — watch out"
   },
+  "defectTypes": {
+    "CUT_INSULATION": "Insulation cut / nick",
+    "COPPER_BLOOMING": "Broken / protruding copper strands",
+    "MARKING_DEFECT": "Marking defect (illegible / missing)",
+    "SPOOL_DAMAGE": "Spool / packaging damaged",
+    "COLOR_MISMATCH": "Insulation colour out of specification"
+  },
   "decisionDialog": {
     "reason": "Reason",
     "optional": "optional",

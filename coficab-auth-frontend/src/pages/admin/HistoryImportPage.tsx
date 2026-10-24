@@ -9,6 +9,7 @@ import {
   HistoryPreview,
   historyImportService,
 } from '../../services/historyImportService';
+import { defectLabel } from '../../utils/defectLabel';
 
 const NAVY = '#000168';
 
@@ -204,7 +205,7 @@ const HistoryImportPage: React.FC = () => {
                   {preview.sample.map((s) => (
                     <tr key={s.line}>
                       <td>{s.title}</td>
-                      <td>{s.defectType}</td>
+                      <td>{defectLabel(s.defectType)}</td>
                       <td>{fmt(s.detectionDate)}</td>
                       <td>{fmt(s.closedDate)}</td>
                       <td>{s.productionLine || '—'}</td>

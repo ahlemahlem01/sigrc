@@ -1,4 +1,5 @@
 import type { Claim } from '../types/qualityAnalysis';
+import { defectLabel } from '../utils/defectLabel';
 
 export type ClaimExportFormat = 'csv' | 'excel';
 
@@ -53,7 +54,7 @@ function claimToRow(c: Claim): string[] {
     String(c.id ?? ''),
     String(c.title ?? ''),
     String(c.clientId ?? ''),
-    String(c.defectType ?? ''),
+    defectLabel(String(c.defectType ?? '')),
     String(c.severity ?? ''),
     String(c.statusCode ?? ''),
     String(claimField(c, 'productionLine') ?? claimField(c, 'production_line') ?? ''),

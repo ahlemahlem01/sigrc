@@ -66,6 +66,7 @@ import FrontWorkspaceHome from './pages/front/FrontWorkspaceHome';
 import EmployeeDeclarationsPage from './pages/front/EmployeeDeclarationsPage';
 import EmployeeActivityPage from './pages/front/EmployeeActivityPage';
 import PilotagePage from './pages/front/PilotagePage';
+import ReferenceLabelsLoader from './components/ReferenceLabelsLoader';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
 import MyActionPlanDetail from './pages/front/MyActionPlanDetail';
@@ -149,6 +150,7 @@ const App = () => {
       <RealtimeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <ReferenceLabelsLoader />
         <Routes>
           {/* ── Public ── */}
           <Route path="/"                   element={<LandingPage />} />
