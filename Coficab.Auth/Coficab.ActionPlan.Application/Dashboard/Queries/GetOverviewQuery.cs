@@ -472,13 +472,11 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("SIMULATION"), ct);
 
         // ── comparison between organizations ──
-        // organizations come through their departments: an organization without a department has no people and no plans
-        var orgs = (await _context.Departments.AsNoTracking()
-                .Where(d => !d.IsArchived && !d.Organization.IsArchived)
-                .Select(d => new { d.OrganizationId, d.Organization.Name })
+        // every organization of the group, with or without a department yet
+        var orgs = (await _context.Organizations.AsNoTracking()
+                .Where(o => !o.IsArchived)
+                .Select(o => new { o.Id, o.Name })
                 .ToListAsync(ct))
-            .GroupBy(d => d.OrganizationId)
-            .Select(g => new { Id = g.Key, Name = g.First().Name })
             .ToList();
         var allPlans = await _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Where(p => !p.IsArchived).ToListAsync(ct);
         var everyLive = everything.Where(c => !IsDraft(c.StatusCode)).ToList();
@@ -510,9 +508,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                 openPlans.Count(p => PlanDeadlines.OverdueDays(p, today) > 0));
         }
 
+        // every organization of the group is listed, including the ones with no activity yet (zeros)
         var orgRows = orgs.Select(o => Row(o.Id, o.Name))
-            // an organization that only has CAPA plans on schedule is not worth a row
-            .Where(r => r.OpenClaims > 0 || r.OnTimeBase > 0 || r.LatePlans > 0 || r.Employees > 0)
             .OrderByDescending(r => r.OpenClaims).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var unattributed = Row(null, string.Empty);
