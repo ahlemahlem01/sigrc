@@ -1,0 +1,7 @@
+# Image service (app.py), run on the workstation, not in the Docker image of the recommendation service
+# (PyTorch is large). Install with:  pip install -r requirements-cv.txt
+ultralytics
+fastapi
+uvicorn
+python-multipart
+pillow

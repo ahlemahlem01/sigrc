@@ -53,3 +53,14 @@ l'appareil qu'il a en main. Elle ne dépend d'aucune caméra fixe ni d'une insta
 | Description des réclamations du jeu de référence | 2 906 descriptions « (donnees simulees) » renommées « (donnees de reference) » (script de restauration local) ; plus aucune valeur « simul » en base |
 | Intégrité | 0 action orpheline, 0 réclamation sans type de défaut, 4 325 réclamations avant et après |
 | Tests automatisés | .NET 66 + 187, Jest 75, pytest 24 : verts ; typage propre |
+
+## 5. Service d'image local (YOLOv8 / FastAPI)
+
+| Contrôle | Résultat |
+|---|---|
+| Service `ml-service/app.py` | démarre, charge `yolov8n.pt`, `GET /health` : `knowsCableDefects: false` |
+| `POST /predict` (image valide) | `{ "available": false }` : le modèle généraliste ne reconnaît aucun défaut de câble |
+| `POST /predict` (fichier non image) | 400 |
+| Chaîne API .NET -> service | appel reçu par le service (200) depuis l'API (Docker, `host.docker.internal:5000`) ; le formulaire reste en saisie manuelle |
+| Correspondance détections -> codes | 5 tests pytest (jamais de défaut inventé pour un objet du quotidien) |
+| Tests automatisés | .NET 66 + 187, Jest 75, pytest 29 : verts ; typage propre |

@@ -1,0 +1,8 @@
+{
+  "_comment": "Class name of the detector -> defect code of the application. A model trained on photos of damaged cables names its classes like the keys below (any case or separator). The general-purpose yolov8n.pt only knows everyday objects (COCO), none of which is a cable defect: with it the service answers available=false.",
+  "cut_insulation": "CUT_INSULATION",
+  "copper_blooming": "COPPER_BLOOMING",
+  "marking_defect": "MARKING_DEFECT",
+  "spool_damage": "SPOOL_DAMAGE",
+  "color_mismatch": "COLOR_MISMATCH"
+}

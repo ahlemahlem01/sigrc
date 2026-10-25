@@ -370,7 +370,10 @@ public class QualityAnalysisController : ControllerBase
             content.Add(new StreamContent(stream), "file", image.FileName);
             var http = _httpClientFactory.CreateClient();
             http.Timeout = TimeSpan.FromSeconds(10);
-            using var response = await http.PostAsync(url.TrimEnd('/') + "/predict", content, cancellationToken);
+            // ServiceUrl is the service address; the full endpoint ("http://host:5000/predict") is accepted too
+            var endpoint = url.TrimEnd('/');
+            if (!endpoint.EndsWith("/predict", StringComparison.OrdinalIgnoreCase)) endpoint += "/predict";
+            using var response = await http.PostAsync(endpoint, content, cancellationToken);
             if (!response.IsSuccessStatusCode) return Ok(new { available = false });
             var body = await response.Content.ReadFromJsonAsync<CvPredictionBody>(cancellationToken: cancellationToken);
             if (body is null || string.IsNullOrWhiteSpace(body.DefectType)) return Ok(new { available = false });
