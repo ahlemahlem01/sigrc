@@ -463,51 +463,41 @@ export default function OverviewPage() {
             </div>
           </Section>
 
-          {/* 0. How do the organizations compare? */}
-          {data.organizations.length > 1 && (
+          {/* 0. How do the departments compare? */}
+          {data.departments.length > 1 && (
             <Section title={t('overviewPage.q0')} hint={t('overviewPage.hint.q0', { days })}>
               <div className="rounded-xl bg-white shadow-sm overflow-x-auto" style={{ border: `1px solid ${COFICAB.line}` }}>
                 <table className="w-full text-xs">
                   <thead>
                     <tr style={{ color: COFICAB.muted, background: COFICAB.light }}>
-                      <th className="text-left px-3 py-2 font-bold uppercase tracking-wide text-[10px]">{t('overviewPage.colOrganization')}</th>
+                      <th className="text-left px-3 py-2 font-bold uppercase tracking-wide text-[10px]">{t('overviewPage.colDepartment')}</th>
                       {[
-                        ['colOpen', 'right'], ['colLate', 'right'], ['colNoDeadline', 'right'], ['colValidation', 'right'],
-                        ['colOnTime', 'right'], ['colPpm', 'right'], ['colLatePlans', 'right'], ['colEmployees', 'right'],
-                      ].map(([k]) => (
+                        'colOpen', 'colLate', 'colNoDeadline', 'colValidation',
+                        'colOnTime', 'colPpm', 'colLatePlans', 'colEmployees',
+                      ].map((k) => (
                         <th key={k} className="text-right px-3 py-2 font-bold uppercase tracking-wide text-[10px] whitespace-nowrap">{t(`overviewPage.${k}`)}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {data.organizations.map((o) => {
-                      const selected = !!o.organizationId && selectedIds.includes(o.organizationId);
-                      const rate = o.onTimeRate;
+                    {data.departments.map((d) => {
+                      const rate = d.onTimeRate;
                       const rateTone: Tone = rate == null ? 'neutral' : rate >= targets.onTimeGreen ? 'green' : rate >= targets.onTimeOrange ? 'orange' : 'red';
-                      const clickable = !!o.organizationId;
                       return (
-                        <tr
-                          key={o.organizationId ?? 'none'}
-                          onClick={clickable ? () => toggle(o.organizationId as string) : undefined}
-                          className={clickable ? 'cursor-pointer hover:bg-slate-50' : ''}
-                          style={{ borderTop: `1px solid ${COFICAB.line}`, background: selected ? COFICAB.light : undefined }}
-                        >
-                          <td className="px-3 py-2 font-semibold" style={{ color: o.organizationId ? COFICAB.ink : COFICAB.muted }}>
-                            {o.organizationId ? o.name : t('overviewPage.unattributed')}
-                            {selected && <span className="ml-1.5 text-[10px] font-bold" style={{ color: COFICAB.navy }}>● {t('overviewPage.selected')}</span>}
+                        <tr key={d.departmentId} style={{ borderTop: `1px solid ${COFICAB.line}` }}>
+                          <td className="px-3 py-2 font-semibold" style={{ color: COFICAB.ink }}>{d.name}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{num(d.openClaims)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: d.lateClaims > 0 ? COFICAB.danger : COFICAB.ok }}>{num(d.lateClaims)}
+                            {d.openClaims > 0 && <span className="font-normal" style={{ color: COFICAB.muted }}> · {num(share(d.lateClaims, d.openClaims), 0)} %</span>}
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums font-semibold">{num(o.openClaims)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: o.lateClaims > 0 ? COFICAB.danger : COFICAB.ok }}>{num(o.lateClaims)}
-                            {o.openClaims > 0 && <span className="font-normal" style={{ color: COFICAB.muted }}> · {num(share(o.lateClaims, o.openClaims), 0)} %</span>}
-                          </td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.noDeadline > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.noDeadline)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.pendingValidation > 0 ? COFICAB.warn : COFICAB.muted }}>{num(o.pendingValidation)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: d.noDeadline > 0 ? COFICAB.warn : COFICAB.muted }}>{num(d.noDeadline)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: d.pendingValidation > 0 ? COFICAB.warn : COFICAB.muted }}>{num(d.pendingValidation)}</td>
                           <td className="px-3 py-2 text-right tabular-nums font-semibold" style={{ color: TONE_COLOR[rateTone] }}>
                             {rate == null ? '—' : `${num(rate, 1)} %`}
                           </td>
-                          <td className="px-3 py-2 text-right tabular-nums">{num(o.ppm)}</td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: o.latePlans > 0 ? COFICAB.danger : COFICAB.muted }}>{o.organizationId ? num(o.latePlans) : '—'}</td>
-                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: COFICAB.muted }}>{o.organizationId ? num(o.employees) : '—'}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">{num(d.ppm)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: d.latePlans > 0 ? COFICAB.danger : COFICAB.muted }}>{num(d.latePlans)}</td>
+                          <td className="px-3 py-2 text-right tabular-nums" style={{ color: COFICAB.muted }}>{num(d.employees)}</td>
                         </tr>
                       );
                     })}
@@ -924,8 +914,8 @@ export default function OverviewPage() {
           {t('adminDashboard.footer.auditClaims')}
         </button>
       </footer>
-      {data?.simulatedData && (
-        <p className="text-[11px] mt-3 mb-0 text-center" style={{ color: COFICAB.muted }}>{t('overviewPage.simulated')}</p>
+      {data?.referenceDataLoaded && (
+        <p className="text-[11px] mt-3 mb-0 text-center" style={{ color: COFICAB.muted }}>{t('overviewPage.referenceNote')}</p>
       )}
     </div>
   );

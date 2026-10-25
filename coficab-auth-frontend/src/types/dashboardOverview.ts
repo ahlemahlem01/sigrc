@@ -148,6 +148,23 @@ export interface OverviewOrganization {
   latePlans: number;
 }
 
+export interface OverviewDepartment {
+  departmentId: string;
+  name: string;
+  organizationId: string;
+  employees: number;
+  openClaims: number;
+  lateClaims: number;
+  noDeadline: number;
+  pendingValidation: number;
+  onTimeCount: number;
+  onTimeBase: number;
+  onTimeRate: number | null;
+  ppm: number | null;
+  openPlans: number;
+  latePlans: number;
+}
+
 export interface PriorityClaim {
   id: string;
   title: string;
@@ -211,9 +228,10 @@ export interface OverviewData {
   problems: OverviewProblems;
   months: OverviewMonth[];
   watch: OverviewWatch;
-  simulatedData: boolean;
+  referenceDataLoaded: boolean;
   scope: OverviewScope;
   organizations: OverviewOrganization[];
+  departments: OverviewDepartment[];
   priority: PriorityClaim[];
   claimAging: OverviewAging;
   capa: OverviewCapa;

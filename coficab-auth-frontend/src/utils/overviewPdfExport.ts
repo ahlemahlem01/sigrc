@@ -94,15 +94,15 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
     { 0: 8 },
   );
 
-  // organizations
-  if (data.organizations.length > 1) {
+  // departments
+  if (data.departments.length > 1) {
     table(
       section(t('overviewPage.q0')),
-      [t('overviewPage.colOrganization'), t('overviewPage.colOpen'), t('overviewPage.colLate'), t('overviewPage.colNoDeadline'), t('overviewPage.colValidation'), t('overviewPage.colOnTime'), t('overviewPage.colPpm'), t('overviewPage.colLatePlans'), t('overviewPage.colEmployees')],
-      data.organizations.map((o) => [
-        o.organizationId ? o.name : t('overviewPage.unattributed'),
-        num(o.openClaims), `${num(o.lateClaims)} (${share(o.lateClaims, o.openClaims)})`, num(o.noDeadline), num(o.pendingValidation), pct(o.onTimeRate), num(o.ppm),
-        o.organizationId ? num(o.latePlans) : '-', o.organizationId ? num(o.employees) : '-',
+      [t('overviewPage.colDepartment'), t('overviewPage.colOpen'), t('overviewPage.colLate'), t('overviewPage.colNoDeadline'), t('overviewPage.colValidation'), t('overviewPage.colOnTime'), t('overviewPage.colPpm'), t('overviewPage.colLatePlans'), t('overviewPage.colEmployees')],
+      data.departments.map((d) => [
+        d.name,
+        num(d.openClaims), `${num(d.lateClaims)} (${share(d.lateClaims, d.openClaims)})`, num(d.noDeadline), num(d.pendingValidation), pct(d.onTimeRate), num(d.ppm),
+        num(d.latePlans), num(d.employees),
       ]),
     );
   }
@@ -198,12 +198,12 @@ export function buildOverviewPdf(data: OverviewData, t: Translate, locale: strin
     ],
   );
 
-  if (data.simulatedData) {
+  if (data.referenceDataLoaded) {
     const last = (doc as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable;
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8.5);
     doc.setTextColor(...GREY);
-    doc.text(t('overviewPage.simulated'), 14, (last?.finalY ?? y) + 8);
+    doc.text(t('overviewPage.referenceNote'), 14, (last?.finalY ?? y) + 8);
   }
 
   // footer on every page: what the document is, when the figures were taken, the page number

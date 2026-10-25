@@ -29,11 +29,15 @@ const sample = (): OverviewData => ({
     recurrence: { repeatedLots: 14, claimsWithLot: 413, topLots: [{ lot: 'LOT-1', claims: 3, defects: 1, clientId: 'CLIENT-A' }], recurringPairs: 37, topPairs: [{ defectType: 'Soudure défectueuse', productionLine: 'WR-04', claims: 74 }] },
     workload: { averagePerPerson: 20.5, people: 31, overloaded: 3, top: [{ name: 'Amine Ben Youssef', openClaims: 35, lateClaims: 25 }], leastLoaded: null },
   },
-  simulatedData: true,
+  referenceDataLoaded: true,
   scope: { organizationIds: [], organizationNames: [] },
   organizations: [
     { organizationId: 'o1', name: 'Coficab Group', employees: 20, openClaims: 561, lateClaims: 425, noDeadline: 136, pendingValidation: 82, onTimeCount: 1, onTimeBase: 2, onTimeRate: 77.6, ppm: 9681, openPlans: 3, latePlans: 0 },
     { organizationId: null, name: '', employees: 0, openClaims: 26, lateClaims: 6, noDeadline: 20, pendingValidation: 2, onTimeCount: 1, onTimeBase: 2, onTimeRate: 76.7, ppm: 16901, openPlans: 0, latePlans: 0 },
+  ],
+  departments: [
+    { departmentId: 'd1', organizationId: 'o1', name: 'Qualité', employees: 12, openClaims: 300, lateClaims: 10, noDeadline: 80, pendingValidation: 40, onTimeCount: 1, onTimeBase: 2, onTimeRate: 77.6, ppm: 9000, openPlans: 2, latePlans: 1 },
+    { departmentId: 'd2', organizationId: 'o1', name: 'Production', employees: 8, openClaims: 261, lateClaims: 15, noDeadline: 56, pendingValidation: 42, onTimeCount: 1, onTimeBase: 2, onTimeRate: 70, ppm: 9900, openPlans: 1, latePlans: 0 },
   ],
   claimAging: { under30: 100, from30To90: 250, over90: 209 },
   capa: {
@@ -63,15 +67,15 @@ describe('buildOverviewPdf', () => {
     expect(updated).toBeGreaterThanOrEqual(1 + doc.getNumberOfPages());   // under the title + the footer of every page
     ['overviewPage.first', 'overviewPage.q0', 'overviewPage.q1', 'overviewPage.q2', 'overviewPage.q3', 'overviewPage.q4', 'overviewPage.q5', 'overviewPage.agingTitle', 'overviewPage.qCapa', 'overviewPage.qClients']
       .forEach((key) => expect(pdf).toContain(key));
-    expect(pdf).toContain('overviewPage.simulated');                       // simulated data is flagged
+    expect(pdf).toContain('overviewPage.referenceNote');                       // reference dataset is flagged
     expect(pdf).toContain('Amine Ben Youssef');                            // the workload is in the report
     expect(pdf).toContain('YAZAKI');                                       // the customers table
     expect(pdf).not.toContain('CRITICAL');                                 // severities are translated, never printed raw
   });
 
-  it('does not list a single-organization comparison', () => {
+  it('does not list a single-department comparison', () => {
     const data = sample();
-    data.organizations = data.organizations.slice(0, 1);
+    data.departments = data.departments.slice(0, 1);
     expect(buildOverviewPdf(data, t, 'fr-FR').doc.output()).not.toContain('overviewPage.q0');
   });
 });

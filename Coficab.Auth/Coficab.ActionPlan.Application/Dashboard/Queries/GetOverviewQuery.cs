@@ -98,6 +98,23 @@ public record OverviewOrganizationDto(
     int OpenPlans,
     int LatePlans);
 
+/// <summary>One department of the followed organizations: the same figures as an organization row.</summary>
+public record OverviewDepartmentDto(
+    Guid DepartmentId,
+    string Name,
+    Guid OrganizationId,
+    int Employees,
+    int OpenClaims,
+    int LateClaims,
+    int NoDeadline,
+    int PendingValidation,
+    int OnTimeCount,
+    int OnTimeBase,
+    double? OnTimeRate,
+    double? Ppm,
+    int OpenPlans,
+    int LatePlans);
+
 /// <summary>An open claim that should be handled first: late, then the most severe, then the most overdue.</summary>
 public record PriorityClaimDto(
     Guid Id,
@@ -151,9 +168,10 @@ public record OverviewDto(
     OverviewProblemsDto Problems,
     IReadOnlyList<OverviewMonthDto> Months,
     OverviewWatchDto Watch,
-    bool SimulatedData,
+    bool ReferenceDataLoaded,
     OverviewScopeDto Scope,
     IReadOnlyList<OverviewOrganizationDto> Organizations,
+    IReadOnlyList<OverviewDepartmentDto> Departments,
     IReadOnlyList<PriorityClaimDto> Priority,
     OverviewAgingDto ClaimAging,
     OverviewCapaDto Capa,
@@ -468,8 +486,8 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             perPerson.Count < 2 ? null : Item(perPerson[^1].Id, perPerson[^1].Count, perPerson[^1].Late));
 
         var watch = new OverviewWatchDto(criticalDto, eightD, recurrence, workload);
-        var simulated = await _context.ImportBatches.AsNoTracking()
-            .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("SIMULATION"), ct);
+        var referenceLoaded = await _context.ImportBatches.AsNoTracking()
+            .AnyAsync(b => !b.IsArchived && b.FileName.StartsWith("REFERENCE-DATASET"), ct);
 
         // ── comparison between organizations ──
         // every organization of the group, with or without a department yet
@@ -515,6 +533,42 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
         var unattributed = Row(null, string.Empty);
         if (unattributed.OpenClaims > 0 || unattributed.OnTimeBase > 0) orgRows.Add(unattributed);
         var scopeIds = request.OrganizationIds ?? [];
+
+        // ── comparison between departments (of the followed organizations, or of all of them) ──
+        var departments = (await _context.Departments.AsNoTracking()
+                .Where(d => !d.IsArchived && (scopeIds.Count == 0 || scopeIds.Contains(d.OrganizationId)))
+                .Select(d => new { d.Id, d.Name, d.OrganizationId })
+                .ToListAsync(ct))
+            .ToList();
+        OverviewDepartmentDto DepartmentRow(Guid deptId, string name, Guid orgId)
+        {
+            var mine = everyLive.Where(c => attribution.DepartmentOf(c.AssignedToId, c.CreatedById) == deptId).ToList();
+            var myOpen = mine.Where(c => !IsClosed(c.StatusCode)).ToList();
+            var judged = mine.Where(c => c.CompletedAt != null && c.CompletedAt >= start && c.CompletedAt < today.AddDays(1) && c.IsOnTime != null).ToList();
+            var okCount = judged.Count(c => c.IsOnTime == true);
+            var withQty = mine.Where(c => c.DetectionDate >= start && c.DetectionDate < today.AddDays(1)
+                                          && c.ProducedQuantity is > 0 && c.DefectiveQuantity != null).ToList();
+            var produced = withQty.Sum(c => (double)c.ProducedQuantity!.Value);
+            var openPlans = allPlans.Where(p => p.DepartmentId == deptId).Where(PlanDeadlines.IsOpen).ToList();
+            return new OverviewDepartmentDto(
+                deptId, name, orgId,
+                attribution.EmployeesIn(deptId),
+                myOpen.Count,
+                myOpen.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)),
+                myOpen.Count(c => ClaimDeadlines.HasNoDeadline(c.Deadline)),
+                mine.Count(c => string.Equals(c.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)),
+                okCount,
+                judged.Count,
+                Rate(okCount, judged.Count),
+                produced <= 0 ? null : Math.Round(1_000_000.0 * withQty.Sum(c => (double)c.DefectiveQuantity!.Value) / produced),
+                openPlans.Count,
+                openPlans.Count(p => PlanDeadlines.OverdueDays(p, today) > 0));
+        }
+        var departmentRows = departments.Select(d => DepartmentRow(d.Id, d.Name, d.OrganizationId))
+            // a department with nobody in it and no claim says nothing: the comparison lists the ones that work
+            .Where(r => r.Employees > 0 || r.OpenClaims > 0 || r.OnTimeBase > 0)
+            .OrderByDescending(r => r.OpenClaims).ThenBy(r => r.Name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
         var scope = new OverviewScopeDto(scopeIds, orgs.Where(o => scopeIds.Contains(o.Id)).Select(o => o.Name).OrderBy(n => n, StringComparer.OrdinalIgnoreCase).ToList());
 
         var targets = await OverviewTargetsStore.LoadAsync(_context, _configuration, ct);
@@ -574,6 +628,6 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             .Take(8)
             .ToList();
 
-        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, simulated, scope, orgRows, priority, claimAging, capa, clients);
+        return new OverviewDto(days, now, targets, headline, actions, problems, monthly, watch, referenceLoaded, scope, orgRows, departmentRows, priority, claimAging, capa, clients);
     }
 }
