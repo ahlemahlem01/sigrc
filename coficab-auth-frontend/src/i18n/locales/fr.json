@@ -2458,6 +2458,7 @@
     "next": "Suivant : {{tool}}"
   },
   "createClaim": {
+    "takePhoto": "Prendre une photo",
     "cvTitle": "Suggestion de l’analyse d’image",
     "cvConfidence": "Confiance {{pct}} %",
     "cvUnsure": "Confiance faible : vérifiez le code avant de valider.",

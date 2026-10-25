@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, DragEvent } from 'react';
+import React, { useEffect, useMemo, useRef, useState, DragEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
@@ -27,12 +27,14 @@ import {
   Sparkles,
   FileText,
   Trash2,
-  UserRound
+  UserRound,
+  Camera
 } from 'lucide-react';
 import { ParetoImpactPreview } from './Pareto/ParetoImpactPreview';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
+import { appendCvProposal } from '../../utils/cvPayload';
 
 interface CreateClaimFormProps {
   onSuccess?: () => void; // called after a successful create (e.g. when rendered inside a modal); falls back to navigation + reload when absent
@@ -58,6 +60,8 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   // Proposal of the image model for the attached photo (active learning: the operator confirms or corrects it)
   const [cv, setCv] = useState<{ defectType: string; confidence: number; threshold: number } | null>(null);
+  // identifies the photo being analysed: the answer for a photo that was removed or replaced meanwhile is ignored
+  const photoRef = useRef<File | null>(null);
 
   const [formData, setFormData] = useState<Omit<CreateClaimCommand, 'createdById'>>({
     title: '',
@@ -132,10 +136,11 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setError(null);
     setSelectedFile(file);
     setCv(null);
+    photoRef.current = file;
     if (file.type.startsWith('image/') && accessToken) {
       qualityAnalysisService.suggestDefectFromImage(file, accessToken)
         .then((r) => {
-          if (r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7 });
+          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7 });
         })
         .catch(() => { /* no proposal: the operator picks the code himself */ });
     }
@@ -166,6 +171,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const removeFile = () => {
     setSelectedFile(null);
     setCv(null);
+    photoRef.current = null;
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -263,10 +269,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
     if (selectedFile) {
       payload.append('Attachment', selectedFile);
     }
-    if (cv) {
-      payload.append('CvPredictedDefectType', cv.defectType);
-      payload.append('CvConfidence', String(cv.confidence));
-    }
+    appendCvProposal(payload, cv);
 
     if (canAssign && assignedToId.trim()) {
       const label =
@@ -563,6 +566,13 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           color: #94a3b8;
         }
 
+        .pfe-camera-btn {
+          position: relative; display: none; align-items: center; justify-content: center; gap: 8px;
+          margin-top: 10px; height: 44px; border-radius: 10px; background: #1d4ed8; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+        }
+        .pfe-camera-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+        /* shown on touch devices (phone, tablet) only */
+        @media (pointer: coarse) { .pfe-camera-btn { display: flex; } }
         .pfe-cv-card {
           margin-top: 10px;
           padding: 12px 14px;
@@ -1019,6 +1029,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       <label>{t('createClaim.sourceProof')}</label>
                       
                       {!selectedFile ? (
+                        <>
                         <div 
                           className={`pfe-upload-zone ${isDragging ? 'drag-active' : ''}`}
                           onDragOver={handleDragOver}
@@ -1027,13 +1038,18 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                         >
                           <input
                             type="file"
-                            accept=".eml,.msg,.pdf,.png,.jpg,.jpeg"
+                            accept=".eml,.msg,.pdf,image/*"
                             onChange={handleFileChange}
                           />
                           <UploadCloud size={24} style={{ color: '#2563eb' }} />
                           <p><strong>{t('createClaim.dropStrong')}</strong> {t('createClaim.dropRest')}</p>
                           <span>{t('createClaim.dropFormats')}</span>
                         </div>
+                        <label className="pfe-camera-btn">
+                          <Camera size={16} /> {t('createClaim.takePhoto')}
+                          <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
+                        </label>
+                        </>
                       ) : (
                         <div className="pfe-file-card">
                           <div className="pfe-file-info">

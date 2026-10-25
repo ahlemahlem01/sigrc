@@ -28,3 +28,18 @@ retenu par l'opérateur diffère de la proposition ou que la confiance est sous 
 | Création sans photo | inchangée : pas de proposition, pas de fanion (test automatisé) |
 | Modèle d'image | non branché : `POST /api/QualityAnalysis/claims/cv-suggestion` répond `{ "available": false }` tant que `ComputerVision:ServiceUrl` est vide |
 | Tests automatisés | 62 (application) + 187 (API) verts ; typage du frontend propre |
+
+## 3. Capture de la photo sur tablette / téléphone d'atelier
+
+La solution de vision est pensée pour un usage **mobile / tablette en atelier** : l'opérateur photographie le câble endommagé avec
+l'appareil qu'il a en main. Elle ne dépend d'aucune caméra fixe ni d'une installation sur la ligne.
+
+| Contrôle | Résultat |
+|---|---|
+| Champ « Source / preuve » | accepte `image/*` en plus des e-mails et PDF ; limite de 10 Mo conservée |
+| Bouton « Prendre une photo » | `accept="image/*"` + `capture="environment"` : ouvre l'appareil photo arrière ; affiché sur écran tactile seulement, le champ fichier reste pour les e-mails et PDF |
+| Carte de proposition | inchangée (code, libellé i18n, confiance, « Confirmer ce code », « Corriger… ») |
+| Charge envoyée à la création | code proposé + confiance (`CvPredictedDefectType`, `CvConfidence`) ; le fanion `CvCorrectionLogged` est calculé par le serveur (non falsifiable par le client) ; test automatisé de la charge |
+| Service d'image absent (`available: false`) ou en erreur | aucune carte, saisie manuelle normale, rien ne bloque l'envoi |
+| Photo retirée ou remplacée avant la réponse | la réponse tardive est ignorée |
+| Tests automatisés | tests Jest (charge, libellés) verts ; typage du frontend propre |
