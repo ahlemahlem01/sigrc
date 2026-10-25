@@ -344,6 +344,41 @@ public class QualityAnalysisController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Defect code proposed for a photo of the damaged cable. The image model is a separate service (ComputerVision:ServiceUrl,
+    /// POST {url}/predict with the image, answering { defectType, confidence }). While none is configured the answer is
+    /// { available: false } and the form simply offers nothing: the operator picks the code himself.
+    /// </summary>
+    [HttpPost("claims/cv-suggestion")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SuggestDefectFromImage(IFormFile image, CancellationToken cancellationToken)
+    {
+        var url = _configuration["ComputerVision:ServiceUrl"];
+        if (string.IsNullOrWhiteSpace(url) || image is not { Length: > 0 })
+            return Ok(new { available = false });
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            await using var stream = image.OpenReadStream();
+            content.Add(new StreamContent(stream), "file", image.FileName);
+            var http = _httpClientFactory.CreateClient();
+            http.Timeout = TimeSpan.FromSeconds(10);
+            using var response = await http.PostAsync(url.TrimEnd('/') + "/predict", content, cancellationToken);
+            if (!response.IsSuccessStatusCode) return Ok(new { available = false });
+            var body = await response.Content.ReadFromJsonAsync<CvPredictionBody>(cancellationToken: cancellationToken);
+            if (body is null || string.IsNullOrWhiteSpace(body.DefectType)) return Ok(new { available = false });
+            var resolver = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(_db, cancellationToken);
+            return Ok(new { available = true, defectType = resolver.Resolve(body.DefectType.Trim()), confidence = Math.Clamp(body.Confidence, 0, 1),
+                            threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return Ok(new { available = false });
+        }
+    }
+
+    private sealed record CvPredictionBody(string? DefectType, double Confidence);
+
     [HttpPost("claims")]
     [Consumes("multipart/form-data")] // Indique à Swagger / OpenApi qu'il s'agit d'un upload de fichier
     public async Task<IActionResult> CreateClaim([FromForm] CreateClaimCommand command, CancellationToken cancellationToken)

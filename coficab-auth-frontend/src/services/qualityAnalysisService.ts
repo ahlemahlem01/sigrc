@@ -266,6 +266,18 @@ export const qualityAnalysisService = {
     return response.data;
   },
 
+  /** Defect code the image model proposes for a photo (available: false while no image model is configured). */
+  suggestDefectFromImage: async (image: File, token?: string) => {
+    const form = new FormData();
+    form.append('image', image);
+    const response = await api.post<{ available: boolean; defectType?: string; confidence?: number; threshold?: number }>(
+      '/claims/cv-suggestion',
+      form,
+      getAuthConfig(token, { 'Content-Type': 'multipart/form-data' })
+    );
+    return response.data;
+  },
+
   importClaimsCsv: async (file: File, token?: string) => {
     const form = new FormData();
     form.append('file', file);

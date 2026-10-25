@@ -2458,6 +2458,14 @@
     "next": "Suivant : {{tool}}"
   },
   "createClaim": {
+    "cvTitle": "Suggestion de l’analyse d’image",
+    "cvConfidence": "Confiance {{pct}} %",
+    "cvUnsure": "Confiance faible : vérifiez le code avant de valider.",
+    "cvConfirm": "Confirmer ce code",
+    "cvConfirmed": "Code confirmé",
+    "cvCorrect": "Corriger…",
+    "cvKept": "Code retenu : {{code}}.",
+    "cvLogged": "Votre correction est enregistrée pour améliorer le modèle.",
     "fileTooLarge": "Le fichier dépasse la limite de 10 Mo.",
     "step1Required": "Renseignez le titre, l’ID client et le type de défaut.",
     "step2Required": "Renseignez le numéro de lot et la date de détection.",

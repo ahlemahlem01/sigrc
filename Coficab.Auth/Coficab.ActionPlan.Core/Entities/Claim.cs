@@ -38,6 +38,11 @@ public class Claim
     public string? AttachmentName { get; set; }
     public string? AttachmentContentType { get; set; }
     public byte[]? AttachmentData { get; set; }
+    // Computer vision (active learning): what the image model proposed, how sure it was, and whether the operator's
+    // final defect code is a learning signal (different from the proposal, or the proposal was not confident enough).
+    public string? CvPredictedDefectType { get; set; }
+    public double? CvConfidence { get; set; }
+    public bool CvCorrectionLogged { get; set; }
     // Suivi et traçabilité
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedById { get; set; }

@@ -144,6 +144,10 @@ public static class DefectTypeSuggestions
         return usage;
     }
 
+    /// <summary>Generic test words ("test", "Test2") typed while trying the application: never suggested.</summary>
+    public static bool IsTestTerm(string value) =>
+        System.Text.RegularExpressions.Regex.IsMatch(value.Trim(), @"^tests?\s*[-_]?\s*\d*$", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
     public static async Task<List<string>> BuildAsync(IApplicationDbContext db, List<ReferenceItem> items, CancellationToken ct)
     {
         var resolver = DefectTypeResolver.From(items);
@@ -164,7 +168,7 @@ public static class DefectTypeSuggestions
 
         // Spellings that are the same words are offered once: the listed one, else the most used one.
         return counts
-            .Where(kv => kv.Key.Length > 0 && kv.Key.Length <= 100)
+            .Where(kv => kv.Key.Length > 0 && kv.Key.Length <= 100 && !IsTestTerm(kv.Key))
             .GroupBy(kv => DefectTypeResolver.Key(kv.Key))
             .Select(g => (
                 Name: g.OrderByDescending(kv => listed.Contains(kv.Key)).ThenByDescending(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal).First().Key,

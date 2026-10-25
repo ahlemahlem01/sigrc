@@ -26,4 +26,8 @@ public class CreateClaimCommand : IRequest<Guid>
     /// <summary>Optional assignee (Identity user id). When set, status becomes ASSIGNED.</summary>
     public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
+    /// <summary>Defect code proposed by the image model, when the operator attached a photo (null: no proposal).</summary>
+    public string? CvPredictedDefectType { get; set; }
+    /// <summary>Confidence of that proposal, between 0 and 1.</summary>
+    public double? CvConfidence { get; set; }
 }

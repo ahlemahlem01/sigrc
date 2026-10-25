@@ -2458,6 +2458,14 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "cvTitle": "Image analysis suggestion",
+    "cvConfidence": "Confidence {{pct}} %",
+    "cvUnsure": "Low confidence: check the code before validating.",
+    "cvConfirm": "Confirm this code",
+    "cvConfirmed": "Code confirmed",
+    "cvCorrect": "Correct…",
+    "cvKept": "Code kept: {{code}}.",
+    "cvLogged": "Your correction is recorded to improve the model.",
     "fileTooLarge": "The file exceeds the 10 MB limit.",
     "step1Required": "Please fill in the title, customer ID and defect type.",
     "step2Required": "Please provide the lot number and detection date.",

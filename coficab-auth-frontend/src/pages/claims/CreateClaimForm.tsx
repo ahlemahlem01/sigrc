@@ -56,6 +56,8 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
 
   // File Attachment State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // Proposal of the image model for the attached photo (active learning: the operator confirms or corrects it)
+  const [cv, setCv] = useState<{ defectType: string; confidence: number; threshold: number } | null>(null);
 
   const [formData, setFormData] = useState<Omit<CreateClaimCommand, 'createdById'>>({
     title: '',
@@ -129,6 +131,14 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     }
     setError(null);
     setSelectedFile(file);
+    setCv(null);
+    if (file.type.startsWith('image/') && accessToken) {
+      qualityAnalysisService.suggestDefectFromImage(file, accessToken)
+        .then((r) => {
+          if (r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7 });
+        })
+        .catch(() => { /* no proposal: the operator picks the code himself */ });
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -155,6 +165,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
 
   const removeFile = () => {
     setSelectedFile(null);
+    setCv(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLFormElement>) => {
@@ -251,6 +262,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
 
     if (selectedFile) {
       payload.append('Attachment', selectedFile);
+    }
+    if (cv) {
+      payload.append('CvPredictedDefectType', cv.defectType);
+      payload.append('CvConfidence', String(cv.confidence));
     }
 
     if (canAssign && assignedToId.trim()) {
@@ -548,6 +563,24 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           color: #94a3b8;
         }
 
+        .pfe-cv-card {
+          margin-top: 10px;
+          padding: 12px 14px;
+          border: 1px solid #bfdbfe;
+          background: #eff6ff;
+          border-radius: 8px;
+        }
+        .pfe-cv-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1e3a8a; }
+        .pfe-cv-conf { font-weight: 700; color: #15803d; }
+        .pfe-cv-conf.low { color: #b45309; }
+        .pfe-cv-code { margin: 6px 0; font-size: 15px; font-weight: 800; color: #0f172a; }
+        .pfe-cv-hint { margin: 6px 0 0; font-size: 11.5px; color: #475569; }
+        .pfe-cv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+        .pfe-cv-btn, .pfe-cv-select {
+          height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #93c5fd;
+          background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer;
+        }
+        .pfe-cv-btn.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
         .pfe-file-card {
           display: flex;
           align-items: center;
@@ -1012,6 +1045,43 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                           </button>
                         </div>
                       )}
+
+                      {cv && (() => {
+                        const accepted = formData.defectType.trim().toLowerCase() === cv.defectType.trim().toLowerCase();
+                        const unsure = cv.confidence < cv.threshold;
+                        return (
+                          <div className="pfe-cv-card" role="group" aria-label={t('createClaim.cvTitle')}>
+                            <div className="pfe-cv-head">
+                              <strong>{t('createClaim.cvTitle')}</strong>
+                              <span className={`pfe-cv-conf ${unsure ? 'low' : ''}`}>{t('createClaim.cvConfidence', { pct: Math.round(cv.confidence * 100) })}</span>
+                            </div>
+                            <div className="pfe-cv-code">{defectLabel(cv.defectType)}</div>
+                            {unsure && <p className="pfe-cv-hint">{t('createClaim.cvUnsure')}</p>}
+                            <div className="pfe-cv-actions">
+                              <button
+                                type="button"
+                                className={`pfe-cv-btn ${accepted ? 'on' : ''}`}
+                                onClick={() => setFormData((prev) => ({ ...prev, defectType: cv.defectType }))}
+                              >
+                                {accepted ? t('createClaim.cvConfirmed') : t('createClaim.cvConfirm')}
+                              </button>
+                              <select
+                                className="pfe-cv-select"
+                                aria-label={t('createClaim.cvCorrect')}
+                                value=""
+                                onChange={(e) => { if (e.target.value) setFormData((prev) => ({ ...prev, defectType: e.target.value })); }}
+                              >
+                                <option value="">{t('createClaim.cvCorrect')}</option>
+                                {referenceLists.defectTypes.map((d) => <option key={d} value={d}>{defectLabel(d)}</option>)}
+                              </select>
+                            </div>
+                            <p className="pfe-cv-hint">
+                              {t('createClaim.cvKept', { code: defectLabel(formData.defectType) || '—' })}
+                              {!accepted && formData.defectType.trim() ? ` ${t('createClaim.cvLogged')}` : ''}
+                            </p>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </>
                 )}

@@ -714,6 +714,16 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<string>("CreatedById")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<double?>("CvConfidence")
+                        .HasColumnType("float");
+
+                    b.Property<bool>("CvCorrectionLogged")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("CvPredictedDefectType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime?>("Deadline")
                         .HasColumnType("datetime2");
 

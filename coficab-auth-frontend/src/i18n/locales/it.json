@@ -2458,6 +2458,14 @@
     "next": "Successivo: {{tool}}"
   },
   "createClaim": {
+    "cvTitle": "Suggerimento dall’analisi dell’immagine",
+    "cvConfidence": "Confidenza {{pct}} %",
+    "cvUnsure": "Confidenza bassa: verifica il codice prima di convalidare.",
+    "cvConfirm": "Conferma questo codice",
+    "cvConfirmed": "Codice confermato",
+    "cvCorrect": "Correggi…",
+    "cvKept": "Codice scelto: {{code}}.",
+    "cvLogged": "La tua correzione viene registrata per migliorare il modello.",
     "fileTooLarge": "Il file supera il limite di 10 MB.",
     "step1Required": "Compila titolo, ID cliente e tipo di difetto.",
     "step2Required": "Inserisci il numero di lotto e la data di rilevamento.",

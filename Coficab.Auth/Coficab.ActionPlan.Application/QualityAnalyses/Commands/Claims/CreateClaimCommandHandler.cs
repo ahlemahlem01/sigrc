@@ -37,7 +37,10 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
         await StrictLists.EnsureAllowedAsync(_context, ReferenceListKeys.Client, request.ClientId, "Le client", cancellationToken);
 
         // Whatever spelling was typed, the claim stores the one kept by the administrator.
-        request.DefectType = (await DefectTypeResolver.LoadAsync(_context, cancellationToken)).Resolve(request.DefectType);
+        var resolver = await DefectTypeResolver.LoadAsync(_context, cancellationToken);
+        request.DefectType = resolver.Resolve(request.DefectType);
+        var hasProposal = !string.IsNullOrWhiteSpace(request.CvPredictedDefectType);
+        var learningSignal = CvFeedback.ShouldLog(request.CvPredictedDefectType, request.CvConfidence, request.DefectType, resolver);
 
         var claimId = Guid.NewGuid();
         var creatorIdString = request.CreatedById != Guid.Empty
@@ -117,6 +120,9 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
             EstimateMethod = estimate?.Method,
             EstimateSampleSize = estimate?.SampleSize,
             EstimatedAt = estimate != null ? DateTime.UtcNow : null,
+            CvPredictedDefectType = hasProposal ? resolver.Resolve(request.CvPredictedDefectType!.Trim()) : null,
+            CvConfidence = hasProposal ? Math.Clamp(request.CvConfidence ?? 0, 0, 1) : null,
+            CvCorrectionLogged = learningSignal,
         };
 
         var fiveWhy = new FiveWhyAnalysis
@@ -134,6 +140,9 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
         _context.FiveWhyAnalyses.Add(fiveWhy);
         await _context.SaveChangesAsync(cancellationToken);
         await ClaimAudit.RecordAsync(_context, claim.Id, "claim_created", claim.CreatedById, claim.Title, cancellationToken);
+        if (learningSignal)
+            await ClaimAudit.RecordAsync(_context, claim.Id, "cv_correction_logged", claim.CreatedById,
+                $"{claim.CvPredictedDefectType} ({Math.Round((claim.CvConfidence ?? 0) * 100)} %) -> {claim.DefectType}", cancellationToken);
 
         try { await _semanticSearch.UpsertClaimAsync(claim, cancellationToken); }
         catch { /* embedding is best-effort */ }
