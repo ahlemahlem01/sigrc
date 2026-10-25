@@ -1,9 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
-internal static class SeedIds
+internal static class ReferenceIds
 {
     public static Guid For(string key)
     {

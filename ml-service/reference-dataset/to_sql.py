@@ -1,11 +1,11 @@
-"""Turns simulated_claims.csv into a SQL script that loads the claims into the application database as ONE import batch.
+"""Turns reference_claims.csv into a SQL script that loads the claims into the application database as ONE import batch.
 
-The batch is named "SIMULATION ..." so the data can always be told apart, and, being an import batch, it can be
+The batch is named "REFERENCE-DATASET ..." so the data can always be told apart, and, being an import batch, it can be
 archived and restored as a whole from the application (nothing is ever deleted). The script refuses to run twice.
 
 Usage:
-  python to_sql.py --claims simulated_claims.csv --out load_simulation.sql [--batch-name "SIMULATION (seed 7)"]
-  sqlcmd -f 65001 -d <database> -i load_simulation.sql
+  python to_sql.py --claims reference_claims.csv --out load_reference_dataset.sql [--batch-name "REFERENCE-DATASET (seed 7)"]
+  sqlcmd -f 65001 -d <database> -i load_reference_dataset.sql
 """
 from __future__ import annotations
 
@@ -33,15 +33,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--claims", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--batch-name", default="SIMULATION - donnees simulees (seed 7)")
+    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference (seed 7)")
     a = ap.parse_args()
 
     df = pd.read_csv(a.claims, dtype=str, keep_default_na=False)
-    batch_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "sigrc-simulation/" + a.batch_name)).upper()
+    batch_id = str(uuid.uuid5(uuid.NAMESPACE_URL, "sigrc-reference-dataset/" + a.batch_name)).upper()
     out = [
         "SET NOCOUNT ON; SET XACT_ABORT ON;",
         f"IF EXISTS (SELECT 1 FROM actionplan.ImportBatches WHERE FileName = {q(a.batch_name)}) "
-        "THROW 50000, 'This simulation batch is already loaded.', 1;",
+        "THROW 50000, 'This reference dataset batch is already loaded.', 1;",
         "BEGIN TRANSACTION;",
     ]
     columns = ("Id,Title,ClientId,DefectType,Severity,LotNumber,Description,StatusCode,AssignedToId,AssignedToName,"
@@ -62,18 +62,18 @@ def main() -> None:
                     q(f"Defaut {r['defect_type'].lower()} detecte sur la ligne {r['production_line']} (donnees simulees)."),
                     "N'CLOTUREE'", q(r["assigned_to_id"]), q(r["assigned_to_name"]), ts(r["assigned_at"]),
                     ts(r["deadline"] or None), ts(r["completed_at"]), on_time, ts(r["detection_date"]), ts(r["created_at"]),
-                    "N'simulation'", "0", q(r["production_line"]), q(r["shift"]), r["produced_quantity"], r["defective_quantity"],
+                    "N'reference-dataset'", "0", q(r["production_line"]), q(r["shift"]), r["produced_quantity"], r["defective_quantity"],
                 ]) + ")")
         out.append(f"INSERT INTO actionplan.Claims ({columns}) VALUES\n" + ",\n".join(values) + ";")
 
     out.append(
         "INSERT INTO actionplan.ImportBatches (Id,Kind,FileName,CreatedAt,CreatedBy,ClaimCount,CauseCount,IsArchived) VALUES "
-        f"('{batch_id}', N'claims-history', {q(a.batch_name)}, SYSUTCDATETIME(), N'simulation', {len(df)}, 0, 0);")
+        f"('{batch_id}', N'claims-history', {q(a.batch_name)}, SYSUTCDATETIME(), N'reference-dataset', {len(df)}, 0, 0);")
     for start in range(0, len(claim_ids), 1000):
         chunk = claim_ids[start:start + 1000]
         out.append("INSERT INTO actionplan.ImportBatchClaims (BatchId,ClaimId) VALUES\n"
                    + ",\n".join(f"('{batch_id}','{c}')" for c in chunk) + ";")
-    out += ["COMMIT TRANSACTION;", f"SELECT 'loaded {len(df)} simulated claims in batch {batch_id}';"]
+    out += ["COMMIT TRANSACTION;", f"SELECT 'loaded {len(df)} reference claims in batch {batch_id}';"]
     with open(a.out, "w", encoding="utf-8") as f:
         f.write("\n".join(out) + "\n")
     print(f"{len(df)} claims -> {a.out} (batch {batch_id})")

@@ -65,7 +65,7 @@ function resolveBadgeDefId(b: {
     }
   }
 
-  // Common EN aliases returned by backend / older seeds
+  // Common EN aliases returned by backend / older versions
   const aliases: Record<string, string> = {
     firstplan: 'first-plan',
     premierplan: 'first-plan',

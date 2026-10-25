@@ -5,9 +5,9 @@ using Coficab.ActionPlan.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using ActionPlanEntity = Coficab.ActionPlan.Core.Entities.ActionPlan;
 
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
-internal static class TestDataValidator
+internal static class ReferenceDataValidator
 {
     public sealed record Report(int IssuesFound, int IssuesFixed, IReadOnlyList<string> Messages);
 
@@ -25,13 +25,13 @@ internal static class TestDataValidator
 
         var claims = await ap.Claims
             .IgnoreQueryFilters()
-            .Where(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim "))
+            .Where(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim "))
             .ToListAsync(ct);
 
         var plans = await ap.ActionPlans
             .IgnoreQueryFilters()
             .Include(p => p.PlanActions)
-            .Where(p => p.Title.StartsWith(TestDataMarkers.Tag + " Plan ")
+            .Where(p => p.Title.StartsWith(ReferenceDataMarkers.Tag + " Plan ")
                         && !p.Title.Contains(" / Action "))
             .ToListAsync(ct);
 
@@ -41,7 +41,7 @@ internal static class TestDataValidator
         // Orphan plan actions belonging to testdata titles but missing parent
         var orphanActions = await ap.PlanActions
             .IgnoreQueryFilters()
-            .Where(a => a.Title.StartsWith(TestDataMarkers.Tag)
+            .Where(a => a.Title.StartsWith(ReferenceDataMarkers.Tag)
                         && a.Title.Contains(" / Action ")
                         && !planIds.Contains(a.ActionPlanId))
             .ToListAsync(ct);
@@ -92,7 +92,7 @@ internal static class TestDataValidator
                     found++;
                     var uid = seedUserIds[Math.Abs(claim.Title.GetHashCode()) % seedUserIds.Count];
                     claim.AssignedToId = uid;
-                    claim.AssignedToName ??= "Seed Employee";
+                    claim.AssignedToName ??= "Reference Employee";
                     claim.AssignedAt ??= claim.CreatedAt.AddHours(1);
                     messages.Add($"FIX claim {claim.Title}: closed without assignee");
                     fixedCount++;
@@ -133,7 +133,7 @@ internal static class TestDataValidator
                 if (!string.IsNullOrWhiteSpace(claim.AssignedToId) && string.IsNullOrWhiteSpace(claim.AssignedToName))
                 {
                     found++;
-                    claim.AssignedToName = "Seed Employee";
+                    claim.AssignedToName = "Reference Employee";
                     messages.Add($"FIX claim {claim.Title}: missing AssignedToName");
                     fixedCount++;
                 }
@@ -264,9 +264,9 @@ internal static class TestDataValidator
                 found++;
                 var action = new PlanAction
                 {
-                    Id = SeedIds.PlanAction(ParsePlanIndex(plan.Title), 1),
-                    Title = TestDataMarkers.PlanActionTitle(ParsePlanIndex(plan.Title), 1),
-                    Description = "Auto-repaired missing action." + TestDataMarkers.DescriptionSuffix,
+                    Id = ReferenceIds.PlanAction(ParsePlanIndex(plan.Title), 1),
+                    Title = ReferenceDataMarkers.PlanActionTitle(ParsePlanIndex(plan.Title), 1),
+                    Description = "Auto-repaired missing action." + ReferenceDataMarkers.DescriptionSuffix,
                     Progress = closed ? ActionProgress.Hundred : ActionProgress.Fifty,
                     Priority = 2,
                     AssignedToId = plan.AssignedToId ?? plan.OwnerId,
@@ -274,7 +274,7 @@ internal static class TestDataValidator
                     Order = 1,
                     Status = closed ? ActionPlanStatus.Closed : ActionPlanStatus.Ongoing,
                     CreatedAt = plan.CreatedAt.AddHours(1),
-                    CreatedBy = TestDataMarkers.CreatedBy,
+                    CreatedBy = ReferenceDataMarkers.CreatedBy,
                     Deadline = plan.Deadline,
                 };
                 ap.PlanActions.Add(action);
@@ -304,7 +304,7 @@ internal static class TestDataValidator
 
         // Profiles without Poste/Equipe for seed users
         var profiles = await ap.UserProfiles
-            .Where(p => p.Email.EndsWith("@" + TestDataMarkers.EmailDomain))
+            .Where(p => p.Email.EndsWith("@" + ReferenceDataMarkers.EmailDomain))
             .ToListAsync(ct);
         foreach (var profile in profiles)
         {
@@ -340,7 +340,7 @@ internal static class TestDataValidator
 
     private static int ParsePlanIndex(string title)
     {
-        // "[TESTDATA] Plan 012"
+        // "[REFDATA] Plan 012"
         var parts = title.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length >= 3 && int.TryParse(parts[2], out var n) && n >= 1) return n;
         return 1;

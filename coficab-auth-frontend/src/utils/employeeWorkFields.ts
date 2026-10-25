@@ -1,4 +1,4 @@
-/** Valeurs métier cohérentes avec le rôle / département (fallback / seed). */
+/** Valeurs métier cohérentes avec le rôle / département (fallback). */
 export function inferWorkFieldsFromDepartment(
   department?: string | null,
   role?: string | null,

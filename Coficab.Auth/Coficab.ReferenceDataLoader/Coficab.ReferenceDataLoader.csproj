@@ -5,7 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <RootNamespace>Coficab.TestDataSeeder</RootNamespace>
+    <RootNamespace>Coficab.ReferenceDataLoader</RootNamespace>
     <NoWarn>NU1608;NU1903</NoWarn>
     <UserSecretsId>60a51410-68d9-4cec-b844-9ee2eb1274a6</UserSecretsId>
   </PropertyGroup>

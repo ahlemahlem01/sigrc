@@ -7,9 +7,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ActionPlanEntity = Coficab.ActionPlan.Core.Entities.ActionPlan;
 
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
-internal sealed class TestDataSeedRunner
+internal sealed class ReferenceDataRunner
 {
     private readonly AppDbContext _auth;
     private readonly ActionPlanDbContext _ap;
@@ -21,7 +21,7 @@ internal sealed class TestDataSeedRunner
     private readonly int _planCount;
     private readonly Random _rng = new(20260907);
 
-    public TestDataSeedRunner(
+    public ReferenceDataRunner(
         AppDbContext auth,
         ActionPlanDbContext ap,
         UserManager<ApplicationUser> users,
@@ -43,8 +43,8 @@ internal sealed class TestDataSeedRunner
 
     public async Task<int> RunAsync(CancellationToken ct)
     {
-        Console.WriteLine("=== Coficab Test Data Seeder ===");
-        Console.WriteLine($"Marker: {TestDataMarkers.Tag}");
+        Console.WriteLine("=== Coficab Reference Data Loader ===");
+        Console.WriteLine($"Marker: {ReferenceDataMarkers.Tag}");
         Console.WriteLine($"Targets: {_employeeCount} employees, {_claimCount} claims, {_planCount} action plans");
         Console.WriteLine();
 
@@ -55,7 +55,7 @@ internal sealed class TestDataSeedRunner
 
         Console.WriteLine();
         Console.WriteLine("--- Validation / auto-fix ---");
-        var report = await TestDataValidator.ValidateAndFixAsync(_ap, employees.Select(e => e.UserId).ToList(), ct);
+        var report = await ReferenceDataValidator.ValidateAndFixAsync(_ap, employees.Select(e => e.UserId).ToList(), ct);
         Console.WriteLine($"Issues found: {report.IssuesFound}");
         Console.WriteLine($"Issues fixed: {report.IssuesFixed}");
         foreach (var msg in report.Messages.Take(40))
@@ -64,7 +64,7 @@ internal sealed class TestDataSeedRunner
             Console.WriteLine($"  ... {report.Messages.Count - 40} more");
 
         // Second pass: must be clean
-        var report2 = await TestDataValidator.ValidateAndFixAsync(_ap, employees.Select(e => e.UserId).ToList(), ct);
+        var report2 = await ReferenceDataValidator.ValidateAndFixAsync(_ap, employees.Select(e => e.UserId).ToList(), ct);
         if (report2.IssuesFound > 0)
         {
             Console.WriteLine("ERROR: residual inconsistencies after auto-fix:");
@@ -75,9 +75,9 @@ internal sealed class TestDataSeedRunner
 
         await PrintSummaryAsync(ct);
 
-        var empCount = await _ap.UserProfiles.CountAsync(p => p.Email.EndsWith("@" + TestDataMarkers.EmailDomain), ct);
-        var claimCount = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim "), ct);
-        var planCount = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(TestDataMarkers.Tag + " Plan ") && !p.Title.Contains(" / Action "), ct);
+        var empCount = await _ap.UserProfiles.CountAsync(p => p.Email.EndsWith("@" + ReferenceDataMarkers.EmailDomain), ct);
+        var claimCount = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim "), ct);
+        var planCount = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(ReferenceDataMarkers.Tag + " Plan ") && !p.Title.Contains(" / Action "), ct);
         if (empCount != _employeeCount || claimCount != _claimCount || planCount != _planCount)
         {
             Console.WriteLine($"ERROR: count mismatch employees={empCount}/{_employeeCount} claims={claimCount}/{_claimCount} plans={planCount}/{_planCount}");
@@ -85,38 +85,38 @@ internal sealed class TestDataSeedRunner
         }
 
         Console.WriteLine();
-        Console.WriteLine("Seed completed successfully (idempotent).");
+        Console.WriteLine("Load completed successfully (idempotent).");
         return 0;
     }
 
     private async Task<(Organization Org, Dictionary<string, Department> Depts)> EnsureOrgAndDepartmentsAsync(CancellationToken ct)
     {
         var org = await _ap.Organizations.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(o => o.Id == SeedIds.Org() || o.Name == TestDataMarkers.OrgName, ct);
+            .FirstOrDefaultAsync(o => o.Id == ReferenceIds.Org() || o.Name == ReferenceDataMarkers.OrgName, ct);
         if (org is null)
         {
             org = new Organization
             {
-                Id = SeedIds.Org(),
-                Name = TestDataMarkers.OrgName,
+                Id = ReferenceIds.Org(),
+                Name = ReferenceDataMarkers.OrgName,
                 Type = OrganizationType.Local,
                 CreatedAt = DateTime.UtcNow.AddMonths(-7),
-                CreatedBy = TestDataMarkers.CreatedBy,
+                CreatedBy = ReferenceDataMarkers.CreatedBy,
             };
             _ap.Organizations.Add(org);
             Console.WriteLine($"Created organization {org.Name}");
         }
         else
         {
-            org.Name = TestDataMarkers.OrgName;
-            org.CreatedBy = TestDataMarkers.CreatedBy;
+            org.Name = ReferenceDataMarkers.OrgName;
+            org.CreatedBy = ReferenceDataMarkers.CreatedBy;
             Console.WriteLine($"Organization already present ({org.Name})");
         }
 
         var map = new Dictionary<string, Department>(StringComparer.OrdinalIgnoreCase);
-        foreach (var bp in SeedCatalog.Departments)
+        foreach (var bp in ReferenceCatalog.Departments)
         {
-            var id = SeedIds.Dept(bp.Code);
+            var id = ReferenceIds.Dept(bp.Code);
             var dept = await _ap.Departments.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(d => d.Id == id || d.Code == bp.Code, ct);
             if (dept is null)
@@ -126,10 +126,10 @@ internal sealed class TestDataSeedRunner
                     Id = id,
                     Name = bp.Name,
                     Code = bp.Code,
-                    Description = bp.Description + TestDataMarkers.DescriptionSuffix,
+                    Description = bp.Description + ReferenceDataMarkers.DescriptionSuffix,
                     OrganizationId = org.Id,
                     CreatedAt = DateTime.UtcNow.AddMonths(-7),
-                    CreatedBy = TestDataMarkers.CreatedBy,
+                    CreatedBy = ReferenceDataMarkers.CreatedBy,
                 };
                 _ap.Departments.Add(dept);
                 Console.WriteLine($"  Created department {bp.Code}");
@@ -138,9 +138,9 @@ internal sealed class TestDataSeedRunner
             {
                 dept.Name = bp.Name;
                 dept.Code = bp.Code;
-                dept.Description = bp.Description + TestDataMarkers.DescriptionSuffix;
+                dept.Description = bp.Description + ReferenceDataMarkers.DescriptionSuffix;
                 dept.OrganizationId = org.Id;
-                dept.CreatedBy = TestDataMarkers.CreatedBy;
+                dept.CreatedBy = ReferenceDataMarkers.CreatedBy;
             }
             map[bp.Code] = dept;
         }
@@ -149,22 +149,22 @@ internal sealed class TestDataSeedRunner
         return (org, map);
     }
 
-    private sealed record SeedEmployee(string UserId, string Email, string FullName, string DepartmentCode, Guid DepartmentId);
+    private sealed record ReferenceEmployee(string UserId, string Email, string FullName, string DepartmentCode, Guid DepartmentId);
 
-    private async Task<List<SeedEmployee>> EnsureEmployeesAsync(
+    private async Task<List<ReferenceEmployee>> EnsureEmployeesAsync(
         Dictionary<string, Department> depts,
         CancellationToken ct)
     {
         if (!await _roles.RoleExistsAsync("user"))
             await _roles.CreateAsync(new IdentityRole("user"));
 
-        var result = new List<SeedEmployee>();
-        var count = Math.Min(_employeeCount, SeedCatalog.Employees.Length);
+        var result = new List<ReferenceEmployee>();
+        var count = Math.Min(_employeeCount, ReferenceCatalog.Employees.Length);
 
         for (var i = 0; i < count; i++)
         {
-            var bp = SeedCatalog.Employees[i];
-            var email = TestDataMarkers.EmployeeEmail(i + 1);
+            var bp = ReferenceCatalog.Employees[i];
+            var email = ReferenceDataMarkers.EmployeeEmail(i + 1);
             var user = await _users.FindByEmailAsync(email);
             if (user is null)
             {
@@ -176,7 +176,7 @@ internal sealed class TestDataSeedRunner
                     FullName = bp.FullName,
                     Department = bp.DepartmentName,
                     DepartmentId = depts[bp.DepartmentCode].Id,
-                    OrganizationId = SeedIds.Org(),
+                    OrganizationId = ReferenceIds.Org(),
                 };
                 var create = await _users.CreateAsync(user, _password);
                 if (!create.Succeeded)
@@ -189,7 +189,7 @@ internal sealed class TestDataSeedRunner
                 user.FullName = bp.FullName;
                 user.Department = bp.DepartmentName;
                 user.DepartmentId = depts[bp.DepartmentCode].Id;
-                user.OrganizationId = SeedIds.Org();
+                user.OrganizationId = ReferenceIds.Org();
                 user.EmailConfirmed = true;
                 await _users.UpdateAsync(user);
                 if (!await _users.IsInRoleAsync(user, "user"))
@@ -206,7 +206,7 @@ internal sealed class TestDataSeedRunner
             {
                 profile = new UserProfile
                 {
-                    Id = SeedIds.Profile(user.Id),
+                    Id = ReferenceIds.Profile(user.Id),
                     UserId = user.Id,
                     Name = bp.FullName,
                     Email = email,
@@ -240,7 +240,7 @@ internal sealed class TestDataSeedRunner
                 profile.UpdatedAt = DateTime.UtcNow;
             }
 
-            result.Add(new SeedEmployee(user.Id, email, bp.FullName, bp.DepartmentCode, depts[bp.DepartmentCode].Id));
+            result.Add(new ReferenceEmployee(user.Id, email, bp.FullName, bp.DepartmentCode, depts[bp.DepartmentCode].Id));
         }
 
         await _ap.SaveChangesAsync(ct);
@@ -248,7 +248,7 @@ internal sealed class TestDataSeedRunner
         return result;
     }
 
-    private async Task<List<Claim>> EnsureClaimsAsync(List<SeedEmployee> employees, CancellationToken ct)
+    private async Task<List<Claim>> EnsureClaimsAsync(List<ReferenceEmployee> employees, CancellationToken ct)
     {
         var now = DateTime.UtcNow;
         var windowStart = now.AddMonths(-6);
@@ -256,8 +256,8 @@ internal sealed class TestDataSeedRunner
 
         for (var i = 1; i <= _claimCount; i++)
         {
-            var id = SeedIds.Claim(i);
-            var title = TestDataMarkers.ClaimTitle(i);
+            var id = ReferenceIds.Claim(i);
+            var title = ReferenceDataMarkers.ClaimTitle(i);
             var claim = await _ap.Claims.IgnoreQueryFilters()
                 .FirstOrDefaultAsync(c => c.Id == id || c.Title == title, ct);
             var isNew = claim is null;
@@ -268,12 +268,12 @@ internal sealed class TestDataSeedRunner
             var createdAt = windowStart.AddDays(_rng.Next(0, 180)).AddHours(_rng.Next(0, 23));
             if (createdAt > now) createdAt = now.AddDays(-1);
 
-            var status = SeedCatalog.PickWeighted(_rng, SeedCatalog.ClaimStatusWeights);
-            var severity = SeedCatalog.Severities[_rng.Next(SeedCatalog.Severities.Length)];
-            var client = SeedCatalog.Clients[_rng.Next(SeedCatalog.Clients.Length)];
-            var defect = SeedCatalog.DefectTypes[_rng.Next(SeedCatalog.DefectTypes.Length)];
-            var line = SeedCatalog.Lines[_rng.Next(SeedCatalog.Lines.Length)];
-            var team = SeedCatalog.Teams[_rng.Next(SeedCatalog.Teams.Length)];
+            var status = ReferenceCatalog.PickWeighted(_rng, ReferenceCatalog.ClaimStatusWeights);
+            var severity = ReferenceCatalog.Severities[_rng.Next(ReferenceCatalog.Severities.Length)];
+            var client = ReferenceCatalog.Clients[_rng.Next(ReferenceCatalog.Clients.Length)];
+            var defect = ReferenceCatalog.DefectTypes[_rng.Next(ReferenceCatalog.DefectTypes.Length)];
+            var line = ReferenceCatalog.Lines[_rng.Next(ReferenceCatalog.Lines.Length)];
+            var team = ReferenceCatalog.Teams[_rng.Next(ReferenceCatalog.Teams.Length)];
 
             var needsAssignee = status is not ("DRAFT" or "OUVERTE");
             var closed = status is "CLOTUREE" or "CLOSED";
@@ -325,7 +325,7 @@ internal sealed class TestDataSeedRunner
             claim.Severity = severity;
             claim.LotNumber = $"LOT-TD-{i:0000}";
             claim.SerialNumber = $"SN-TD-{i:000000}";
-            claim.Description = $"Reclamation de test #{i} — {defect} chez {client}.{TestDataMarkers.DescriptionSuffix}";
+            claim.Description = $"Reclamation de test #{i} — {defect} chez {client}.{ReferenceDataMarkers.DescriptionSuffix}";
             claim.StatusCode = status;
             claim.DetectionDate = createdAt.AddHours(-_rng.Next(1, 36));
             claim.CreatedAt = createdAt;
@@ -377,7 +377,7 @@ internal sealed class TestDataSeedRunner
             // FiveWhy for non-draft (matches create flow expectations)
             if (status != "DRAFT")
             {
-                var fwId = SeedIds.FiveWhy(i);
+                var fwId = ReferenceIds.FiveWhy(i);
                 var fw = await _ap.FiveWhyAnalyses.IgnoreQueryFilters()
                     .FirstOrDefaultAsync(f => f.Id == fwId || f.ClaimId == claim.Id, ct);
                 if (fw is null)
@@ -389,7 +389,7 @@ internal sealed class TestDataSeedRunner
                         ProblemStatement = $"Probleme (testdata) : {defect}",
                         StatusCode = status is "VALIDATED" or "CLOTUREE" ? "VALIDATED" : status is "PENDING_VALIDATION" ? "PENDING_VALIDATION" : "DRAFT",
                         CreatedAt = createdAt.AddHours(4),
-                        CreatedBy = TestDataMarkers.CreatedBy,
+                        CreatedBy = ReferenceDataMarkers.CreatedBy,
                     };
                     if (fw.StatusCode == "VALIDATED")
                     {
@@ -405,7 +405,7 @@ internal sealed class TestDataSeedRunner
                 {
                     fw.ClaimId = claim.Id;
                     fw.ProblemStatement = $"Probleme (testdata) : {defect}";
-                    fw.CreatedBy = TestDataMarkers.CreatedBy;
+                    fw.CreatedBy = ReferenceDataMarkers.CreatedBy;
                 }
             }
         }
@@ -416,7 +416,7 @@ internal sealed class TestDataSeedRunner
     }
 
     private async Task EnsureActionPlansAsync(
-        List<SeedEmployee> employees,
+        List<ReferenceEmployee> employees,
         List<Claim> claims,
         Organization org,
         Dictionary<string, Department> depts,
@@ -430,8 +430,8 @@ internal sealed class TestDataSeedRunner
 
         for (var i = 1; i <= _planCount; i++)
         {
-            var id = SeedIds.Plan(i);
-            var title = TestDataMarkers.PlanTitle(i);
+            var id = ReferenceIds.Plan(i);
+            var title = ReferenceDataMarkers.PlanTitle(i);
             var plan = await _ap.ActionPlans
                 .IgnoreQueryFilters()
                 .Include(p => p.PlanActions)
@@ -492,7 +492,7 @@ internal sealed class TestDataSeedRunner
                 claimId = closableClaims[(i / 2) % closableClaims.Count].Id;
 
             plan.Title = title;
-            plan.Description = $"Plan d action de test #{i}.{TestDataMarkers.DescriptionSuffix}";
+            plan.Description = $"Plan d action de test #{i}.{ReferenceDataMarkers.DescriptionSuffix}";
             plan.Type = type;
             plan.Status = status;
             plan.OwnerId = owner.UserId;
@@ -509,7 +509,7 @@ internal sealed class TestDataSeedRunner
                 : null;
             plan.Progress = progress;
             plan.CreatedAt = createdAt;
-            plan.CreatedBy = TestDataMarkers.CreatedBy;
+            plan.CreatedBy = ReferenceDataMarkers.CreatedBy;
             plan.UpdatedAt = plan.CompletedAt ?? createdAt.AddDays(2);
             plan.UpdatedBy = assignee.UserId;
             plan.IsArchived = false;
@@ -525,7 +525,7 @@ internal sealed class TestDataSeedRunner
 
             // Replace plan actions for idempotent shape (2..4)
             var existingActions = await _ap.PlanActions.IgnoreQueryFilters()
-                .Where(a => a.ActionPlanId == plan.Id || a.Title.StartsWith(TestDataMarkers.PlanTitle(i) + " / Action "))
+                .Where(a => a.ActionPlanId == plan.Id || a.Title.StartsWith(ReferenceDataMarkers.PlanTitle(i) + " / Action "))
                 .ToListAsync(ct);
             if (existingActions.Count > 0)
                 _ap.PlanActions.RemoveRange(existingActions);
@@ -541,9 +541,9 @@ internal sealed class TestDataSeedRunner
 
                 _ap.PlanActions.Add(new PlanAction
                 {
-                    Id = SeedIds.PlanAction(i, a),
-                    Title = TestDataMarkers.PlanActionTitle(i, a),
-                    Description = $"Action {a} du plan {i}.{TestDataMarkers.DescriptionSuffix}",
+                    Id = ReferenceIds.PlanAction(i, a),
+                    Title = ReferenceDataMarkers.PlanActionTitle(i, a),
+                    Description = $"Action {a} du plan {i}.{ReferenceDataMarkers.DescriptionSuffix}",
                     Progress = actionProgress,
                     Deadline = deadline?.AddDays(-a),
                     Priority = 1 + (a % 3),
@@ -556,7 +556,7 @@ internal sealed class TestDataSeedRunner
                             ? ActionPlanStatus.Created
                             : ActionPlanStatus.Ongoing,
                     CreatedAt = createdAt.AddHours(a),
-                    CreatedBy = TestDataMarkers.CreatedBy,
+                    CreatedBy = ReferenceDataMarkers.CreatedBy,
                     UpdatedAt = createdAt.AddDays(a),
                     UpdatedBy = assignee.UserId,
                 });
@@ -569,21 +569,21 @@ internal sealed class TestDataSeedRunner
 
     private async Task PrintSummaryAsync(CancellationToken ct)
     {
-        var emp = await _ap.UserProfiles.CountAsync(p => p.Email.EndsWith("@" + TestDataMarkers.EmailDomain), ct);
-        var claims = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim "), ct);
-        var plans = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(TestDataMarkers.Tag + " Plan ") && !p.Title.Contains(" / Action "), ct);
-        var actions = await _ap.PlanActions.IgnoreQueryFilters().CountAsync(a => a.Title.StartsWith(TestDataMarkers.Tag) && a.Title.Contains(" / Action "), ct);
-        var closedClaims = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE", ct);
-        var closedOnTime = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE" && c.IsOnTime == true, ct);
-        var closedLate = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(TestDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE" && c.IsOnTime == false, ct);
-        var closedPlans = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(TestDataMarkers.Tag + " Plan ") && p.Status == ActionPlanStatus.Closed, ct);
+        var emp = await _ap.UserProfiles.CountAsync(p => p.Email.EndsWith("@" + ReferenceDataMarkers.EmailDomain), ct);
+        var claims = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim "), ct);
+        var plans = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(ReferenceDataMarkers.Tag + " Plan ") && !p.Title.Contains(" / Action "), ct);
+        var actions = await _ap.PlanActions.IgnoreQueryFilters().CountAsync(a => a.Title.StartsWith(ReferenceDataMarkers.Tag) && a.Title.Contains(" / Action "), ct);
+        var closedClaims = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE", ct);
+        var closedOnTime = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE" && c.IsOnTime == true, ct);
+        var closedLate = await _ap.Claims.IgnoreQueryFilters().CountAsync(c => c.Title.StartsWith(ReferenceDataMarkers.Tag + " Claim ") && c.StatusCode == "CLOTUREE" && c.IsOnTime == false, ct);
+        var closedPlans = await _ap.ActionPlans.IgnoreQueryFilters().CountAsync(p => p.Title.StartsWith(ReferenceDataMarkers.Tag + " Plan ") && p.Status == ActionPlanStatus.Closed, ct);
 
         Console.WriteLine();
         Console.WriteLine("--- Summary ---");
-        Console.WriteLine($"Seed employees (profiles): {emp}");
-        Console.WriteLine($"Seed claims: {claims} (closed={closedClaims}, onTime={closedOnTime}, late={closedLate})");
-        Console.WriteLine($"Seed action plans: {plans} (closed={closedPlans})");
-        Console.WriteLine($"Seed plan actions: {actions}");
+        Console.WriteLine($"Reference employees (profiles): {emp}");
+        Console.WriteLine($"Reference claims: {claims} (closed={closedClaims}, onTime={closedOnTime}, late={closedLate})");
+        Console.WriteLine($"Reference action plans: {plans} (closed={closedPlans})");
+        Console.WriteLine($"Reference plan actions: {actions}");
     }
 }
 

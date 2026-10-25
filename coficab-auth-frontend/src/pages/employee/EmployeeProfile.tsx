@@ -19,7 +19,7 @@ import {
   type ActivityStatus,
 } from '../../utils/activityStatus';
 
-type EmployeeSeed = {
+type EmployeeInitial = {
   id?: string;
   email?: string;
   fullName?: string;
@@ -43,7 +43,7 @@ type EmployeeSeed = {
 
 type Props = {
   employeeId?: string;
-  employeeSeed?: EmployeeSeed | null;
+  initialEmployee?: EmployeeInitial | null;
   backTo?: string;
   backLabel?: string;
 };
@@ -78,7 +78,7 @@ function roleLabel(role: string | undefined, t: (key: string) => string) {
 
 export default function EmployeeProfile({
   employeeId,
-  employeeSeed,
+  initialEmployee,
   backTo,
   backLabel,
 }: Props) {
@@ -99,29 +99,29 @@ export default function EmployeeProfile({
       : t('employeeProfile.backDashboard'));
 
   const authUser = user as any;
-  const seedId = employeeId || employeeSeed?.id || authUser?.id || authUser?.sub || '';
+  const profileKey = employeeId || initialEmployee?.id || authUser?.id || authUser?.sub || '';
 
   const [meta, setMeta] = useState({
-    name: employeeSeed?.fullName || employeeSeed?.name || authUser?.fullName || authUser?.name || t('employeeProfile.roles.user'),
-    email: employeeSeed?.email || authUser?.email || '',
-    department: employeeSeed?.department || authUser?.department || '',
-    organizationName: employeeSeed?.organizationName || authUser?.organizationName || '',
+    name: initialEmployee?.fullName || initialEmployee?.name || authUser?.fullName || authUser?.name || t('employeeProfile.roles.user'),
+    email: initialEmployee?.email || authUser?.email || '',
+    department: initialEmployee?.department || authUser?.department || '',
+    organizationName: initialEmployee?.organizationName || authUser?.organizationName || '',
     role: (() => {
       const iam = Array.isArray(authUser?.role)
         ? authUser.role[0]
         : authUser?.role || (Array.isArray(authUser?.roles) ? authUser.roles[0] : '');
       return (
-        employeeSeed?.role ||
-        employeeSeed?.roles?.[0] ||
+        initialEmployee?.role ||
+        initialEmployee?.roles?.[0] ||
         iam ||
         'user'
       );
     })(),
-    hireDate: employeeSeed?.hireDate || authUser?.hireDate || null,
-    managerName: employeeSeed?.managerName || authUser?.managerName || '',
-    isLockedOut: Boolean(employeeSeed?.isLockedOut ?? authUser?.isLockedOut),
+    hireDate: initialEmployee?.hireDate || authUser?.hireDate || null,
+    managerName: initialEmployee?.managerName || authUser?.managerName || '',
+    isLockedOut: Boolean(initialEmployee?.isLockedOut ?? authUser?.isLockedOut),
     activityStatus: normalizeActivityStatus(
-      employeeSeed?.activityStatus ?? authUser?.activityStatus,
+      initialEmployee?.activityStatus ?? authUser?.activityStatus,
     ),
   });
 
@@ -131,15 +131,15 @@ export default function EmployeeProfile({
   );
 
   const [phone, setPhone] = useState<string>(
-    String(employeeSeed?.telephone || employeeSeed?.phone || authUser?.telephone || authUser?.phone || ''),
+    String(initialEmployee?.telephone || initialEmployee?.phone || authUser?.telephone || authUser?.phone || ''),
   );
-  const [poste, setPoste] = useState<string>(String(employeeSeed?.poste || authUser?.poste || ''));
-  const [equipe, setEquipe] = useState<string>(String(employeeSeed?.equipe || authUser?.equipe || ''));
+  const [poste, setPoste] = useState<string>(String(initialEmployee?.poste || authUser?.poste || ''));
+  const [equipe, setEquipe] = useState<string>(String(initialEmployee?.equipe || authUser?.equipe || ''));
   const [ligneProduction, setLigneProduction] = useState<string>(
-    String(employeeSeed?.ligneProduction || authUser?.ligneProduction || ''),
+    String(initialEmployee?.ligneProduction || authUser?.ligneProduction || ''),
   );
   const [avatarPreview, setAvatarPreview] = useState<string>(
-    String(employeeSeed?.profilePictureUrl || authUser?.profilePictureUrl || ''),
+    String(initialEmployee?.profilePictureUrl || authUser?.profilePictureUrl || ''),
   );
   const [, setAvatarDirty] = useState(false);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -191,7 +191,7 @@ export default function EmployeeProfile({
     setPhone((prev) => {
       if (force || !prev.trim()) {
         applied = true;
-        return phoneFromId(seedId || meta.email || displayName);
+        return phoneFromId(profileKey || meta.email || displayName);
       }
       return prev;
     });
@@ -223,7 +223,7 @@ export default function EmployeeProfile({
 
         const department = pickText(
           p?.department,
-          employeeSeed?.department,
+          initialEmployee?.department,
           authUser?.department,
           meta.department,
         );
@@ -235,22 +235,22 @@ export default function EmployeeProfile({
                 (Array.isArray(authUser?.roles) ? authUser.roles[0] : '') ||
                 '',
             );
-        const profileRole = Array.isArray(employeeSeed?.roles)
-          ? String(employeeSeed?.role || employeeSeed?.roles?.[0] || p?.role || '')
-          : String(employeeSeed?.role || p?.role || '');
+        const profileRole = Array.isArray(initialEmployee?.roles)
+          ? String(initialEmployee?.role || initialEmployee?.roles?.[0] || p?.role || '')
+          : String(initialEmployee?.role || p?.role || '');
         const effectiveRole = String(
           (!editingOther && iamRole ? iamRole : profileRole || iamRole) || 'user',
         );
 
         let organizationName = pickText(
           p?.organizationName,
-          employeeSeed?.organizationName,
+          initialEmployee?.organizationName,
           authUser?.organizationName,
           authUser?.organization,
         );
         const organizationId = pickText(
           p?.organizationId,
-          employeeSeed?.organizationId as any,
+          initialEmployee?.organizationId as any,
           authUser?.organizationId,
         );
         if (!organizationName && organizationId && accessToken) {
@@ -270,26 +270,26 @@ export default function EmployeeProfile({
           name: pickText(
             p?.name,
             p?.fullName,
-            employeeSeed?.fullName,
-            employeeSeed?.name,
+            initialEmployee?.fullName,
+            initialEmployee?.name,
             authUser?.fullName,
             authUser?.name,
           ) || 'Utilisateur',
-          email: pickText(p?.email, employeeSeed?.email, authUser?.email),
+          email: pickText(p?.email, initialEmployee?.email, authUser?.email),
           department,
           organizationName,
           role: effectiveRole,
-          hireDate: p?.hireDate || employeeSeed?.hireDate || authUser?.hireDate || null,
+          hireDate: p?.hireDate || initialEmployee?.hireDate || authUser?.hireDate || null,
           managerName: pickText(
             p?.managerName,
-            employeeSeed?.managerName,
+            initialEmployee?.managerName,
             authUser?.managerName,
           ),
           isLockedOut: Boolean(
-            p?.isLockedOut || employeeSeed?.isLockedOut || authUser?.isLockedOut,
+            p?.isLockedOut || initialEmployee?.isLockedOut || authUser?.isLockedOut,
           ),
           activityStatus: normalizeActivityStatus(
-            p?.activityStatus ?? p?.ActivityStatus ?? employeeSeed?.activityStatus,
+            p?.activityStatus ?? p?.ActivityStatus ?? initialEmployee?.activityStatus,
           ),
         };
         setMeta(nextMeta);
@@ -311,18 +311,18 @@ export default function EmployeeProfile({
 
         setPhone(
           apiPhone ||
-            employeeSeed?.telephone ||
-            employeeSeed?.phone ||
+            initialEmployee?.telephone ||
+            initialEmployee?.phone ||
             authUser?.telephone ||
             authUser?.phone ||
-            phoneFromId(employeeId || seedId || nextMeta.email),
+            phoneFromId(employeeId || profileKey || nextMeta.email),
         );
         // Toujours privilégier les valeurs déjà en base ; suggestions seulement si vide
-        setPoste(apiPoste || employeeSeed?.poste || authUser?.poste || inferredFill.poste);
-        setEquipe(apiEquipe || employeeSeed?.equipe || authUser?.equipe || inferredFill.equipe);
+        setPoste(apiPoste || initialEmployee?.poste || authUser?.poste || inferredFill.poste);
+        setEquipe(apiEquipe || initialEmployee?.equipe || authUser?.equipe || inferredFill.equipe);
         setLigneProduction(
           apiLigne ||
-            employeeSeed?.ligneProduction ||
+            initialEmployee?.ligneProduction ||
             authUser?.ligneProduction ||
             inferredFill.ligneProduction,
         );
@@ -336,7 +336,7 @@ export default function EmployeeProfile({
           setAvatarDirty(false);
         } else if (!editingOther) {
           try {
-            const cached = localStorage.getItem(`ep-avatar-preset:${seedId}`);
+            const cached = localStorage.getItem(`ep-avatar-preset:${profileKey}`);
             if (cached) {
               setAvatarPreview(cached);
               setAvatarDirty(true);
@@ -368,11 +368,11 @@ export default function EmployeeProfile({
 
   useEffect(() => {
     try {
-      if (selectedPresetId) localStorage.setItem(`ep-avatar-preset:${seedId}`, selectedPresetId);
+      if (selectedPresetId) localStorage.setItem(`ep-avatar-preset:${profileKey}`, selectedPresetId);
     } catch {
       /* ignore */
     }
-  }, [selectedPresetId, seedId]);
+  }, [selectedPresetId, profileKey]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

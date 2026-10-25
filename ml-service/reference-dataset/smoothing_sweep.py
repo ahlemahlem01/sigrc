@@ -4,7 +4,7 @@ The weight is the number of "virtual" claims at the team average added to each e
 rate = (on_time + team_average * W) / (closed + W). Small W trusts a few claims; large W erases real differences.
 Selection uses repeated cross-validation only (never the time split used to report the final figure).
 
-Usage: python smoothing_sweep.py --claims simulated_claims.csv [--report smoothing.md]
+Usage: python smoothing_sweep.py --claims reference_claims.csv [--report smoothing.md]
 """
 from __future__ import annotations
 

@@ -59,7 +59,7 @@ export function PinStar({ pin, pins, onToggle }: StarProps) {
 
 interface Props {
   accessToken: string;
-  /** Claims assigned to me (already loaded by the dashboard): the most urgent one seeds the "similar files" search. */
+  /** Claims assigned to me (already loaded by the dashboard): the most urgent one anchors the "similar files" search. */
   assigned: Claim[];
   pins: Pin[];
   onTogglePin: (pin: Pin) => void;
@@ -94,7 +94,7 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
   );
 
   // The most urgent open claim of mine: earliest deadline first.
-  const seed = useMemo(() => {
+  const anchor = useMemo(() => {
     const open = assigned.filter((c) => !CLOSED.has(resolveClaimStatus(c)) && resolveClaimStatus(c) !== 'DRAFT');
     open.sort((a, b) => {
       const da = a.deadline ? new Date(a.deadline).getTime() : Infinity;
@@ -105,18 +105,18 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
   }, [assigned]);
 
   useEffect(() => {
-    if (!seed) { setSimilar([]); return; }
+    if (!anchor) { setSimilar([]); return; }
     let live = true;
-    const query = [seed.defectType, seed.title].filter(Boolean).join(' ').slice(0, 200);
+    const query = [anchor.defectType, anchor.title].filter(Boolean).join(' ').slice(0, 200);
     qualityAnalysisService
       .semanticSearch(query, accessToken, 20)
       .then((res) => {
         if (!live) return;
-        setSimilar(res.claims.filter((c) => c.id !== seed.id && CLOSED.has(resolveClaimStatus(c))).slice(0, 3));
+        setSimilar(res.claims.filter((c) => c.id !== anchor.id && CLOSED.has(resolveClaimStatus(c))).slice(0, 3));
       })
       .catch(() => { if (live) setSimilar([]); });
     return () => { live = false; };
-  }, [seed, accessToken]);
+  }, [anchor, accessToken]);
 
   const pinFor = (c: Claim): Pin => ({
     id: `claim-${c.id}`, kind: 'claim', title: c.title || '', ref: c.reference || undefined, path: claimPath(c),
@@ -273,12 +273,12 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
         </section>
       </div>
 
-      {seed && (
+      {anchor && (
         <section className="fwh-card" aria-labelledby="fwh-sim-title">
           <div className="fwh-card-head">
             <h2 id="fwh-sim-title">{t('employeeWorkspace.similarTitle')}</h2>
           </div>
-          <p className="fwh-card-sub">{t('employeeWorkspace.similarSub', { title: seed.title })}</p>
+          <p className="fwh-card-sub">{t('employeeWorkspace.similarSub', { title: anchor.title })}</p>
           {similar === null ? (
             <div className="fwh-skel-row" aria-hidden />
           ) : similar.length === 0 ? (

@@ -593,7 +593,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
         });
 
         // --- Configurable claim workflow: default statuses and transitions (editable through api/workflow/claims) ---
-        var seededAt = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
+        var referenceDate = new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc);
         modelBuilder.Entity<WorkflowStatus>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -603,14 +603,14 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(80);
             entity.HasIndex(e => new { e.WorkflowKey, e.Code }).IsUnique();
             entity.HasData(
-                new WorkflowStatus { Id = Guid.Parse("124847a1-86ab-5d2b-a72f-3c2896c1baf5"), WorkflowKey = "claim", Code = "DRAFT", Label = "Brouillon", SortOrder = 1, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("4447ab17-abd4-5fa3-8686-a730695820c6"), WorkflowKey = "claim", Code = "OUVERTE", Label = "Ouverte", SortOrder = 2, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("5c4b8ef9-9e47-5c8e-9455-2ee447a84c23"), WorkflowKey = "claim", Code = "ASSIGNED", Label = "Assignée", SortOrder = 3, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("b5e3f5fa-7fe9-5a4d-99e6-1ae2c8849870"), WorkflowKey = "claim", Code = "EN_ANALYSE", Label = "En analyse", SortOrder = 4, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("ec63beb7-8bd5-5223-a057-6c9d882a1a95"), WorkflowKey = "claim", Code = "PENDING_VALIDATION", Label = "En attente de validation", SortOrder = 5, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("0a6c9443-6062-5a62-8677-7f32789530ff"), WorkflowKey = "claim", Code = "CLOTUREE", Label = "Clôturée", SortOrder = 6, IsFinal = true, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("1bdc033b-895c-550c-a865-fa3b6b47cac9"), WorkflowKey = "claim", Code = "VALIDATED", Label = "Validée", SortOrder = 7, IsFinal = false, IsActive = true, UpdatedAt = seededAt },
-                new WorkflowStatus { Id = Guid.Parse("e4c8d374-d934-58e3-927d-6288f7faa1e4"), WorkflowKey = "claim", Code = "REJECTED", Label = "Rejetée", SortOrder = 8, IsFinal = false, IsActive = true, UpdatedAt = seededAt });
+                new WorkflowStatus { Id = Guid.Parse("124847a1-86ab-5d2b-a72f-3c2896c1baf5"), WorkflowKey = "claim", Code = "DRAFT", Label = "Brouillon", SortOrder = 1, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("4447ab17-abd4-5fa3-8686-a730695820c6"), WorkflowKey = "claim", Code = "OUVERTE", Label = "Ouverte", SortOrder = 2, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("5c4b8ef9-9e47-5c8e-9455-2ee447a84c23"), WorkflowKey = "claim", Code = "ASSIGNED", Label = "Assignée", SortOrder = 3, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("b5e3f5fa-7fe9-5a4d-99e6-1ae2c8849870"), WorkflowKey = "claim", Code = "EN_ANALYSE", Label = "En analyse", SortOrder = 4, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("ec63beb7-8bd5-5223-a057-6c9d882a1a95"), WorkflowKey = "claim", Code = "PENDING_VALIDATION", Label = "En attente de validation", SortOrder = 5, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("0a6c9443-6062-5a62-8677-7f32789530ff"), WorkflowKey = "claim", Code = "CLOTUREE", Label = "Clôturée", SortOrder = 6, IsFinal = true, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("1bdc033b-895c-550c-a865-fa3b6b47cac9"), WorkflowKey = "claim", Code = "VALIDATED", Label = "Validée", SortOrder = 7, IsFinal = false, IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowStatus { Id = Guid.Parse("e4c8d374-d934-58e3-927d-6288f7faa1e4"), WorkflowKey = "claim", Code = "REJECTED", Label = "Rejetée", SortOrder = 8, IsFinal = false, IsActive = true, UpdatedAt = referenceDate });
         });
 
         modelBuilder.Entity<WorkflowTransition>(entity =>
@@ -623,24 +623,24 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(80);
             entity.HasIndex(e => new { e.WorkflowKey, e.FromCode, e.ToCode }).IsUnique();
             entity.HasData(
-                new WorkflowTransition { Id = Guid.Parse("3e260446-d203-54fe-9eed-65465a826286"), WorkflowKey = "claim", FromCode = "DRAFT", ToCode = "OUVERTE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("fc66e926-12fb-5910-8589-1aa9c613d804"), WorkflowKey = "claim", FromCode = "DRAFT", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("e64769d9-648b-5e02-ac7d-965d48041710"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "OUVERTE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("81959958-244c-548f-8ca6-8f08adaa9300"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "DRAFT", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("a19deeb1-f418-566b-94c3-812e87943405"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "CLOTUREE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("49a592f5-7451-551b-8efc-d9bd53c8d89a"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("99b87926-4b49-5705-a0a6-1acf5e5f8c91"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "ASSIGNED", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("c21ed420-0a7c-55eb-97cc-5c7d6ac82c18"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("cafdafe8-a361-5107-9923-a90b923a8656"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "OUVERTE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("f7b2a058-eaac-506f-ade8-8d6ca5d93ea4"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("fcfc676c-39cb-5d67-9332-d3818931f051"), WorkflowKey = "claim", FromCode = "EN_ANALYSE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("893aad5f-345a-53ed-8398-b86fe1743456"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("46e1ca00-2ba1-5a5f-aff7-50bad42816bc"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("ecbba46d-3347-5a9c-a5f3-08e8b2d76c40"), WorkflowKey = "claim", FromCode = "CLOTUREE", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("b0055ee5-8cd3-57c6-b034-4b6a592fe8e3"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "CLOTUREE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("5604ff62-a2f0-5e1d-9428-ca8b1c6bf310"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("41c20e8a-6e6a-526e-93e7-4bc23bdcd1d6"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt },
-                new WorkflowTransition { Id = Guid.Parse("5d583d3e-99ac-5ea5-b59e-eeb0f6ac348a"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "OUVERTE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = seededAt });
+                new WorkflowTransition { Id = Guid.Parse("3e260446-d203-54fe-9eed-65465a826286"), WorkflowKey = "claim", FromCode = "DRAFT", ToCode = "OUVERTE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("fc66e926-12fb-5910-8589-1aa9c613d804"), WorkflowKey = "claim", FromCode = "DRAFT", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("e64769d9-648b-5e02-ac7d-965d48041710"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "OUVERTE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("81959958-244c-548f-8ca6-8f08adaa9300"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "DRAFT", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("a19deeb1-f418-566b-94c3-812e87943405"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "CLOTUREE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("49a592f5-7451-551b-8efc-d9bd53c8d89a"), WorkflowKey = "claim", FromCode = "PENDING_VALIDATION", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("99b87926-4b49-5705-a0a6-1acf5e5f8c91"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "ASSIGNED", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("c21ed420-0a7c-55eb-97cc-5c7d6ac82c18"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("cafdafe8-a361-5107-9923-a90b923a8656"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "OUVERTE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("f7b2a058-eaac-506f-ade8-8d6ca5d93ea4"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("fcfc676c-39cb-5d67-9332-d3818931f051"), WorkflowKey = "claim", FromCode = "EN_ANALYSE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("893aad5f-345a-53ed-8398-b86fe1743456"), WorkflowKey = "claim", FromCode = "OUVERTE", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("46e1ca00-2ba1-5a5f-aff7-50bad42816bc"), WorkflowKey = "claim", FromCode = "ASSIGNED", ToCode = "PENDING_VALIDATION", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("ecbba46d-3347-5a9c-a5f3-08e8b2d76c40"), WorkflowKey = "claim", FromCode = "CLOTUREE", ToCode = "EN_ANALYSE", AllowedRoles = "admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("b0055ee5-8cd3-57c6-b034-4b6a592fe8e3"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "CLOTUREE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("5604ff62-a2f0-5e1d-9428-ca8b1c6bf310"), WorkflowKey = "claim", FromCode = "VALIDATED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("41c20e8a-6e6a-526e-93e7-4bc23bdcd1d6"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "EN_ANALYSE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate },
+                new WorkflowTransition { Id = Guid.Parse("5d583d3e-99ac-5ea5-b59e-eeb0f6ac348a"), WorkflowKey = "claim", FromCode = "REJECTED", ToCode = "OUVERTE", AllowedRoles = "user,admin,superadmin", IsActive = true, UpdatedAt = referenceDate });
         });
 
         // --- Multi-industry reference lists: defect types (free vocabulary) and severity wording (4 fixed levels) ---
@@ -675,10 +675,10 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.UpdatedBy).HasMaxLength(80);
             entity.HasIndex(e => new { e.ListKey, e.Value }).IsUnique();
             entity.HasData(
-                new ReferenceItem { Id = Guid.Parse("a0e73aba-3378-5776-b27f-e27f9dccd9ed"), ListKey = "severity", Value = "LOW", SortOrder = 1, IsActive = true, UpdatedAt = seededAt },
-                new ReferenceItem { Id = Guid.Parse("1d582aaa-84f1-5c3f-8278-f838abb8206f"), ListKey = "severity", Value = "MEDIUM", SortOrder = 2, IsActive = true, UpdatedAt = seededAt },
-                new ReferenceItem { Id = Guid.Parse("214aa64f-ded3-5445-8a67-91e1235e76b9"), ListKey = "severity", Value = "HIGH", SortOrder = 3, IsActive = true, UpdatedAt = seededAt },
-                new ReferenceItem { Id = Guid.Parse("3b1d0a50-c63c-5a29-a5dd-ab5efae6c7c1"), ListKey = "severity", Value = "CRITICAL", SortOrder = 4, IsActive = true, UpdatedAt = seededAt });
+                new ReferenceItem { Id = Guid.Parse("a0e73aba-3378-5776-b27f-e27f9dccd9ed"), ListKey = "severity", Value = "LOW", SortOrder = 1, IsActive = true, UpdatedAt = referenceDate },
+                new ReferenceItem { Id = Guid.Parse("1d582aaa-84f1-5c3f-8278-f838abb8206f"), ListKey = "severity", Value = "MEDIUM", SortOrder = 2, IsActive = true, UpdatedAt = referenceDate },
+                new ReferenceItem { Id = Guid.Parse("214aa64f-ded3-5445-8a67-91e1235e76b9"), ListKey = "severity", Value = "HIGH", SortOrder = 3, IsActive = true, UpdatedAt = referenceDate },
+                new ReferenceItem { Id = Guid.Parse("3b1d0a50-c63c-5a29-a5dd-ab5efae6c7c1"), ListKey = "severity", Value = "CRITICAL", SortOrder = 4, IsActive = true, UpdatedAt = referenceDate });
         });
 
         // SQL Server rejects ambiguous cascade paths; nothing is ever deleted here, so those links become Restrict.

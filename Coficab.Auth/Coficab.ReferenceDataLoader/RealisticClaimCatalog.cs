@@ -1,4 +1,4 @@
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
 /// <summary>
 /// Catalogue métier câblage automobile (FR) — contenu destiné à paraître

@@ -18,7 +18,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ActionPlan.Infrastr
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ActionPlan.API", "Coficab.ActionPlan.API\Coficab.ActionPlan.API.csproj", "{8EF57A15-324E-47F8-8171-E884ED6C4555}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.TestDataSeeder", "Coficab.TestDataSeeder\Coficab.TestDataSeeder.csproj", "{A68E588D-53CD-4639-A4F8-12300D165AEB}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ReferenceDataLoader", "Coficab.ReferenceDataLoader\Coficab.ReferenceDataLoader.csproj", "{A68E588D-53CD-4639-A4F8-12300D165AEB}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ActionPlan.Application.Tests", "Coficab.ActionPlan.Application.Tests\Coficab.ActionPlan.Application.Tests.csproj", "{A9E1C1A1-4349-4E10-963C-09093C6DFF67}"
 EndProject

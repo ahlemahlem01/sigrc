@@ -1,6 +1,6 @@
 """Evaluation of the "on time" model with features that only use what was known at assignment time.
 
-Reads a CSV of closed claims (columns of simulate.py: defect_type, severity, assigned_to_id, assigned_at, deadline,
+Reads a CSV of closed claims (columns of generate.py: defect_type, severity, assigned_to_id, assigned_at, deadline,
 completed_at, is_on_time) and writes a Markdown report. The same script can evaluate real history exported in the
 same columns.
 
@@ -11,7 +11,7 @@ Features (never computed with the claim's own outcome or with anything that happ
   alloc_days   days between assignment and deadline
   severity, defect_type
 
-Usage: python evaluate.py --claims simulated_claims.csv [--truth truth.csv] --report REPORT.md
+Usage: python evaluate.py --claims reference_claims.csv [--truth truth.csv] --report REPORT.md
 """
 from __future__ import annotations
 
@@ -155,7 +155,7 @@ def main() -> None:
     ap.add_argument("--claims", required=True)
     ap.add_argument("--truth")
     ap.add_argument("--report", required=True)
-    ap.add_argument("--source-label", default="données simulées (simulate.py)")
+    ap.add_argument("--source-label", default="données simulées (generate.py)")
     a = ap.parse_args()
 
     d = build_features(pd.read_csv(a.claims, dtype={"assigned_to_id": str}))
@@ -231,7 +231,7 @@ def main() -> None:
         j = last.join(truth.set_index("user_id"), how="inner")
         corr = float(np.corrcoef(j["user_rate"], j["hidden_ability"])[0, 1])
         lines += ["", "## Test de récupération (uniquement possible sur données simulées)", "",
-                  f"Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans la simulation : **{corr:.2f}** "
+                  f"Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **{corr:.2f}** "
                   f"({len(j)} employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit."]
 
     lines += ["", "## Limites", "",

@@ -129,9 +129,9 @@ function collectIds(
 async function buildNameMap(
   token: string,
   ids: string[],
-  seed?: NameLookup
+  initial?: NameLookup
 ): Promise<NameLookup> {
-  const map: NameLookup = { ...(seed || {}) };
+  const map: NameLookup = { ...(initial || {}) };
 
   const put = (id: string, name: string) => {
     if (!id || !name) return;
@@ -139,7 +139,7 @@ async function buildNameMap(
     map[id.toLowerCase()] = name;
   };
 
-  Object.entries(seed || {}).forEach(([k, v]) => put(k, v));
+  Object.entries(initial || {}).forEach(([k, v]) => put(k, v));
 
   // Admin directory (may 403 for employees — ignore)
   try {

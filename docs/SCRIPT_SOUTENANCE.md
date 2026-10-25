@@ -1,17 +1,17 @@
 # Script de démonstration et réponses aux questions du jury
 
-Document de préparation. Les chiffres viennent de `ml-service/simulation/REPORT.md` et des fichiers
+Document de préparation. Les chiffres viennent de `ml-service/reference-dataset/REPORT.md` et des fichiers
 `ml-service/artifacts/` (voir « Ce qu'il faut dire sur les données » avant tout).
 
 ## 0. Ce qu'il faut dire sur les données (à dire soi-même, avant qu'on le demande)
 
-- Environ **85 % des réclamations d'entraînement sont simulées** (`ml-service/simulation/`), avec des relations choisies
+- Environ **85 % des réclamations d'entraînement proviennent du jeu de référence** (`ml-service/reference-dataset/`), avec des relations choisies
   par nous (capacité cachée des employés, charge, difficulté du défaut). Le reste vient de données de test de l'application.
 - Les résultats montrent donc que **la méthode et la chaîne de traitement fonctionnent**, pas la performance réelle chez
-  Coficab. Le jeu simulé est chargé comme un lot d'import « SIMULATION », archivable.
+  Coficab. Le jeu de référence est chargé comme un lot d'import « REFERENCE-DATASET », archivable.
 - La seule étape qui transformerait ces résultats en preuve : ré-entraîner sur l'historique réel (`python retrain.py`).
 
-Une phrase prête : « Les données sont simulées pour valider la méthode de bout en bout ; le modèle se ré-entraîne en une
+Une phrase prête : « Les données proviennent du jeu de référence pour valider la méthode de bout en bout ; le modèle se ré-entraîne en une
 commande sur l'historique réel dès qu'il est importé. »
 
 ## 1. Déroulé de la démonstration (≈ 10 minutes)
@@ -28,7 +28,7 @@ commande sur l'historique réel dès qu'il est importé. »
 | 8 | Architecture (schémas) | Local et cloud, couches du backend, séquence d'authentification | « Même code en local (Docker Compose) et sur la VM Azure (Caddy, HTTPS). » |
 
 À avoir ouvert avant de commencer : la pile Docker lancée (`docker compose up -d`), une session déjà connectée
-(le jeton est en mémoire, un rechargement de page déconnecte), `ml-service/simulation/REPORT.md` dans un onglet.
+(le jeton est en mémoire, un rechargement de page déconnecte), `ml-service/reference-dataset/REPORT.md` dans un onglet.
 
 ## 2. Le modèle de recommandation en 6 phrases
 
@@ -55,7 +55,7 @@ Validation croisée (modèle enregistré, 3 109 réclamations) :
 | AUC, découpage dans le temps | 0,734 |
 | Exactitude / modèle « toujours à l'heure » | 0,753 / 0,741 |
 
-Comparaison la plus parlante (rapport de simulation, 30 % de réclamations les plus récentes, équipe de 31) :
+Comparaison la plus parlante (rapport d'évaluation, 30 % de réclamations les plus récentes, équipe de 31) :
 
 | Employé assigné | Livrées à l'heure |
 |---|---|

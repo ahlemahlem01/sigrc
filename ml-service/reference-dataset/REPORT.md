@@ -1,6 +1,6 @@
 # Évaluation du modèle « livré à l'heure »
 
-Source : **données simulées (simulate.py)**. 2621 réclamations clôturées avec échéance connue, taux de livraison à l'heure 73.9%. Modèle trivial (toujours la classe majoritaire) : exactitude 73.9%.
+Source : **données simulées (generate.py)**. 2621 réclamations clôturées avec échéance connue, taux de livraison à l'heure 73.9%. Modèle trivial (toujours la classe majoritaire) : exactitude 73.9%.
 
 > Ces chiffres concernent des données **simulées** : ils montrent que la chaîne de traitement retrouve des relations connues, pas la performance sur l'historique réel de Coficab. Sur l'historique réel, ré-entraîner puis relire ce rapport.
 
@@ -58,7 +58,7 @@ Pour chaque réclamation, tous les employés sont classés par probabilité pré
 
 ## Test de récupération (uniquement possible sur données simulées)
 
-Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans la simulation : **0.94** (31 employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit.
+Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **0.94** (31 employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit.
 
 ## Limites
 
@@ -74,7 +74,7 @@ Le taux de ponctualité d'un employé est `(à_l'heure + moyenne_équipe × W) /
 les vraies différences entre employés. La moyenne d'équipe est celle **mesurée à la date d'assignation** ; les réclamations
 assignées avant que 30 issues soient connues sont écartées de l'entraînement (aucune valeur par défaut n'entre dans le
 modèle). Les dossiers ouverts depuis plus de 90 jours ne comptent pas dans la charge. Comparaison par validation croisée
-(`python smoothing_sweep.py --claims simulated_claims.csv`) :
+(`python smoothing_sweep.py --claims reference_claims.csv`) :
 
 | Poids W | AUC (validation croisée) | Écart-type | Brier | AUC découpage temps |
 |---|---|---|---|---|

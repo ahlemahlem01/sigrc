@@ -25,7 +25,7 @@ import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../../i18n';
 
-type Seed = {
+type InitialEmployee = {
   id?: string;
   email?: string;
   fullName?: string;
@@ -149,7 +149,7 @@ export default function EmployeeAdminProfilePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { accessToken, user } = useAuth();
-  const seed = (location.state?.employee ?? null) as Seed | null;
+  const initial = (location.state?.employee ?? null) as InitialEmployee | null;
 
   const [profile, setProfile] = useState<ProfileState | null>(null);
   const [perf, setPerf] = useState<EmployeePerformanceRow | null>(null);
@@ -192,20 +192,20 @@ export default function EmployeeAdminProfilePage() {
       const department = pick(
         rawProfile?.department,
         rawProfile?.Department,
-        seed?.department,
+        initial?.department,
         auth?.department,
       );
       const inferred = inferWorkFieldsFromDepartment(
         department,
-        pick(rawProfile?.role, seed?.role, auth?.roles?.[0]),
+        pick(rawProfile?.role, initial?.role, auth?.roles?.[0]),
       );
       const name =
-        pick(rawProfile?.name, rawProfile?.fullName, seed?.fullName, seed?.name, auth?.fullName) ||
+        pick(rawProfile?.name, rawProfile?.fullName, initial?.fullName, initial?.name, auth?.fullName) ||
         i18n.t('employeeProfileAdmin.employeeFallback');
-      const email = pick(rawProfile?.email, seed?.email, auth?.email);
+      const email = pick(rawProfile?.email, initial?.email, auth?.email);
       const role = pick(
-        seed?.role,
-        seed?.roles?.[0],
+        initial?.role,
+        initial?.roles?.[0],
         auth?.roles?.[0],
         rawProfile?.role,
       ) || 'user';
@@ -217,39 +217,39 @@ export default function EmployeeAdminProfilePage() {
         department,
         organizationName: pick(
           rawProfile?.organizationName,
-          seed?.organizationName,
+          initial?.organizationName,
           auth?.organizationName,
         ),
         role,
-        poste: pick(rawProfile?.poste, seed?.poste) || inferred.poste,
-        equipe: pick(rawProfile?.equipe, seed?.equipe) || inferred.equipe,
+        poste: pick(rawProfile?.poste, initial?.poste) || inferred.poste,
+        equipe: pick(rawProfile?.equipe, initial?.equipe) || inferred.equipe,
         ligneProduction:
-          pick(rawProfile?.ligneProduction, seed?.ligneProduction) || inferred.ligneProduction,
+          pick(rawProfile?.ligneProduction, initial?.ligneProduction) || inferred.ligneProduction,
         telephone:
-          pick(rawProfile?.telephone, rawProfile?.phone, seed?.telephone, seed?.phone) ||
+          pick(rawProfile?.telephone, rawProfile?.phone, initial?.telephone, initial?.phone) ||
           phoneFromId(id),
-        managerName: pick(rawProfile?.managerName, seed?.managerName),
-        hireDate: rawProfile?.hireDate || seed?.hireDate || null,
+        managerName: pick(rawProfile?.managerName, initial?.managerName),
+        hireDate: rawProfile?.hireDate || initial?.hireDate || null,
         profilePictureUrl:
-          pick(rawProfile?.profilePictureUrl, seed?.profilePictureUrl, auth?.email && null) ||
-          (rawProfile?.profilePictureUrl ?? seed?.profilePictureUrl ?? null),
+          pick(rawProfile?.profilePictureUrl, initial?.profilePictureUrl, auth?.email && null) ||
+          (rawProfile?.profilePictureUrl ?? initial?.profilePictureUrl ?? null),
         isLockedOut: Boolean(
-          auth?.isLockedOut ?? seed?.isLockedOut ?? rawProfile?.isLockedOut,
+          auth?.isLockedOut ?? initial?.isLockedOut ?? rawProfile?.isLockedOut,
         ),
         activityStatus: normalizeActivityStatus(
           activityItem?.activityStatus ??
             rawProfile?.activityStatus ??
-            seed?.activityStatus,
+            initial?.activityStatus,
         ),
         lastActivityAt:
           activityItem?.lastActivityAt ??
-          seed?.lastActivityAt ??
+          initial?.lastActivityAt ??
           rawProfile?.lastActivityAt ??
           null,
         lastLoginAt:
-          activityItem?.lastLoginAt ?? seed?.lastLoginAt ?? rawProfile?.lastLoginAt ?? null,
+          activityItem?.lastLoginAt ?? initial?.lastLoginAt ?? rawProfile?.lastLoginAt ?? null,
         recentActionCount:
-          activityItem?.recentActionCount ?? seed?.recentActionCount ?? 0,
+          activityItem?.recentActionCount ?? initial?.recentActionCount ?? 0,
       };
 
       setProfile(next);
@@ -286,7 +286,7 @@ export default function EmployeeAdminProfilePage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, id, seed, reloadBadges]);
+  }, [accessToken, id, initial, reloadBadges]);
 
   useEffect(() => {
     void load();

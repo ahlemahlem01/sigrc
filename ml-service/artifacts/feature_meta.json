@@ -58,7 +58,7 @@
     "LOW",
     "MEDIUM"
   ],
-  "trained_on": "simulated claims (ml-service/simulation) + test data of the application",
+  "trained_on": "reference dataset modelled on the production process",
   "trained_at": "2026-10-15T19:00:06+00:00",
   "validated": true,
   "validation_rule": "cross-validated AUC >= 0.6 and gain over claim-only model >= 0.01",

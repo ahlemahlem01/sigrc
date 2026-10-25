@@ -1,4 +1,4 @@
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
 internal sealed record EmployeeBlueprint(
     string FullName,
@@ -10,7 +10,7 @@ internal sealed record EmployeeBlueprint(
 
 internal sealed record DeptBlueprint(string Name, string Code, string Description);
 
-internal static class SeedCatalog
+internal static class ReferenceCatalog
 {
     public static readonly DeptBlueprint[] Departments =
     [

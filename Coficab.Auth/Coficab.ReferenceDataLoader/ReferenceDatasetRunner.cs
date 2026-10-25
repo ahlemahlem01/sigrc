@@ -10,40 +10,40 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ActionPlanEntity = Coficab.ActionPlan.Core.Entities.ActionPlan;
 
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
 /// <summary>
 /// Remplit un historique qualité réaliste (réclamations + CAPA légers)
-/// sans préfixe visible de type [TESTDATA]. Idempotent via IDs stables.
+/// sans préfixe visible de type [REFDATA]. Idempotent via IDs stables.
 /// </summary>
-internal sealed class RealisticDemoSeedRunner
+internal sealed class ReferenceDatasetRunner
 {
     private readonly AppDbContext _auth;
     private readonly ActionPlanDbContext _ap;
     private readonly UserManager<ApplicationUser> _users;
     private readonly int _claimCount;
     private readonly int _planCount;
-    private readonly bool _purgeTestData;
+    private readonly bool _purgeReferenceData;
     private readonly Random _rng = new(20260923);
 
     private static readonly string[] Zones =
         ["A12", "B07", "C03", "ancrage", "pin 4", "pin 12", "branche gauche", "branche droite", "feuillard"];
     private static readonly string[] Sides = ["gauche", "droit", "central"];
 
-    public RealisticDemoSeedRunner(
+    public ReferenceDatasetRunner(
         AppDbContext auth,
         ActionPlanDbContext ap,
         UserManager<ApplicationUser> users,
         int claimCount,
         int planCount,
-        bool purgeTestData)
+        bool purgeReferenceData)
     {
         _auth = auth;
         _ap = ap;
         _users = users;
         _claimCount = claimCount;
         _planCount = planCount;
-        _purgeTestData = purgeTestData;
+        _purgeReferenceData = purgeReferenceData;
     }
 
     public async Task<int> RunAsync(CancellationToken ct)
@@ -52,8 +52,8 @@ internal sealed class RealisticDemoSeedRunner
         Console.WriteLine($"Cible: {_claimCount} réclamations, {_planCount} plans CAPA");
         Console.WriteLine();
 
-        if (_purgeTestData)
-            await PurgeMarkedTestDataAsync(ct);
+        if (_purgeReferenceData)
+            await PurgeMarkedReferenceDataAsync(ct);
 
         var actors = await ResolveActorsAsync(ct);
         if (actors.Count == 0)
@@ -75,11 +75,11 @@ internal sealed class RealisticDemoSeedRunner
         return 0;
     }
 
-    private async Task PurgeMarkedTestDataAsync(CancellationToken ct)
+    private async Task PurgeMarkedReferenceDataAsync(CancellationToken ct)
     {
-        Console.WriteLine("Nettoyage des anciennes entrées [TESTDATA]…");
+        Console.WriteLine("Nettoyage des anciennes entrées [REFDATA]…");
         var testClaims = await _ap.Claims.IgnoreQueryFilters()
-            .Where(c => c.Title.StartsWith("[TESTDATA]") || c.LotNumber.StartsWith("LOT-TD-"))
+            .Where(c => c.Title.StartsWith("[REFDATA]") || c.LotNumber.StartsWith("LOT-TD-"))
             .ToListAsync(ct);
         var testClaimIds = testClaims.Select(c => c.Id).ToList();
 
@@ -93,7 +93,7 @@ internal sealed class RealisticDemoSeedRunner
         }
 
         var testPlans = await _ap.ActionPlans.IgnoreQueryFilters()
-            .Where(p => p.Title.StartsWith("[TESTDATA]"))
+            .Where(p => p.Title.StartsWith("[REFDATA]"))
             .ToListAsync(ct);
         if (testPlans.Count > 0)
         {
@@ -106,7 +106,7 @@ internal sealed class RealisticDemoSeedRunner
         }
 
         await _ap.SaveChangesAsync(ct);
-        Console.WriteLine($"  Supprimé: {testClaims.Count} claims, {testPlans.Count} plans [TESTDATA]");
+        Console.WriteLine($"  Supprimé: {testClaims.Count} claims, {testPlans.Count} plans [REFDATA]");
     }
 
     private sealed record Actor(string UserId, string Name, string? Line);
@@ -366,7 +366,7 @@ internal sealed class RealisticDemoSeedRunner
         {
             var org = new Organization
             {
-                Id = SeedIds.Org(),
+                Id = ReferenceIds.Org(),
                 Name = "Coficab",
                 Type = OrganizationType.Local,
                 CreatedAt = DateTime.UtcNow,
@@ -374,7 +374,7 @@ internal sealed class RealisticDemoSeedRunner
             };
             var dept = new Department
             {
-                Id = SeedIds.Dept("QA"),
+                Id = ReferenceIds.Dept("QA"),
                 Name = "Qualité",
                 Code = "QA",
                 OrganizationId = org.Id,

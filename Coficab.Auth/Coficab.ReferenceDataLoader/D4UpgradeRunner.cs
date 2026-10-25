@@ -3,7 +3,7 @@ using Coficab.ActionPlan.Core.Entities;
 using Coficab.ActionPlan.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace Coficab.TestDataSeeder;
+namespace Coficab.ReferenceDataLoader;
 
 /// <summary>
 /// Makes the generated dataset follow the D4 order (D3 → Ishikawa → Pareto/priority cause → 5 Why):
@@ -88,7 +88,7 @@ internal sealed class D4UpgradeRunner
 
     public async Task<int> RunAsync(CancellationToken ct)
     {
-        Console.WriteLine(_apply ? "== Mise à niveau D4 (écriture) ==" : "== Mise à niveau D4 (simulation, rien n'est écrit) ==");
+        Console.WriteLine(_apply ? "== Mise à niveau D4 (écriture) ==" : "== Mise à niveau D4 (aperçu, rien n'est écrit) ==");
 
         var claims = await _ap.Claims.IgnoreQueryFilters().AsNoTracking()
             .Where(c => !c.IsArchived && (c.CreatedBy == null || !c.CreatedBy.StartsWith("import:")))
@@ -223,7 +223,7 @@ internal sealed class D4UpgradeRunner
 
         if (!_apply)
         {
-            Console.WriteLine("Simulation terminée : relancez avec --apply pour écrire (ajouts uniquement).");
+            Console.WriteLine("Aperçu terminé : relancez avec --apply pour écrire (ajouts uniquement).");
             return 0;
         }
 

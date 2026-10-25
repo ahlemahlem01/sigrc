@@ -953,7 +953,7 @@ public class ActionPlanService : IActionPlanService
 
     /// <summary>
     /// Autorise l'édition si l'utilisateur a une assignation CanEdit,
-    /// ou s'il est assigné / propriétaire du plan (cas fréquent des plans seedés
+    /// ou s'il est assigné / propriétaire du plan (cas fréquent des plans de référence
     /// sans ligne UserActionPlanAssignments).
     /// </summary>
     private async Task<bool> CanEmployeeEditPlanAsync(CoreEntities.ActionPlan plan, string userId)

@@ -28,7 +28,7 @@ const WorkflowConfigPage: React.FC = () => {
   const { accessToken, hasRole } = useAuth();
   const canEdit = hasRole('superadmin');
 
-  // the seeded French names follow the language of the interface; a status renamed by an administrator keeps its own name
+  // the default French names follow the language of the interface; a status renamed by an administrator keeps its own name
   const shown = useCallback((code: string, stored: string) => {
     const known = DEFAULT_LABELS[code];
     return known && known.fr === stored ? t(`claimStatus.${known.key}`) : stored;

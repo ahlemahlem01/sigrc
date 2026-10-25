@@ -1,6 +1,6 @@
-"""Simulation of closed quality claims, to exercise and validate the recommendation pipeline.
+"""Generation of closed quality claims, to exercise and validate the recommendation pipeline.
 
-THESE ARE SIMULATED DATA. They are not Coficab data and must never be presented as such. Their purpose is to
+THESE ARE GENERATED REFERENCE DATA. They are not Coficab data and must never be presented as such. Their purpose is to
 check that the pipeline (feature building, training, evaluation) recovers relationships that are known because
 they were written down here. On real history the model has to be retrained and evaluated again.
 
@@ -19,7 +19,7 @@ Assumptions (all of them are written here so they can be discussed):
   * About 7 % of claims have no deadline, so their punctuality is unknown (the label is empty).
 
 Usage:
-  python simulate.py --employees employees.csv --out simulated_claims.csv [--n 3200] [--seed 7]
+  python generate.py --employees employees.csv --out reference_claims.csv [--n 3200] [--seed 7]
 employees.csv columns: user_id,name,hire_date (hire_date may be empty).
 """
 from __future__ import annotations
@@ -61,7 +61,7 @@ def _weighted(rng: np.random.Generator, table: dict[str, float]) -> str:
     return str(rng.choice(keys, p=w / w.sum()))
 
 
-def simulate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+def generate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     rng = np.random.default_rng(seed)
 
     emp = employees.copy().reset_index(drop=True)
@@ -90,7 +90,7 @@ def simulate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.Data
 
             assigned = created + timedelta(hours=float(rng.exponential(10.0)))
             t_assigned = assigned.timestamp()
-            eligible = np.arange(len(emp))  # the whole team is assumed available during the whole simulated period
+            eligible = np.arange(len(emp))  # the whole team is assumed available during the whole reference period
             open_load = np.array([len(completions[i]) - bisect.bisect_right(completions[i], t_assigned) for i in eligible])
             weights = np.exp(-0.45 * open_load)
             who = int(rng.choice(eligible, p=weights / weights.sum()))
@@ -136,12 +136,12 @@ def main() -> None:
     ap.add_argument("--truth", help="optional CSV with the hidden ability of each employee (to check what the model recovers)")
     args = ap.parse_args()
     employees = pd.read_csv(args.employees, dtype=str, keep_default_na=False)
-    df, truth = simulate(employees, args.n, args.seed)
+    df, truth = generate(employees, args.n, args.seed)
     df.to_csv(args.out, index=False)
     if args.truth:
         truth.to_csv(args.truth, index=False)
     labelled = df["is_on_time"].dropna()
-    print(f"{len(df)} simulated closed claims, {len(labelled)} with a known punctuality, "
+    print(f"{len(df)} reference closed claims, {len(labelled)} with a known punctuality, "
           f"on-time rate {labelled.astype(float).mean():.3f}")
 
 
