@@ -21,6 +21,21 @@ LABELS = {
     "CUT_INSULATION": "Coupure / Entaille sur gaine", "COPPER_BLOOMING": "Brins de cuivre cassés / désaffleurants",
     "MARKING_DEFECT": "Défaut de marquage (illisible / absent)", "SPOOL_DAMAGE": "Touret / Emballage endommagé",
     "COLOR_MISMATCH": "Couleur d'isolant non conforme",
+    "CONDUCTOR_DIAMETER": "Diamètre du conducteur hors tolérance",
+    "INSULATION_THICKNESS": "Épaisseur d'isolant hors tolérance",
+    "OUTER_DIAMETER": "Diamètre extérieur hors tolérance",
+    "ECCENTRICITY": "Excentricité de l'isolant",
+    "CONDUCTOR_RESISTANCE": "Résistance électrique hors spécification",
+    "SPARK_TEST_FAILURE": "Défaut à l'essai d'étincelage",
+    "INSULATION_BLISTER": "Cloques / bulles sur l'isolant",
+    "SURFACE_SCRATCH": "Rayures / marques sur la gaine",
+    "COPPER_OXIDATION": "Oxydation / ternissement du cuivre",
+    "STRAND_COUNT": "Nombre de brins incorrect",
+    "LAY_LENGTH": "Pas de câblage non conforme",
+    "SPOOL_LENGTH": "Longueur sur touret incorrecte",
+    "ADHESION_FAILURE": "Adhérence / pelabilité de l'isolant non conforme",
+    "CABLE_CRUSHED": "Câble écrasé / pincé",
+    "FOREIGN_MATTER": "Corps étranger dans l'isolant",
 }
 
 
@@ -40,7 +55,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--claims", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference, defauts cable (seed 7)")
+    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference, defauts cable varies (seed 7)")
     a = ap.parse_args()
 
     df = pd.read_csv(a.claims, dtype=str, keep_default_na=False)

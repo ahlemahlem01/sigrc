@@ -4,5 +4,20 @@
   "copper_blooming": "COPPER_BLOOMING",
   "marking_defect": "MARKING_DEFECT",
   "spool_damage": "SPOOL_DAMAGE",
-  "color_mismatch": "COLOR_MISMATCH"
+  "color_mismatch": "COLOR_MISMATCH",
+  "conductor_diameter": "CONDUCTOR_DIAMETER",
+  "insulation_thickness": "INSULATION_THICKNESS",
+  "outer_diameter": "OUTER_DIAMETER",
+  "eccentricity": "ECCENTRICITY",
+  "conductor_resistance": "CONDUCTOR_RESISTANCE",
+  "spark_test_failure": "SPARK_TEST_FAILURE",
+  "insulation_blister": "INSULATION_BLISTER",
+  "surface_scratch": "SURFACE_SCRATCH",
+  "copper_oxidation": "COPPER_OXIDATION",
+  "strand_count": "STRAND_COUNT",
+  "lay_length": "LAY_LENGTH",
+  "spool_length": "SPOOL_LENGTH",
+  "adhesion_failure": "ADHESION_FAILURE",
+  "cable_crushed": "CABLE_CRUSHED",
+  "foreign_matter": "FOREIGN_MATTER"
 }

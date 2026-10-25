@@ -4775,7 +4775,22 @@
     "COPPER_BLOOMING": "Fili di rame rotti / sporgenti",
     "MARKING_DEFECT": "Difetto di marcatura (illeggibile / assente)",
     "SPOOL_DAMAGE": "Bobina / imballaggio danneggiato",
-    "COLOR_MISMATCH": "Colore dell'isolante non conforme"
+    "COLOR_MISMATCH": "Colore dell'isolante non conforme",
+    "CONDUCTOR_DIAMETER": "Diametro del conduttore fuori tolleranza",
+    "INSULATION_THICKNESS": "Spessore dell'isolante fuori tolleranza",
+    "OUTER_DIAMETER": "Diametro esterno fuori tolleranza",
+    "ECCENTRICITY": "Eccentricità dell'isolante",
+    "CONDUCTOR_RESISTANCE": "Resistenza elettrica fuori specifica",
+    "SPARK_TEST_FAILURE": "Difetto alla prova di scintillio",
+    "INSULATION_BLISTER": "Bolle sull'isolante",
+    "SURFACE_SCRATCH": "Graffi / segni sulla guaina",
+    "COPPER_OXIDATION": "Ossidazione del rame",
+    "STRAND_COUNT": "Numero di fili errato",
+    "LAY_LENGTH": "Passo di cordatura non conforme",
+    "SPOOL_LENGTH": "Lunghezza su bobina errata",
+    "ADHESION_FAILURE": "Aderenza / spelabilità dell'isolante non conforme",
+    "CABLE_CRUSHED": "Cavo schiacciato / pizzicato",
+    "FOREIGN_MATTER": "Corpo estraneo nell'isolante"
   },
   "decisionDialog": {
     "reason": "Motivo",

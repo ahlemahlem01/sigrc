@@ -4775,7 +4775,22 @@
     "COPPER_BLOOMING": "Broken / protruding copper strands",
     "MARKING_DEFECT": "Marking defect (illegible / missing)",
     "SPOOL_DAMAGE": "Spool / packaging damaged",
-    "COLOR_MISMATCH": "Insulation colour out of specification"
+    "COLOR_MISMATCH": "Insulation colour out of specification",
+    "CONDUCTOR_DIAMETER": "Conductor diameter out of tolerance",
+    "INSULATION_THICKNESS": "Insulation thickness out of tolerance",
+    "OUTER_DIAMETER": "Outer diameter out of tolerance",
+    "ECCENTRICITY": "Insulation eccentricity",
+    "CONDUCTOR_RESISTANCE": "Electrical resistance out of specification",
+    "SPARK_TEST_FAILURE": "Spark test failure",
+    "INSULATION_BLISTER": "Blisters / bubbles on insulation",
+    "SURFACE_SCRATCH": "Scratches / marks on the sheath",
+    "COPPER_OXIDATION": "Copper oxidation / tarnishing",
+    "STRAND_COUNT": "Wrong strand count",
+    "LAY_LENGTH": "Lay length out of specification",
+    "SPOOL_LENGTH": "Incorrect length on spool",
+    "ADHESION_FAILURE": "Insulation adhesion / strippability out of specification",
+    "CABLE_CRUSHED": "Crushed / pinched cable",
+    "FOREIGN_MATTER": "Foreign matter in insulation"
   },
   "decisionDialog": {
     "reason": "Reason",

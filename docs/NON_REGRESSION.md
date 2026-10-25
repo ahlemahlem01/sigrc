@@ -80,3 +80,16 @@ défauts d'atelier d'assemblage (soudure, connecteur, sertissage, étiquette, em
 | Réentraînement | `retrain.py --check` : prêt (au moins 308 lignes par nouveau code) ; **modèle non réentraîné** |
 | Rapport d'évaluation (`REPORT.md`) | régénéré : AUC 0,78 (réclamation + employé) contre 0,76 (réclamation seule) |
 | Réclamations « vivantes » (1 419, dont 609 ouvertes) | **inchangées** : elles restent des défauts d'atelier ; voir le bilan |
+
+## 7. Diversité des défauts de câble
+
+Le jeu de référence ne répétait que 5 codes de câble. La liste de référence passe à **20 codes de câble** (15 ajoutés par l'initialiseur
+idempotent, libellés fr / en / it) ; aucun défaut ne dépasse environ 9 % des réclamations du lot.
+
+| Contrôle | Résultat |
+|---|---|
+| Nouveau lot | 2 889 réclamations clôturées, 25 types de défaut (20 codes de câble, 5 défauts d'atelier : 11 %) ; le lot précédent (2 871) est archivé, comme le premier (2 906) : tous restaurables |
+| Réclamations ouvertes / en retard | 609 / 25 : inchangées |
+| Libellés | aucun code brut sur la vue d'ensemble ; les 20 codes traduits (fr, en, it) |
+| Service d'image | `cv_class_map.json` reconnaît les 20 classes ; test de correspondance mis à jour |
+| Tests automatisés | .NET 66 + 187, pytest 29 : verts ; typage du frontend propre |

@@ -11,7 +11,7 @@ causes below, and is blurred by random noise, so the strength of the relationshi
 Assumptions (all of them are written here so they can be discussed):
   * Employees have a hidden ability, partly (not entirely) linked to seniority. Ability shortens the work.
   * Work takes longer when the employee already has open claims at assignment time (workload).
-  * About 88 % of the claims are cable defects, the rest defects of the assembly workshop.
+  * About 90 % of the claims are cable defects (20 codes), the rest defects of the assembly workshop.
   * Defect types differ in difficulty; the higher the severity, the tighter the deadline compared to the work.
   * Durations are log-normal (long tail) with a small share of exceptional delays (blocked parts, absences).
   * The whole team is available during the whole period; hire dates only give a seniority proxy (the dates in the
@@ -40,20 +40,54 @@ ALLOCATED_MEDIAN = {"LOW": 30.0, "MEDIUM": 18.0, "HIGH": 12.0, "CRITICAL": 7.0}
 TIGHTNESS = {"LOW": 0.56, "MEDIUM": 0.62, "HIGH": 0.69, "CRITICAL": 0.80}
 
 # Mostly cable defects (the codes of the inspection reference list, stored as codes like the claim form does), plus a few
-# defects of the harness-assembly workshop ("the factory"), so both kinds are present.
+# defects of the harness-assembly workshop ("the factory"), so both kinds are present. Weights follow a gentle long tail:
+# no defect is more than about a tenth of the claims.
 DEFECTS = {  # defect type -> (weight, difficulty on a log scale)
-    "CUT_INSULATION": (0.28, 0.10), "COPPER_BLOOMING": (0.20, 0.20), "MARKING_DEFECT": (0.16, -0.20),
-    "COLOR_MISMATCH": (0.12, -0.10), "SPOOL_DAMAGE": (0.12, -0.15),
+    "CUT_INSULATION": (0.095, 0.1),
+    "COPPER_BLOOMING": (0.085, 0.2),
+    "MARKING_DEFECT": (0.07, -0.2),
+    "COLOR_MISMATCH": (0.06, -0.1),
+    "SPOOL_DAMAGE": (0.055, -0.15),
+    "CONDUCTOR_DIAMETER": (0.05, 0.1),
+    "INSULATION_THICKNESS": (0.06, 0.05),
+    "OUTER_DIAMETER": (0.055, 0.0),
+    "ECCENTRICITY": (0.04, 0.2),
+    "CONDUCTOR_RESISTANCE": (0.04, 0.25),
+    "SPARK_TEST_FAILURE": (0.05, 0.15),
+    "INSULATION_BLISTER": (0.035, 0.1),
+    "SURFACE_SCRATCH": (0.075, -0.15),
+    "COPPER_OXIDATION": (0.035, -0.05),
+    "STRAND_COUNT": (0.02, 0.1),
+    "LAY_LENGTH": (0.02, 0.15),
+    "SPOOL_LENGTH": (0.025, -0.1),
+    "ADHESION_FAILURE": (0.02, 0.2),
+    "CABLE_CRUSHED": (0.02, -0.2),
+    "FOREIGN_MATTER": (0.025, 0.05),
     "Soudure défectueuse": (0.04, 0.10), "Connecteur desserré": (0.02, 0.05), "Manque de sertissage": (0.02, 0.15),
     "Étiquette manquante": (0.02, -0.25), "Non-conformité emballage": (0.02, -0.15),
 }
-# Where each defect is found: the cable defects on the cutting, extrusion, drawing and control lines, the others on the assembly lines.
+# Where each defect is found: cable defects on the cutting, extrusion, drawing and control lines, the others on the assembly lines.
 LINES_BY_DEFECT = {
-    "CUT_INSULATION": {"CUT-01": 0.30, "CUT-02": 0.30, "EXT-01": 0.20, "EXT-02": 0.20},
-    "COPPER_BLOOMING": {"WR-01": 0.18, "WR-02": 0.18, "WR-03": 0.14, "WR-04": 0.20, "WR-05": 0.15, "WR-06": 0.15},
-    "MARKING_DEFECT": {"EXT-01": 0.30, "EXT-02": 0.30, "CTL-01": 0.40},
-    "COLOR_MISMATCH": {"EXT-01": 0.50, "EXT-02": 0.50},
-    "SPOOL_DAMAGE": {"CUT-01": 0.25, "CUT-02": 0.25, "CTL-01": 0.50},
+    "CUT_INSULATION": {"CUT-01": 0.3, "CUT-02": 0.3, "EXT-01": 0.2, "EXT-02": 0.2},
+    "COPPER_BLOOMING": {"WR-01": 0.18, "WR-02": 0.18, "WR-03": 0.14, "WR-04": 0.2, "WR-05": 0.15, "WR-06": 0.15},
+    "MARKING_DEFECT": {"EXT-01": 0.3, "EXT-02": 0.3, "CTL-01": 0.4},
+    "COLOR_MISMATCH": {"EXT-01": 0.5, "EXT-02": 0.5},
+    "SPOOL_DAMAGE": {"CUT-01": 0.25, "CUT-02": 0.25, "CTL-01": 0.5},
+    "CONDUCTOR_DIAMETER": {"WR-01": 0.2, "WR-02": 0.2, "WR-03": 0.15, "WR-04": 0.25, "WR-05": 0.1, "WR-06": 0.1},
+    "INSULATION_THICKNESS": {"EXT-01": 0.5, "EXT-02": 0.5},
+    "OUTER_DIAMETER": {"EXT-01": 0.45, "EXT-02": 0.45, "CTL-01": 0.1},
+    "ECCENTRICITY": {"EXT-01": 0.5, "EXT-02": 0.5},
+    "CONDUCTOR_RESISTANCE": {"WR-01": 0.15, "WR-04": 0.25, "WR-05": 0.1, "CTL-01": 0.5},
+    "SPARK_TEST_FAILURE": {"EXT-01": 0.3, "EXT-02": 0.3, "CTL-01": 0.4},
+    "INSULATION_BLISTER": {"EXT-01": 0.5, "EXT-02": 0.5},
+    "SURFACE_SCRATCH": {"EXT-01": 0.3, "EXT-02": 0.3, "CUT-01": 0.2, "CUT-02": 0.2},
+    "COPPER_OXIDATION": {"WR-02": 0.3, "WR-03": 0.3, "WR-06": 0.4},
+    "STRAND_COUNT": {"WR-04": 0.5, "WR-05": 0.5},
+    "LAY_LENGTH": {"WR-04": 0.5, "WR-06": 0.5},
+    "SPOOL_LENGTH": {"CUT-01": 0.4, "CUT-02": 0.4, "CTL-01": 0.2},
+    "ADHESION_FAILURE": {"EXT-01": 0.5, "CTL-01": 0.5},
+    "CABLE_CRUSHED": {"CUT-01": 0.5, "CUT-02": 0.5},
+    "FOREIGN_MATTER": {"EXT-01": 0.5, "EXT-02": 0.5},
 }
 ASSEMBLY_LINES = {"ASM-01": 0.45, "ASM-03": 0.55}
 SHIFTS = ["Matin", "Après-midi", "Nuit", "Équipe A", "Équipe B"]

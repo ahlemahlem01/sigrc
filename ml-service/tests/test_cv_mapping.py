@@ -22,4 +22,25 @@ def test_a_detection_below_the_threshold_is_ignored():
 
 
 def test_every_target_code_is_a_defect_code_of_the_application():
-    assert set(MAP.values()) == {"CUT_INSULATION", "COPPER_BLOOMING", "MARKING_DEFECT", "SPOOL_DAMAGE", "COLOR_MISMATCH"}
+    assert set(MAP.values()) == {
+        "CUT_INSULATION",
+        "COPPER_BLOOMING",
+        "MARKING_DEFECT",
+        "SPOOL_DAMAGE",
+        "COLOR_MISMATCH",
+        "CONDUCTOR_DIAMETER",
+        "INSULATION_THICKNESS",
+        "OUTER_DIAMETER",
+        "ECCENTRICITY",
+        "CONDUCTOR_RESISTANCE",
+        "SPARK_TEST_FAILURE",
+        "INSULATION_BLISTER",
+        "SURFACE_SCRATCH",
+        "COPPER_OXIDATION",
+        "STRAND_COUNT",
+        "LAY_LENGTH",
+        "SPOOL_LENGTH",
+        "ADHESION_FAILURE",
+        "CABLE_CRUSHED",
+        "FOREIGN_MATTER",
+    }
