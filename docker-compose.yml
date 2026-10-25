@@ -85,6 +85,9 @@ services:
       Cors__AllowedOrigins: http://localhost:3001,http://${PUBLIC_HOST:-localhost}:3001
       MlService__BaseUrl: http://ml-service:8001
       MlFeatures__DatasetApiKey: ${ML_DATASET_KEY:-}
+      # Image proposal for the claim form: empty = none; "demo" = fixed example (scripts/demo-cv.ps1); or the URL of the image service.
+      ComputerVision__Mode: ${CV_MODE:-}
+      ComputerVision__ServiceUrl: ${CV_SERVICE_URL:-}
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
       # The semantic search backfill is only useful with a Gemini key.
       Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}

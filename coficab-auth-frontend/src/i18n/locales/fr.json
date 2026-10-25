@@ -2458,6 +2458,7 @@
     "next": "Suivant : {{tool}}"
   },
   "createClaim": {
+    "cvDemo": "Mode démonstration : proposition d’exemple, pas une analyse réelle de l’image",
     "takePhoto": "Prendre une photo",
     "cvTitle": "Suggestion de l’analyse d’image",
     "cvConfidence": "Confiance {{pct}} %",

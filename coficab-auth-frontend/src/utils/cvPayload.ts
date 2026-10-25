@@ -2,6 +2,8 @@ export interface CvProposal {
   defectType: string;
   confidence: number;
   threshold: number;
+  /** The proposal comes from the demonstration mode, not from an image analysis. */
+  demo?: boolean;
 }
 
 /**

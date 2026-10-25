@@ -59,7 +59,7 @@ def main() -> None:
                 "(" + ",".join([
                     f"'{cid}'", q(f"{r['defect_type']} - {r['production_line']}"), q(r["client_id"]), q(r["defect_type"]),
                     q(r["severity"]), q(lot),
-                    q(f"Defaut {r['defect_type'].lower()} detecte sur la ligne {r['production_line']} (donnees simulees)."),
+                    q(f"Defaut {r['defect_type'].lower()} detecte sur la ligne {r['production_line']} (donnees de reference)."),
                     "N'CLOTUREE'", q(r["assigned_to_id"]), q(r["assigned_to_name"]), ts(r["assigned_at"]),
                     ts(r["deadline"] or None), ts(r["completed_at"]), on_time, ts(r["detection_date"]), ts(r["created_at"]),
                     "N'reference-dataset'", "0", q(r["production_line"]), q(r["shift"]), r["produced_quantity"], r["defective_quantity"],

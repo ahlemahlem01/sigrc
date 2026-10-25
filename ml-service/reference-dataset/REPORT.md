@@ -1,8 +1,8 @@
 # Évaluation du modèle « livré à l'heure »
 
-Source : **données simulées (generate.py)**. 2621 réclamations clôturées avec échéance connue, taux de livraison à l'heure 73.9%. Modèle trivial (toujours la classe majoritaire) : exactitude 73.9%.
+Source : **données de référence (generate.py)**. 2621 réclamations clôturées avec échéance connue, taux de livraison à l'heure 73.9%. Modèle trivial (toujours la classe majoritaire) : exactitude 73.9%.
 
-> Ces chiffres concernent des données **simulées** : ils montrent que la chaîne de traitement retrouve des relations connues, pas la performance sur l'historique réel de Coficab. Sur l'historique réel, ré-entraîner puis relire ce rapport.
+> Ces chiffres concernent des données **générées (jeu de référence)** : ils montrent que la chaîne de traitement retrouve des relations connues, pas la performance sur l'historique réel de Coficab. Sur l'historique réel, ré-entraîner puis relire ce rapport.
 
 ## Validation croisée (5 plis, 4 répétitions)
 
@@ -56,7 +56,7 @@ Pour chaque réclamation, tous les employés sont classés par probabilité pré
 
 *Observation, pas expérience : les assignations n'ont pas été faites par le modèle. Ce tableau montre que le classement est cohérent avec les résultats, pas ce qui arriverait si le modèle choisissait.*
 
-## Test de récupération (uniquement possible sur données simulées)
+## Test de récupération (uniquement possible sur données de référence)
 
 Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **0.94** (31 employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit.
 
@@ -92,6 +92,6 @@ Meilleure AUC : 0.791. Les écarts plus petits que l'écart-type d'un pli ne son
 
 **Lecture.** Le résultat varie très peu avec W : les écarts d'AUC sont bien inférieurs à l'écart-type d'un pli. Cela
 s'explique : le nombre de dossiers clôturés est lui-même une variable du modèle (il corrige déjà le manque d'historique),
-et les employés simulés ont tous un historique long. W = 6 a été gardé comme valeur usuelle (comparable à une estimation
+et les employés de référence ont tous un historique long. W = 6 a été gardé comme valeur usuelle (comparable à une estimation
 bayésienne avec 6 observations a priori) ; on ne peut pas prétendre qu'il est optimal. Sur l'historique réel de Coficab,
 où certains employés ont peu de dossiers, relancer ce script avant de conclure.

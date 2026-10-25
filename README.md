@@ -78,7 +78,11 @@ COFICAB_DATASET_KEY=<clé> COFICAB_API_URL=http://localhost:5129/api python retr
 
 Le script évalue le modèle (validation croisée, découpage dans le temps, comparaison avec un modèle sans variables employé) avant de l'enregistrer, et inscrit dans `artifacts/feature_meta.json` si la recommandation est **validée** (AUC d'au moins 0,60 et gain d'au moins 0,01 grâce aux variables de l'employé). Sinon l'interface l'affiche comme **indicative**.
 
-Les données de test de l'application n'ont aucun lien entre l'employé et la ponctualité. `ml-service/reference-dataset/` contient un jeu simulé, clairement déclaré comme tel, qui permet de vérifier que la chaîne retrouve des relations connues, ainsi que le rapport d'évaluation. Ces chiffres ne sont pas ceux de l'historique réel de Coficab : pour celui-ci, importer l'historique avec l'employé assigné, la date d'assignation et l'échéance, puis relancer `retrain.py`.
+Les données de test de l'application n'ont aucun lien entre l'employé et la ponctualité. `ml-service/reference-dataset/` contient un jeu de référence, clairement déclaré comme tel, qui permet de vérifier que la chaîne retrouve des relations connues, ainsi que le rapport d'évaluation. Ces chiffres ne sont pas ceux de l'historique réel de Coficab : pour celui-ci, importer l'historique avec l'employé assigné, la date d'assignation et l'échéance, puis relancer `retrain.py`.
+
+## Documentation
+
+`docs/ARCHITECTURE.md` (parcours d'une réclamation, de la saisie mobile au rapport 8D, démonstration du service d'image), `docs/BILAN_TECHNIQUE.md` (tests, base, points à annoncer) et `docs/NON_REGRESSION.md` (contrôles avant chaque évolution).
 
 ## Tests
 

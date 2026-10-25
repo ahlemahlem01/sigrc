@@ -155,7 +155,7 @@ def main() -> None:
     ap.add_argument("--claims", required=True)
     ap.add_argument("--truth")
     ap.add_argument("--report", required=True)
-    ap.add_argument("--source-label", default="données simulées (generate.py)")
+    ap.add_argument("--source-label", default="données de référence (generate.py)")
     a = ap.parse_args()
 
     d = build_features(pd.read_csv(a.claims, dtype={"assigned_to_id": str}))
@@ -182,7 +182,7 @@ def main() -> None:
         "# Évaluation du modèle « livré à l'heure »", "",
         f"Source : **{a.source_label}**. {len(d)} réclamations clôturées avec échéance connue, "
         f"taux de livraison à l'heure {d['y'].mean():.1%}. Modèle trivial (toujours la classe majoritaire) : exactitude {base:.1%}.", "",
-        "> Ces chiffres concernent des données **simulées** : ils montrent que la chaîne de traitement retrouve des relations "
+        "> Ces chiffres concernent des données **générées (jeu de référence)** : ils montrent que la chaîne de traitement retrouve des relations "
         "connues, pas la performance sur l'historique réel de Coficab. Sur l'historique réel, ré-entraîner puis relire ce rapport.", "",
         "## Validation croisée (5 plis, 4 répétitions)", "",
         "| Modèle | AUC | Brier | Exactitude |", "|---|---|---|---|",
@@ -230,7 +230,7 @@ def main() -> None:
         last = d.sort_values("assigned_at").groupby("assigned_to_id").tail(1).set_index("assigned_to_id")
         j = last.join(truth.set_index("user_id"), how="inner")
         corr = float(np.corrcoef(j["user_rate"], j["hidden_ability"])[0, 1])
-        lines += ["", "## Test de récupération (uniquement possible sur données simulées)", "",
+        lines += ["", "## Test de récupération (uniquement possible sur données de référence)", "",
                   f"Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **{corr:.2f}** "
                   f"({len(j)} employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit."]
 

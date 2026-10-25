@@ -85,7 +85,7 @@ C'est une règle de fonctionnement, pas une valeur optimisée : un dossier ouver
 oublié ou de test, pas comme charge actuelle. À réviser sur données réelles.
 
 **Les données sont-elles réelles ?**
-Non, en grande partie (voir section 0). Réponse directe, puis : « le jeu simulé sert à valider la chaîne et à montrer que
+Non, en grande partie (voir section 0). Réponse directe, puis : « le jeu de référence sert à valider la chaîne et à montrer que
 le modèle retrouve les effets introduits (corrélation de 0,94 entre le taux estimé et la capacité cachée) ».
 
 **Pourquoi la régression logistique et pas un réseau de neurones ?**
@@ -120,7 +120,7 @@ percentiles de l'équipe (avec des planchers). L'effet des badges sur le comport
 
 ## 5. Limites à reconnaître spontanément
 
-- Données majoritairement simulées ; performance réelle inconnue.
+- Données majoritairement de référence ; performance réelle inconnue.
 - L'apport de l'information sur l'employé est modeste (+0,025 d'AUC).
 - Le classement est validé par observation, pas par expérience (le modèle n'a jamais choisi).
 - Pas de prise en compte des congés, compétences techniques, complexité réelle.

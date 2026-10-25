@@ -41,4 +41,16 @@ public class CvFeedbackTests
     [InlineData("Testeur cassé", false)]
     public void TestWordsAreRecognised(string value, bool expected)
         => Assert.Equal(expected, DefectTypeSuggestions.IsTestTerm(value));
+
+    [Theory]
+    [InlineData("cable.jpg", "CUT_INSULATION", true)]
+    [InlineData(null, "CUT_INSULATION", true)]
+    [InlineData("Copper_bloom_01.jpg", "COPPER_BLOOMING", false)]
+    [InlineData("photo-cuivre.png", "COPPER_BLOOMING", false)]
+    public void DemoMode_GivesAConfidentOrAnUnsureExample(string? fileName, string code, bool confident)
+    {
+        var (defect, confidence) = CvDemoPrediction.For(fileName);
+        Assert.Equal(code, defect);
+        Assert.Equal(confident, confidence >= CvFeedback.ConfidenceThreshold);
+    }
 }

@@ -2458,6 +2458,7 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "cvDemo": "Demonstration mode: example proposal, not a real image analysis",
     "takePhoto": "Take a photo",
     "cvTitle": "Image analysis suggestion",
     "cvConfidence": "Confidence {{pct}} %",

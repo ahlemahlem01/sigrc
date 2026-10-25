@@ -34,7 +34,7 @@ import { ParetoImpactPreview } from './Pareto/ParetoImpactPreview';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
-import { appendCvProposal } from '../../utils/cvPayload';
+import { appendCvProposal, CvProposal } from '../../utils/cvPayload';
 
 interface CreateClaimFormProps {
   onSuccess?: () => void; // called after a successful create (e.g. when rendered inside a modal); falls back to navigation + reload when absent
@@ -59,7 +59,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   // File Attachment State
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   // Proposal of the image model for the attached photo (active learning: the operator confirms or corrects it)
-  const [cv, setCv] = useState<{ defectType: string; confidence: number; threshold: number } | null>(null);
+  const [cv, setCv] = useState<CvProposal | null>(null);
   // identifies the photo being analysed: the answer for a photo that was removed or replaced meanwhile is ignored
   const photoRef = useRef<File | null>(null);
 
@@ -140,7 +140,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     if (file.type.startsWith('image/') && accessToken) {
       qualityAnalysisService.suggestDefectFromImage(file, accessToken)
         .then((r) => {
-          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7 });
+          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo });
         })
         .catch(() => { /* no proposal: the operator picks the code himself */ });
     }
@@ -584,6 +584,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         .pfe-cv-conf { font-weight: 700; color: #15803d; }
         .pfe-cv-conf.low { color: #b45309; }
         .pfe-cv-code { margin: 6px 0; font-size: 15px; font-weight: 800; color: #0f172a; }
+        .pfe-cv-demo { margin: 0 0 4px; display: inline-block; padding: 2px 8px; border-radius: 999px; background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 700; }
         .pfe-cv-hint { margin: 6px 0 0; font-size: 11.5px; color: #475569; }
         .pfe-cv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .pfe-cv-btn, .pfe-cv-select {
@@ -1072,6 +1073,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                               <span className={`pfe-cv-conf ${unsure ? 'low' : ''}`}>{t('createClaim.cvConfidence', { pct: Math.round(cv.confidence * 100) })}</span>
                             </div>
                             <div className="pfe-cv-code">{defectLabel(cv.defectType)}</div>
+                            {cv.demo && <p className="pfe-cv-demo">{t('createClaim.cvDemo')}</p>}
                             {unsure && <p className="pfe-cv-hint">{t('createClaim.cvUnsure')}</p>}
                             <div className="pfe-cv-actions">
                               <button

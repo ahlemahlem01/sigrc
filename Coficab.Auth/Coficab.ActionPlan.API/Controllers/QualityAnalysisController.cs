@@ -348,14 +348,21 @@ public class QualityAnalysisController : ControllerBase
     /// Defect code proposed for a photo of the damaged cable. The image model is a separate service (ComputerVision:ServiceUrl,
     /// POST {url}/predict with the image, answering { defectType, confidence }). While none is configured the answer is
     /// { available: false } and the form simply offers nothing: the operator picks the code himself.
+    /// ComputerVision:Mode = "demo" answers a fixed example flagged demo: true (see CvDemoPrediction), to show the card without the service.
     /// </summary>
     [HttpPost("claims/cv-suggestion")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SuggestDefectFromImage(IFormFile image, CancellationToken cancellationToken)
     {
+        if (image is not { Length: > 0 }) return Ok(new { available = false });
+        if (string.Equals(_configuration["ComputerVision:Mode"], "demo", StringComparison.OrdinalIgnoreCase))
+        {
+            var (demoCode, demoConfidence) = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvDemoPrediction.For(image.FileName);
+            return Ok(new { available = true, demo = true, defectType = demoCode, confidence = demoConfidence,
+                            threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
+        }
         var url = _configuration["ComputerVision:ServiceUrl"];
-        if (string.IsNullOrWhiteSpace(url) || image is not { Length: > 0 })
-            return Ok(new { available = false });
+        if (string.IsNullOrWhiteSpace(url)) return Ok(new { available = false });
         try
         {
             using var content = new MultipartFormDataContent();

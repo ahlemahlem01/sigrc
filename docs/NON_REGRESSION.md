@@ -43,3 +43,13 @@ l'appareil qu'il a en main. Elle ne dépend d'aucune caméra fixe ni d'une insta
 | Service d'image absent (`available: false`) ou en erreur | aucune carte, saisie manuelle normale, rien ne bloque l'envoi |
 | Photo retirée ou remplacée avant la réponse | la réponse tardive est ignorée |
 | Tests automatisés | tests Jest (charge, libellés) verts ; typage du frontend propre |
+
+## 4. Mode démonstration du service d'image et libellés de référence
+
+| Contrôle | Résultat |
+|---|---|
+| Mode démonstration | `ComputerVision:Mode=demo` : proposition d'exemple (`CUT_INSULATION` 93 % ou, si le nom du fichier contient « copper / cuivre / bloom », `COPPER_BLOOMING` 58 %), signalée « Mode démonstration » sur la carte et `demo: true` dans la réponse ; vérifié en direct sur l'API et sur le formulaire |
+| Mode désactivé (par défaut) | réponse `{ available: false }`, aucune carte |
+| Description des réclamations du jeu de référence | 2 906 descriptions « (donnees simulees) » renommées « (donnees de reference) » (script de restauration local) ; plus aucune valeur « simul » en base |
+| Intégrité | 0 action orpheline, 0 réclamation sans type de défaut, 4 325 réclamations avant et après |
+| Tests automatisés | .NET 66 + 187, Jest 75, pytest 24 : verts ; typage propre |
