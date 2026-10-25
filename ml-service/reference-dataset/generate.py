@@ -11,6 +11,7 @@ causes below, and is blurred by random noise, so the strength of the relationshi
 Assumptions (all of them are written here so they can be discussed):
   * Employees have a hidden ability, partly (not entirely) linked to seniority. Ability shortens the work.
   * Work takes longer when the employee already has open claims at assignment time (workload).
+  * About 88 % of the claims are cable defects, the rest defects of the assembly workshop.
   * Defect types differ in difficulty; the higher the severity, the tighter the deadline compared to the work.
   * Durations are log-normal (long tail) with a small share of exceptional delays (blocked parts, absences).
   * The whole team is available during the whole period; hire dates only give a seniority proxy (the dates in the
@@ -38,17 +39,26 @@ SEVERITY_P = [0.25, 0.31, 0.31, 0.13]
 ALLOCATED_MEDIAN = {"LOW": 30.0, "MEDIUM": 18.0, "HIGH": 12.0, "CRITICAL": 7.0}
 TIGHTNESS = {"LOW": 0.56, "MEDIUM": 0.62, "HIGH": 0.69, "CRITICAL": 0.80}
 
+# Mostly cable defects (the codes of the inspection reference list, stored as codes like the claim form does), plus a few
+# defects of the harness-assembly workshop ("the factory"), so both kinds are present.
 DEFECTS = {  # defect type -> (weight, difficulty on a log scale)
-    "Soudure défectueuse": (0.18, 0.10), "Isolation endommagée": (0.10, 0.05), "Dimension hors tolérance": (0.07, 0.00),
-    "Manque de sertissage": (0.07, 0.15), "Coupure fil": (0.06, -0.05), "Débordement étain": (0.06, 0.20),
-    "Marquage illisible": (0.06, -0.20), "Étiquette manquante": (0.06, -0.25), "Non-conformité emballage": (0.06, -0.15),
-    "Connecteur desserré": (0.06, 0.05), "Polarité inversée": (0.05, 0.25), "Longueur câble incorrecte": (0.05, -0.05),
-    "Couleur incorrecte": (0.05, -0.15), "Contamination surface": (0.05, 0.10),
+    "CUT_INSULATION": (0.28, 0.10), "COPPER_BLOOMING": (0.20, 0.20), "MARKING_DEFECT": (0.16, -0.20),
+    "COLOR_MISMATCH": (0.12, -0.10), "SPOOL_DAMAGE": (0.12, -0.15),
+    "Soudure défectueuse": (0.04, 0.10), "Connecteur desserré": (0.02, 0.05), "Manque de sertissage": (0.02, 0.15),
+    "Étiquette manquante": (0.02, -0.25), "Non-conformité emballage": (0.02, -0.15),
 }
-LINES = {"ASM-01": 0.12, "ASM-03": 0.15, "CUT-01": 0.07, "CUT-02": 0.10, "EXT-01": 0.07, "EXT-02": 0.06,
-         "WR-01": 0.05, "WR-02": 0.06, "WR-03": 0.03, "WR-04": 0.15, "WR-05": 0.06, "WR-06": 0.03, "TEST-01": 0.05}
+# Where each defect is found: the cable defects on the cutting, extrusion, drawing and control lines, the others on the assembly lines.
+LINES_BY_DEFECT = {
+    "CUT_INSULATION": {"CUT-01": 0.30, "CUT-02": 0.30, "EXT-01": 0.20, "EXT-02": 0.20},
+    "COPPER_BLOOMING": {"WR-01": 0.18, "WR-02": 0.18, "WR-03": 0.14, "WR-04": 0.20, "WR-05": 0.15, "WR-06": 0.15},
+    "MARKING_DEFECT": {"EXT-01": 0.30, "EXT-02": 0.30, "CTL-01": 0.40},
+    "COLOR_MISMATCH": {"EXT-01": 0.50, "EXT-02": 0.50},
+    "SPOOL_DAMAGE": {"CUT-01": 0.25, "CUT-02": 0.25, "CTL-01": 0.50},
+}
+ASSEMBLY_LINES = {"ASM-01": 0.45, "ASM-03": 0.55}
 SHIFTS = ["Matin", "Après-midi", "Nuit", "Équipe A", "Équipe B"]
-CLIENTS = ["VW-WOL-2044", "STELLANTIS-MUL", "VALEO-TUNIS", "RENAULT-FLINS", "PSA-SOCH-220"]
+CLIENTS = ["COFAT-MATEUR", "COFAT-TUNIS", "LEONI-MATEUR", "LEONI-MESSADINE", "YAZAKI-GAFSA", "APTIV-MONASTIR",
+           "DRAXLMAIER-SOUSSE", "DRAXLMAIER-EL-FEJJA", "KROMBERG-BEJA"]  # direct customer sites (cablers)
 
 START = datetime(2024, 1, 1)
 END_CREATION = datetime(2026, 9, 5)
@@ -86,7 +96,7 @@ def generate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.Data
             severity = str(rng.choice(SEVERITIES, p=SEVERITY_P))
             defect = _weighted(rng, DEFECTS)
             difficulty = DEFECTS[defect][1]
-            line = _weighted(rng, LINES)
+            line = _weighted(rng, LINES_BY_DEFECT.get(defect, ASSEMBLY_LINES))
 
             assigned = created + timedelta(hours=float(rng.exponential(10.0)))
             t_assigned = assigned.timestamp()

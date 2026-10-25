@@ -64,3 +64,19 @@ l'appareil qu'il a en main. Elle ne dépend d'aucune caméra fixe ni d'une insta
 | Chaîne API .NET -> service | appel reçu par le service (200) depuis l'API (Docker, `host.docker.internal:5000`) ; le formulaire reste en saisie manuelle |
 | Correspondance détections -> codes | 5 tests pytest (jamais de défaut inventé pour un objet du quotidien) |
 | Tests automatisés | .NET 66 + 187, Jest 75, pytest 29 : verts ; typage propre |
+
+## 6. Jeu de référence régénéré avec des défauts de câble
+
+Le lot « REFERENCE-DATASET » est remplacé par une nouvelle version : 88 % de défauts de câble (`CUT_INSULATION`, `COPPER_BLOOMING`,
+`MARKING_DEFECT`, `COLOR_MISMATCH`, `SPOOL_DAMAGE`, stockés comme codes) sur des lignes de découpe, extrusion, tréfilage et contrôle, 12 % de
+défauts d'atelier d'assemblage (soudure, connecteur, sertissage, étiquette, emballage) sur les lignes ASM, avec les 9 sites clients cabliers.
+
+| Contrôle | Résultat |
+|---|---|
+| Nouveau lot | 2 871 réclamations clôturées (2 520 câble, 351 usine) ; ancien lot (2 906) **archivé, pas supprimé** : restaurable depuis l'application |
+| Réclamations ouvertes / en retard | 609 / 25 : inchangées (le lot ne contient que du clôturé) |
+| Chiffres du tableau de bord (90 jours) | à l'heure 76,6 % -> 69 %, clôturées 277 -> 294, PPM 9 461 -> 9 197 : écart attendu, les données clôturées ont changé |
+| Libellés | les 5 codes s'affichent avec leur libellé partout (aucun code brut sur la vue d'ensemble) |
+| Réentraînement | `retrain.py --check` : prêt (au moins 308 lignes par nouveau code) ; **modèle non réentraîné** |
+| Rapport d'évaluation (`REPORT.md`) | régénéré : AUC 0,78 (réclamation + employé) contre 0,76 (réclamation seule) |
+| Réclamations « vivantes » (1 419, dont 609 ouvertes) | **inchangées** : elles restent des défauts d'atelier ; voir le bilan |

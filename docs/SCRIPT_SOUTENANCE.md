@@ -55,14 +55,14 @@ Validation croisée (modèle enregistré, 3 109 réclamations) :
 | AUC, découpage dans le temps | 0,734 |
 | Exactitude / modèle « toujours à l'heure » | 0,753 / 0,741 |
 
-Comparaison la plus parlante (rapport d'évaluation, 30 % de réclamations les plus récentes, équipe de 31) :
+Comparaison la plus parlante (rapport d'évaluation, 30 % de réclamations les plus récentes, équipe de 22) :
 
 | Employé assigné | Livrées à l'heure |
 |---|---|
-| Dans le top 3 du modèle | **93,5 %** |
-| Hors du top 3 | 71,2 % |
+| Dans le top 3 du modèle | **85,4 %** |
+| Hors du top 3 | 68,4 % |
 
-Écart +22,4 points, intervalle de confiance à 95 % de +16,3 à +28,4. **Observation, pas expérience** : les assignations
+Écart +17,0 points, intervalle de confiance à 95 % de +10,3 à +23,7. **Observation, pas expérience** : les assignations
 n'ont pas été faites par le modèle ; le classement est cohérent avec les résultats.
 
 À ne pas dire : « le modèle prédit à 75 % ». L'exactitude (0,753) est quasi identique au modèle trivial (0,741) ; le bon

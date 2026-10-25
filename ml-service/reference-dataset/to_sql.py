@@ -16,6 +16,13 @@ import pandas as pd
 
 ROWS_PER_INSERT = 400
 
+# display wording of the defect codes (claims store the code; titles and descriptions use the label)
+LABELS = {
+    "CUT_INSULATION": "Coupure / Entaille sur gaine", "COPPER_BLOOMING": "Brins de cuivre cassés / désaffleurants",
+    "MARKING_DEFECT": "Défaut de marquage (illisible / absent)", "SPOOL_DAMAGE": "Touret / Emballage endommagé",
+    "COLOR_MISMATCH": "Couleur d'isolant non conforme",
+}
+
 
 def q(value) -> str:
     if value is None or (isinstance(value, float) and pd.isna(value)) or value is pd.NaT:
@@ -33,7 +40,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--claims", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference (seed 7)")
+    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference, defauts cable (seed 7)")
     a = ap.parse_args()
 
     df = pd.read_csv(a.claims, dtype=str, keep_default_na=False)
@@ -51,15 +58,16 @@ def main() -> None:
     for start in range(0, len(df), ROWS_PER_INSERT):
         values = []
         for _, r in df.iloc[start:start + ROWS_PER_INSERT].iterrows():
-            cid = r["claim_id"]
+            # ids are derived from the batch, so two batches built from the same seed never collide
+            cid = str(uuid.uuid5(uuid.UUID(batch_id), r["claim_id"])).upper()
             claim_ids.append(cid)
             lot = f"LOT-{pd.Timestamp(r['created_at']):%y%V}-{int(uuid.UUID(cid).int % 900) + 100}"
             on_time = "NULL" if r["is_on_time"] == "" else ("1" if r["is_on_time"].lower() == "true" else "0")
             values.append(
                 "(" + ",".join([
-                    f"'{cid}'", q(f"{r['defect_type']} - {r['production_line']}"), q(r["client_id"]), q(r["defect_type"]),
+                    f"'{cid}'", q(f"{LABELS.get(r['defect_type'], r['defect_type'])} - {r['production_line']}"), q(r["client_id"]), q(r["defect_type"]),
                     q(r["severity"]), q(lot),
-                    q(f"Defaut {r['defect_type'].lower()} detecte sur la ligne {r['production_line']} (donnees de reference)."),
+                    q(f"Defaut {LABELS.get(r['defect_type'], r['defect_type']).lower()} detecte sur la ligne {r['production_line']} (donnees de reference)."),
                     "N'CLOTUREE'", q(r["assigned_to_id"]), q(r["assigned_to_name"]), ts(r["assigned_at"]),
                     ts(r["deadline"] or None), ts(r["completed_at"]), on_time, ts(r["detection_date"]), ts(r["created_at"]),
                     "N'reference-dataset'", "0", q(r["production_line"]), q(r["shift"]), r["produced_quantity"], r["defective_quantity"],
