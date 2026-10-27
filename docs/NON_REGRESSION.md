@@ -153,3 +153,17 @@ Réentraîné après la régénération des données (`retrain.py`, jeu d'entra�
 Le conteneur `sigrc_ml` est reconstruit et recréé avec les nouveaux artefacts ; `/recommend` répond avec un code de câble (`CUT_INSULATION`) et
 classe correctement deux candidats de ponctualité différente. L'étiquette enregistrée reste « reference dataset modelled on the production process ».
 Chiffres de `docs/SCRIPT_SOUTENANCE.md` mis à jour. Tests : pytest 37.
+
+## 12. Alertes d'anomalie réécrites avec des défauts de câble
+
+Les neuf alertes d'anomalie existantes (workflow de validation déjà parcouru : en attente, validée, rejetée, archivée) portaient des défauts
+d'atelier. `ml-service/reference-dataset/retheme_alerts.py` leur donne un défaut de câble et la ligne de son processus.
+
+| Contrôle | Résultat |
+|---|---|
+| Ce qui change | défaut, ligne, description (sans le préfixe « TEST » ni « Bureau RH »), analyse proposée (problème, cause probable, conséquences), événement « détectée » de l'historique, notifications qui citent l'alerte, 2 commentaires, 2 comptes rendus et 2 pièces jointes écrits par le jeu de données |
+| Ce qui ne change pas | statut, z-score, volumes, moyenne, dates, validations, rejets, archivages, destinataires, et tout ce qu'une personne a saisi (commentaires et comptes rendus de test) |
+| Correspondance | diamètre du conducteur / WR-04 (en attente) ; oxydation du cuivre / WR-06 (2 alertes) ; brins de cuivre cassés / WR-06 ; rayures sur la gaine / EXT-02 ; essai d'étincelage / EXT-01 ; coupure de gaine / CUT-01 ; épaisseur d'isolant / EXT-02 ; « Étiquette manquante / ASM-01 » reste une alerte d'atelier |
+| Vérification | plus aucun « Bureau RH », « Soudure froide », « Connecteur desserré », « Gaine fissurée » ni « Sertissage incomplet » dans les alertes, l'historique et les notifications ; la file d'alertes affiche « Conductor diameter out of tolerance — WR-04 » |
+| Détection automatique | non relancée : elle compare la semaine en cours aux quatre précédentes, et il n'y a plus de réclamations de la semaine (dernières créations : septembre), donc aucune anomalie réelle ne serait détectée |
+| Sauvegarde | tables d'origine dans le schéma `bak20261027b` ; `scripts/restore-retheme-alerts-20261027.sql` (local) les remet |
