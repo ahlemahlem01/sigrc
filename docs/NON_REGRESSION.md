@@ -134,3 +134,22 @@ en dépend. Les textes viennent de `cable_narratives.json` (2 scénarios, 3 à 5
 | Sauvegarde | tables d'origine dans le schéma `bak20261027` de la base ; `scripts/restore-retheme-20261027.sql` (local) les remet |
 | Limites | les alertes d'anomalie existantes (8) et les rapports enregistrés gardent leur texte d'origine ; `Coficab.ReferenceDataLoader` (mode réaliste) génère encore des défauts d'atelier : le contenu de câble est dans `cable_narratives.json` |
 | Tests automatisés | pytest 37 (dont la couverture des 20 défauts par les textes) ; données vérifiées par requêtes avant / après |
+
+## 11. Réentraînement du modèle de recommandation
+
+Réentraîné après la régénération des données (`retrain.py`, jeu d'entraînement `api/ml-features/training-dataset`). Il connaît maintenant les
+20 codes de câble ; la vérification `retrain.py --check` indiquait au moins 53 lignes par code.
+
+| Mesure | Avant | Après |
+|---|---|---|
+| Lignes d'entraînement | 3 109 | 3 103 |
+| Modèle gardé | régression logistique | gradient boosting (0,743 contre 0,741 pour la régression logistique : écart dans le bruit) |
+| AUC réclamation + employé (validation croisée) | 0,738 | **0,743** ± 0,025 |
+| AUC réclamation seule | 0,713 | 0,719 |
+| Apport de l'employé | +0,025 | **+0,024** |
+| AUC, découpage dans le temps | 0,734 | 0,769 |
+| Statut | validé | **validé** (bat le hasard et le modèle sans variables employé) |
+
+Le conteneur `sigrc_ml` est reconstruit et recréé avec les nouveaux artefacts ; `/recommend` répond avec un code de câble (`CUT_INSULATION`) et
+classe correctement deux candidats de ponctualité différente. L'étiquette enregistrée reste « reference dataset modelled on the production process ».
+Chiffres de `docs/SCRIPT_SOUTENANCE.md` mis à jour. Tests : pytest 37.

@@ -218,7 +218,7 @@ def main() -> int:
     ap.add_argument("--min-per-code", type=int, default=MIN_ROWS_PER_NEW_CODE, help="rows needed for a new defect code to count as learnable")
     ap.add_argument("--csv", help="read the dataset from a CSV instead of the API")
     ap.add_argument("--insecure", action="store_true", help="do not verify TLS certificates (local development)")
-    ap.add_argument("--source-label", default="claims database", help="what the data are, recorded in the artifacts")
+    ap.add_argument("--source-label", default="reference dataset modelled on the production process", help="what the data are, recorded in the artifacts")
     args = ap.parse_args()
 
     X, y = prepare(load(args))

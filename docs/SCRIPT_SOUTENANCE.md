@@ -37,7 +37,7 @@ commande sur l'historique réel dès qu'il est importé. »
    dossiers ouverts (charge), type de défaut, gravité, jours alloués.
 3. **Aucune fuite** : tout est calculé avec ce qui était connu à la date d'assignation (dossier lui-même et futur exclus,
    moyenne d'équipe datée).
-4. **Algorithme** : régression logistique, comparée à un gradient boosting ; la plus simple gagne.
+4. **Algorithme** : régression logistique et gradient boosting sont entraînés et comparés ; le meilleur en validation croisée est gardé (gradient boosting, 0,743 contre 0,741 : écart dans le bruit).
 5. **Évaluation** : validation croisée répétée, découpage dans le temps, comparaison avec un modèle sans information sur
    l'employé, calibration.
 6. **Garde-fou** : le modèle n'est « validé » que s'il bat le hasard **et** si l'information sur l'employé apporte quelque
@@ -45,15 +45,15 @@ commande sur l'historique réel dès qu'il est importé. »
 
 ## 3. Les chiffres à citer
 
-Validation croisée (modèle enregistré, 3 109 réclamations) :
+Validation croisée (modèle enregistré, réentraîné le 27/10/2026 sur 3 103 réclamations) :
 
 | Mesure | Valeur |
 |---|---|
-| AUC, réclamation + employé | **0,738** (hasard : 0,5) |
-| AUC, réclamation seule | 0,713 |
-| Apport de l'information sur l'employé | **+0,025** |
-| AUC, découpage dans le temps | 0,734 |
-| Exactitude / modèle « toujours à l'heure » | 0,753 / 0,741 |
+| AUC, réclamation + employé | **0,743** (hasard : 0,5) |
+| AUC, réclamation seule | 0,719 |
+| Apport de l'information sur l'employé | **+0,024** |
+| AUC, découpage dans le temps | 0,769 |
+| Exactitude / modèle « toujours à l'heure » | 0,725 / 0,705 |
 
 Comparaison la plus parlante (rapport d'évaluation, 30 % de réclamations les plus récentes, équipe de 22) :
 
@@ -65,7 +65,7 @@ Comparaison la plus parlante (rapport d'évaluation, 30 % de réclamations les p
 Écart +17,0 points, intervalle de confiance à 95 % de +10,3 à +23,7. **Observation, pas expérience** : les assignations
 n'ont pas été faites par le modèle ; le classement est cohérent avec les résultats.
 
-À ne pas dire : « le modèle prédit à 75 % ». L'exactitude (0,753) est quasi identique au modèle trivial (0,741) ; le bon
+À ne pas dire : « le modèle prédit à 75 % ». L'exactitude (0,725) est proche du modèle trivial (0,705) ; le bon
 indicateur est l'AUC et le classement, parce que la recommandation sert à **classer**, pas à répondre par oui ou non.
 
 ## 4. Questions probables et réponses honnêtes
@@ -86,15 +86,15 @@ oublié ou de test, pas comme charge actuelle. À réviser sur données réelles
 
 **Les données sont-elles réelles ?**
 Non, en grande partie (voir section 0). Réponse directe, puis : « le jeu de référence sert à valider la chaîne et à montrer que
-le modèle retrouve les effets introduits (corrélation de 0,94 entre le taux estimé et la capacité cachée) ».
+le modèle retrouve les effets introduits (corrélation de 0,95 entre le taux estimé et la capacité cachée) ».
 
-**Pourquoi la régression logistique et pas un réseau de neurones ?**
-Peu de variables, effets modestes, quelques milliers de lignes : un modèle complexe ne gagne rien (le gradient boosting fait
-un peu moins bien : 0,733 contre 0,738). La régression logistique est aussi explicable, ce qui compte pour justifier un
-classement de personnes.
+**Pourquoi un modèle simple et pas un réseau de neurones ?**
+Peu de variables, effets modestes, quelques milliers de lignes : un modèle complexe ne gagne rien (régression logistique 0,741 et
+gradient boosting 0,743 sont indiscernables au vu de l'écart-type de 0,026). La régression logistique reste la plus explicable,
+ce qui compte pour justifier un classement de personnes.
 
 **Pourquoi l'exactitude est-elle proche du modèle trivial ?**
-Environ 74 % des réclamations sont à l'heure, donc répondre toujours « à l'heure » est déjà exact 74 % du temps. L'objectif
+Environ 70 % des réclamations sont à l'heure, donc répondre toujours « à l'heure » est déjà exact 70 % du temps. L'objectif
 n'est pas de prédire oui/non mais de **classer** les employés : d'où l'AUC et la comparaison top 3 contre le reste.
 
 **Le modèle tient-il compte des compétences, des congés, de la complexité réelle du dossier ?**
