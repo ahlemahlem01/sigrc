@@ -51,3 +51,6 @@ scripts/restore-*-2026*.sql
 # Roboflow dataset, training runs
 ml-service/dataset/
 ml-service/runs/
+ml-service/dataset2/
+ml-service/dataset_merged/
+ml-service/best_v1.pt

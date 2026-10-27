@@ -376,7 +376,10 @@ public class QualityAnalysisController : ControllerBase
             using var response = await http.PostAsync(endpoint, content, cancellationToken);
             if (!response.IsSuccessStatusCode) return Ok(new { available = false });
             var body = await response.Content.ReadFromJsonAsync<CvPredictionBody>(cancellationToken: cancellationToken);
-            if (body is null || string.IsNullOrWhiteSpace(body.DefectType)) return Ok(new { available = false });
+            if (body is null) return Ok(new { available = false });
+            // a defect that is seen but not named: no code to propose, the form only tells the operator to look
+            if (string.IsNullOrWhiteSpace(body.DefectType))
+                return Ok(body.AnomalyDetected == true ? new { available = false, anomalyDetected = true, confidence = Math.Clamp(body.Confidence, 0, 1) } : new { available = false, anomalyDetected = false, confidence = 0.0 });
             var resolver = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(_db, cancellationToken);
             return Ok(new { available = true, defectType = resolver.Resolve(body.DefectType.Trim()), confidence = Math.Clamp(body.Confidence, 0, 1),
                             lineFamilies = body.LineFamilies ?? [], lines = body.Lines ?? [],
@@ -388,7 +391,7 @@ public class QualityAnalysisController : ControllerBase
         }
     }
 
-    private sealed record CvPredictionBody(string? DefectType, double Confidence, string[]? LineFamilies = null, string[]? Lines = null);
+    private sealed record CvPredictionBody(string? DefectType, double Confidence, string[]? LineFamilies = null, string[]? Lines = null, bool? AnomalyDetected = null);
 
     [HttpPost("claims")]
     [Consumes("multipart/form-data")] // Indique à Swagger / OpenApi qu'il s'agit d'un upload de fichier

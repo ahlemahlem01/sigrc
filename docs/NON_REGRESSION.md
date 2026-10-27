@@ -188,3 +188,18 @@ réclamation écrasée en une colonne de mots.
 Mesures : aucun débordement horizontal de la page sur les 17 pages du front office et les 21 du back office testées. Restent volontairement
 à défilement latéral dans leur cadre : les tableaux d'administration (journaux, comparaisons, départements) et le bandeau des 8 étapes du 8D.
 Tests : Jest 76, typage propre.
+
+## 14. Modèle d'image entraîné sur trois jeux de données
+
+Ajout des jeux *cable-damage-detection v1* (câbles d'acier) et *cable-defect v2* (fils avec cosse) à *cable-defect v3*.
+
+| Contrôle | Résultat |
+|---|---|
+| Jeu fusionné | 770 photos d'entraînement, 131 de validation, 143 de test jamais utilisées pour entraîner ; 7 classes ; 104 photos sans défaut |
+| mAP@50 sur les 143 photos de test | 0,57 (foreign 0,77, hole 0,46, scratch 0,39, spot 0,19, break 0,65, thunderbolt 0,85, defect 0,68) |
+| Photos de câbles isolés (38, jeu 1) : code proposé juste / faux / rien | 30 / 5 / 3 (avant : 25 / 10 / 3) ; la classe `scratch` perd en précision de boîte (0,56 -> 0,39) mais pas en code proposé |
+| Photo de faisceau usé (essai de l'utilisateur) | avant : « corps étranger » à 41 % (faux) ; maintenant : aucune proposition |
+| Classes d'acier alignées sur les réclamations | `break` -> `COPPER_BROKEN`, `thunderbolt` -> `COPPER_OXIDATION` (approximation), contexte de ligne WR renvoyé |
+| Défaut vu mais non nommé | le service répond `anomalyDetected`, l'API le relaie, le formulaire affiche un message sans bouton ; vérifié à l'écran |
+| Tests automatisés | .NET 66 + 187, Jest 76, pytest 38 : verts ; typage propre |
+| Limites | jeux publics, dont un d'acier : non validé sur des photos Coficab ; `spot` reste faible (0,19) |

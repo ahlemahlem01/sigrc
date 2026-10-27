@@ -2458,6 +2458,7 @@
     "next": "Successivo: {{tool}}"
   },
   "createClaim": {
+    "cvAnomaly": "Sulla foto è rilevato un difetto, ma il tipo non è riconosciuto: scegli il codice dall'elenco del modulo.",
     "cvLines": "Di solito riscontrato sulle linee: {{lines}}",
     "cvDemo": "Modalità dimostrativa: proposta di esempio, non un’analisi reale dell’immagine",
     "takePhoto": "Scatta una foto",

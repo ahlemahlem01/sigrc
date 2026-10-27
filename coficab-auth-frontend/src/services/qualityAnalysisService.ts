@@ -270,7 +270,7 @@ export const qualityAnalysisService = {
   suggestDefectFromImage: async (image: File, token?: string) => {
     const form = new FormData();
     form.append('image', image);
-    const response = await api.post<{ available: boolean; demo?: boolean; defectType?: string; confidence?: number; threshold?: number; lineFamilies?: string[] }>(
+    const response = await api.post<{ available: boolean; demo?: boolean; anomalyDetected?: boolean; defectType?: string; confidence?: number; threshold?: number; lineFamilies?: string[] }>(
       '/claims/cv-suggestion',
       form,
       getAuthConfig(token, { 'Content-Type': 'multipart/form-data' })

@@ -38,15 +38,21 @@ pip install -r requirements-cv.txt
 python -m uvicorn app:app --host 127.0.0.1 --port 5000
 ```
 
-**Modèle.** `best.pt` est YOLOv8n affiné (`train.py`) sur le jeu public Roboflow *cable-defect v3* (licence CC BY 4.0, 239 images, téléchargé
-par `download_dataset.py` avec `ROBOFLOW_API_KEY`, jamais écrite dans un fichier). Quatre classes visuelles : `foreign`, `hole`, `scratch`, `spot`.
-Évaluation sur 38 images de test jamais vues (`best_report.json`) : mAP@50 = 0,44 (foreign 0,74, scratch 0,56, hole 0,27, spot 0,20).
-C'est un premier modèle sur des images publiques, **non validé sur des photos Coficab** : les propositions sont à confirmer par l'opérateur.
+**Modèle.** `best.pt` est YOLOv8n entraîné (`train.py`) sur trois jeux publics Roboflow (licence CC BY 4.0), téléchargés par `download_dataset.py`
+avec `ROBOFLOW_API_KEY` (jamais écrite dans un fichier) et fusionnés par `build_training_set.py` :
+1. *cable-defect v3* : 239 photos de câbles isolés (corps étranger, trou, rayure, tache) ;
+2. *cable-damage-detection v1* : 2 694 photos de **câbles d'acier torsadés** (brin cassé, brûlure d'arc) ;
+3. *cable-defect v2* : 610 photos de fils avec cosse, classes « défaut » (type non précisé) et « bon » (utilisées comme photos sans défaut).
+Le jeu 2 est échantillonné et le jeu 1 répété pour que les câbles isolés ne soient pas noyés ; les 143 photos de test ne servent jamais à l'entraînement.
+Évaluation (`best_report.json`, 143 photos de test) : mAP@50 = 0,57 ; foreign 0,77, hole 0,46, scratch 0,39, spot 0,19, break 0,65, thunderbolt 0,85, defect 0,68.
+Sur les 38 photos de câbles isolés, le code proposé est le bon 30 fois (25 avec le modèle précédent), faux 5 fois (10 avant), rien 3 fois.
+C'est un modèle entraîné sur des images publiques, **non validé sur des photos Coficab** : les propositions sont à confirmer par l'opérateur.
 
 **Correspondance (`cv_class_map.json`).** `foreign` -> `FOREIGN_MATTER`, `hole` -> `CUT_INSULATION`, `scratch` -> `SCRATCH_INSULATION`,
-`spot` -> `COLOR_NON_CONFORMITY` (choix de rapprochement à valider par la qualité). Les 21 autres codes (dimensions, résistance, étincelage,
-atelier…) ne se voient pas sur une photo de ce type : ils restent en saisie manuelle. Un détecteur dont les classes portent les noms des codes
-n'a besoin d'aucune entrée dans le fichier.
+`spot` -> `COLOR_NON_CONFORMITY`, `break` -> `COPPER_BROKEN` (brin cassé), `thunderbolt` -> `COPPER_OXIDATION` (brins brûlés par un arc : code le plus
+proche, approximatif). La classe `defect` n'a aucun code : le service répond `{ "available": false, "anomalyDetected": true }` et le formulaire
+invite l'opérateur à choisir le code lui-même. Les autres codes (dimensions, résistance, étincelage, atelier…) ne se voient pas sur ce type de photo :
+saisie manuelle.
 
 **Réponse.** `{ "available": true, "defectType": "<code exact>", "confidence": 0.85, "lineFamilies": ["EXT"], "lines": ["EXT-01", "EXT-02"] }`
 ou `{ "available": false }`. Le code métier et le contexte de ligne (familles EXT, WR, CUT, CTL) viennent du catalogue ; l'API les relaie et

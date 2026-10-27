@@ -1,16 +1,20 @@
 {
-  "base": "yolov8n.pt",
-  "epochs": 60,
-  "imgsz": 640,
-  "train_images": 160,
-  "test_images": 38,
-  "test_map50": 0.4439,
-  "test_map50_95": 0.2496,
+  "base": "C:\\Users\\jkoom\\OneDrive\\Desktop\\SIGRC\\ml-service\\best.pt",
+  "epochs": 22,
+  "imgsz": 512,
+  "data": "dataset_merged (cable-defect v3 + cable-damage v1)",
+  "train_images": 770,
+  "test_images": 143,
+  "test_map50": 0.57,
+  "test_map50_95": 0.2767,
   "per_class_map50": {
-    "foreign": 0.7387,
-    "hole": 0.2724,
-    "scratch": 0.5647,
-    "spot": 0.1999
+    "foreign": 0.7716,
+    "hole": 0.4575,
+    "scratch": 0.3857,
+    "spot": 0.194,
+    "break": 0.6511,
+    "thunderbolt": 0.8462,
+    "defect": 0.6841
   },
-  "dataset": "Roboflow cable-defect v3 (CC BY 4.0)"
+  "dataset": "Roboflow cable-defect v3 + cable-damage-detection v1 (both CC BY 4.0)"
 }

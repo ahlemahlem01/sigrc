@@ -55,7 +55,7 @@ def test_the_french_wording_of_the_reference_list_is_the_catalogue_wording():
 
 def test_the_dataset_classes_point_at_codes_of_the_catalogue():
     mapping = load_class_map()
-    assert {"foreign", "hole", "scratch", "spot"} <= set(mapping)
+    assert {"foreign", "hole", "scratch", "spot", "break", "thunderbolt"} <= set(mapping)
     assert set(mapping.values()) <= set(CABLE)
 
 

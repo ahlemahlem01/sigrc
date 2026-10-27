@@ -62,6 +62,8 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const [cv, setCv] = useState<CvProposal | null>(null);
   // identifies the photo being analysed: the answer for a photo that was removed or replaced meanwhile is ignored
   const photoRef = useRef<File | null>(null);
+  // the image model sees a defect but cannot name it: only a hint, nothing to confirm
+  const [cvAnomaly, setCvAnomaly] = useState<number | null>(null);
 
   const [formData, setFormData] = useState<Omit<CreateClaimCommand, 'createdById'>>({
     title: '',
@@ -136,10 +138,12 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setError(null);
     setSelectedFile(file);
     setCv(null);
+    setCvAnomaly(null);
     photoRef.current = file;
     if (file.type.startsWith('image/') && accessToken) {
       qualityAnalysisService.suggestDefectFromImage(file, accessToken)
         .then((r) => {
+          if (photoRef.current === file && !r.available && r.anomalyDetected) setCvAnomaly(r.confidence ?? 0);
           if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo, lineFamilies: r.lineFamilies });
         })
         .catch(() => { /* no proposal: the operator picks the code himself */ });
@@ -171,6 +175,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const removeFile = () => {
     setSelectedFile(null);
     setCv(null);
+    setCvAnomaly(null);
     photoRef.current = null;
   };
 
@@ -1072,6 +1077,13 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                           <button type="button" className="pfe-file-remove" onClick={removeFile}>
                             <Trash2 size={16} />
                           </button>
+                        </div>
+                      )}
+
+                      {cvAnomaly !== null && !cv && (
+                        <div className="pfe-cv-card" role="status">
+                          <div className="pfe-cv-head"><strong>{t('createClaim.cvTitle')}</strong><span className="pfe-cv-conf low">{t('createClaim.cvConfidence', { pct: Math.round(cvAnomaly * 100) })}</span></div>
+                          <p className="pfe-cv-hint">{t('createClaim.cvAnomaly')}</p>
                         </div>
                       )}
 

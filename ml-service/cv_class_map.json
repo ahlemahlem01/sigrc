@@ -1,7 +1,9 @@
 {
-  "_comment": "Class of the trained detector (Roboflow cable-defect v3: foreign, hole, scratch, spot) -> defect code of the application. Only the defects these four visual classes stand for can be proposed; the other codes (dimensions, resistance, spark test...) cannot be seen on a photo of this kind and stay manual. A detector whose classes are named like the codes needs no entry here (see cv_mapping.py). The stock yolov8n.pt knows none of these classes: with it the service answers available=false.",
+  "_comment": "Class of the trained detector -> defect code of the application. Dataset 1 (Roboflow cable-defect v3, insulated cable photos): foreign, hole, scratch, spot. Dataset 2 (Roboflow cable-damage-detection v1, STEEL wire-rope photos): break = broken wire strand -> COPPER_BROKEN (broken / protruding strands); thunderbolt = burnt, fused strands after an electric arc -> COPPER_OXIDATION (closest code: discoloured, scorched metal; a dedicated code can be added). Only the defects these visual classes stand for can be proposed; the other codes (dimensions, resistance, spark test...) cannot be seen on a photo of this kind and stay manual. A detector whose classes are named like the codes needs no entry here (see cv_mapping.py). The stock yolov8n.pt knows none of these classes: with it the service answers available=false.",
   "foreign": "FOREIGN_MATTER",
   "hole": "CUT_INSULATION",
   "scratch": "SCRATCH_INSULATION",
-  "spot": "COLOR_NON_CONFORMITY"
+  "spot": "COLOR_NON_CONFORMITY",
+  "break": "COPPER_BROKEN",
+  "thunderbolt": "COPPER_OXIDATION"
 }

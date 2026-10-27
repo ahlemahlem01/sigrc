@@ -2458,6 +2458,7 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "cvAnomaly": "A defect is detected on the photo, but its type is not recognised: pick the code in the form's list.",
     "cvLines": "Usually found on lines: {{lines}}",
     "cvDemo": "Demonstration mode: example proposal, not a real image analysis",
     "takePhoto": "Take a photo",

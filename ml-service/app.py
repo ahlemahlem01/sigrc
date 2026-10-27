@@ -5,7 +5,8 @@ Image service of the claim form: proposes a defect code for a photo of a damaged
 
 POST /predict (multipart/form-data, field "file") answers
     { "available": true, "defectType": "CUT_INSULATION", "confidence": 0.85, "lineFamilies": ["CUT", "EXT"], "lines": ["CUT-01", ...] }
-or { "available": false } when the model sees no defect it knows. The .NET API calls it (ComputerVision:ServiceUrl).
+or { "available": false } when the model sees no defect it knows
+(with "anomalyDetected": true and a confidence when it sees a defect it cannot name). The .NET API calls it (ComputerVision:ServiceUrl).
 
 The weights are loaded once at start-up: CV_MODEL_PATH, else best.pt (written by train.py: yolov8n fine-tuned on the Roboflow
 cable-defect dataset), else the general-purpose yolov8n.pt, which knows no cable defect and so never proposes one.
@@ -78,6 +79,10 @@ async def predict(file: UploadFile = File(...)) -> dict[str, Any]:
     detections = [(names[int(c)], float(p)) for c, p in zip(result.boxes.cls.tolist(), result.boxes.conf.tolist())]
     picked = pick_defect(detections, state["class_map"], MIN_CONFIDENCE)
     if picked is None:
+        # a defect the model sees but cannot name (class "defect" of the harness-lead dataset): say so instead of guessing a code
+        generic = max((p for n, p in detections if n.strip().lower() == "defect"), default=None)
+        if generic is not None and generic >= MIN_CONFIDENCE:
+            return {"available": False, "anomalyDetected": True, "confidence": round(generic, 4)}
         return {"available": False}
     code, confidence = picked
     # the exact business code, plus where this defect is found (line families and lines of its process)
