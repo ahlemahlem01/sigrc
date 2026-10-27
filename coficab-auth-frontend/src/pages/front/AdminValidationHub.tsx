@@ -445,6 +445,18 @@ export const AdminValidationHub: React.FC = () => {
         .avh-ok { background:#059669; color:#fff; border:none; border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
         .avh-ko { background:#fff; color:#b91c1c; border:1px solid #fecaca; border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
         .avh-ghost { background:#fff; color:var(--navy); border:1px solid var(--line); border-radius:8px; height:32px; padding:0 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; text-decoration:none; display:inline-flex; align-items:center; }
+        @media (max-width: 640px) {
+          .avh-title { font-size: 20px; }
+          .avh-tools > * { flex: 1 1 100%; min-width: 0; }
+          .avh-tab { min-height: 40px; }
+          .avh-card { flex-direction: column; align-items: stretch; gap: 10px; padding: 12px; }
+          .avh-card > * { min-width: 0; max-width: 100%; }
+          .avh-cb { align-self: flex-start; width: 22px; height: 22px; }
+          .avh-acts { width: 100%; }
+          .avh-acts > * { flex: 1 1 120px; justify-content: center; }
+          .avh-ok, .avh-ko, .avh-ghost { height: 44px; }
+          .avh-bulk { flex-wrap: wrap; }
+        }
         .avh-empty, .avh-loading { padding:48px 20px; text-align:center; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:14px; }
         .avh-error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
         .avh-notice { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; gap:10px; }

@@ -167,3 +167,24 @@ d'atelier. `ml-service/reference-dataset/retheme_alerts.py` leur donne un défau
 | Vérification | plus aucun « Bureau RH », « Soudure froide », « Connecteur desserré », « Gaine fissurée » ni « Sertissage incomplet » dans les alertes, l'historique et les notifications ; la file d'alertes affiche « Conductor diameter out of tolerance — WR-04 » |
 | Détection automatique | non relancée : elle compare la semaine en cours aux quatre précédentes, et il n'y a plus de réclamations de la semaine (dernières créations : septembre), donc aucune anomalie réelle ne serait détectée |
 | Sauvegarde | tables d'origine dans le schéma `bak20261027b` ; `scripts/restore-retheme-alerts-20261027.sql` (local) les remet |
+
+## 13. Affichage sur téléphone et petite tablette (reprise)
+
+Constat : barre de menu qui défilait sur le côté, rail d'icônes du menu qui prenait 17 % de la largeur, tableaux qui débordaient, fiche de
+réclamation écrasée en une colonne de mots.
+
+| Écran | Avant | Après (vérifié à 375 px) |
+|---|---|---|
+| Front office (toutes les pages) | rangée de liens à faire défiler | bouton menu + tiroir : sections et pages de la section, bouton « Nouvelle réclamation » ; onglets de page à défilement avec fondu et onglet actif centré |
+| Espace employé | rail d'icônes fixe | tiroir comme le back office ; barre du haut : menu, titre, langue, cloche, avatar |
+| Back office | barre du haut coupée (cloche, langue, avatar hors écran) | tiroir + barre recomposée ; tableaux qui défilent dans leur cadre |
+| Répertoire des réclamations | filtres et boutons coupés, détail en colonne étroite | en-tête empilé, filtres sur une colonne, détail lisible (boutons pleine largeur), page qui défile en entier |
+| Historique des réclamations | tableau de 10 colonnes | une carte par réclamation (5 Why, 8D, CAPA, dates, actions) |
+| Mes plans d'actions | tableau à défilement latéral | une carte par plan |
+| Validations (admin) | titre d'une réclamation sur une ligne par mot | cartes empilées, boutons de 44 px |
+| Calendrier | cellules illisibles | points par entrée dans la grille du mois, liste du jour dessous |
+| Formulaires | champs de 13 px (zoom au focus sur iPhone) | 16 px, contrôles d'au moins 40 à 44 px |
+
+Mesures : aucun débordement horizontal de la page sur les 17 pages du front office et les 21 du back office testées. Restent volontairement
+à défilement latéral dans leur cadre : les tableaux d'administration (journaux, comparaisons, départements) et le bandeau des 8 étapes du 8D.
+Tests : Jest 76, typage propre.

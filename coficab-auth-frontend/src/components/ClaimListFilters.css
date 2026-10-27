@@ -86,3 +86,11 @@
   font: inherit;
   font-size: 12px;
 }
+
+.claim-date-filter label, .claim-date-filter input { min-width: 0; }
+@media (max-width: 480px) {
+  .claim-date-filter { grid-template-columns: 1fr; }
+  .claim-date-filter input { height: 44px; font-size: 16px; }
+  .claim-filter-row { flex-wrap: wrap; }
+  .claim-filter-chip { min-height: 36px; }
+}

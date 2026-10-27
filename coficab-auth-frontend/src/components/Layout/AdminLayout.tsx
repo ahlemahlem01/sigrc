@@ -11,6 +11,7 @@ import OrganizationScopePicker from '../OrganizationScopePicker';
 import { useEffect, useRef } from 'react';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
+import { MOBILE_NAV_CSS } from './mobileNav';
 
 type NavLink = { label: string; icon: string; path: string };
 type NavSection = { id: string; label: string; children: NavLink[] };
@@ -610,33 +611,7 @@ export default function AdminLayout() {
           border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
-        .al-burger { display: none; }
-        .al-scrim { display: none; }
-
-        @media (max-width: 768px) {
-          .al-tb-user-info { display: none; }
-          .al-tb-date { display: none; }
-
-          /* Navigation drawer: off screen until the burger button is tapped */
-          .al-sidebar { width: 260px; transform: translateX(-100%); transition: transform .22s cubic-bezier(.4,0,.2,1); overflow-y: auto; }
-          .al-sidebar.mobile-open { transform: none; box-shadow: 4px 0 24px rgba(0,0,0,.18); }
-          .al-scrim.open { display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, .4); z-index: 190; }
-          .al-content-shell, .al-content-shell.shifted { margin-left: 0; }
-
-          /* Top bar that fits a phone: burger, title, and the few actions that matter */
-          .al-topbar { padding: 0 10px; gap: 8px; }
-          .al-burger { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px;
-            border: 1px solid #e4e8f2; border-radius: 8px; background: #fff; color: #000168; font-size: 20px; cursor: pointer; }
-          .al-tb-left { flex-direction: row; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
-          .al-tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-          .al-tb-crumb, .al-tb-search { display: none; }
-          .al-tb-right { gap: 6px; flex-shrink: 0; }
-          .al-tb-ico { width: 38px; height: 38px; }
-        }
-        @media (max-width: 480px) {
-          /* the organization picker keeps only its icon-sized pill, the language switch moves out of the way */
-          .al-tb-right > :first-child { max-width: 120px; }
-        }
+        ${MOBILE_NAV_CSS}
       `}</style>
 
       <div className="al-body">

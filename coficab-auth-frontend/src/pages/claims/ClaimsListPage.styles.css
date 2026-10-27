@@ -1121,7 +1121,7 @@
 /* Tablet (portrait) and phone: the list and the claim detail are stacked instead of squeezed side by side */
 @media (max-width: 1000px) {
   .pfe-workspace { flex-direction: column; }
-  .pfe-sidebar { width: 100%; max-height: 460px; }
+  .pfe-sidebar { width: 100%; max-height: min(70dvh, 560px); }
 }
 
 .pfe-spin { animation: pfe-spin 1s linear infinite; }
@@ -1307,4 +1307,35 @@
 .qh-pager-btns { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 1100px) {
   .qh-detail-grid { grid-template-columns: 1fr; }
+}
+
+/* Tablet (portrait) and phone: the page scrolls as a whole instead of being a fixed-height console */
+@media (max-width: 1000px) {
+  .pfe-container { height: auto; overflow: visible; padding: 10px 12px 24px; }
+  .pfe-workspace { flex: none; }
+}
+@media (max-width: 720px) {
+  .pfe-header { flex-direction: column; align-items: stretch; gap: 10px; }
+  .pfe-header-buttons { max-width: 100%; justify-content: flex-start; }
+  .pfe-header-buttons .pfe-btn-primary, .pfe-header-buttons .pfe-btn-secondary { height: 40px; font-size: 13px; padding: 0 14px; }
+  .pfe-phase-toggle { display: flex; max-width: 100%; height: auto; min-height: 38px; overflow-x: auto; scrollbar-width: none; }
+  .pfe-phase-toggle::-webkit-scrollbar { display: none; }
+  .pfe-phase-btn { white-space: nowrap; flex-shrink: 0; min-height: 34px; }
+  .pfe-search-input input { font-size: 16px; min-height: 44px; }
+}
+
+/* Claim detail on a phone: title above the actions, one column of facts, no nested scrolling */
+@media (max-width: 720px) {
+  .pfe-detail-pane { overflow: visible; }
+  .pfe-pane-header { flex-direction: column; padding: 14px; }
+  .pfe-pane-header h2 { font-size: 17px; overflow-wrap: anywhere; }
+  .pfe-ref-pill { display: inline-block; max-width: 100%; overflow-wrap: anywhere; }
+  .pfe-header-actions { width: 100%; flex-wrap: wrap; }
+  .pfe-header-actions .pfe-btn-primary, .pfe-header-actions .pfe-btn-edit { flex: 1 1 140px; min-height: 44px; justify-content: center; }
+  .pfe-pane-content { padding: 14px; overflow-y: visible; }
+  .pfe-compact-chips-grid { grid-template-columns: 1fr 1fr; }
+  .pfe-chip-value { overflow-wrap: anywhere; }
+}
+@media (max-width: 420px) {
+  .pfe-compact-chips-grid { grid-template-columns: 1fr; }
 }

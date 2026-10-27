@@ -22,6 +22,8 @@ const FrontLayout = () => {
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // phone / small tablet: the sections and the pages of the current section are listed in a drawer opened by a menu button
+  const [drawerOpen, setDrawerOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = user && (
@@ -106,6 +108,16 @@ const FrontLayout = () => {
     ];
     subAction = { to: `${QP}/new`, label: t('claimsList.newClaim') };
   }
+
+  useEffect(() => { setDrawerOpen(false); }, [location.pathname]);
+  useEffect(() => {
+    // the page tabs of the section scroll sideways on a narrow screen: bring the current one into view
+    document.querySelector('.fl-subnav:not(.fl-narrownav) .fl-subnav-link.active')?.scrollIntoView({ inline: 'center', block: 'nearest' });
+  }, [location.pathname]);
+  useEffect(() => {
+    document.body.style.overflow = drawerOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [drawerOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 15);
@@ -415,11 +427,50 @@ const FrontLayout = () => {
         @media (max-width: 480px) {
           .fl-footer-inner { grid-template-columns: 1fr; }
         }
+
+        /* ─── Phone / small tablet: menu drawer instead of a row of links ─── */
+        .fl-burger { display: none; align-items: center; justify-content: center; width: 40px; height: 40px; margin-right: 8px; flex-shrink: 0;
+          border: 1px solid rgba(255,255,255,.28); border-radius: 10px; background: rgba(255,255,255,.08); color: #fff; font-size: 20px; cursor: pointer; }
+        .fl-scrim { display: none; }
+        .fl-drawer { position: fixed; top: 0; left: 0; bottom: 0; z-index: 300; width: min(320px, 86vw); background: #fff; transform: translateX(-102%);
+          transition: transform .22s cubic-bezier(.4,0,.2,1); display: flex; flex-direction: column; box-shadow: none; visibility: hidden; }
+        .fl-drawer.open { transform: none; box-shadow: 6px 0 28px rgba(0,0,0,.2); visibility: visible; }
+        .fl-drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: #00021a; }
+        .fl-drawer-head img { height: 28px; width: auto; filter: brightness(1.15); }
+        .fl-drawer-close { width: 40px; height: 40px; border: 0; border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; font-size: 20px; cursor: pointer; }
+        .fl-drawer-body { overflow-y: auto; padding: 8px 10px 24px; display: flex; flex-direction: column; gap: 2px; }
+        .fl-drawer-link { display: flex; align-items: center; min-height: 48px; padding: 0 14px; border-radius: 10px; font-size: 15px; font-weight: 700; color: #0f2b5c; text-decoration: none; }
+        .fl-drawer-link.active { background: #eef2ff; color: #000168; }
+        .fl-drawer-sub { display: flex; flex-direction: column; margin: 2px 0 8px 16px; padding-left: 10px; border-left: 2px solid #e2e8f0; }
+        .fl-drawer-sublink { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 12px; border-radius: 8px; font-size: 14px; font-weight: 600; color: #475569; text-decoration: none; }
+        .fl-drawer-sublink.active { color: #000168; background: #f1f5f9; }
+        .fl-drawer-action { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; margin: 12px 4px 0; border-radius: 10px; background: #000168; color: #fff; font-size: 14px; font-weight: 700; text-decoration: none; }
+        @media (max-width: 1024px) {
+          .fl-burger { display: inline-flex; }
+          .fl-scrim.open { display: block; position: fixed; inset: 0; z-index: 290; background: rgba(15, 23, 42, .5); }
+          .fl-narrownav { display: none !important; }
+          .fl-narrownav + .fl-subnav, .fl-subnav { top: 56px; }
+        }
+        @media (max-width: 768px) {
+          .fl-nav-inner { padding: 0 12px; }
+          .fl-right { gap: 8px; }
+          .fl-subnav { padding: 0 8px; -webkit-overflow-scrolling: touch;
+            -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 28px), transparent); }
+          .fl-subnav-link { padding: 14px 12px; min-height: 48px; }
+          .fl-subnav-action { height: 40px; }
+          .fl-main .dl-inner, .fl-main .aph-inner, .fl-main .asm-inner, .fl-main .fwh-inner { padding: 14px 12px 40px; }
+          .fl-main:not(.is-landing) h1 { font-size: 19px !important; }
+          .fl-main input:not([type="checkbox"]):not([type="radio"]), .fl-main select, .fl-main textarea { font-size: 16px; }
+          .fl-main .avh-btn, .fl-main .asm-btn, .fl-main .cal-btn { min-height: 40px; }
+        }
       `}</style>
 
       {/* ─── STICKY NAVBAR ─── */}
       <nav className={`fl-nav${scrolled ? ' scrolled' : ''}`}>
         <div className="fl-nav-inner">
+          <button type="button" className="fl-burger" aria-label={t('frontNav.sectionMenu')} aria-expanded={drawerOpen} onClick={() => setDrawerOpen(true)}>
+            <i className="ti ti-menu-2" />
+          </button>
           <Link to="/pages/front" className="fl-brand">
             <img src="/logo-coficab.png" alt="COFICAB" />
           </Link>
@@ -479,6 +530,34 @@ const FrontLayout = () => {
           </div>
         </div>
       </nav>
+
+      {/* ─── DRAWER (phone / small tablet) ─── */}
+      <div className={`fl-scrim${drawerOpen ? ' open' : ''}`} onClick={() => setDrawerOpen(false)} />
+      <aside className={`fl-drawer${drawerOpen ? ' open' : ''}`} aria-hidden={!drawerOpen} aria-label={t('frontNav.sectionMenu')}>
+        <div className="fl-drawer-head">
+          <img src="/logo-coficab.png" alt="COFICAB" />
+          <button type="button" className="fl-drawer-close" aria-label={t('common.close', { defaultValue: 'Close' })} onClick={() => setDrawerOpen(false)}>
+            <i className="ti ti-x" />
+          </button>
+        </div>
+        <div className="fl-drawer-body">
+          {mainLinks.map((l) => (
+            <div key={l.to}>
+              <Link to={l.to} className={`fl-drawer-link${l.active ? ' active' : ''}`}>{l.label}</Link>
+              {l.active && subLinks.length > 0 && (
+                <div className="fl-drawer-sub">
+                  {subLinks.map((s) => (
+                    <Link key={s.to} to={s.to} className={`fl-drawer-sublink${s.active ? ' active' : ''}`}>{s.icon} {s.label}</Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {subAction && (
+            <Link to={subAction.to} className="fl-drawer-action"><PlusCircle size={16} /> {subAction.label}</Link>
+          )}
+        </div>
+      </aside>
 
       {/* ─── MAIN CONTENT ─── */}
       <main className={`fl-main${location.pathname === '/pages/front' ? ' is-landing' : ''}`}>

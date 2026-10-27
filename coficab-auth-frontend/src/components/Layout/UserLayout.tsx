@@ -8,6 +8,7 @@ import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
+import { MOBILE_NAV_CSS } from './mobileNav';
 
 type NavChild = { labelKey: string; icon: string; path: string };
 type NavGroup = { id: string; labelKey: string; icon: string; children: NavChild[] };
@@ -123,7 +124,10 @@ export default function UserLayout() {
     try { return localStorage.getItem(SIDEBAR_PIN_KEY) === '1'; } catch { return false; }
   });
   const [hovered, setHovered] = useState(false);
-  const sidebarExpanded = pinned || hovered;
+  // phone / small tablet: the menu is a drawer opened from the top bar
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sidebarExpanded = pinned || hovered || mobileNavOpen;
+  const closeMobileNav = () => { setMobileNavOpen(false); setHovered(false); };
   const togglePinned = () =>
     setPinned((prev) => {
       try { localStorage.setItem(SIDEBAR_PIN_KEY, prev ? '0' : '1'); } catch { /* storage unavailable */ }
@@ -133,6 +137,7 @@ export default function UserLayout() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(['actionplans']);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { setMobileNavOpen(false); if (window.matchMedia('(max-width: 768px)').matches) setHovered(false); }, [location.pathname]);
 
   const toggleGroup = (id: string) =>
     setOpenGroups(prev =>
@@ -431,19 +436,16 @@ export default function UserLayout() {
 
         .al-page { padding: 20px 24px; min-height: calc(100dvh - 52px); }
 
-        @media (max-width: 768px) {
-          .al-tb-user-info { display: none; }
-          .al-tb-date { display: none; }
-        }
+        ${MOBILE_NAV_CSS}
       `}</style>
 
       <div className="al-body">
         {/* ─── SIDEBAR ─── */}
         <div
           ref={sidebarRef}
-          className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}`}
+          className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}${mobileNavOpen ? ' mobile-open' : ''}`}
           onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
+          onMouseLeave={() => { if (!mobileNavOpen) setHovered(false); }}
         >
           {/* Logo */}
           <div className="al-sb-logo-wrap">
@@ -514,10 +516,15 @@ export default function UserLayout() {
         </div>
 
         {/* ─── MAIN CONTENT SHELL ─── */}
+        <div className={`al-scrim${mobileNavOpen ? ' open' : ''}`} onClick={closeMobileNav} />
+
         <div className={`al-content-shell${sidebarExpanded ? ' shifted' : ''}`}>
           {/* TOPBAR */}
           <header className="al-topbar">
             <div className="al-tb-left">
+              <button type="button" className="al-burger" aria-label={t('employeeNav.menu', { defaultValue: 'Menu' })} onClick={() => { setHovered(true); setMobileNavOpen(true); }}>
+                <i className="ti ti-menu-2" />
+              </button>
               <h1 className="al-tb-title">{title}</h1>
               <div className="al-tb-crumb">
                 <span>{t('employeeNav.clientSpace')}</span>

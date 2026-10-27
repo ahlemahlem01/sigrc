@@ -1055,7 +1055,23 @@ export default function CapaCalendarPage() {
           position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:100;
           background:#323232; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px;
         }
-      `}</style>
+              /* Phone: the month shows a dot per entry, and the agenda of the chosen day is the list under the grid */
+        @media (max-width:640px) {
+          .cal-toolbar { padding:10px 12px; }
+          .cal-left, .cal-right { flex-wrap:wrap; gap:6px; }
+          .cal-shell { padding:8px 12px 28px; }
+          .cal-cell { min-height:52px; padding:3px; }
+          .cal-chips { flex-direction:row; flex-wrap:wrap; gap:3px; }
+          .cal-chip.compact { width:9px; height:9px; padding:0; border-radius:50%; font-size:0; gap:0; overflow:hidden; border:0; background:#039be5; }
+          .cal-chip.compact.wt-plan { background:#000168; }
+          .cal-chip.compact.wt-action { background:#c9850a; }
+          .cal-chip.compact.wt-claim { background:#0b8043; }
+          .cal-chip.compact * { display:none; }
+          .cal-side { position:static; max-height:none; }
+          .cal-side-item { min-height:44px; }
+          .cal-btn { min-height:40px; }
+        }
+      `}      </style>
 
       <div className="cal-toolbar">
         <div className="cal-left">
