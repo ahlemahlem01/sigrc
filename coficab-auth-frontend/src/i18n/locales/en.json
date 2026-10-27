@@ -2458,6 +2458,10 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "cvAnalysing": "Analysing the photo…",
+    "cvNone": "No known defect is recognised on this photo (or it shows no defect): pick the code yourself.",
+    "cvUnavailable": "Image analysis is not available right now: pick the code yourself.",
+    "cvReplace": "Replace the photo",
     "cvAnomaly": "A defect is detected on the photo, but its type is not recognised: pick the code in the form's list.",
     "cvLines": "Usually found on lines: {{lines}}",
     "cvDemo": "Demonstration mode: example proposal, not a real image analysis",

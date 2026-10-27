@@ -63,7 +63,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   // identifies the photo being analysed: the answer for a photo that was removed or replaced meanwhile is ignored
   const photoRef = useRef<File | null>(null);
   // the image model sees a defect but cannot name it: only a hint, nothing to confirm
-  const [cvAnomaly, setCvAnomaly] = useState<number | null>(null);
+  const [cvNote, setCvNote] = useState<{ kind: 'analysing' | 'none' | 'unavailable' | 'anomaly'; confidence?: number } | null>(null);
 
   const [formData, setFormData] = useState<Omit<CreateClaimCommand, 'createdById'>>({
     title: '',
@@ -138,15 +138,22 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setError(null);
     setSelectedFile(file);
     setCv(null);
-    setCvAnomaly(null);
+    setCvNote(null);
     photoRef.current = file;
     if (file.type.startsWith('image/') && accessToken) {
+      setCvNote({ kind: 'analysing' });
       qualityAnalysisService.suggestDefectFromImage(file, accessToken)
         .then((r) => {
-          if (photoRef.current === file && !r.available && r.anomalyDetected) setCvAnomaly(r.confidence ?? 0);
-          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo, lineFamilies: r.lineFamilies });
+          if (photoRef.current !== file) return;
+          if (r.available && r.defectType) {
+            setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo, lineFamilies: r.lineFamilies });
+            setCvNote(null);
+          } else if (r.anomalyDetected) setCvNote({ kind: 'anomaly', confidence: r.confidence ?? 0 });
+          else if (r.reason === 'unavailable') setCvNote({ kind: 'unavailable' });
+          else if (r.reason === 'notConfigured' || r.reason === 'noImage') setCvNote(null);
+          else setCvNote({ kind: 'none' });
         })
-        .catch(() => { /* no proposal: the operator picks the code himself */ });
+        .catch(() => { if (photoRef.current === file) setCvNote({ kind: 'unavailable' }); });
     }
   };
 
@@ -175,7 +182,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const removeFile = () => {
     setSelectedFile(null);
     setCv(null);
-    setCvAnomaly(null);
+    setCvNote(null);
     photoRef.current = null;
   };
 
@@ -578,6 +585,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         .pfe-camera-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         /* shown on touch devices (phone, tablet) only */
         @media (pointer: coarse) { .pfe-camera-btn { display: flex; } }
+        .pfe-file-actions { display: flex; align-items: center; gap: 8px; }
+        .pfe-replace-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid #cbd5e1;
+          border-radius: 8px; background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .pfe-replace-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .pfe-cv-card {
           margin-top: 10px;
           padding: 12px 14px;
@@ -1074,16 +1085,30 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                             <FileText size={18} style={{ color: '#2563eb' }} />
                             <span>{selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)</span>
                           </div>
-                          <button type="button" className="pfe-file-remove" onClick={removeFile}>
-                            <Trash2 size={16} />
-                          </button>
+                          <div className="pfe-file-actions">
+                            <label className="pfe-replace-btn">
+                              <UploadCloud size={14} /> {t('createClaim.cvReplace')}
+                              <input type="file" accept=".eml,.msg,.pdf,image/*" onChange={(e) => { handleFileChange(e); e.target.value = ''; }} />
+                            </label>
+                            <button type="button" className="pfe-file-remove" onClick={removeFile}>
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </div>
                       )}
 
-                      {cvAnomaly !== null && !cv && (
+                      {cvNote && !cv && (
                         <div className="pfe-cv-card" role="status">
-                          <div className="pfe-cv-head"><strong>{t('createClaim.cvTitle')}</strong><span className="pfe-cv-conf low">{t('createClaim.cvConfidence', { pct: Math.round(cvAnomaly * 100) })}</span></div>
-                          <p className="pfe-cv-hint">{t('createClaim.cvAnomaly')}</p>
+                          <div className="pfe-cv-head">
+                            <strong>{t('createClaim.cvTitle')}</strong>
+                            {cvNote.kind === 'anomaly' && <span className="pfe-cv-conf low">{t('createClaim.cvConfidence', { pct: Math.round((cvNote.confidence ?? 0) * 100) })}</span>}
+                          </div>
+                          <p className="pfe-cv-hint">
+                            {cvNote.kind === 'analysing' && <><RefreshCw size={12} className="pfe-spin" /> {t('createClaim.cvAnalysing')}</>}
+                            {cvNote.kind === 'none' && t('createClaim.cvNone')}
+                            {cvNote.kind === 'unavailable' && t('createClaim.cvUnavailable')}
+                            {cvNote.kind === 'anomaly' && t('createClaim.cvAnomaly')}
+                          </p>
                         </div>
                       )}
 

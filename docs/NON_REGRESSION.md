@@ -203,3 +203,21 @@ Ajout des jeux *cable-damage-detection v1* (câbles d'acier) et *cable-defect v2
 | Défaut vu mais non nommé | le service répond `anomalyDetected`, l'API le relaie, le formulaire affiche un message sans bouton ; vérifié à l'écran |
 | Tests automatisés | .NET 66 + 187, Jest 76, pytest 38 : verts ; typage propre |
 | Limites | jeux publics, dont un d'acier : non validé sur des photos Coficab ; `spot` reste faible (0,19) |
+
+## 15. Retour visuel de l'analyse d'image et photos successives
+
+Constat : sur une photo où le modèle ne reconnaît rien (faisceau usé, photo sans défaut connu), le formulaire n'affichait rien : l'opérateur ne savait
+pas si l'analyse avait eu lieu.
+
+| Cas | Ce que l'opérateur voit |
+|---|---|
+| Analyse en cours | « Analyse de la photo en cours… » |
+| Code proposé | carte de proposition (code, confiance, lignes, Confirmer / Corriger) |
+| Aucun défaut connu reconnu (ou photo sans défaut) | « Aucun défaut connu n'est reconnu sur cette photo (ou elle ne montre pas de défaut) : choisissez le code vous-même. » |
+| Défaut vu mais non nommé | message d'information avec la confiance |
+| Service d'image arrêté ou en erreur | « L'analyse d'image est indisponible pour le moment : choisissez le code vous-même. » |
+| Service d'image non configuré | rien (fonction désactivée) |
+| Plusieurs photos de suite | bouton « Remplacer la photo » sur la fiche de la pièce jointe : chaque nouvelle photo relance l'analyse et remplace la précédente (une seule pièce jointe est enregistrée par réclamation) |
+
+L'API ajoute un champ `reason` (`noDefect`, `anomaly`, `unavailable`, `notConfigured`, `noImage`). Vérifié à l'écran avec trois photos de suite (faisceau usé :
+aucun défaut reconnu ; rayure : 75 % ; brins brûlés : 87 %). Tests : .NET 66 + 187, Jest 76, typage propre.

@@ -354,7 +354,7 @@ public class QualityAnalysisController : ControllerBase
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> SuggestDefectFromImage(IFormFile image, CancellationToken cancellationToken)
     {
-        if (image is not { Length: > 0 }) return Ok(new { available = false });
+        if (image is not { Length: > 0 }) return Ok(new { available = false, reason = "noImage" });
         if (string.Equals(_configuration["ComputerVision:Mode"], "demo", StringComparison.OrdinalIgnoreCase))
         {
             var (demoCode, demoConfidence) = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvDemoPrediction.For(image.FileName);
@@ -362,7 +362,7 @@ public class QualityAnalysisController : ControllerBase
                             threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
         }
         var url = _configuration["ComputerVision:ServiceUrl"];
-        if (string.IsNullOrWhiteSpace(url)) return Ok(new { available = false });
+        if (string.IsNullOrWhiteSpace(url)) return Ok(new { available = false, reason = "notConfigured" });
         try
         {
             using var content = new MultipartFormDataContent();
@@ -374,12 +374,12 @@ public class QualityAnalysisController : ControllerBase
             var endpoint = url.TrimEnd('/');
             if (!endpoint.EndsWith("/predict", StringComparison.OrdinalIgnoreCase)) endpoint += "/predict";
             using var response = await http.PostAsync(endpoint, content, cancellationToken);
-            if (!response.IsSuccessStatusCode) return Ok(new { available = false });
+            if (!response.IsSuccessStatusCode) return Ok(new { available = false, reason = "unavailable" });
             var body = await response.Content.ReadFromJsonAsync<CvPredictionBody>(cancellationToken: cancellationToken);
-            if (body is null) return Ok(new { available = false });
+            if (body is null) return Ok(new { available = false, reason = "unavailable" });
             // a defect that is seen but not named: no code to propose, the form only tells the operator to look
             if (string.IsNullOrWhiteSpace(body.DefectType))
-                return Ok(body.AnomalyDetected == true ? new { available = false, anomalyDetected = true, confidence = Math.Clamp(body.Confidence, 0, 1) } : new { available = false, anomalyDetected = false, confidence = 0.0 });
+                return Ok(body.AnomalyDetected == true ? new { available = false, reason = "anomaly", anomalyDetected = true, confidence = Math.Clamp(body.Confidence, 0, 1) } : new { available = false, reason = "noDefect", anomalyDetected = false, confidence = 0.0 });
             var resolver = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(_db, cancellationToken);
             return Ok(new { available = true, defectType = resolver.Resolve(body.DefectType.Trim()), confidence = Math.Clamp(body.Confidence, 0, 1),
                             lineFamilies = body.LineFamilies ?? [], lines = body.Lines ?? [],
@@ -387,7 +387,7 @@ public class QualityAnalysisController : ControllerBase
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
         {
-            return Ok(new { available = false });
+            return Ok(new { available = false, reason = "unavailable" });
         }
     }
 
