@@ -116,3 +116,21 @@ idempotent, libellés fr / en / it) ; aucun défaut ne dépasse environ 9 % des 
 | Menu du back office | tiroir ouvert par le burger sous 768 px (le survol n'existe pas au tactile), fond assombri, fermeture au changement de page ; vérifié à l'écran |
 | Formulaire de réclamation | un champ par ligne sous 640 px, texte à 16 px (pas de zoom à la saisie), contrôles d'au moins 44 px au tactile ; vérifié à l'écran |
 | Répertoire des réclamations | liste et détail empilés sous 1000 px au lieu d'être écrasés côte à côte ; vérifié à 768 px |
+
+## 10. Réclamations vivantes réécrites avec des défauts de câble
+
+Les 1 224 réclamations vivantes (celles qui ont une analyse, des plans et des notifications) portaient des défauts d'atelier
+(soudure, sertissage…). `ml-service/reference-dataset/retheme_live_claims.py` leur donne un défaut de câble du catalogue et réécrit ce qui
+en dépend. Les textes viennent de `cable_narratives.json` (2 scénarios, 3 à 5 causes et une action corrective par défaut).
+
+| Contrôle | Résultat |
+|---|---|
+| Portée | 1 089 réclamations réécrites ; 134 gardent leur défaut d'atelier (lignes ASM, environ 11 %) ; 1 protégée (plan écrit à la main) ; 9 protégées (réponses 5 Why écrites par une personne) ; l'historique importé (180) n'est pas touché |
+| Ce qui est réécrit | défaut, ligne (cohérente avec le processus), site client (9 sites cabliers), titre, description, 5 Why (étapes 1 et 5), causes Ishikawa, cause prioritaire, titre et actions des plans CAPA, et les copies de ces titres (notifications, badges, chronologie, historique) |
+| Ce qui ne change pas | statut, dates, échéances, quantités, gravité, responsables, avancement, identifiants : 0 écart contrôlé sur 12 974 réclamations ; ouvertes 616 (609 hors brouillons), en retard 31, somme des quantités produites identique |
+| Cohérence ligne / processus | épaisseur d'isolant -> EXT (71 réclamations) ; diamètre du conducteur -> WR (54) ; longueur sur touret -> CUT / CTL (26) |
+| Mots d'atelier restants | 0 dans les titres, descriptions, causes et actions des réclamations réécrites |
+| Vue d'ensemble (365 jours) | défauts les plus fréquents : cuivre cassé 170, coupure de gaine 167, rayures 159, marquage 129, couleur 127 ; lignes EXT-02, EXT-01, CTL-01 |
+| Sauvegarde | tables d'origine dans le schéma `bak20261027` de la base ; `scripts/restore-retheme-20261027.sql` (local) les remet |
+| Limites | les alertes d'anomalie existantes (8) et les rapports enregistrés gardent leur texte d'origine ; `Coficab.ReferenceDataLoader` (mode réaliste) génère encore des défauts d'atelier : le contenu de câble est dans `cable_narratives.json` |
+| Tests automatisés | pytest 37 (dont la couverture des 20 défauts par les textes) ; données vérifiées par requêtes avant / après |

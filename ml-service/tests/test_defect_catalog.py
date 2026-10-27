@@ -57,3 +57,16 @@ def test_the_dataset_classes_point_at_codes_of_the_catalogue():
     mapping = load_class_map()
     assert {"foreign", "hole", "scratch", "spot"} <= set(mapping)
     assert set(mapping.values()) <= set(CABLE)
+
+
+def test_the_narratives_cover_every_cable_defect_with_usable_templates():
+    narratives = json.loads((ROOT / "ml-service/reference-dataset/cable_narratives.json").read_text(encoding="utf-8"))
+    assert list(narratives["defects"]) == CABLE
+    categories = {"Machine", "Method", "Material", "Manpower", "Milieu", "Measurement"}
+    for code, n in narratives["defects"].items():
+        assert len(n["scenarios"]) == 2 and n["action"].strip() and "{line}" in n["note"], code
+        for title, description in n["scenarios"]:
+            assert any(p in title for p in ("{line}", "{client}", "{zone}", "{lot}")), code
+            assert "{lot}" in description or "{line}" in description, code
+        assert 3 <= len(n["causes"]) <= 5 and any(c[2] for c in n["causes"]), code
+        assert all(c[0] in categories for c in n["causes"]), code
