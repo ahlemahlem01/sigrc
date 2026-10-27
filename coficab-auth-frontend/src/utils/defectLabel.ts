@@ -4,12 +4,17 @@ import i18n from '../i18n';
 export interface DefectItem {
   value: string;
   label?: string | null;
+  /** Set when this spelling is an alias of another one (a renamed code): it shows the wording of the kept one. */
+  mergedInto?: string | null;
 }
 
 /** Inspection defect codes whose wording is translated (fr / en / it); see the `defectTypes` block of the locales. */
 const CODED_DEFECTS = [
-  'CUT_INSULATION', 'COPPER_BLOOMING', 'MARKING_DEFECT', 'SPOOL_DAMAGE', 'COLOR_MISMATCH',
-  'CONDUCTOR_DIAMETER', 'INSULATION_THICKNESS', 'OUTER_DIAMETER', 'ECCENTRICITY', 'CONDUCTOR_RESISTANCE', 'SPARK_TEST_FAILURE', 'INSULATION_BLISTER', 'SURFACE_SCRATCH', 'COPPER_OXIDATION', 'STRAND_COUNT', 'LAY_LENGTH', 'SPOOL_LENGTH', 'ADHESION_FAILURE', 'CABLE_CRUSHED', 'FOREIGN_MATTER',
+  'CUT_INSULATION', 'SCRATCH_INSULATION', 'COPPER_BROKEN', 'MARKING_DEFECT',
+  'COLOR_NON_CONFORMITY', 'INSULATION_THICKNESS', 'SPOOL_DAMAGED', 'SPARK_TEST_FAILURE',
+  'CONDUCTOR_DIAMETER', 'OUTER_DIAMETER', 'ECCENTRICITY', 'CONDUCTOR_RESISTANCE',
+  'COPPER_OXIDATION', 'INSULATION_BLISTER', 'FOREIGN_MATTER', 'STRAND_COUNT',
+  'SPOOL_LENGTH', 'LAY_LENGTH', 'ADHESION_FAILURE', 'CABLE_CRUSHED',
 ];
 
 let items: DefectItem[] = [];
@@ -29,19 +34,21 @@ function fold(text: string): string {
     .trim();
 }
 
-function labelOfItem(item: DefectItem): string {
+function labelOfItem(item: DefectItem, depth = 0): string {
+  // an alias shows the wording of the name it was merged into (one hop is enough; spellings that fold to the same words are not aliases of each other)
+  if (item.mergedInto && depth < 2 && fold(item.mergedInto) !== fold(item.value)) return defectLabel(item.mergedInto, depth + 1);
   const code = CODED_DEFECTS.find((c) => fold(c) === fold(item.value));
   if (code) return i18n.t(`defectTypes.${code}`, { defaultValue: item.label?.trim() || item.value });
   return item.label?.trim() || item.value;
 }
 
 /** The wording to show for a defect type: its translated or configured label, else the name as stored. */
-export function defectLabel(value?: string | null): string {
+export function defectLabel(value?: string | null, depth = 0): string {
   const raw = String(value ?? '').trim();
   if (!raw) return '';
   const key = fold(raw);
-  const item = items.find((i) => fold(i.value) === key);
-  if (item) return labelOfItem(item);
+  const item = items.find((i) => fold(i.value) === key && !i.mergedInto) ?? items.find((i) => fold(i.value) === key);
+  if (item) return labelOfItem(item, depth);
   const code = CODED_DEFECTS.find((c) => fold(c) === key);
   return code ? i18n.t(`defectTypes.${code}`, { defaultValue: raw }) : raw;
 }

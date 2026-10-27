@@ -379,6 +379,7 @@ public class QualityAnalysisController : ControllerBase
             if (body is null || string.IsNullOrWhiteSpace(body.DefectType)) return Ok(new { available = false });
             var resolver = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(_db, cancellationToken);
             return Ok(new { available = true, defectType = resolver.Resolve(body.DefectType.Trim()), confidence = Math.Clamp(body.Confidence, 0, 1),
+                            lineFamilies = body.LineFamilies ?? [], lines = body.Lines ?? [],
                             threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -387,7 +388,7 @@ public class QualityAnalysisController : ControllerBase
         }
     }
 
-    private sealed record CvPredictionBody(string? DefectType, double Confidence);
+    private sealed record CvPredictionBody(string? DefectType, double Confidence, string[]? LineFamilies = null, string[]? Lines = null);
 
     [HttpPost("claims")]
     [Consumes("multipart/form-data")] // Indique à Swagger / OpenApi qu'il s'agit d'un upload de fichier

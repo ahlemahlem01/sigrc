@@ -23,7 +23,7 @@ powershell -File .\scripts\demo-cv.ps1 on    # propositions d'exemple (recrée s
 powershell -File .\scripts\demo-cv.ps1 off   # retour au fonctionnement normal
 ```
 
-En mode démonstration, une photo dont le nom contient `copper`, `cuivre` ou `bloom` reçoit `COPPER_BLOOMING` à 58 % (confiance faible :
+En mode démonstration, une photo dont le nom contient `copper`, `cuivre` ou `bloom` reçoit `COPPER_BROKEN` à 58 % (confiance faible :
 avertissement et correction à montrer) ; toute autre photo reçoit `CUT_INSULATION` à 93 %. La carte affiche « Mode démonstration :
 proposition d'exemple, pas une analyse réelle de l'image » : à dire tel quel devant le jury.
 
@@ -38,20 +38,34 @@ pip install -r requirements-cv.txt
 python -m uvicorn app:app --host 127.0.0.1 --port 5000
 ```
 
-- Les poids sont chargés au démarrage : `CV_MODEL_PATH`, `yolov8n.pt` par défaut (téléchargé par ultralytics).
-- Les détections sont traduites en codes défaut par `cv_class_map.json` (classe du détecteur -> `CUT_INSULATION`, `COPPER_BLOOMING`,
-  `MARKING_DEFECT`, `SPOOL_DAMAGE`, `COLOR_MISMATCH`). Réponse : `{ "available": true, "defectType": "...", "confidence": 0.85 }`,
-  ou `{ "available": false }` quand aucune classe connue n'est détectée.
-- **`yolov8n.pt` est un modèle généraliste (objets du quotidien, jeu COCO) : il ne sait pas reconnaître un défaut de câble.** Avec
-  ces poids le service répond donc `available: false` (`/health` indique `knowsCableDefects: false`), et il n'invente jamais un défaut. Pour
-  de vraies propositions, il faut entraîner YOLOv8 sur des photos étiquetées de câbles endommagés (classes nommées comme dans
-  `cv_class_map.json`) et pointer `CV_MODEL_PATH` vers ces poids. Les réclamations marquées `CvCorrectionLogged` servent à constituer ce jeu.
-- Branchement de l'API : `ComputerVision:ServiceUrl` (adresse du service, ou son endpoint complet `.../predict`).
-  `dotnet run` en local : `appsettings.Development.json` (ignoré par git) avec `http://127.0.0.1:5000/predict`.
-  API dans Docker : `CV_SERVICE_URL=http://host.docker.internal:5000` dans `.env` (127.0.0.1 désignerait le conteneur lui-même).
-  Mode démonstration éteint : `scripts/demo-cv.ps1 off`.
+**Modèle.** `best.pt` est YOLOv8n affiné (`train.py`) sur le jeu public Roboflow *cable-defect v3* (licence CC BY 4.0, 239 images, téléchargé
+par `download_dataset.py` avec `ROBOFLOW_API_KEY`, jamais écrite dans un fichier). Quatre classes visuelles : `foreign`, `hole`, `scratch`, `spot`.
+Évaluation sur 38 images de test jamais vues (`best_report.json`) : mAP@50 = 0,44 (foreign 0,74, scratch 0,56, hole 0,27, spot 0,20).
+C'est un premier modèle sur des images publiques, **non validé sur des photos Coficab** : les propositions sont à confirmer par l'opérateur.
+
+**Correspondance (`cv_class_map.json`).** `foreign` -> `FOREIGN_MATTER`, `hole` -> `CUT_INSULATION`, `scratch` -> `SCRATCH_INSULATION`,
+`spot` -> `COLOR_NON_CONFORMITY` (choix de rapprochement à valider par la qualité). Les 21 autres codes (dimensions, résistance, étincelage,
+atelier…) ne se voient pas sur une photo de ce type : ils restent en saisie manuelle. Un détecteur dont les classes portent les noms des codes
+n'a besoin d'aucune entrée dans le fichier.
+
+**Réponse.** `{ "available": true, "defectType": "<code exact>", "confidence": 0.85, "lineFamilies": ["EXT"], "lines": ["EXT-01", "EXT-02"] }`
+ou `{ "available": false }`. Le code métier et le contexte de ligne (familles EXT, WR, CUT, CTL) viennent du catalogue ; l'API les relaie et
+la carte de proposition du formulaire affiche les lignes habituelles. Sans `best.pt`, le service retombe sur `yolov8n.pt` (généraliste), qui ne propose rien.
+
+**Branchement de l'API.** `ComputerVision:ServiceUrl` (adresse du service ou endpoint complet `.../predict`).
+`dotnet run` en local : `appsettings.Development.json` (ignoré par git). API dans Docker : `CV_SERVICE_URL=http://host.docker.internal:5000`
+dans `.env`. Mode démonstration éteint : `scripts/demo-cv.ps1 off`.
+
+## Catalogue des défauts (source unique)
+
+`ml-service/defect_catalog.json` fixe les 25 types (20 défauts de câble stockés comme codes, 5 défauts d'atelier), le nombre exact de
+réclamations du jeu de référence (2 889 dont 318 d'atelier, 11 %), les libellés fr / en / it et les familles de lignes où chaque défaut
+se rencontre. `generate.py`, `to_sql.py` et `cv_mapping.py` le lisent ; des tests vérifient que la liste de référence de l'application
+(`ProductionReferenceData.cs`), les traductions et `defectLabel.ts` portent exactement les mêmes codes.
+Quatre codes ont été renommés (`COPPER_BLOOMING` -> `COPPER_BROKEN`, `SURFACE_SCRATCH` -> `SCRATCH_INSULATION`, `COLOR_MISMATCH` ->
+`COLOR_NON_CONFORMITY`, `SPOOL_DAMAGE` -> `SPOOL_DAMAGED`) : les anciens noms deviennent des alias, rien n'est réécrit.
 
 ## Limites à annoncer
 
-- Aucun modèle d'image n'est entraîné sur des défauts de câble : le service local charge YOLOv8 mais, tant qu'il n'est pas affiné sur des photos étiquetées, il ne propose rien (`available: false`).
+- Le modèle d'image n'a vu que 160 images publiques de 4 types de défaut : il est faible sur les trous et les taches, et inconnu sur des photos Coficab.
 - Les données de l'application viennent en grande partie d'un jeu de référence généré (voir `ml-service/reference-dataset/`) : la performance réelle du modèle de recommandation est inconnue tant qu'il n'est pas réentraîné sur l'historique réel (`retrain.py`).

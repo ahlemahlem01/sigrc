@@ -46,3 +46,8 @@ scripts/restore-*-2026*.sql
 
 # YOLO weights downloaded by ultralytics / trained locally
 *.pt
+!ml-service/best.pt
+
+# Roboflow dataset, training runs
+ml-service/dataset/
+ml-service/runs/

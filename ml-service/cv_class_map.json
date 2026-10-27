@@ -1,23 +1,7 @@
 {
-  "_comment": "Class name of the detector -> defect code of the application. A model trained on photos of damaged cables names its classes like the keys below (any case or separator). The general-purpose yolov8n.pt only knows everyday objects (COCO), none of which is a cable defect: with it the service answers available=false.",
-  "cut_insulation": "CUT_INSULATION",
-  "copper_blooming": "COPPER_BLOOMING",
-  "marking_defect": "MARKING_DEFECT",
-  "spool_damage": "SPOOL_DAMAGE",
-  "color_mismatch": "COLOR_MISMATCH",
-  "conductor_diameter": "CONDUCTOR_DIAMETER",
-  "insulation_thickness": "INSULATION_THICKNESS",
-  "outer_diameter": "OUTER_DIAMETER",
-  "eccentricity": "ECCENTRICITY",
-  "conductor_resistance": "CONDUCTOR_RESISTANCE",
-  "spark_test_failure": "SPARK_TEST_FAILURE",
-  "insulation_blister": "INSULATION_BLISTER",
-  "surface_scratch": "SURFACE_SCRATCH",
-  "copper_oxidation": "COPPER_OXIDATION",
-  "strand_count": "STRAND_COUNT",
-  "lay_length": "LAY_LENGTH",
-  "spool_length": "SPOOL_LENGTH",
-  "adhesion_failure": "ADHESION_FAILURE",
-  "cable_crushed": "CABLE_CRUSHED",
-  "foreign_matter": "FOREIGN_MATTER"
+  "_comment": "Class of the trained detector (Roboflow cable-defect v3: foreign, hole, scratch, spot) -> defect code of the application. Only the defects these four visual classes stand for can be proposed; the other codes (dimensions, resistance, spark test...) cannot be seen on a photo of this kind and stay manual. A detector whose classes are named like the codes needs no entry here (see cv_mapping.py). The stock yolov8n.pt knows none of these classes: with it the service answers available=false.",
+  "foreign": "FOREIGN_MATTER",
+  "hole": "CUT_INSULATION",
+  "scratch": "SCRATCH_INSULATION",
+  "spot": "COLOR_NON_CONFORMITY"
 }

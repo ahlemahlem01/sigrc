@@ -33,7 +33,7 @@ public class ProductionReferenceDataTests : IClassFixture<ActionPlanApiFactory>
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
         var defects = await db.ReferenceItems.AsNoTracking().Where(r => r.ListKey == ReferenceListKeys.DefectType).ToListAsync();
-        foreach (var code in new[] { "CUT_INSULATION", "COPPER_BLOOMING", "MARKING_DEFECT", "SPOOL_DAMAGE", "COLOR_MISMATCH" })
+        foreach (var code in new[] { "CUT_INSULATION", "COPPER_BROKEN", "MARKING_DEFECT", "SPOOL_DAMAGED", "COLOR_NON_CONFORMITY", "SCRATCH_INSULATION" })
             Assert.Contains(defects, d => d.Value == code && d.IsActive && !string.IsNullOrWhiteSpace(d.Label));
         Assert.Equal("Coupure / Entaille sur gaine", defects.Single(d => d.Value == "CUT_INSULATION").Label);
 

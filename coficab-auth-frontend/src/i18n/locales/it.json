@@ -2458,6 +2458,7 @@
     "next": "Successivo: {{tool}}"
   },
   "createClaim": {
+    "cvLines": "Di solito riscontrato sulle linee: {{lines}}",
     "cvDemo": "Modalità dimostrativa: proposta di esempio, non un’analisi reale dell’immagine",
     "takePhoto": "Scatta una foto",
     "cvTitle": "Suggerimento dall’analisi dell’immagine",
@@ -4772,25 +4773,25 @@
   },
   "defectTypes": {
     "CUT_INSULATION": "Taglio / intaccatura della guaina",
-    "COPPER_BLOOMING": "Fili di rame rotti / sporgenti",
+    "SCRATCH_INSULATION": "Graffi / segni sulla guaina",
+    "COPPER_BROKEN": "Fili di rame rotti / sporgenti",
     "MARKING_DEFECT": "Difetto di marcatura (illeggibile / assente)",
-    "SPOOL_DAMAGE": "Bobina / imballaggio danneggiato",
-    "COLOR_MISMATCH": "Colore dell'isolante non conforme",
-    "CONDUCTOR_DIAMETER": "Diametro del conduttore fuori tolleranza",
+    "COLOR_NON_CONFORMITY": "Colore dell'isolante non conforme",
     "INSULATION_THICKNESS": "Spessore dell'isolante fuori tolleranza",
+    "SPOOL_DAMAGED": "Bobina / imballo danneggiato",
+    "SPARK_TEST_FAILURE": "Difetto alla prova di scintillio",
+    "CONDUCTOR_DIAMETER": "Diametro del conduttore fuori tolleranza",
     "OUTER_DIAMETER": "Diametro esterno fuori tolleranza",
     "ECCENTRICITY": "Eccentricità dell'isolante",
     "CONDUCTOR_RESISTANCE": "Resistenza elettrica fuori specifica",
-    "SPARK_TEST_FAILURE": "Difetto alla prova di scintillio",
-    "INSULATION_BLISTER": "Bolle sull'isolante",
-    "SURFACE_SCRATCH": "Graffi / segni sulla guaina",
     "COPPER_OXIDATION": "Ossidazione del rame",
+    "INSULATION_BLISTER": "Bolle sull'isolante",
+    "FOREIGN_MATTER": "Corpo estraneo nell'isolante",
     "STRAND_COUNT": "Numero di fili errato",
-    "LAY_LENGTH": "Passo di cordatura non conforme",
     "SPOOL_LENGTH": "Lunghezza su bobina errata",
+    "LAY_LENGTH": "Passo di cordatura non conforme",
     "ADHESION_FAILURE": "Aderenza / spelabilità dell'isolante non conforme",
-    "CABLE_CRUSHED": "Cavo schiacciato / pizzicato",
-    "FOREIGN_MATTER": "Corpo estraneo nell'isolante"
+    "CABLE_CRUSHED": "Cavo schiacciato / pizzicato"
   },
   "decisionDialog": {
     "reason": "Motivo",

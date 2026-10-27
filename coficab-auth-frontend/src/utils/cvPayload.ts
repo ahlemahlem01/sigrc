@@ -4,6 +4,8 @@ export interface CvProposal {
   threshold: number;
   /** The proposal comes from the demonstration mode, not from an image analysis. */
   demo?: boolean;
+  /** Line families (EXT, WR, CUT, CTL...) where this defect is usually found. */
+  lineFamilies?: string[];
 }
 
 /**

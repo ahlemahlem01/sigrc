@@ -140,7 +140,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     if (file.type.startsWith('image/') && accessToken) {
       qualityAnalysisService.suggestDefectFromImage(file, accessToken)
         .then((r) => {
-          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo });
+          if (photoRef.current === file && r.available && r.defectType) setCv({ defectType: r.defectType, confidence: r.confidence ?? 0, threshold: r.threshold ?? 0.7, demo: r.demo, lineFamilies: r.lineFamilies });
         })
         .catch(() => { /* no proposal: the operator picks the code himself */ });
     }
@@ -785,6 +785,18 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           .pfe-wiz-grid { grid-template-columns: 1fr; }
           .pfe-preview-card { position: static; }
         }
+
+        /* Phone / workshop tablet: one field per row, controls big enough for a finger, and 16px text so the browser does not zoom in on focus */
+        @media (max-width: 640px) {
+          .pfe-grid-2 { grid-template-columns: 1fr; }
+          .pfe-input-box input, .pfe-input-box select, .pfe-input-box textarea { font-size: 16px; min-height: 46px; }
+          .pfe-btn-primary, .pfe-btn-sec, .pfe-btn-cancel, .pfe-cv-btn, .pfe-cv-select { min-height: 44px; }
+          .pfe-wiz-footer { gap: 10px; }
+          .pfe-wiz-footer > button { flex: 1 1 0; justify-content: center; }
+        }
+        @media (pointer: coarse) {
+          .pfe-btn-primary, .pfe-btn-sec, .pfe-cv-btn, .pfe-cv-select, .pfe-file-remove { min-height: 44px; min-width: 44px; }
+        }
       `}</style>
 
       <div className="pfe-wiz-container">
@@ -1074,6 +1086,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                             </div>
                             <div className="pfe-cv-code">{defectLabel(cv.defectType)}</div>
                             {cv.demo && <p className="pfe-cv-demo">{t('createClaim.cvDemo')}</p>}
+                            {cv.lineFamilies && cv.lineFamilies.length > 0 && <p className="pfe-cv-hint">{t('createClaim.cvLines', { lines: cv.lineFamilies.join(' / ') })}</p>}
                             {unsure && <p className="pfe-cv-hint">{t('createClaim.cvUnsure')}</p>}
                             <div className="pfe-cv-actions">
                               <button

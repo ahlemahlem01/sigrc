@@ -1,0 +1,324 @@
+{
+  "_comment": "Single source of the defect catalogue of the reference dataset: codes, wording (fr/en/it), exact number of claims, and the line families where each defect is found. generate.py, to_sql.py and cv_mapping.py read it; tests check that the application (reference list, translations, labels) uses the same codes.",
+  "lineFamilies": {
+    "EXT": [
+      "EXT-01",
+      "EXT-02"
+    ],
+    "WR": [
+      "WR-01",
+      "WR-02",
+      "WR-03",
+      "WR-04",
+      "WR-05",
+      "WR-06"
+    ],
+    "CUT": [
+      "CUT-01",
+      "CUT-02"
+    ],
+    "CTL": [
+      "CTL-01"
+    ],
+    "ASM": [
+      "ASM-01",
+      "ASM-03"
+    ]
+  },
+  "defects": [
+    {
+      "code": "CUT_INSULATION",
+      "kind": "cable",
+      "fr": "Coupure / Entaille sur gaine",
+      "en": "Insulation cut / nick",
+      "it": "Taglio / intaccatura della guaina",
+      "count": 261,
+      "difficulty": 0.1,
+      "lines": {
+        "CUT": 0.6,
+        "EXT": 0.4
+      }
+    },
+    {
+      "code": "SCRATCH_INSULATION",
+      "kind": "cable",
+      "fr": "Rayures / marques sur la gaine",
+      "en": "Scratches / marks on the sheath",
+      "it": "Graffi / segni sulla guaina",
+      "count": 233,
+      "difficulty": -0.15,
+      "lines": {
+        "EXT": 0.6,
+        "CUT": 0.4
+      }
+    },
+    {
+      "code": "COPPER_BROKEN",
+      "kind": "cable",
+      "fr": "Brins de cuivre cassés / désaffleurants",
+      "en": "Broken / protruding copper strands",
+      "it": "Fili di rame rotti / sporgenti",
+      "count": 233,
+      "difficulty": 0.2,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "MARKING_DEFECT",
+      "kind": "cable",
+      "fr": "Défaut de marquage (illisible / absent)",
+      "en": "Marking defect (illegible / missing)",
+      "it": "Difetto di marcatura (illeggibile / assente)",
+      "count": 206,
+      "difficulty": -0.2,
+      "lines": {
+        "EXT": 0.6,
+        "CTL": 0.4
+      }
+    },
+    {
+      "code": "COLOR_NON_CONFORMITY",
+      "kind": "cable",
+      "fr": "Couleur d'isolant non conforme",
+      "en": "Insulation colour out of specification",
+      "it": "Colore dell'isolante non conforme",
+      "count": 173,
+      "difficulty": -0.1,
+      "lines": {
+        "EXT": 1.0
+      }
+    },
+    {
+      "code": "INSULATION_THICKNESS",
+      "kind": "cable",
+      "fr": "Épaisseur d'isolant hors tolérance",
+      "en": "Insulation thickness out of tolerance",
+      "it": "Spessore dell'isolante fuori tolleranza",
+      "count": 168,
+      "difficulty": 0.05,
+      "lines": {
+        "EXT": 1.0
+      }
+    },
+    {
+      "code": "SPOOL_DAMAGED",
+      "kind": "cable",
+      "fr": "Touret / Emballage endommagé",
+      "en": "Spool / packaging damaged",
+      "it": "Bobina / imballo danneggiato",
+      "count": 145,
+      "difficulty": -0.15,
+      "lines": {
+        "CUT": 0.5,
+        "CTL": 0.5
+      }
+    },
+    {
+      "code": "SPARK_TEST_FAILURE",
+      "kind": "cable",
+      "fr": "Défaut à l'essai d'étincelage",
+      "en": "Spark test failure",
+      "it": "Difetto alla prova di scintillio",
+      "count": 130,
+      "difficulty": 0.15,
+      "lines": {
+        "EXT": 0.6,
+        "CTL": 0.4
+      }
+    },
+    {
+      "code": "CONDUCTOR_DIAMETER",
+      "kind": "cable",
+      "fr": "Diamètre du conducteur hors tolérance",
+      "en": "Conductor diameter out of tolerance",
+      "it": "Diametro del conduttore fuori tolleranza",
+      "count": 127,
+      "difficulty": 0.1,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "OUTER_DIAMETER",
+      "kind": "cable",
+      "fr": "Diamètre extérieur hors tolérance",
+      "en": "Outer diameter out of tolerance",
+      "it": "Diametro esterno fuori tolleranza",
+      "count": 123,
+      "difficulty": 0.0,
+      "lines": {
+        "EXT": 0.9,
+        "CTL": 0.1
+      }
+    },
+    {
+      "code": "ECCENTRICITY",
+      "kind": "cable",
+      "fr": "Excentricité de l'isolant",
+      "en": "Insulation eccentricity",
+      "it": "Eccentricità dell'isolante",
+      "count": 110,
+      "difficulty": 0.2,
+      "lines": {
+        "EXT": 1.0
+      }
+    },
+    {
+      "code": "CONDUCTOR_RESISTANCE",
+      "kind": "cable",
+      "fr": "Résistance électrique hors spécification",
+      "en": "Electrical resistance out of specification",
+      "it": "Resistenza elettrica fuori specifica",
+      "count": 108,
+      "difficulty": 0.25,
+      "lines": {
+        "WR": 0.5,
+        "CTL": 0.5
+      }
+    },
+    {
+      "code": "COPPER_OXIDATION",
+      "kind": "cable",
+      "fr": "Oxydation / ternissement du cuivre",
+      "en": "Copper oxidation / tarnishing",
+      "it": "Ossidazione del rame",
+      "count": 104,
+      "difficulty": -0.05,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "INSULATION_BLISTER",
+      "kind": "cable",
+      "fr": "Cloques / bulles sur l'isolant",
+      "en": "Blisters / bubbles on insulation",
+      "it": "Bolle sull'isolante",
+      "count": 95,
+      "difficulty": 0.1,
+      "lines": {
+        "EXT": 1.0
+      }
+    },
+    {
+      "code": "FOREIGN_MATTER",
+      "kind": "cable",
+      "fr": "Corps étranger dans l'isolant",
+      "en": "Foreign matter in insulation",
+      "it": "Corpo estraneo nell'isolante",
+      "count": 72,
+      "difficulty": 0.05,
+      "lines": {
+        "EXT": 1.0
+      }
+    },
+    {
+      "code": "STRAND_COUNT",
+      "kind": "cable",
+      "fr": "Nombre de brins incorrect",
+      "en": "Wrong strand count",
+      "it": "Numero di fili errato",
+      "count": 68,
+      "difficulty": 0.1,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "SPOOL_LENGTH",
+      "kind": "cable",
+      "fr": "Longueur sur touret incorrecte",
+      "en": "Incorrect length on spool",
+      "it": "Lunghezza su bobina errata",
+      "count": 61,
+      "difficulty": -0.1,
+      "lines": {
+        "CUT": 0.6,
+        "CTL": 0.4
+      }
+    },
+    {
+      "code": "LAY_LENGTH",
+      "kind": "cable",
+      "fr": "Pas de câblage non conforme",
+      "en": "Lay length out of specification",
+      "it": "Passo di cordatura non conforme",
+      "count": 55,
+      "difficulty": 0.15,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "ADHESION_FAILURE",
+      "kind": "cable",
+      "fr": "Adhérence / pelabilité de l'isolant non conforme",
+      "en": "Insulation adhesion / strippability out of specification",
+      "it": "Aderenza / spelabilità dell'isolante non conforme",
+      "count": 51,
+      "difficulty": 0.2,
+      "lines": {
+        "EXT": 0.5,
+        "CTL": 0.5
+      }
+    },
+    {
+      "code": "CABLE_CRUSHED",
+      "kind": "cable",
+      "fr": "Câble écrasé / pincé",
+      "en": "Crushed / pinched cable",
+      "it": "Cavo schiacciato / pizzicato",
+      "count": 48,
+      "difficulty": -0.2,
+      "lines": {
+        "CUT": 1.0
+      }
+    },
+    {
+      "code": "Soudure défectueuse",
+      "kind": "factory",
+      "count": 96,
+      "difficulty": 0.1,
+      "lines": {
+        "ASM": 1.0
+      }
+    },
+    {
+      "code": "Non-conformité emballage",
+      "kind": "factory",
+      "count": 66,
+      "difficulty": -0.15,
+      "lines": {
+        "ASM": 1.0
+      }
+    },
+    {
+      "code": "Manque de sertissage",
+      "kind": "factory",
+      "count": 58,
+      "difficulty": 0.15,
+      "lines": {
+        "ASM": 1.0
+      }
+    },
+    {
+      "code": "Connecteur desserré",
+      "kind": "factory",
+      "count": 50,
+      "difficulty": 0.05,
+      "lines": {
+        "ASM": 1.0
+      }
+    },
+    {
+      "code": "Étiquette manquante",
+      "kind": "factory",
+      "count": 48,
+      "difficulty": -0.25,
+      "lines": {
+        "ASM": 1.0
+      }
+    }
+  ]
+}

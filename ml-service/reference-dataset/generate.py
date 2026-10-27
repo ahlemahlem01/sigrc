@@ -11,7 +11,9 @@ causes below, and is blurred by random noise, so the strength of the relationshi
 Assumptions (all of them are written here so they can be discussed):
   * Employees have a hidden ability, partly (not entirely) linked to seniority. Ability shortens the work.
   * Work takes longer when the employee already has open claims at assignment time (workload).
-  * About 90 % of the claims are cable defects (20 codes), the rest defects of the assembly workshop.
+  * 25 defect types: 20 cable defects and 5 defects of the assembly workshop (11 % of the claims), each with an exact number
+    of claims given in defect_catalog.json, and found only on the lines of its process (insulation thickness on extrusion, conductor
+    diameter on drawing, length on spool on cutting and control...).
   * Defect types differ in difficulty; the higher the severity, the tighter the deadline compared to the work.
   * Durations are log-normal (long tail) with a small share of exceptional delays (blocked parts, absences).
   * The whole team is available during the whole period; hire dates only give a seniority proxy (the dates in the
@@ -27,7 +29,9 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import json
 import uuid
+from pathlib import Path
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -39,57 +43,18 @@ SEVERITY_P = [0.25, 0.31, 0.31, 0.13]
 ALLOCATED_MEDIAN = {"LOW": 30.0, "MEDIUM": 18.0, "HIGH": 12.0, "CRITICAL": 7.0}
 TIGHTNESS = {"LOW": 0.56, "MEDIUM": 0.62, "HIGH": 0.69, "CRITICAL": 0.80}
 
-# Mostly cable defects (the codes of the inspection reference list, stored as codes like the claim form does), plus a few
-# defects of the harness-assembly workshop ("the factory"), so both kinds are present. Weights follow a gentle long tail:
-# no defect is more than about a tenth of the claims.
-DEFECTS = {  # defect type -> (weight, difficulty on a log scale)
-    "CUT_INSULATION": (0.095, 0.1),
-    "COPPER_BLOOMING": (0.085, 0.2),
-    "MARKING_DEFECT": (0.07, -0.2),
-    "COLOR_MISMATCH": (0.06, -0.1),
-    "SPOOL_DAMAGE": (0.055, -0.15),
-    "CONDUCTOR_DIAMETER": (0.05, 0.1),
-    "INSULATION_THICKNESS": (0.06, 0.05),
-    "OUTER_DIAMETER": (0.055, 0.0),
-    "ECCENTRICITY": (0.04, 0.2),
-    "CONDUCTOR_RESISTANCE": (0.04, 0.25),
-    "SPARK_TEST_FAILURE": (0.05, 0.15),
-    "INSULATION_BLISTER": (0.035, 0.1),
-    "SURFACE_SCRATCH": (0.075, -0.15),
-    "COPPER_OXIDATION": (0.035, -0.05),
-    "STRAND_COUNT": (0.02, 0.1),
-    "LAY_LENGTH": (0.02, 0.15),
-    "SPOOL_LENGTH": (0.025, -0.1),
-    "ADHESION_FAILURE": (0.02, 0.2),
-    "CABLE_CRUSHED": (0.02, -0.2),
-    "FOREIGN_MATTER": (0.025, 0.05),
-    "Soudure défectueuse": (0.04, 0.10), "Connecteur desserré": (0.02, 0.05), "Manque de sertissage": (0.02, 0.15),
-    "Étiquette manquante": (0.02, -0.25), "Non-conformité emballage": (0.02, -0.15),
-}
-# Where each defect is found: cable defects on the cutting, extrusion, drawing and control lines, the others on the assembly lines.
-LINES_BY_DEFECT = {
-    "CUT_INSULATION": {"CUT-01": 0.3, "CUT-02": 0.3, "EXT-01": 0.2, "EXT-02": 0.2},
-    "COPPER_BLOOMING": {"WR-01": 0.18, "WR-02": 0.18, "WR-03": 0.14, "WR-04": 0.2, "WR-05": 0.15, "WR-06": 0.15},
-    "MARKING_DEFECT": {"EXT-01": 0.3, "EXT-02": 0.3, "CTL-01": 0.4},
-    "COLOR_MISMATCH": {"EXT-01": 0.5, "EXT-02": 0.5},
-    "SPOOL_DAMAGE": {"CUT-01": 0.25, "CUT-02": 0.25, "CTL-01": 0.5},
-    "CONDUCTOR_DIAMETER": {"WR-01": 0.2, "WR-02": 0.2, "WR-03": 0.15, "WR-04": 0.25, "WR-05": 0.1, "WR-06": 0.1},
-    "INSULATION_THICKNESS": {"EXT-01": 0.5, "EXT-02": 0.5},
-    "OUTER_DIAMETER": {"EXT-01": 0.45, "EXT-02": 0.45, "CTL-01": 0.1},
-    "ECCENTRICITY": {"EXT-01": 0.5, "EXT-02": 0.5},
-    "CONDUCTOR_RESISTANCE": {"WR-01": 0.15, "WR-04": 0.25, "WR-05": 0.1, "CTL-01": 0.5},
-    "SPARK_TEST_FAILURE": {"EXT-01": 0.3, "EXT-02": 0.3, "CTL-01": 0.4},
-    "INSULATION_BLISTER": {"EXT-01": 0.5, "EXT-02": 0.5},
-    "SURFACE_SCRATCH": {"EXT-01": 0.3, "EXT-02": 0.3, "CUT-01": 0.2, "CUT-02": 0.2},
-    "COPPER_OXIDATION": {"WR-02": 0.3, "WR-03": 0.3, "WR-06": 0.4},
-    "STRAND_COUNT": {"WR-04": 0.5, "WR-05": 0.5},
-    "LAY_LENGTH": {"WR-04": 0.5, "WR-06": 0.5},
-    "SPOOL_LENGTH": {"CUT-01": 0.4, "CUT-02": 0.4, "CTL-01": 0.2},
-    "ADHESION_FAILURE": {"EXT-01": 0.5, "CTL-01": 0.5},
-    "CABLE_CRUSHED": {"CUT-01": 0.5, "CUT-02": 0.5},
-    "FOREIGN_MATTER": {"EXT-01": 0.5, "EXT-02": 0.5},
-}
-ASSEMBLY_LINES = {"ASM-01": 0.45, "ASM-03": 0.55}
+# The defect catalogue (codes, exact number of claims per defect, line families where each is found) lives in one file.
+CATALOG = json.loads((Path(__file__).resolve().parent.parent / "defect_catalog.json").read_text(encoding="utf-8"))
+DEFECTS = {d["code"]: (float(d["count"]), d["difficulty"]) for d in CATALOG["defects"]}  # defect -> (weight, difficulty on a log scale)
+QUOTAS = {d["code"]: d["count"] for d in CATALOG["defects"]}
+
+
+def _lines_of(defect: str) -> dict[str, float]:
+    """Production lines where a defect is found, from its line families (equal share between the lines of a family)."""
+    spec = next(d for d in CATALOG["defects"] if d["code"] == defect)["lines"]
+    return {line: weight / len(CATALOG["lineFamilies"][family]) for family, weight in spec.items() for line in CATALOG["lineFamilies"][family]}
+
+
 SHIFTS = ["Matin", "Après-midi", "Nuit", "Équipe A", "Équipe B"]
 CLIENTS = ["COFAT-MATEUR", "COFAT-TUNIS", "LEONI-MATEUR", "LEONI-MESSADINE", "YAZAKI-GAFSA", "APTIV-MONASTIR",
            "DRAXLMAIER-SOUSSE", "DRAXLMAIER-EL-FEJJA", "KROMBERG-BEJA"]  # direct customer sites (cablers)
@@ -130,7 +95,7 @@ def generate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.Data
             severity = str(rng.choice(SEVERITIES, p=SEVERITY_P))
             defect = _weighted(rng, DEFECTS)
             difficulty = DEFECTS[defect][1]
-            line = _weighted(rng, LINES_BY_DEFECT.get(defect, ASSEMBLY_LINES))
+            line = _weighted(rng, _lines_of(defect))
 
             assigned = created + timedelta(hours=float(rng.exponential(10.0)))
             t_assigned = assigned.timestamp()
@@ -166,7 +131,14 @@ def generate(employees: pd.DataFrame, n_target: int, seed: int) -> tuple[pd.Data
                 "assigned_to_id": emp.loc[who, "user_id"], "assigned_to_name": emp.loc[who, "name"],
                 "is_on_time": (completed.date() <= deadline.date()) if has_deadline else None,
             })
-    df = pd.DataFrame(rows).sort_values("created_at").reset_index(drop=True)
+    df = pd.DataFrame(rows)
+    kept = []
+    for defect, quota in QUOTAS.items():
+        pool = df[df["defect_type"] == defect]
+        if len(pool) < quota:
+            raise SystemExit(f"{defect}: only {len(pool)} candidate claims for a quota of {quota}; raise --n")
+        kept.append(pool.sample(n=quota, random_state=seed))
+    df = pd.concat(kept).sort_values("created_at").reset_index(drop=True)
     truth = pd.DataFrame({"user_id": emp["user_id"], "hidden_ability": ability})
     return df, truth
 
@@ -175,7 +147,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--employees", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--n", type=int, default=3200)
+    ap.add_argument("--n", type=int, default=4200, help="candidate claims generated before the exact quotas of the catalogue are kept")
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--truth", help="optional CSV with the hidden ability of each employee (to check what the model recovers)")
     args = ap.parse_args()

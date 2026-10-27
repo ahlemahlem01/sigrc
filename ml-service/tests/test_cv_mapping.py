@@ -4,8 +4,8 @@ MAP = load_class_map()
 
 
 def test_the_most_confident_known_defect_is_picked():
-    detections = [("cut_insulation", 0.61), ("Copper Blooming", 0.85), ("person", 0.99)]
-    assert pick_defect(detections, MAP) == ("COPPER_BLOOMING", 0.85)
+    detections = [("cut_insulation", 0.61), ("Copper Broken", 0.85), ("person", 0.99)]
+    assert pick_defect(detections, MAP) == ("COPPER_BROKEN", 0.85)
 
 
 def test_class_names_match_whatever_the_case_or_separator():
@@ -21,26 +21,15 @@ def test_a_detection_below_the_threshold_is_ignored():
     assert pick_defect([("cut_insulation", 0.2)], MAP, min_confidence=0.25) is None
 
 
-def test_every_target_code_is_a_defect_code_of_the_application():
-    assert set(MAP.values()) == {
-        "CUT_INSULATION",
-        "COPPER_BLOOMING",
-        "MARKING_DEFECT",
-        "SPOOL_DAMAGE",
-        "COLOR_MISMATCH",
-        "CONDUCTOR_DIAMETER",
-        "INSULATION_THICKNESS",
-        "OUTER_DIAMETER",
-        "ECCENTRICITY",
-        "CONDUCTOR_RESISTANCE",
-        "SPARK_TEST_FAILURE",
-        "INSULATION_BLISTER",
-        "SURFACE_SCRATCH",
-        "COPPER_OXIDATION",
-        "STRAND_COUNT",
-        "LAY_LENGTH",
-        "SPOOL_LENGTH",
-        "ADHESION_FAILURE",
-        "CABLE_CRUSHED",
-        "FOREIGN_MATTER",
-    }
+def test_every_target_code_is_a_cable_code_of_the_catalogue():
+    from cv_mapping import load_catalog
+
+    cable = {d["code"] for d in load_catalog()["defects"] if d["kind"] == "cable"}
+    assert set(MAP.values()) == cable
+
+
+def test_the_trained_detector_classes_give_business_codes():
+    assert pick_defect([("scratch", 0.8)], MAP) == ("SCRATCH_INSULATION", 0.8)
+    assert pick_defect([("hole", 0.7)], MAP) == ("CUT_INSULATION", 0.7)
+    assert pick_defect([("spot", 0.6)], MAP) == ("COLOR_NON_CONFORMITY", 0.6)
+    assert pick_defect([("foreign", 0.5)], MAP) == ("FOREIGN_MATTER", 0.5)

@@ -2458,6 +2458,7 @@
     "next": "Suivant : {{tool}}"
   },
   "createClaim": {
+    "cvLines": "Défaut habituellement rencontré sur les lignes : {{lines}}",
     "cvDemo": "Mode démonstration : proposition d’exemple, pas une analyse réelle de l’image",
     "takePhoto": "Prendre une photo",
     "cvTitle": "Suggestion de l’analyse d’image",
@@ -4772,25 +4773,25 @@
   },
   "defectTypes": {
     "CUT_INSULATION": "Coupure / Entaille sur gaine",
-    "COPPER_BLOOMING": "Brins de cuivre cassés / désaffleurants",
+    "SCRATCH_INSULATION": "Rayures / marques sur la gaine",
+    "COPPER_BROKEN": "Brins de cuivre cassés / désaffleurants",
     "MARKING_DEFECT": "Défaut de marquage (illisible / absent)",
-    "SPOOL_DAMAGE": "Touret / Emballage endommagé",
-    "COLOR_MISMATCH": "Couleur d'isolant non conforme",
-    "CONDUCTOR_DIAMETER": "Diamètre du conducteur hors tolérance",
+    "COLOR_NON_CONFORMITY": "Couleur d'isolant non conforme",
     "INSULATION_THICKNESS": "Épaisseur d'isolant hors tolérance",
+    "SPOOL_DAMAGED": "Touret / Emballage endommagé",
+    "SPARK_TEST_FAILURE": "Défaut à l'essai d'étincelage",
+    "CONDUCTOR_DIAMETER": "Diamètre du conducteur hors tolérance",
     "OUTER_DIAMETER": "Diamètre extérieur hors tolérance",
     "ECCENTRICITY": "Excentricité de l'isolant",
     "CONDUCTOR_RESISTANCE": "Résistance électrique hors spécification",
-    "SPARK_TEST_FAILURE": "Défaut à l'essai d'étincelage",
-    "INSULATION_BLISTER": "Cloques / bulles sur l'isolant",
-    "SURFACE_SCRATCH": "Rayures / marques sur la gaine",
     "COPPER_OXIDATION": "Oxydation / ternissement du cuivre",
+    "INSULATION_BLISTER": "Cloques / bulles sur l'isolant",
+    "FOREIGN_MATTER": "Corps étranger dans l'isolant",
     "STRAND_COUNT": "Nombre de brins incorrect",
-    "LAY_LENGTH": "Pas de câblage non conforme",
     "SPOOL_LENGTH": "Longueur sur touret incorrecte",
+    "LAY_LENGTH": "Pas de câblage non conforme",
     "ADHESION_FAILURE": "Adhérence / pelabilité de l'isolant non conforme",
-    "CABLE_CRUSHED": "Câble écrasé / pincé",
-    "FOREIGN_MATTER": "Corps étranger dans l'isolant"
+    "CABLE_CRUSHED": "Câble écrasé / pincé"
   },
   "decisionDialog": {
     "reason": "Motif",

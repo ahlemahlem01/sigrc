@@ -93,3 +93,26 @@ idempotent, libellés fr / en / it) ; aucun défaut ne dépasse environ 9 % des 
 | Libellés | aucun code brut sur la vue d'ensemble ; les 20 codes traduits (fr, en, it) |
 | Service d'image | `cv_class_map.json` reconnaît les 20 classes ; test de correspondance mis à jour |
 | Tests automatisés | .NET 66 + 187, pytest 29 : verts ; typage du frontend propre |
+
+## 8. Catalogue unique des défauts, modèle d'image entraîné
+
+| Contrôle | Résultat |
+|---|---|
+| Lot de référence (catalogue 25 types) | 2 889 réclamations, répartition **exacte** (261, 233, 233, 206, 173, 168, 145, puis 18 types entre 48 et 130), 318 d'atelier (11,0 %) ; vérifié par test et par le script de génération |
+| Cohérence ligne / processus | épaisseur d'isolant -> EXT seulement ; diamètre du conducteur -> WR seulement ; longueur sur touret -> CUT et CTL ; testé |
+| Redondances | 4 codes renommés (anciens noms = alias), 6 orthographes de même sens fusionnées par alias (Soudure, Sertissage, isolation, Marquage, Marquage illisible, Couleur incorrecte) ; aucune réclamation réécrite ; suggestions : 42 -> 32 (20 codes + 12 libellés d'atelier) |
+| Liste de référence, traductions, `defectLabel.ts`, catalogue | mêmes 20 codes, vérifié par 6 tests pytest |
+| Anciens lots | trois lots archivés (restaurables) ; réclamations ouvertes 609 inchangées |
+| Modèle d'image (`best.pt`) | mAP@50 0,44 sur 38 images de test (foreign 0,74, scratch 0,56, hole 0,27, spot 0,20) ; propose un code sur 35 des 38 images ; non validé sur des photos Coficab |
+| Boucle d'apprentissage et `QualityAnalysisController` | tests inchangés et verts (fanion `CvCorrectionLogged`, proposition, relais des lignes) |
+| Tests automatisés | .NET 66 + 187, Jest 76, pytest 36 : verts ; typage propre |
+
+## 9. Adaptation aux téléphones et tablettes
+
+| Contrôle | Résultat |
+|---|---|
+| Débordement horizontal à 375 px | aucun sur 17 pages du front office et 20 du back office |
+| Barre du haut du back office | la cloche, la langue et l'avatar sortaient de l'écran : barre recomposée sous 768 px (burger, titre, organisation, cloche, langue, avatar) |
+| Menu du back office | tiroir ouvert par le burger sous 768 px (le survol n'existe pas au tactile), fond assombri, fermeture au changement de page ; vérifié à l'écran |
+| Formulaire de réclamation | un champ par ligne sous 640 px, texte à 16 px (pas de zoom à la saisie), contrôles d'au moins 44 px au tactile ; vérifié à l'écran |
+| Répertoire des réclamations | liste et détail empilés sous 1000 px au lieu d'être écrasés côte à côte ; vérifié à 768 px |

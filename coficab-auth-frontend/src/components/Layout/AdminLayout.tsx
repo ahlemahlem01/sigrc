@@ -213,12 +213,17 @@ export default function AdminLayout() {
   const navigate  = useNavigate();
   const location  = useLocation();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  // phone / small tablet: the navigation is a drawer opened from the top bar (hovering does not exist on a touch screen)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const openMobileNav = () => { setSidebarExpanded(true); setMobileNavOpen(true); };
+  const closeMobileNav = () => { setMobileNavOpen(false); setSidebarExpanded(false); };
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [openGroups, setOpenGroups] = useState<string[]>(() => readLsIds(LS_OPEN_GROUPS, DEFAULT_OPEN_GROUPS));
   const [openApSections, setOpenApSections] = useState<string[]>(() =>
     readLsIds(LS_AP_SECTIONS, DEFAULT_AP_SECTIONS),
   );
   const userMenuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { setMobileNavOpen(false); if (window.matchMedia('(max-width: 768px)').matches) setSidebarExpanded(false); }, [location.pathname]);
   const sidebarRef = useSidebarScroll(sidebarExpanded, location.pathname);
 
   const toggleGroup = (id: string) =>
@@ -605,9 +610,32 @@ export default function AdminLayout() {
           border-radius: 12px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
         }
 
+        .al-burger { display: none; }
+        .al-scrim { display: none; }
+
         @media (max-width: 768px) {
           .al-tb-user-info { display: none; }
           .al-tb-date { display: none; }
+
+          /* Navigation drawer: off screen until the burger button is tapped */
+          .al-sidebar { width: 260px; transform: translateX(-100%); transition: transform .22s cubic-bezier(.4,0,.2,1); overflow-y: auto; }
+          .al-sidebar.mobile-open { transform: none; box-shadow: 4px 0 24px rgba(0,0,0,.18); }
+          .al-scrim.open { display: block; position: fixed; inset: 0; background: rgba(15, 23, 42, .4); z-index: 190; }
+          .al-content-shell, .al-content-shell.shifted { margin-left: 0; }
+
+          /* Top bar that fits a phone: burger, title, and the few actions that matter */
+          .al-topbar { padding: 0 10px; gap: 8px; }
+          .al-burger { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 38px; height: 38px;
+            border: 1px solid #e4e8f2; border-radius: 8px; background: #fff; color: #000168; font-size: 20px; cursor: pointer; }
+          .al-tb-left { flex-direction: row; align-items: center; gap: 8px; min-width: 0; flex: 1 1 auto; }
+          .al-tb-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+          .al-tb-crumb, .al-tb-search { display: none; }
+          .al-tb-right { gap: 6px; flex-shrink: 0; }
+          .al-tb-ico { width: 38px; height: 38px; }
+        }
+        @media (max-width: 480px) {
+          /* the organization picker keeps only its icon-sized pill, the language switch moves out of the way */
+          .al-tb-right > :first-child { max-width: 120px; }
         }
       `}</style>
 
@@ -615,9 +643,9 @@ export default function AdminLayout() {
         {/* ─── SIDEBAR ─── */}
         <div
           ref={sidebarRef}
-          className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}`}
+          className={`al-sidebar${sidebarExpanded ? ' expanded' : ''}${mobileNavOpen ? ' mobile-open' : ''}`}
           onMouseEnter={() => setSidebarExpanded(true)}
-          onMouseLeave={() => setSidebarExpanded(false)}
+          onMouseLeave={() => { if (!mobileNavOpen) setSidebarExpanded(false); }}
         >
           {/* Logo at top of sidebar */}
           <div className="al-sb-logo-wrap">
@@ -713,10 +741,15 @@ export default function AdminLayout() {
           </button>
         </div>
 
+        <div className={`al-scrim${mobileNavOpen ? ' open' : ''}`} onClick={closeMobileNav} />
+
         {/* ─── CONTENT ─── */}
         <div className={`al-content-shell${sidebarExpanded ? ' shifted' : ''}`}>
           <div className="al-topbar">
             <div className="al-tb-left">
+              <button type="button" className="al-burger" aria-label={t('adminNav.menu', { defaultValue: 'Menu' })} onClick={openMobileNav}>
+                <i className="ti ti-menu-2" />
+              </button>
               <div className="al-tb-title">{pageTitle}</div>
               <div className="al-tb-crumb">
                 <i className="ti ti-home" style={{ fontSize: 11 }} /> Admin
@@ -730,7 +763,7 @@ export default function AdminLayout() {
               <div className="al-tb-ico">
                 <NotificationBell />
               </div>
-              <div className="al-tb-ico"><Search size={16} /></div>
+              <div className="al-tb-ico al-tb-search"><Search size={16} /></div>
               <div className="al-tb-date">
                 <Calendar size={14} />
                 {new Date().toLocaleDateString(i18n.language?.startsWith('en') ? 'en-GB' : i18n.language?.startsWith('it') ? 'it-IT' : 'fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}

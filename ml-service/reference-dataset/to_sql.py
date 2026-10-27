@@ -10,33 +10,17 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import uuid
+from pathlib import Path
 
 import pandas as pd
 
 ROWS_PER_INSERT = 400
 
-# display wording of the defect codes (claims store the code; titles and descriptions use the label)
-LABELS = {
-    "CUT_INSULATION": "Coupure / Entaille sur gaine", "COPPER_BLOOMING": "Brins de cuivre cassés / désaffleurants",
-    "MARKING_DEFECT": "Défaut de marquage (illisible / absent)", "SPOOL_DAMAGE": "Touret / Emballage endommagé",
-    "COLOR_MISMATCH": "Couleur d'isolant non conforme",
-    "CONDUCTOR_DIAMETER": "Diamètre du conducteur hors tolérance",
-    "INSULATION_THICKNESS": "Épaisseur d'isolant hors tolérance",
-    "OUTER_DIAMETER": "Diamètre extérieur hors tolérance",
-    "ECCENTRICITY": "Excentricité de l'isolant",
-    "CONDUCTOR_RESISTANCE": "Résistance électrique hors spécification",
-    "SPARK_TEST_FAILURE": "Défaut à l'essai d'étincelage",
-    "INSULATION_BLISTER": "Cloques / bulles sur l'isolant",
-    "SURFACE_SCRATCH": "Rayures / marques sur la gaine",
-    "COPPER_OXIDATION": "Oxydation / ternissement du cuivre",
-    "STRAND_COUNT": "Nombre de brins incorrect",
-    "LAY_LENGTH": "Pas de câblage non conforme",
-    "SPOOL_LENGTH": "Longueur sur touret incorrecte",
-    "ADHESION_FAILURE": "Adhérence / pelabilité de l'isolant non conforme",
-    "CABLE_CRUSHED": "Câble écrasé / pincé",
-    "FOREIGN_MATTER": "Corps étranger dans l'isolant",
-}
+# display wording of the defect codes (claims store the code; titles and descriptions use the French label)
+CATALOG = json.loads((Path(__file__).resolve().parent.parent / "defect_catalog.json").read_text(encoding="utf-8"))
+LABELS = {d["code"]: d["fr"] for d in CATALOG["defects"] if d["kind"] == "cable"}
 
 
 def q(value) -> str:
@@ -55,7 +39,7 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--claims", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference, defauts cable varies (seed 7)")
+    ap.add_argument("--batch-name", default="REFERENCE-DATASET - jeu de donnees de reference, catalogue 25 types (seed 7)")
     a = ap.parse_args()
 
     df = pd.read_csv(a.claims, dtype=str, keep_default_na=False)

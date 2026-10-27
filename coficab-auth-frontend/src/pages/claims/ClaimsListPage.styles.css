@@ -1118,6 +1118,12 @@
   .pfe-ica-grid { grid-template-columns: 1fr; }
 }
 
+/* Tablet (portrait) and phone: the list and the claim detail are stacked instead of squeezed side by side */
+@media (max-width: 1000px) {
+  .pfe-workspace { flex-direction: column; }
+  .pfe-sidebar { width: 100%; max-height: 460px; }
+}
+
 .pfe-spin { animation: pfe-spin 1s linear infinite; }
 @keyframes pfe-spin { 100% { transform: rotate(360deg); } }
 

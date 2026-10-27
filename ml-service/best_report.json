@@ -1,0 +1,16 @@
+{
+  "base": "yolov8n.pt",
+  "epochs": 60,
+  "imgsz": 640,
+  "train_images": 160,
+  "test_images": 38,
+  "test_map50": 0.4439,
+  "test_map50_95": 0.2496,
+  "per_class_map50": {
+    "foreign": 0.7387,
+    "hole": 0.2724,
+    "scratch": 0.5647,
+    "spot": 0.1999
+  },
+  "dataset": "Roboflow cable-defect v3 (CC BY 4.0)"
+}

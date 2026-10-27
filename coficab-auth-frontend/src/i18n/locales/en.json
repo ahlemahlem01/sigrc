@@ -2458,6 +2458,7 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "cvLines": "Usually found on lines: {{lines}}",
     "cvDemo": "Demonstration mode: example proposal, not a real image analysis",
     "takePhoto": "Take a photo",
     "cvTitle": "Image analysis suggestion",
@@ -4772,25 +4773,25 @@
   },
   "defectTypes": {
     "CUT_INSULATION": "Insulation cut / nick",
-    "COPPER_BLOOMING": "Broken / protruding copper strands",
+    "SCRATCH_INSULATION": "Scratches / marks on the sheath",
+    "COPPER_BROKEN": "Broken / protruding copper strands",
     "MARKING_DEFECT": "Marking defect (illegible / missing)",
-    "SPOOL_DAMAGE": "Spool / packaging damaged",
-    "COLOR_MISMATCH": "Insulation colour out of specification",
-    "CONDUCTOR_DIAMETER": "Conductor diameter out of tolerance",
+    "COLOR_NON_CONFORMITY": "Insulation colour out of specification",
     "INSULATION_THICKNESS": "Insulation thickness out of tolerance",
+    "SPOOL_DAMAGED": "Spool / packaging damaged",
+    "SPARK_TEST_FAILURE": "Spark test failure",
+    "CONDUCTOR_DIAMETER": "Conductor diameter out of tolerance",
     "OUTER_DIAMETER": "Outer diameter out of tolerance",
     "ECCENTRICITY": "Insulation eccentricity",
     "CONDUCTOR_RESISTANCE": "Electrical resistance out of specification",
-    "SPARK_TEST_FAILURE": "Spark test failure",
-    "INSULATION_BLISTER": "Blisters / bubbles on insulation",
-    "SURFACE_SCRATCH": "Scratches / marks on the sheath",
     "COPPER_OXIDATION": "Copper oxidation / tarnishing",
+    "INSULATION_BLISTER": "Blisters / bubbles on insulation",
+    "FOREIGN_MATTER": "Foreign matter in insulation",
     "STRAND_COUNT": "Wrong strand count",
-    "LAY_LENGTH": "Lay length out of specification",
     "SPOOL_LENGTH": "Incorrect length on spool",
+    "LAY_LENGTH": "Lay length out of specification",
     "ADHESION_FAILURE": "Insulation adhesion / strippability out of specification",
-    "CABLE_CRUSHED": "Crushed / pinched cable",
-    "FOREIGN_MATTER": "Foreign matter in insulation"
+    "CABLE_CRUSHED": "Crushed / pinched cable"
   },
   "decisionDialog": {
     "reason": "Reason",

@@ -12,7 +12,7 @@ public static class CvDemoPrediction
     {
         var name = (fileName ?? string.Empty).ToLowerInvariant();
         return name.Contains("copper") || name.Contains("cuivre") || name.Contains("bloom")
-            ? ("COPPER_BLOOMING", 0.58)
+            ? ("COPPER_BROKEN", 0.58)
             : ("CUT_INSULATION", 0.93);
     }
 }

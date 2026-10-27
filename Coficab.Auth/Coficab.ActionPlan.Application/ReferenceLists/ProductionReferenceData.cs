@@ -18,27 +18,27 @@ public static class ProductionReferenceData
 
     public static readonly IReadOnlyList<Entry> Entries = new[]
     {
-        // Visual-inspection defect codes
+        // Cable defect codes (the catalogue of ml-service/defect_catalog.json; a test checks both stay identical)
         new Entry(ReferenceListKeys.DefectType, "CUT_INSULATION", "Coupure / Entaille sur gaine"),
-        new Entry(ReferenceListKeys.DefectType, "COPPER_BLOOMING", "Brins de cuivre cassés / désaffleurants"),
+        new Entry(ReferenceListKeys.DefectType, "SCRATCH_INSULATION", "Rayures / marques sur la gaine"),
+        new Entry(ReferenceListKeys.DefectType, "COPPER_BROKEN", "Brins de cuivre cassés / désaffleurants"),
         new Entry(ReferenceListKeys.DefectType, "MARKING_DEFECT", "Défaut de marquage (illisible / absent)"),
-        new Entry(ReferenceListKeys.DefectType, "SPOOL_DAMAGE", "Touret / Emballage endommagé"),
-        new Entry(ReferenceListKeys.DefectType, "COLOR_MISMATCH", "Couleur d'isolant non conforme"),
-        new Entry(ReferenceListKeys.DefectType, "CONDUCTOR_DIAMETER", "Diamètre du conducteur hors tolérance"),
+        new Entry(ReferenceListKeys.DefectType, "COLOR_NON_CONFORMITY", "Couleur d'isolant non conforme"),
         new Entry(ReferenceListKeys.DefectType, "INSULATION_THICKNESS", "Épaisseur d'isolant hors tolérance"),
+        new Entry(ReferenceListKeys.DefectType, "SPOOL_DAMAGED", "Touret / Emballage endommagé"),
+        new Entry(ReferenceListKeys.DefectType, "SPARK_TEST_FAILURE", "Défaut à l'essai d'étincelage"),
+        new Entry(ReferenceListKeys.DefectType, "CONDUCTOR_DIAMETER", "Diamètre du conducteur hors tolérance"),
         new Entry(ReferenceListKeys.DefectType, "OUTER_DIAMETER", "Diamètre extérieur hors tolérance"),
         new Entry(ReferenceListKeys.DefectType, "ECCENTRICITY", "Excentricité de l'isolant"),
         new Entry(ReferenceListKeys.DefectType, "CONDUCTOR_RESISTANCE", "Résistance électrique hors spécification"),
-        new Entry(ReferenceListKeys.DefectType, "SPARK_TEST_FAILURE", "Défaut à l'essai d'étincelage"),
-        new Entry(ReferenceListKeys.DefectType, "INSULATION_BLISTER", "Cloques / bulles sur l'isolant"),
-        new Entry(ReferenceListKeys.DefectType, "SURFACE_SCRATCH", "Rayures / marques sur la gaine"),
         new Entry(ReferenceListKeys.DefectType, "COPPER_OXIDATION", "Oxydation / ternissement du cuivre"),
+        new Entry(ReferenceListKeys.DefectType, "INSULATION_BLISTER", "Cloques / bulles sur l'isolant"),
+        new Entry(ReferenceListKeys.DefectType, "FOREIGN_MATTER", "Corps étranger dans l'isolant"),
         new Entry(ReferenceListKeys.DefectType, "STRAND_COUNT", "Nombre de brins incorrect"),
-        new Entry(ReferenceListKeys.DefectType, "LAY_LENGTH", "Pas de câblage non conforme"),
         new Entry(ReferenceListKeys.DefectType, "SPOOL_LENGTH", "Longueur sur touret incorrecte"),
+        new Entry(ReferenceListKeys.DefectType, "LAY_LENGTH", "Pas de câblage non conforme"),
         new Entry(ReferenceListKeys.DefectType, "ADHESION_FAILURE", "Adhérence / pelabilité de l'isolant non conforme"),
         new Entry(ReferenceListKeys.DefectType, "CABLE_CRUSHED", "Câble écrasé / pincé"),
-        new Entry(ReferenceListKeys.DefectType, "FOREIGN_MATTER", "Corps étranger dans l'isolant"),
 
         // Direct customers: wire-harness manufacturer sites
         new Entry(ReferenceListKeys.Client, "COFAT-MATEUR"),
@@ -50,6 +50,15 @@ public static class ProductionReferenceData
         new Entry(ReferenceListKeys.Client, "DRAXLMAIER-SOUSSE"),
         new Entry(ReferenceListKeys.Client, "DRAXLMAIER-EL-FEJJA"),
         new Entry(ReferenceListKeys.Client, "KROMBERG-BEJA"),
+    };
+
+    /// <summary>Codes that were renamed: the old spelling becomes an alias of the new one (claims keep their text, statistics count both together).</summary>
+    public static readonly IReadOnlyList<(string Old, string New)> Renames = new[]
+    {
+        ("COPPER_BLOOMING", "COPPER_BROKEN"),
+        ("SURFACE_SCRATCH", "SCRATCH_INSULATION"),
+        ("COLOR_MISMATCH", "COLOR_NON_CONFORMITY"),
+        ("SPOOL_DAMAGE", "SPOOL_DAMAGED"),
     };
 
     /// <summary>Adds the entries that are missing from the reference lists; returns how many were added.</summary>
@@ -88,7 +97,20 @@ public static class ProductionReferenceData
             added++;
         }
 
-        if (added > 0) await db.SaveChangesAsync(ct);
+        // a renamed code is switched off and merged into its new name; nothing is deleted
+        var renamed = 0;
+        foreach (var (oldCode, newCode) in Renames)
+        {
+            var old = await db.ReferenceItems.FirstOrDefaultAsync(r => r.ListKey == ReferenceListKeys.DefectType && r.Value == oldCode && r.MergedInto == null, ct);
+            if (old == null) continue;
+            old.MergedInto = newCode;
+            old.IsActive = false;
+            old.UpdatedAt = now;
+            old.UpdatedBy = UpdatedBy;
+            renamed++;
+        }
+
+        if (added + renamed > 0) await db.SaveChangesAsync(ct);
         return added;
     }
 }

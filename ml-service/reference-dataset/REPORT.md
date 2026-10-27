@@ -1,6 +1,6 @@
 # Évaluation du modèle « livré à l'heure »
 
-Source : **données de référence (generate.py)**. 2646 réclamations clôturées avec échéance connue, taux de livraison à l'heure 73.2%. Modèle trivial (toujours la classe majoritaire) : exactitude 73.2%.
+Source : **données de référence (generate.py)**. 2615 réclamations clôturées avec échéance connue, taux de livraison à l'heure 69.8%. Modèle trivial (toujours la classe majoritaire) : exactitude 69.8%.
 
 > Ces chiffres concernent des données **générées (jeu de référence)** : ils montrent que la chaîne de traitement retrouve des relations connues, pas la performance sur l'historique réel de Coficab. Sur l'historique réel, ré-entraîner puis relire ce rapport.
 
@@ -8,9 +8,9 @@ Source : **données de référence (generate.py)**. 2646 réclamations clôturé
 
 | Modèle | AUC | Brier | Exactitude |
 |---|---|---|---|
-| Réclamation seule (gravité, défaut, délai alloué), régression logistique | 0.751 ± 0.018 | 0.166 | 0.756 |
-| Réclamation + employé, régression logistique | 0.777 ± 0.023 | 0.158 | 0.772 |
-| Réclamation + employé, gradient boosting | 0.775 ± 0.025 | 0.159 | 0.767 |
+| Réclamation seule (gravité, défaut, délai alloué), régression logistique | 0.767 ± 0.014 | 0.172 | 0.742 |
+| Réclamation + employé, régression logistique | 0.795 ± 0.012 | 0.163 | 0.755 |
+| Réclamation + employé, gradient boosting | 0.783 ± 0.013 | 0.168 | 0.748 |
 
 L'AUC vaut 0,5 pour le hasard. Le Brier mesure la qualité des probabilités (plus bas = mieux).
 
@@ -18,19 +18,19 @@ L'AUC vaut 0,5 pour le hasard. Le Brier mesure la qualité des probabilités (pl
 
 | Modèle | AUC | Brier | Exactitude | Modèle trivial |
 |---|---|---|---|---|
-| Réclamation seule (gravité, défaut, délai alloué), régression logistique | 0.720 | 0.177 | 0.758 | 0.717 |
-| Réclamation + employé, régression logistique | 0.756 | 0.169 | 0.762 | 0.717 |
-| Réclamation + employé, gradient boosting | 0.740 | 0.172 | 0.734 | 0.717 |
+| Réclamation seule (gravité, défaut, délai alloué), régression logistique | 0.756 | 0.172 | 0.757 | 0.703 |
+| Réclamation + employé, régression logistique | 0.790 | 0.163 | 0.758 | 0.703 |
+| Réclamation + employé, gradient boosting | 0.787 | 0.167 | 0.754 | 0.703 |
 
 ## Calibration (probabilité prédite en 5 groupes égaux, modèle réclamation + employé)
 
 | Groupe | Réclamations | Probabilité prédite | Taux observé |
 |---|---|---|---|
-| 1 | 530 | 0.44 | 0.40 |
-| 2 | 529 | 0.64 | 0.67 |
-| 3 | 529 | 0.76 | 0.76 |
-| 4 | 529 | 0.86 | 0.89 |
-| 5 | 529 | 0.96 | 0.94 |
+| 1 | 523 | 0.36 | 0.36 |
+| 2 | 523 | 0.59 | 0.58 |
+| 3 | 523 | 0.73 | 0.74 |
+| 4 | 523 | 0.85 | 0.86 |
+| 5 | 523 | 0.96 | 0.96 |
 
 ## L'historique de l'employé ordonne-t-il ses résultats ?
 
@@ -38,10 +38,10 @@ Réclamations regroupées par taux de ponctualité passé de l'employé au momen
 
 | Groupe | Réclamations | Taux à l'heure observé |
 |---|---|---|
-| Q1 (plus bas) | 662 | 0.64 |
-| Q2 | 661 | 0.71 |
-| Q3 | 661 | 0.74 |
-| Q4 (plus haut) | 662 | 0.83 |
+| Q1 (plus bas) | 654 | 0.58 |
+| Q2 | 654 | 0.66 |
+| Q3 | 653 | 0.74 |
+| Q4 (plus haut) | 654 | 0.81 |
 
 ## Le top 3 du modèle contre le reste (claims du dernier 30 %, équipe de 22)
 
@@ -49,20 +49,20 @@ Pour chaque réclamation, tous les employés sont classés par probabilité pré
 
 | Employé assigné | Réclamations | Livrées à l'heure |
 |---|---|---|
-| Dans le top 3 du modèle | 154 | 86.4% |
-| Hors du top 3 | 640 | 68.1% |
+| Dans le top 3 du modèle | 150 | 88.7% |
+| Hors du top 3 | 635 | 66.0% |
 
-Écart : **+18.2 points** (intervalle de confiance à 95 % : +11.7 à +24.8). Rang médian de l'employé assigné : 9 sur 22. Part des cas dans le top 3 : 19% (hasard : 14%).
+Écart : **+22.7 points** (intervalle de confiance à 95 % : +16.4 à +29.0). Rang médian de l'employé assigné : 9 sur 22. Part des cas dans le top 3 : 19% (hasard : 14%).
 
 *Observation, pas expérience : les assignations n'ont pas été faites par le modèle. Ce tableau montre que le classement est cohérent avec les résultats, pas ce qui arriverait si le modèle choisissait.*
 
 ## Test de récupération (uniquement possible sur données de référence)
 
-Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **0.91** (22 employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit.
+Corrélation entre le taux de ponctualité estimé de chaque employé et sa capacité cachée dans le jeu de référence : **0.95** (22 employés). Une valeur nettement positive montre que la chaîne retrouve l'effet qui a été introduit.
 
 ## Limites
 
 - Les effets sont modestes : le délai respecté dépend surtout de facteurs que ces données ne contiennent pas.
 - Un modèle utile au classement des employés doit améliorer l'AUC grâce aux variables **de l'employé** (ligne « réclamation seule » comparée à « réclamation + employé »).
 - Les données réelles de Coficab devront être importées avec l'employé assigné, la date d'assignation et l'échéance.
-- Rapport généré le 2026-10-25.
+- Rapport généré le 2026-10-27.

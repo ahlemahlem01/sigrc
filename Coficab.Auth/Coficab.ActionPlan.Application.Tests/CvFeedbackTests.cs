@@ -45,8 +45,8 @@ public class CvFeedbackTests
     [Theory]
     [InlineData("cable.jpg", "CUT_INSULATION", true)]
     [InlineData(null, "CUT_INSULATION", true)]
-    [InlineData("Copper_bloom_01.jpg", "COPPER_BLOOMING", false)]
-    [InlineData("photo-cuivre.png", "COPPER_BLOOMING", false)]
+    [InlineData("Copper_bloom_01.jpg", "COPPER_BROKEN", false)]
+    [InlineData("photo-cuivre.png", "COPPER_BROKEN", false)]
     public void DemoMode_GivesAConfidentOrAnUnsureExample(string? fileName, string code, bool confident)
     {
         var (defect, confidence) = CvDemoPrediction.For(fileName);
