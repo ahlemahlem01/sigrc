@@ -221,3 +221,16 @@ pas si l'analyse avait eu lieu.
 
 L'API ajoute un champ `reason` (`noDefect`, `anomaly`, `unavailable`, `notConfigured`, `noImage`). Vérifié à l'écran avec trois photos de suite (faisceau usé :
 aucun défaut reconnu ; rayure : 75 % ; brins brûlés : 87 %). Tests : .NET 66 + 187, Jest 76, typage propre.
+
+## 16. Boucle de réentraînement contrôlé du modèle d'image
+
+| Contrôle | Résultat |
+|---|---|
+| Points d'accès API `cv-corrections` (liste) et `.../{id}/photo` | n'exposent que les photos corrigées ou peu sûres, d'une réclamation non archivée ; 401 sans clé ni jeton admin (vérifié en direct : sans clé 401, mauvaise clé refusée) ; 2 tests d'intégration |
+| Export (`export_corrections.py`) | étiquette = code retenu par l'opérateur ; rectangle du modèle seulement s'il retrouve ce défaut, sinon photo à annoter ; codes non visibles écartés avec la raison ; 20 % en holdout ; sur l'API réelle : 0 correction pour l'instant, sortie vide sans erreur |
+| `POST /reload` | testé : échange du modèle et des classes, un modèle qui ne se charge pas ne remplace pas le courant, jeton exigé s'il est défini ; vérifié sur le service en marche (`loadedAt` change, prédictions continuent) |
+| Décision de déploiement | testée : accepte un candidat meilleur sans classe qui s'effondre ; rejette l'égalité, la baisse, ou une classe perdue ; gain minimal respecté |
+| Déploiement | testé : remplacement + sauvegarde + rechargement ; retour automatique à l'ancien modèle si le service ne charge pas le nouveau ; service arrêté = poids remplacés avec avertissement ; vérifié en réel avec des poids identiques (service rechargé, poids inchangés) |
+| Essai complet à blanc (32 photos simulées, 1 passe) | export, fusion, ajustement, mesure des deux modèles, décision : candidat meilleur sur les 38 photos de référence **mais rejeté** parce que la classe « defect » passait de 0,68 à 0,53 ; `best.pt` inchangé, rejet écrit dans `logs/retrain_history.log` |
+| Tests automatisés | .NET 66 + 189, pytest 57, Jest 76 : verts |
+| Limite | pas de validation par l'ingénieur qualité avant l'entraînement ; la mesure de référence (38 photos) est petite |

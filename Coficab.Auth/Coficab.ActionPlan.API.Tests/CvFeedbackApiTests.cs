@@ -101,4 +101,47 @@ public class CvFeedbackApiTests : IClassFixture<ActionPlanApiFactory>
         Assert.DoesNotContain(suggestions, s => s.StartsWith("test", StringComparison.OrdinalIgnoreCase));
         Assert.Contains("Gaine rayée archivée", suggestions);
     }
+
+    private static Claim WithPhoto(string defect, string? predicted, double? confidence, bool logged, string contentType = "image/jpeg") => new()
+    {
+        Id = Guid.NewGuid(), Title = "photo", ClientId = "C", DefectType = defect, Severity = "LOW", LotNumber = "L", Description = "d", StatusCode = "OUVERTE",
+        CreatedAt = DateTime.UtcNow, AttachmentName = "p.jpg", AttachmentContentType = contentType, AttachmentData = new byte[] { 1, 2, 3, 4 },
+        CvPredictedDefectType = predicted, CvConfidence = confidence, CvCorrectionLogged = logged,
+    };
+
+    [Fact]
+    public async Task CvCorrections_ListOnlyThePhotosThatTeachTheModel_AndServeTheirBytes()
+    {
+        var corrected = WithPhoto("CUT_INSULATION", "SCRATCH_INSULATION", 0.92, logged: true);
+        var unsure = WithPhoto("SCRATCH_INSULATION", "SCRATCH_INSULATION", 0.55, logged: false);
+        var confidentAndRight = WithPhoto("FOREIGN_MATTER", "FOREIGN_MATTER", 0.95, logged: false);
+        var noProposal = WithPhoto("CUT_INSULATION", null, null, logged: false);
+        var notAnImage = WithPhoto("CUT_INSULATION", "SCRATCH_INSULATION", 0.9, logged: true, contentType: "application/pdf");
+        await _factory.SeedAsync(db => { db.Claims.AddRange(corrected, unsure, confidentAndRight, noProposal, notAnImage); return Task.CompletedTask; });
+
+        var list = await _client.GetFromJsonAsync<JsonElement>("/api/ml-features/cv-corrections", JsonOpts);
+        var ids = list.GetProperty("items").EnumerateArray().Select(e => e.GetProperty("claimId").GetGuid()).ToList();
+        Assert.Contains(corrected.Id, ids);
+        Assert.Contains(unsure.Id, ids);
+        Assert.DoesNotContain(confidentAndRight.Id, ids);
+        Assert.DoesNotContain(noProposal.Id, ids);
+        Assert.DoesNotContain(notAnImage.Id, ids);
+        var row = list.GetProperty("items").EnumerateArray().First(e => e.GetProperty("claimId").GetGuid() == corrected.Id);
+        Assert.Equal("CUT_INSULATION", row.GetProperty("defectType").GetString());               // the code the operator kept
+        Assert.Equal("SCRATCH_INSULATION", row.GetProperty("predictedDefectType").GetString());
+
+        var photo = await _client.GetAsync($"/api/ml-features/cv-corrections/{corrected.Id}/photo");
+        Assert.Equal(HttpStatusCode.OK, photo.StatusCode);
+        Assert.Equal(new byte[] { 1, 2, 3, 4 }, await photo.Content.ReadAsByteArrayAsync());
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync($"/api/ml-features/cv-corrections/{notAnImage.Id}/photo")).StatusCode);
+    }
+
+    [Fact]
+    public async Task CvCorrections_RefuseSomeoneWithoutTheKeyOrAnAdminToken()
+    {
+        using var anonymous = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        anonymous.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, TestAuthHandler.Anonymous);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync("/api/ml-features/cv-corrections")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await anonymous.GetAsync($"/api/ml-features/cv-corrections/{Guid.NewGuid()}/photo")).StatusCode);
+    }
 }

@@ -1,6 +1,9 @@
 using System.Security.Cryptography;
 using System.Text;
+using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.MlFeatures.Queries;
+using Coficab.ActionPlan.Application.QualityAnalyses.Services;
+using Microsoft.EntityFrameworkCore;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -76,6 +79,62 @@ public class MlFeaturesController : ControllerBase
             new GetEmployeeStatsQuery(request.EmployeeIds ?? new List<string>()), cancellationToken);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Photos of claims whose image proposal was corrected by the operator or was not confident enough (the learning signal of the image model),
+    /// with the defect code the operator kept. Same access as the training dataset: admin token, or the X-Dataset-Key header.
+    /// </summary>
+    [HttpGet("cv-corrections")]
+    [AllowAnonymous]
+    public async Task<ActionResult<object>> GetCvCorrections(
+        [FromServices] IAuthorizationService authorization,
+        [FromServices] IConfiguration configuration,
+        [FromServices] IApplicationDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await CanReadDatasetsAsync(authorization, configuration)) return Unauthorized();
+
+        var rows = await db.Claims.AsNoTracking()
+            .Where(c => !c.IsArchived && c.AttachmentData != null && c.AttachmentContentType != null && c.AttachmentContentType.StartsWith("image/")
+                        && c.CvPredictedDefectType != null
+                        && (c.CvCorrectionLogged || (c.CvConfidence ?? 1.0) < CvFeedback.ConfidenceThreshold))
+            .OrderBy(c => c.CreatedAt)
+            .Select(c => new
+            {
+                claimId = c.Id,
+                defectType = c.DefectType,
+                predictedDefectType = c.CvPredictedDefectType,
+                confidence = c.CvConfidence,
+                correctionLogged = c.CvCorrectionLogged,
+                contentType = c.AttachmentContentType,
+                fileName = c.AttachmentName,
+                createdAt = c.CreatedAt,
+            })
+            .ToListAsync(cancellationToken);
+        return Ok(new { count = rows.Count, items = rows });
+    }
+
+    /// <summary>The photo of one of those claims (bytes), for the export to the image model's training folder.</summary>
+    [HttpGet("cv-corrections/{claimId:guid}/photo")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetCvCorrectionPhoto(
+        Guid claimId,
+        [FromServices] IAuthorizationService authorization,
+        [FromServices] IConfiguration configuration,
+        [FromServices] IApplicationDbContext db,
+        CancellationToken cancellationToken = default)
+    {
+        if (!await CanReadDatasetsAsync(authorization, configuration)) return Unauthorized();
+
+        var photo = await db.Claims.AsNoTracking()
+            .Where(c => c.Id == claimId && !c.IsArchived && c.AttachmentData != null && c.AttachmentContentType != null && c.AttachmentContentType.StartsWith("image/"))
+            .Select(c => new { c.AttachmentData, c.AttachmentContentType })
+            .FirstOrDefaultAsync(cancellationToken);
+        return photo is null ? NotFound() : File(photo.AttachmentData!, photo.AttachmentContentType!);
+    }
+
+    private async Task<bool> CanReadDatasetsAsync(IAuthorizationService authorization, IConfiguration configuration)
+        => (await authorization.AuthorizeAsync(User, "AdminOnly")).Succeeded || HasValidDatasetKey(configuration["MlFeatures:DatasetApiKey"]);
 
     private bool HasValidDatasetKey(string? expected)
     {

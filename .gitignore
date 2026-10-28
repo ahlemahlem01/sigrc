@@ -55,3 +55,9 @@ ml-service/dataset2/
 ml-service/dataset_merged/
 ml-service/best_v1.pt
 ml-service/dataset3/
+ml-service/demo-photos/
+ml-service/dataset_auto/
+ml-service/dataset_candidate/
+ml-service/backups/
+ml-service/logs/
+ml-service/runs/

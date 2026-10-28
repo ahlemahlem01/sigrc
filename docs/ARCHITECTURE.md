@@ -71,6 +71,37 @@ se rencontre. `generate.py`, `to_sql.py` et `cv_mapping.py` le lisent ; des test
 Quatre codes ont été renommés (`COPPER_BLOOMING` -> `COPPER_BROKEN`, `SURFACE_SCRATCH` -> `SCRATCH_INSULATION`, `COLOR_MISMATCH` ->
 `COLOR_NON_CONFORMITY`, `SPOOL_DAMAGE` -> `SPOOL_DAMAGED`) : les anciens noms deviennent des alias, rien n'est réécrit.
 
+## Réentraînement contrôlé du modèle d'image (boucle d'apprentissage)
+
+Le modèle n'apprend pas en continu : il progresse **par paliers**, et un nouveau modèle n'est mis en service que s'il a prouvé qu'il est meilleur.
+
+```
+réclamation corrigée par l'opérateur ──▶ export_corrections.py ──▶ dataset_auto/ ──▶ auto_retrain.py ──▶ modèle candidat
+   (photo + code retenu + fanion)          (via l'API, clé ML)      (images, étiquettes,    (ajustement à partir du     │
+                                                                      à annoter, holdout)    modèle en service)          ▼
+                              journal logs/retrain_history.log ◀── décision ◀── mesure du candidat et du modèle en service
+                                                                     │   sur 38 photos de référence + jeu de test + photos du terrain
+                                       meilleur ? ──oui──▶ best.pt remplacé (ancien gardé dans backups/) ──▶ POST /reload (sans arrêt)
+                                                  └─non──▶ best.pt inchangé, rejet journalisé
+```
+
+- **Source.** Le « tableau » `CvCorrectionLogged` est une colonne des réclamations : le script la lit par `GET api/ml-features/cv-corrections` (et la photo par
+  `.../{id}/photo`), avec la même clé que le jeu d'entraînement (`X-Dataset-Key`), sans accès direct à la base. Sont retenues les photos dont la proposition a été
+  corrigée ou était peu sûre (< 0,70) et dont le code retenu est un défaut visible sur une photo.
+- **Étiquettes.** L'opérateur donne le nom du défaut, pas sa position. Le rectangle vient du modèle en service s'il retrouve ce même défaut sur la photo ;
+  sinon la photo va dans `dataset_auto/to_annotate/` pour qu'une personne trace le rectangle (Roboflow). L'option `--weak-boxes` met un rectangle au centre : c'est
+  une supposition qui peut apprendre au modèle que les défauts sont au milieu de l'image, à n'utiliser qu'en dernier recours. 20 % des photos sont mises de côté
+  (`holdout/`) pour mesurer sur des photos du terrain sans jamais s'entraîner dessus.
+- **Nouvelles classes.** Un code de câble sans classe prend sa propre classe (nommée comme le code) dès 20 photos ; avant, ses photos sont écartées. Les classes existantes
+  gardent leur numéro.
+- **Décision.** Le candidat doit faire **strictement mieux** en mAP@50 que le modèle en service sur les 38 photos de référence, et aucune classe ne doit perdre plus de
+  0,10 d'AP@50 sur le jeu de test élargi. Les 38 photos étant peu nombreuses, un gain de quelques points reste dans le bruit : la mesure sur les photos du terrain
+  (`holdout`) prend de la valeur avec le nombre de corrections.
+- **Mise en service.** `best.pt` est remplacé (l'ancien est conservé dans `backups/`), puis `POST /reload` recharge le modèle sans arrêter le service. Si le service ne peut pas
+  charger les nouveaux poids, les anciens sont remis. `CV_RELOAD_TOKEN` (en-tête `X-Reload-Token`) protège cet appel si on le définit.
+- **Lancer.** `python auto_retrain.py` (ou `--dry-run` pour tout mesurer sans rien remplacer). À planifier par exemple chaque mois, ou quand `dataset_auto/` contient 100 corrections validées.
+- **Réserve.** Les corrections ne passent pas encore par une validation de l'ingénieur qualité avant d'entrer dans l'entraînement : une correction faite trop vite devient un exemple.
+
 ## Limites à annoncer
 
 - Le modèle d'image n'a vu que 160 images publiques de 4 types de défaut : il est faible sur les trous et les taches, et inconnu sur des photos Coficab.
