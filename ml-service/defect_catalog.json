@@ -1,5 +1,5 @@
 {
-  "_comment": "Single source of the defect catalogue of the reference dataset: codes, wording (fr/en/it), exact number of claims, and the line families where each defect is found. generate.py, to_sql.py and cv_mapping.py read it; tests check that the application (reference list, translations, labels) uses the same codes.",
+  "_comment": "Single source of the defect catalogue of the reference dataset: codes, wording (fr/en/it), exact number of claims, and the line families where each defect is found. generate.py, to_sql.py and cv_mapping.py read it; tests check that the application (reference list, translations, labels) uses the same codes. COPPER_BURNT has no claim yet: the code exists so that burnt strands seen on a photo are not filed under oxidation.",
   "lineFamilies": {
     "EXT": [
       "EXT-01",
@@ -185,6 +185,18 @@
       "it": "Ossidazione del rame",
       "count": 104,
       "difficulty": -0.05,
+      "lines": {
+        "WR": 1.0
+      }
+    },
+    {
+      "code": "COPPER_BURNT",
+      "kind": "cable",
+      "fr": "Brins brûlés / fondus (arc électrique)",
+      "en": "Burnt / fused strands (electric arc)",
+      "it": "Fili bruciati / fusi (arco elettrico)",
+      "count": 0,
+      "difficulty": 0.0,
       "lines": {
         "WR": 1.0
       }

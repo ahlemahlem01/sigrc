@@ -234,3 +234,33 @@ aucun défaut reconnu ; rayure : 75 % ; brins brûlés : 87 %). Tests : .NET 66 
 | Essai complet à blanc (32 photos simulées, 1 passe) | export, fusion, ajustement, mesure des deux modèles, décision : candidat meilleur sur les 38 photos de référence **mais rejeté** parce que la classe « defect » passait de 0,68 à 0,53 ; `best.pt` inchangé, rejet écrit dans `logs/retrain_history.log` |
 | Tests automatisés | .NET 66 + 189, pytest 57, Jest 76 : verts |
 | Limite | pas de validation par l'ingénieur qualité avant l'entraînement ; la mesure de référence (38 photos) est petite |
+
+## 17. Recherche de cas similaires par l'image
+
+| Contrôle | Résultat |
+|---|---|
+| Qualité de la recherche (38 photos de test, jamais dans l'index) | le premier cas similaire porte le bon code 28 fois sur 38, un des 4 le porte 32 fois sur 38 |
+| Photos réelles de l'utilisateur (faisceau usé, fil vert tacheté) | ressemblance de 40 à 44 % seulement : l'interface le dit (« exemples indicatifs ») au lieu de laisser croire à un vrai rapprochement |
+| Service d'image (`app.py`) | `similar_cases` seulement si confiance < 0,70 ou rien de reconnu ; absent si le modèle est sûr ; sans index, réponse identique à avant ; `/health` indique l'index ; `/reload` re-calcule les vecteurs si les poids changent |
+| Relais .NET | 3 tests : proposition peu sûre, rien reconnu, réponse sûre (liste vide) ; noms du contrat conservés (`id_reclamation`, `photo_url`, `code_defaut`, `libelle_defaut`, `score_similarite`) |
+| Photos des réclamations pour l'index | `GET api/ml-features/claim-photos` : clé du jeu de données ou jeton admin, 401 sinon |
+| Formulaire | clic sur un cas : code repris, gravité reprise seulement pour une réclamation passée, jamais lot/client/dates ; test Jest (3 cas) |
+| Limites | peu de réclamations ont une photo : l'index repose surtout sur des exemples publics étiquetés (badge « Exemple de référence ») ; aucune validation sur des photos Coficab |
+| Tests automatisés | .NET 66 + 192, pytest 68, Jest 79 : verts ; vérifié en direct dans le navigateur (photo → 4 cas → clic → code repris) |
+| Photo et analyse d'image | placées à l'étape 1 « Informations générales » (avant le titre) pour que la proposition aide à remplir le type de défaut ; bogue trouvé en test et corrigé : après un calcul d'empreinte, la prédiction suivante du service échouait (test de régression ajouté) |
+
+## 18. Validation avant réentraînement, nouveau code « brins brûlés », service d'image dans Docker
+
+| Contrôle | Résultat |
+|---|---|
+| Validation par l'ingénieur qualité | une photo corrigée ou peu sûre n'entraîne le modèle qu'après décision : `PUT api/ml-features/cv-corrections/{id}/validation` (admin seulement : un employé reçoit 401/403, la clé du jeu de données ne suffit pas). `VALIDATED` retient le code de l'ingénieur (celui de l'opérateur par défaut), `REJECTED` écarte la photo. La décision, l'auteur et la date sont enregistrés (migration `AddClaimCvValidation`, 4 colonnes) |
+| Export d'entraînement | `GET cv-corrections` ne renvoie que les photos validées par défaut (`status=pending`, `rejected`, `all` pour le reste) ; `export_corrections.py` demande explicitement `status=validated`. Tant que rien n'est validé, le réentraînement n'a rien à apprendre |
+| Page d'administration | Paramètres > Validation des photos (`/admin/settings/cv-review`) : onglets À valider / Validées / Écartées, photo, code de l'opérateur, proposition du modèle, choix du code, boutons Valider / Écarter ; fr / en / it. Vérifiée en direct (file vide : aucune photo corrigée en base) ; le circuit complet est couvert par 2 tests d'intégration |
+| Nouveau code `COPPER_BURNT` | « Brins brûlés / fondus (arc électrique) » : la classe `thunderbolt` ne tombe plus sous « Oxydation du cuivre ». Le catalogue passe à **26 types (21 codes de câble, 5 d'atelier)** ; les **2 889 réclamations et leur répartition ne changent pas** : le code a 0 réclamation (aucune donnée inventée). Catalogue, liste de référence, traductions fr/en/it, aide `defectLabel`, scénarios 5 Pourquoi, correspondance de classe : mêmes codes, vérifié par les tests de garde. Visible dans la liste de défauts du formulaire |
+| Service d'image dans Docker | `sigrc_cv` démarre avec `docker compose`, `/health` et `/predict` répondent, `best.pt` et `index/` montés, l'API l'appelle à `http://cv-service:5000`. Vérifié en direct : photo analysée depuis le formulaire, galerie de cas similaires |
+| Photos des réclamations dans l'index | `POST /index/refresh` testé en direct : 88 exemples de référence + 1 photo de réclamation = 89 éléments ; les photos de réclamations sont remplacées, les exemples gardés ; test pytest (jeton, API non configurée = 502) |
+| Bogue corrigé | après le calcul d'une empreinte, la prédiction suivante du service échouait (état du prédicteur) ; test de régression avec le vrai modèle |
+| Tests automatisés | .NET 66 + 194, pytest 70, Jest 79 : verts |
+| Limites | aucune photo réelle d'atelier n'est validée à ce jour : l'index reste à 88 exemples publics + 1 photo ; `COPPER_BURNT` n'a aucune réclamation, donc aucune photo d'atelier pour l'apprendre ; les défauts non visibles sur une photo (dimensions, résistance, essai d'étincelage) restent à saisir à la main |
+
+| Aperçu « Impact Pareto · mining live » | bloqué sur « Analyse de l'historique usine… » : la portée de l'historique renvoyait à SQL Server la liste de milliers d'identifiants de lots importés archivés (`NOT IN` sur un paramètre texte), au-delà du délai de la commande. Remplacée par une sous-requête `NOT EXISTS` (`HistoryScope`) : réponse en 0,7 s, mêmes résultats (tests d'historique verts) ; les codes de défaut sont affichés avec leur libellé |

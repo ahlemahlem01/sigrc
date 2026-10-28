@@ -145,6 +145,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.preferences', icon: 'ti-adjustments', path: '/admin/preferences' },
       { label: 'adminNav.thresholds', icon: 'ti-gauge', path: '/admin/settings/thresholds' },
+      { label: 'adminNav.cvReview', icon: 'ti-photo-check', path: '/admin/settings/cv-review' },
       { label: 'adminNav.referenceLists', icon: 'ti-list-details', path: '/admin/claims/reference-lists' },
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
     ],
@@ -169,6 +170,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/reference':           { title: 'adminNav.claimReference', crumb: 'adminNav.claimsQuality' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
     '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },
+    '/admin/settings/cv-review':         { title: 'adminNav.cvReview', crumb: 'adminNav.settings' },
     '/admin/action-plans/create':        { title: 'adminNav.newPlan', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assignments':   { title: 'adminNav.assignments', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assign':        { title: 'adminNav.overview', crumb: 'adminNav.actionPlans' },

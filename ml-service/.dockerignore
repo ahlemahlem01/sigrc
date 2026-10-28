@@ -3,3 +3,15 @@ __pycache__
 .venv
 *.ipynb
 *.pyc
+dataset
+dataset2
+dataset3
+dataset_merged
+dataset_auto
+dataset_candidate
+runs
+logs
+backups
+demo-photos
+index
+*.pt

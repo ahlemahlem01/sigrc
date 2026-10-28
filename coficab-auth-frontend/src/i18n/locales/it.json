@@ -640,7 +640,30 @@
       "actions": "Come se la cavano gli assegnatari e le azioni da gestire."
     }
   },
+  "cvReview": {
+    "title": "Validazione delle foto di addestramento",
+    "subtitle": "Solo le foto convalidate qui servono a riaddestrare il modello di immagine. Controlla il codice difetto, poi convalida o scarta la foto.",
+    "loadError": "Impossibile caricare le foto.",
+    "saveError": "La decisione non è stata salvata.",
+    "tab": {
+      "pending": "Da convalidare",
+      "validated": "Convalidate",
+      "rejected": "Scartate"
+    },
+    "empty": {
+      "pending": "Nessuna foto da convalidare al momento.",
+      "validated": "Nessuna foto convalidata: il riaddestramento non ha nulla da imparare.",
+      "rejected": "Nessuna foto scartata."
+    },
+    "operator": "Codice scelto dall'operatore",
+    "model": "Proposta del modello",
+    "trainsAs": "Addestra il modello come",
+    "label": "Codice difetto da usare",
+    "validate": "Convalida",
+    "reject": "Scarta"
+  },
   "adminNav": {
+    "cvReview": "Validazione foto",
     "thresholds": "Soglie e obiettivi",
     "analysesSummary": "Sintesi",
     "capaSteering": "Pilotaggio",
@@ -2458,6 +2481,13 @@
     "next": "Successivo: {{tool}}"
   },
   "createClaim": {
+    "similarTitle": "Casi simili",
+    "similarHint": "Clicca su un caso per riprendere il suo codice difetto.",
+    "similarWeak": "Nessun caso passato è davvero vicino a questa foto: gli esempi sono indicativi.",
+    "similarScore": "{{pct}} % di somiglianza",
+    "similarClaim": "Reclamo {{ref}}",
+    "similarReference": "Esempio di riferimento",
+    "similarApplied": "Codice ripreso: {{code}}",
     "cvAnalysing": "Analisi della foto in corso…",
     "cvNone": "Nessun difetto noto è riconosciuto su questa foto (o non mostra difetti): scegli il codice tu stesso.",
     "cvUnavailable": "L'analisi dell'immagine non è disponibile al momento: scegli il codice tu stesso.",
@@ -4790,6 +4820,7 @@
     "ECCENTRICITY": "Eccentricità dell'isolante",
     "CONDUCTOR_RESISTANCE": "Resistenza elettrica fuori specifica",
     "COPPER_OXIDATION": "Ossidazione del rame",
+    "COPPER_BURNT": "Fili bruciati / fusi (arco elettrico)",
     "INSULATION_BLISTER": "Bolle sull'isolante",
     "FOREIGN_MATTER": "Corpo estraneo nell'isolante",
     "STRAND_COUNT": "Numero di fili errato",

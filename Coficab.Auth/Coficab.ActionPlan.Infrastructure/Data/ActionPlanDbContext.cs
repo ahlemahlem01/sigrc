@@ -378,6 +378,9 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.ClientId).IsRequired().HasMaxLength(100);
             entity.Property(e => e.DefectType).IsRequired().HasMaxLength(100);
             entity.Property(e => e.CvPredictedDefectType).HasMaxLength(100);
+            entity.Property(e => e.CvValidationStatus).HasMaxLength(20);
+            entity.Property(e => e.CvValidatedDefectType).HasMaxLength(100);
+            entity.Property(e => e.CvValidatedById).HasMaxLength(100);
             entity.Property(e => e.Severity).IsRequired().HasMaxLength(50);
             entity.Property(e => e.LotNumber).IsRequired().HasMaxLength(100);
             entity.Property(e => e.SerialNumber).HasMaxLength(100);

@@ -1,6 +1,7 @@
 import axios, { AxiosRequestConfig } from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { scopeParams } from './organizationScopeStore';
+import { SimilarCase } from '../utils/similarCase';
 import {
   Claim,
   UpdateClaimCommand,
@@ -270,7 +271,7 @@ export const qualityAnalysisService = {
   suggestDefectFromImage: async (image: File, token?: string) => {
     const form = new FormData();
     form.append('image', image);
-    const response = await api.post<{ available: boolean; demo?: boolean; reason?: string; anomalyDetected?: boolean; defectType?: string; confidence?: number; threshold?: number; lineFamilies?: string[] }>(
+    const response = await api.post<{ available: boolean; demo?: boolean; reason?: string; similar_cases?: SimilarCase[]; anomalyDetected?: boolean; defectType?: string; confidence?: number; threshold?: number; lineFamilies?: string[] }>(
       '/claims/cv-suggestion',
       form,
       getAuthConfig(token, { 'Content-Type': 'multipart/form-data' })

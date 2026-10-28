@@ -95,7 +95,7 @@ def rows_from_api(api: str, key: str) -> tuple[list[dict], Callable[[dict], byte
     import requests
 
     headers = {"X-Dataset-Key": key}
-    reply = requests.get(f"{api}/ml-features/cv-corrections", headers=headers, timeout=60)
+    reply = requests.get(f"{api}/ml-features/cv-corrections", params={"status": "validated"}, headers=headers, timeout=60)  # only what the quality engineer validated
     reply.raise_for_status()
     rows = [{"id": i["claimId"], "code": i["defectType"], "predicted": i.get("predictedDefectType"), "confidence": i.get("confidence")}
             for i in reply.json()["items"]]

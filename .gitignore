@@ -61,3 +61,6 @@ ml-service/dataset_candidate/
 ml-service/backups/
 ml-service/logs/
 ml-service/runs/
+
+# similar-photo index (built by ml-service/index_reclamations.py; holds copies of claim photos)
+ml-service/index/

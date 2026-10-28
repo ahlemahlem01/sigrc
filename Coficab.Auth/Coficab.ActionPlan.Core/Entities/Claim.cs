@@ -43,6 +43,12 @@ public class Claim
     public string? CvPredictedDefectType { get; set; }
     public double? CvConfidence { get; set; }
     public bool CvCorrectionLogged { get; set; }
+    // The quality engineer's review of that photo before it trains the image model: null = not reviewed yet, "VALIDATED" or "REJECTED".
+    // The validated code is the label that trains (the operator's code unless the engineer changes it).
+    public string? CvValidationStatus { get; set; }
+    public string? CvValidatedDefectType { get; set; }
+    public string? CvValidatedById { get; set; }
+    public DateTime? CvValidatedAt { get; set; }
     // Suivi et traçabilité
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedById { get; set; }

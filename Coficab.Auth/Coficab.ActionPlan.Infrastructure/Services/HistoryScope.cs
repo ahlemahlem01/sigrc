@@ -16,10 +16,11 @@ public static class HistoryScope
     {
         // IgnoreQueryFilters: the global filter hides archived claims, which must stay part of the history.
         IQueryable<Core.Entities.Claim> query = context.Claims.IgnoreQueryFilters();
-        var excluded = await ExcludedClaimIdsAsync(context);
-        if (excluded.Count > 0)
-            query = query.Where(c => !excluded.Contains(c.Id));
-        return query;
+        // A sub-query, not a list of ids sent back to the database: with thousands of claims in archived batches the NOT IN (...) of
+        // a parameter took longer than the command timeout (the Pareto box of the claim form never answered).
+        var archivedBatches = context.ImportBatches.AsNoTracking().Where(b => b.IsArchived).Select(b => b.Id);
+        query = query.Where(c => !context.ImportBatchClaims.Any(bc => bc.ClaimId == c.Id && archivedBatches.Contains(bc.BatchId)));
+        return await Task.FromResult(query);
     }
 
     public static async Task<List<Guid>> ExcludedClaimIdsAsync(IApplicationDbContext context)

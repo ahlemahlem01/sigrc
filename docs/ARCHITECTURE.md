@@ -27,7 +27,14 @@ En mode démonstration, une photo dont le nom contient `copper`, `cuivre` ou `bl
 avertissement et correction à montrer) ; toute autre photo reçoit `CUT_INSULATION` à 93 %. La carte affiche « Mode démonstration :
 proposition d'exemple, pas une analyse réelle de l'image » : à dire tel quel devant le jury.
 
-## Service d'image local (Python / FastAPI / YOLOv8)
+## Service d'image dans Docker (`cv-service`)
+
+Le service d'image est aussi un conteneur du `docker-compose.yml` (`ml-service/Dockerfile.cv`, PyTorch en version CPU), joignable par l'API à `http://cv-service:5000` et publié sur `127.0.0.1:5000`. `docker compose up -d` suffit : plus de commande `uvicorn` à lancer à la main avant la démonstration.
+
+- **Fichiers du poste montés dans le conteneur** : `ml-service/best.pt` et `ml-service/index/`. `auto_retrain.py` remplace donc `best.pt` et appelle `POST http://localhost:5000/reload` comme avant, sans reconstruire l'image.
+- **Photos des réclamations dans l'index** : le conteneur relit lui-même les photos des réclamations toutes les heures (`CV_INDEX_REFRESH_MINUTES`) par `GET api/ml-features/claim-photos`, avec la clé du jeu d'entraînement (`ML_DATASET_KEY` du fichier `.env`, jamais écrite dans le dépôt). `POST /index/refresh` le fait tout de suite (même jeton que `/reload`). Les exemples de référence restent dans l'index, les photos de réclamations sont remplacées par l'état courant.
+
+## Service d'image local, sans Docker (Python / FastAPI / YOLOv8)
 
 `ml-service/app.py` est un microservice FastAPI lancé sur le poste (il n'est pas dans l'image Docker du service de recommandation :
 PyTorch est volumineux). Il expose `POST /predict` (image dans le champ `file`, 10 Mo max) et `GET /health`.
@@ -64,7 +71,7 @@ dans `.env`. Mode démonstration éteint : `scripts/demo-cv.ps1 off`.
 
 ## Catalogue des défauts (source unique)
 
-`ml-service/defect_catalog.json` fixe les 25 types (20 défauts de câble stockés comme codes, 5 défauts d'atelier), le nombre exact de
+`ml-service/defect_catalog.json` fixe les 26 types (21 défauts de câble stockés comme codes, 5 défauts d'atelier), le nombre exact de
 réclamations du jeu de référence (2 889 dont 318 d'atelier, 11 %), les libellés fr / en / it et les familles de lignes où chaque défaut
 se rencontre. `generate.py`, `to_sql.py` et `cv_mapping.py` le lisent ; des tests vérifient que la liste de référence de l'application
 (`ProductionReferenceData.cs`), les traductions et `defectLabel.ts` portent exactement les mêmes codes.
@@ -101,6 +108,16 @@ réclamation corrigée par l'opérateur ──▶ export_corrections.py ──�
   charger les nouveaux poids, les anciens sont remis. `CV_RELOAD_TOKEN` (en-tête `X-Reload-Token`) protège cet appel si on le définit.
 - **Lancer.** `python auto_retrain.py` (ou `--dry-run` pour tout mesurer sans rien remplacer). À planifier par exemple chaque mois, ou quand `dataset_auto/` contient 100 corrections validées.
 - **Réserve.** Les corrections ne passent pas encore par une validation de l'ingénieur qualité avant d'entrer dans l'entraînement : une correction faite trop vite devient un exemple.
+
+## Recherche de cas similaires par l'image (CBIR)
+
+Quand le modèle n'est pas sûr (confiance < 0,70) ou ne reconnaît rien, le service d'image ajoute à sa réponse `similar_cases` : les 4 cas passés dont la photo ressemble le plus à celle qui vient d'être prise.
+
+- **Représentation** : `embeddings.py` extrait un vecteur de 256 valeurs de la photo avec le modèle YOLO lui-même (`YOLO.embed`, image réduite à 320 px). La ressemblance est un cosinus calculé après centrage sur la moyenne de l'index (sans centrage, toutes les photos de câble se ressemblent à plus de 90 %).
+- **Index** : dossier `ml-service/index/` (`meta.json`, `vectors.npy`, `photos/`), construit par `index_reclamations.py`. Il contient les photos des réclamations (lues par `GET api/ml-features/claim-photos`, avec la clé du jeu d'entraînement, jamais directement en base) et des exemples de référence étiquetés (jeu Roboflow cable-defect v3, CC BY 4.0, une quarantaine par classe), affichés comme « Exemple de référence » et jamais comme une réclamation passée. Les photos de câble d'acier ne sont pas indexées par défaut (autre matériau, faux rapprochements).
+- **Changement de modèle** : l'index garde la signature des poids ; au démarrage et sur `POST /reload`, si elle diffère, les photos sont de nouveau transformées en vecteurs (les vecteurs de deux modèles ne sont pas comparables).
+- **Contrat** : `[{ id_reclamation, photo_url (petite image intégrée), code_defaut, libelle_defaut, score_similarite (0-100), source ("claim" | "reference"), reference, severite }]` ; le service .NET le relaie tel quel ; la recherche ne fait jamais échouer la proposition (index absent ou illisible = réponse d'avant).
+- **Interface** : galerie « Cas similaires » sous la photo ; un clic reprend le code défaut (et la gravité d'une réclamation passée), ajoute « Cas similaire : REC-… » à la description et ne copie ni lot, ni client, ni dates. Sous 50 % de ressemblance, l'interface prévient que les exemples sont indicatifs.
 
 ## Limites à annoncer
 

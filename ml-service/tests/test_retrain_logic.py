@@ -11,14 +11,14 @@ from cv_mapping import load_class_map
 from retrain_logic import BASE_CLASSES, build_label, centre_box, decide, is_holdout, plan_classes, yolo_line
 
 CLASS_MAP = load_class_map()
-VISUAL = {"CUT_INSULATION", "SCRATCH_INSULATION", "SPARK_TEST_FAILURE", "COPPER_OXIDATION"}
+VISUAL = {"CUT_INSULATION", "SCRATCH_INSULATION", "SPARK_TEST_FAILURE", "COPPER_BURNT"}
 
 
 def test_a_code_already_behind_a_class_teaches_that_class_and_a_new_visual_code_needs_enough_photos():
-    codes = ["CUT_INSULATION"] * 3 + ["SPARK_TEST_FAILURE"] * 25 + ["COPPER_OXIDATION"] * 4 + ["Soudure défectueuse"] * 2
+    codes = ["CUT_INSULATION"] * 3 + ["SPARK_TEST_FAILURE"] * 25 + ["COPPER_BURNT"] * 4 + ["Soudure défectueuse"] * 2
     plan = plan_classes(codes, CLASS_MAP, VISUAL, BASE_CLASSES, min_new=20)
     assert plan.assignment["CUT_INSULATION"] == "hole"
-    assert plan.assignment["COPPER_OXIDATION"] == "thunderbolt"
+    assert plan.assignment["COPPER_BURNT"] == "thunderbolt"
     assert plan.assignment["SPARK_TEST_FAILURE"] == "spark_test_failure" and plan.names[-1] == "spark_test_failure"
     assert plan.names[:len(BASE_CLASSES)] == BASE_CLASSES                      # ids of the existing classes never move
     assert plan.assignment["Soudure défectueuse"] is None and plan.skipped["not a defect visible on a photo"] == 2

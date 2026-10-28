@@ -4,6 +4,7 @@ import { paretoService } from '../../../services/paretoService';
 import { useAuth } from '../../../context/AuthContext';
 import { ParetoItemDto, ParetoSuggestionDto } from '../../../types/pareto.types';
 import { useTranslation } from 'react-i18next';
+import { defectLabel } from '../../../utils/defectLabel';
 
 interface ParetoImpactPreviewProps {
   defectType?: string;
@@ -12,6 +13,10 @@ interface ParetoImpactPreviewProps {
   compact?: boolean;
   onSuggestion?: (suggestion: ParetoSuggestionDto | null) => void;
 }
+
+/** The server writes defect codes as they are stored; the screen shows their wording. */
+const withLabels = (text: string, ...codes: (string | undefined)[]) =>
+  codes.reduce<string>((out, code) => (code?.trim() ? out.split(code.trim()).join(defectLabel(code)) : out), text);
 
 export const ParetoImpactPreview: React.FC<ParetoImpactPreviewProps> = ({
   defectType,
@@ -177,17 +182,17 @@ export const ParetoImpactPreview: React.FC<ParetoImpactPreviewProps> = ({
       )}
 
       {!loading && suggestion && !suggestion.hasData && (
-        <p className="pareto-ai-expl">{suggestion.explanation}</p>
+        <p className="pareto-ai-expl">{withLabels(suggestion.explanation, defectType)}</p>
       )}
 
       {!loading && suggestion?.hasData && (
         <>
-          <p className="pareto-ai-title">{suggestion.recommendedLabel}</p>
-          <p className="pareto-ai-expl">{suggestion.explanation}</p>
+          <p className="pareto-ai-title">{withLabels(suggestion.recommendedLabel, defectType)}</p>
+          <p className="pareto-ai-expl">{withLabels(suggestion.explanation, defectType)}</p>
           <div className="pareto-ai-bars">
             {suggestion.items.slice(0, compact ? 3 : 5).map((item: ParetoItemDto) => (
               <div key={item.category} className="pareto-ai-row">
-                <span className="pareto-ai-cat" title={item.category}>{item.category}</span>
+                <span className="pareto-ai-cat" title={defectLabel(item.category)}>{defectLabel(item.category)}</span>
                 <div className="pareto-ai-track">
                   <div
                     className={`pareto-ai-fill ${item.isVitalFew ? '' : 'muted'}`}
@@ -199,7 +204,7 @@ export const ParetoImpactPreview: React.FC<ParetoImpactPreviewProps> = ({
             ))}
           </div>
           <div className="pareto-ai-meta">
-            {t('pareto.previewTop')} <strong>{suggestion.topCategory}</strong> · n={suggestion.sampleSize} · {t('pareto.previewScore', { score: suggestion.confidenceScore })}
+            {t('pareto.previewTop')} <strong>{defectLabel(suggestion.topCategory)}</strong> · n={suggestion.sampleSize} · {t('pareto.previewScore', { score: suggestion.confidenceScore })}
           </div>
         </>
       )}

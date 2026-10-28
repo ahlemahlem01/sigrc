@@ -37,4 +37,4 @@ def test_the_trained_detector_classes_give_business_codes():
 
 def test_the_wire_rope_classes_are_aligned_with_the_strand_codes():
     assert pick_defect([("break", 0.7)], MAP) == ("COPPER_BROKEN", 0.7)
-    assert pick_defect([("thunderbolt", 0.6)], MAP) == ("COPPER_OXIDATION", 0.6)
+    assert pick_defect([("thunderbolt", 0.6)], MAP) == ("COPPER_BURNT", 0.6)

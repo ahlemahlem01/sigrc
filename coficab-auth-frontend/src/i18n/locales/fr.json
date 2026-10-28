@@ -640,7 +640,30 @@
       "actions": "Comment s'en sortent les assignés, et les actions à traiter."
     }
   },
+  "cvReview": {
+    "title": "Validation des photos d'entraînement",
+    "subtitle": "Seules les photos validées ici servent à réentraîner le modèle d'image. Vérifiez le code défaut, puis validez ou écartez la photo.",
+    "loadError": "Impossible de charger les photos.",
+    "saveError": "La décision n'a pas pu être enregistrée.",
+    "tab": {
+      "pending": "À valider",
+      "validated": "Validées",
+      "rejected": "Écartées"
+    },
+    "empty": {
+      "pending": "Aucune photo à valider pour le moment.",
+      "validated": "Aucune photo validée : le réentraînement n'a rien à apprendre.",
+      "rejected": "Aucune photo écartée."
+    },
+    "operator": "Code retenu par l'opérateur",
+    "model": "Proposition du modèle",
+    "trainsAs": "Entraîne le modèle comme",
+    "label": "Code défaut à utiliser",
+    "validate": "Valider",
+    "reject": "Écarter"
+  },
   "adminNav": {
+    "cvReview": "Validation des photos",
     "thresholds": "Seuils et objectifs",
     "analysesSummary": "Synthèse",
     "capaSteering": "Pilotage",
@@ -2458,6 +2481,13 @@
     "next": "Suivant : {{tool}}"
   },
   "createClaim": {
+    "similarTitle": "Cas similaires",
+    "similarHint": "Cliquez sur un cas pour reprendre son code défaut.",
+    "similarWeak": "Aucun cas passé n'est vraiment proche de cette photo : ces exemples sont indicatifs.",
+    "similarScore": "{{pct}} % de ressemblance",
+    "similarClaim": "Réclamation {{ref}}",
+    "similarReference": "Exemple de référence",
+    "similarApplied": "Code repris : {{code}}",
     "cvAnalysing": "Analyse de la photo en cours…",
     "cvNone": "Aucun défaut connu n'est reconnu sur cette photo (ou elle ne montre pas de défaut) : choisissez le code vous-même.",
     "cvUnavailable": "L'analyse d'image est indisponible pour le moment : choisissez le code vous-même.",
@@ -4790,6 +4820,7 @@
     "ECCENTRICITY": "Excentricité de l'isolant",
     "CONDUCTOR_RESISTANCE": "Résistance électrique hors spécification",
     "COPPER_OXIDATION": "Oxydation / ternissement du cuivre",
+    "COPPER_BURNT": "Brins brûlés / fondus (arc électrique)",
     "INSULATION_BLISTER": "Cloques / bulles sur l'isolant",
     "FOREIGN_MATTER": "Corps étranger dans l'isolant",
     "STRAND_COUNT": "Nombre de brins incorrect",

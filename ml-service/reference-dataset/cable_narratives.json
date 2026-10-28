@@ -1,186 +1,776 @@
 {
-  "_comment": "Narratives of the 20 cable defects of defect_catalog.json, used by retheme_live_claims.py to rewrite the claims of the live dataset (claim wording, causes, plan actions). Placeholders: {line} {zone} {lot} {client}. Categories are the stored 6M names: Machine, Method, Material, Manpower, Milieu, Measurement. Each cause is [category, text, can be the root cause].",
-  "zones": ["bobine d'alimentation", "tête de ligne", "sortie de filière", "enrouleur", "tronçon de 12 m", "début de touret", "fin de touret", "zone de refroidissement"],
-  "defects": {
-    "CUT_INSULATION": {
-      "scenarios": [
-        ["Gaine entaillée sur {zone} — {line}", "Entaille de la gaine d'isolation relevée sur {zone}, profondeur visible jusqu'au conducteur par endroits. Détection au contrôle visuel en sortie de {line}. Lot {lot}, client {client}."],
-        ["Coupure de gaine au tronçonnage — {line}", "Gaine partiellement sectionnée après la coupe : lame émoussée ou guide mal réglé suspecté. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Lame de coupe émoussée", true], ["Machine", "Guide de coupe mal réglé après changement de référence", true], ["Method", "Fréquence de remplacement des lames non définie", false], ["Manpower", "Manipulation des bobines sans protection", false], ["Measurement", "Contrôle visuel de la gaine non réalisé en début de série", false]],
-      "action": "Remplacer les lames et régler le guide de coupe",
-      "note": "Analyse en cours : état des lames et réglage du guide de coupe sur {line}. Contrôle visuel de la gaine renforcé."
-    },
-    "SCRATCH_INSULATION": {
-      "scenarios": [
-        ["Rayures sur la gaine — {zone}, {line}", "Rayures et enlèvement de matière sur la gaine en sortie de ligne, sans atteindre le conducteur. Frottement suspecté sur le chemin de câble. Ligne {line}, lot {lot}, client {client}."],
-        ["Marques d'abrasion sur isolant — {line}", "Marques d'abrasion répétées sur {zone} : poulies et guides à contrôler. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Guide d'extrusion usé créant un point de frottement", true], ["Machine", "Poulie de renvoi marquée ou encrassée", true], ["Milieu", "Poussières abrasives sur le chemin de câble", false], ["Manpower", "Manipulation des bobines sans protection", false]],
-      "action": "Contrôler les guides et poulies et polir les points de frottement",
-      "note": "Analyse en cours : guides et poulies sur {line}. Relevé des points de frottement le long du chemin de câble."
-    },
-    "COPPER_BROKEN": {
-      "scenarios": [
-        ["Brins de cuivre cassés — {zone}, {line}", "Brins de cuivre cassés ou désaffleurants relevés sur {zone} à l'inspection. Risque de piqûre à la mise en œuvre chez le client. Ligne {line}, lot {lot}, client {client}."],
-        ["Brins désaffleurants en sortie de {line}", "Brins qui dépassent de la section après la coupe : contrôle de la tension de toronnage demandé. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Tension de bobinage trop élevée au toronnage", true], ["Material", "Fil machine avec défaut de ductilité sur une bobine du fournisseur", true], ["Method", "Fenêtre de tension non verrouillée dans la gamme", false], ["Measurement", "Contrôle de traction du toron trop espacé", false]],
-      "action": "Régler la tension de toronnage et contrôler le fil machine reçu",
-      "note": "Analyse en cours : tension de toronnage et lot de fil machine sur {line}. Essai de traction demandé."
-    },
-    "MARKING_DEFECT": {
-      "scenarios": [
-        ["Marquage illisible — lot {lot}", "Marquage inkjet illisible ou absent sur la gaine : référence et numéro de lot non lisibles. Encre ou tête d'impression à contrôler. Ligne {line}, client {client}."],
-        ["Marquage décalé / effacé — {line}", "Marquage décalé et partiellement effacé au frottement sur {zone}. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Tête d'impression encrassée", true], ["Material", "Encre hors date de validité", true], ["Method", "Nettoyage de la tête non planifié", false], ["Measurement", "Lecture du marquage non contrôlée en fin de ligne", false]],
-      "action": "Nettoyer la tête, régler le contraste du marquage et ajouter un contrôle de lisibilité",
-      "note": "Analyse en cours : tête d'impression et encre sur {line}. Contrôle de lisibilité ajouté en fin de ligne."
-    },
-    "COLOR_NON_CONFORMITY": {
-      "scenarios": [
-        ["Couleur de gaine non conforme — {line}", "Teinte de la gaine différente de la référence (écart visuel et au colorimètre). Risque d'erreur d'identification au câblage. Ligne {line}, lot {lot}, client {client}."],
-        ["Écart de teinte entre bobines — {zone}", "Variation de teinte entre deux bobines du même lot. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Material", "Mauvais lot de mélange maître chargé en extrusion", true], ["Method", "Contrôle couleur au changement de bobine non formalisé", false], ["Manpower", "Erreur de chargement de la trémie", false], ["Measurement", "Colorimètre non étalonné", true]],
-      "action": "Vérifier le mélange maître chargé et formaliser le contrôle couleur au changement de lot",
-      "note": "Analyse en cours : mélange maître et contrôle couleur sur {line}. Comparaison avec l'échantillon de référence."
-    },
-    "INSULATION_THICKNESS": {
-      "scenarios": [
-        ["Épaisseur d'isolant hors tolérance — {line}", "Épaisseur d'isolant mesurée hors tolérance sur {zone}. Dérive de la vitesse de ligne ou usure de filière suspectée. Ligne {line}, lot {lot}, client {client}."],
-        ["Isolant trop fin sur un côté — {line}", "Épaisseur minimale non respectée sur un côté de la gaine. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Filière d'extrusion usée ou mal centrée", true], ["Machine", "Vitesse de ligne non asservie à la pression d'extrudeuse", true], ["Measurement", "Mesure d'épaisseur en ligne non étalonnée", false], ["Method", "Première pièce non validée après changement de filière", false]],
-      "action": "Recentrer la filière et recaler la vitesse de ligne, puis valider la première longueur",
-      "note": "Analyse en cours : filière et vitesse de ligne sur {line}. Mesures d'épaisseur sur coupes demandées."
-    },
-    "SPOOL_DAMAGED": {
-      "scenarios": [
-        ["Touret endommagé à l'expédition — {client}", "Touret ou emballage endommagé (joue fendue, spires déformées) constaté avant expédition. Lot {lot}, ligne {line}, client {client}."],
-        ["Spires écrasées sur touret — {line}", "Spires du début de touret écrasées par un mauvais calage pendant la manutention. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Method", "Instruction de conditionnement non reprise sur le poste", true], ["Manpower", "Manutention des tourets sans palonnier", false], ["Material", "Touret de qualité inférieure livré par le fournisseur", true], ["Measurement", "Pas de contrôle d'emballage avant expédition", false]],
-      "action": "Mettre à jour l'instruction de conditionnement et former l'équipe à la manutention",
-      "note": "Investigation conditionnement et manutention sur {line}. Comparaison avec les lots précédents et retour client."
-    },
-    "SPARK_TEST_FAILURE": {
-      "scenarios": [
-        ["Défaut à l'essai d'étincelage — {line}", "Claquage détecté à l'essai d'étincelage sur {zone} : défaut d'isolation (porosité ou paroi trop fine). Ligne {line}, lot {lot}, client {client}."],
-        ["Étincelages répétés en fin de série — {line}", "Plusieurs étincelages consécutifs en fin de série. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Électrode de l'étinceleuse encrassée ou mal réglée", false], ["Material", "Granulés d'isolant humides ou contaminés", true], ["Machine", "Température d'extrusion hors fenêtre", true], ["Method", "Tension d'essai non vérifiée au changement de référence", false]],
-      "action": "Étuver les granulés, recaler la température d'extrusion et vérifier la tension d'essai",
-      "note": "Analyse en cours : matière, température d'extrusion et tension d'essai sur {line}."
-    },
-    "CONDUCTOR_DIAMETER": {
-      "scenarios": [
-        ["Diamètre du conducteur hors tolérance — {line}", "Diamètre du conducteur mesuré hors tolérance après tréfilage sur {zone}. Usure de filière suspectée. Ligne {line}, lot {lot}, client {client}."],
-        ["Dérive de diamètre en cours de bobine — {line}", "Dérive progressive du diamètre entre le début et la fin de bobine. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Filière de tréfilage usée", true], ["Measurement", "Micromètre laser non étalonné", true], ["Method", "Fréquence de contrôle du diamètre trop espacée", false], ["Material", "Fil machine de diamètre en limite de tolérance", false]],
-      "action": "Remplacer la filière de tréfilage et étalonner le micromètre laser",
-      "note": "Analyse en cours : état des filières et étalonnage du micromètre sur {line}."
-    },
-    "OUTER_DIAMETER": {
-      "scenarios": [
-        ["Diamètre extérieur hors tolérance — {line}", "Diamètre extérieur du câble hors tolérance sur {zone}. Ligne {line}, lot {lot}, client {client}."],
-        ["Diamètre extérieur trop fort — {line}", "Surdimension de la gaine mesurée en fin de ligne. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Réglage de la filière d'extrusion dérivé", true], ["Machine", "Vitesse du cabestan instable", false], ["Measurement", "Mesure en ligne non corrélée au contrôle laboratoire", true], ["Method", "Fiche de réglage de la filière incomplète", false]],
-      "action": "Recaler la filière et corréler la mesure en ligne avec le contrôle laboratoire",
-      "note": "Analyse en cours : réglage de la filière et mesure en ligne sur {line}."
-    },
-    "ECCENTRICITY": {
-      "scenarios": [
-        ["Excentricité de l'isolant — {line}", "Conducteur décentré dans l'isolant (excentricité hors limite) sur {zone}. Ligne {line}, lot {lot}, client {client}."],
-        ["Isolant décentré — contrôle laser — {line}", "Écart d'excentricité détecté par le contrôle laser en sortie. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Tête d'équerre mal centrée", true], ["Machine", "Pointe et filière non appairées", true], ["Method", "Procédure de centrage non tracée", false], ["Measurement", "Contrôle d'excentricité réalisé hors ligne", false]],
-      "action": "Recentrer la tête d'équerre et appairer la pointe et la filière",
-      "note": "Analyse en cours : centrage de la tête d'équerre sur {line}. Coupes transversales demandées."
-    },
-    "CONDUCTOR_RESISTANCE": {
-      "scenarios": [
-        ["Résistance électrique hors spécification — {line}", "Résistance linéique du conducteur supérieure à la spécification sur {zone}. Section de cuivre ou recuit à vérifier. Ligne {line}, lot {lot}, client {client}."],
-        ["Résistance conducteur en limite haute — {line}", "Valeurs de résistance en limite haute sur plusieurs bobines consécutives. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Recuit insuffisant du conducteur", true], ["Material", "Cuivre avec teneur en impuretés élevée", true], ["Measurement", "Pont de mesure non étalonné", false], ["Method", "Fréquence de contrôle de résistance trop faible", false]],
-      "action": "Vérifier les paramètres de recuit et le certificat du cuivre, puis étalonner le pont de mesure",
-      "note": "Analyse en cours : recuit et certificat du cuivre sur {line}. Mesures de résistance de contre-expertise."
-    },
-    "COPPER_OXIDATION": {
-      "scenarios": [
-        ["Oxydation du cuivre — {zone}, {line}", "Ternissement et oxydation du cuivre relevés sur {zone} (stockage ou recuit). Ligne {line}, lot {lot}, client {client}."],
-        ["Cuivre terni en début de bobine — {line}", "Début de bobine oxydé : atmosphère de recuit ou durée de stockage à vérifier. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Atmosphère du four de recuit non protectrice", true], ["Milieu", "Humidité élevée dans la zone de stockage", true], ["Method", "Durée de stockage entre tréfilage et extrusion non limitée", false], ["Manpower", "Bobines laissées à découvert entre deux équipes", false]],
-      "action": "Rétablir l'atmosphère protectrice du four et limiter la durée de stockage des bobines",
-      "note": "Analyse en cours : atmosphère du four et stockage des bobines sur {line}."
-    },
-    "INSULATION_BLISTER": {
-      "scenarios": [
-        ["Cloques sur l'isolant — {line}", "Cloques et bulles visibles sur la gaine en sortie d'extrusion sur {zone}. Humidité de la matière ou température trop élevée. Ligne {line}, lot {lot}, client {client}."],
-        ["Bulles d'air dans la gaine — {line}", "Bulles d'air détectées au contrôle visuel et à l'étincelage. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Material", "Matière insuffisamment séchée avant extrusion", true], ["Machine", "Température de la zone de fusion trop élevée", true], ["Method", "Temps de séchage non vérifié au démarrage", false], ["Milieu", "Humidité ambiante élevée à la trémie", false]],
-      "action": "Sécher la matière selon la gamme et régler le profil de température de l'extrudeuse",
-      "note": "Analyse en cours : séchage de la matière et profil de température sur {line}."
-    },
-    "FOREIGN_MATTER": {
-      "scenarios": [
-        ["Corps étranger dans l'isolant — {line}", "Particule étrangère incluse dans la gaine, repérée sur {zone}. Contamination de la matière ou de la filière. Ligne {line}, lot {lot}, client {client}."],
-        ["Inclusions dans la gaine — {line}", "Inclusions ponctuelles de matière étrangère au contrôle visuel. Ligne {line}, lot {lot}, client {client}."]
-      ],
-      "causes": [["Material", "Granulés contaminés à la réception", true], ["Method", "Nettoyage de la vis et de la filière non tracé au changement de couleur", true], ["Milieu", "Poussières dans la zone d'alimentation", false], ["Manpower", "Sacs de matière ouverts sans fermeture", false]],
-      "action": "Purger la vis et la filière, vérifier la propreté de l'alimentation en matière",
-      "note": "Analyse en cours : propreté de l'alimentation et purge de la vis sur {line}."
-    },
-    "STRAND_COUNT": {
-      "scenarios": [
-        ["Nombre de brins incorrect — {line}", "Nombre de brins du toron différent de la gamme (un brin manquant) sur {zone}. Ligne {line}, lot {lot}, client {client}."],
-        ["Brin manquant au toronnage — {line}", "Un brin manquant détecté au contrôle de section. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Rupture de brin non détectée par le capteur de la toronneuse", true], ["Method", "Contrôle de section non réalisé en début de série", false], ["Manpower", "Chargement incomplet des bobines d'alimentation", true], ["Measurement", "Comptage de brins non inclus à l'autocontrôle", false]],
-      "action": "Contrôler le capteur de rupture de brin et ajouter le comptage de brins à l'autocontrôle",
-      "note": "Analyse en cours : capteur de rupture de brin et chargement des bobines sur {line}."
-    },
-    "SPOOL_LENGTH": {
-      "scenarios": [
-        ["Longueur sur touret incorrecte — {line}", "Longueur réelle du touret différente de la longueur étiquetée (écart supérieur à la tolérance). Compteur à contrôler. Ligne {line}, lot {lot}, client {client}."],
-        ["Écart de métrage sur touret — {line}", "Métrage inférieur à la commande constaté au contrôle final. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Dérive du codeur de longueur", true], ["Measurement", "Compteur de longueur non étalonné", true], ["Method", "Recoupe sans nouvelle validation", false], ["Manpower", "Saisie manuelle de la longueur erronée", false]],
-      "action": "Étalonner le codeur de longueur et valider le métrage à chaque changement de touret",
-      "note": "Analyse en cours : codeur de longueur et métrage sur {line}. Comparaison avec les lots précédents."
-    },
-    "LAY_LENGTH": {
-      "scenarios": [
-        ["Pas de câblage non conforme — {line}", "Pas de câblage hors spécification mesuré sur {zone}. Réglage du rapport de la cordeuse à vérifier. Ligne {line}, lot {lot}, client {client}."],
-        ["Pas de toronnage instable — {line}", "Variation du pas de toronnage en cours de bobine. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Rapport de la cordeuse mal réglé", true], ["Method", "Fiche de réglage du pas non mise à jour à la dernière révision", false], ["Measurement", "Mesure du pas réalisée sur une longueur trop courte", false], ["Manpower", "Changement de pignons sans vérification", true]],
-      "action": "Recaler le rapport de la cordeuse et mettre à jour la fiche de réglage du pas",
-      "note": "Analyse en cours : rapport de la cordeuse et fiche de réglage sur {line}."
-    },
-    "ADHESION_FAILURE": {
-      "scenarios": [
-        ["Adhérence de l'isolant non conforme — {line}", "Force de dénudage hors spécification : isolant trop adhérent (ou trop lâche) sur {zone}. Ligne {line}, lot {lot}, client {client}."],
-        ["Dénudage difficile chez le client — {client}", "Retour client : isolant difficile à dénuder, résidus sur le conducteur. Lot {lot}, ligne {line}."]
-      ],
-      "causes": [["Material", "Lot de matière d'isolant avec formulation différente", true], ["Machine", "Température du conducteur à l'entrée de la tête trop basse", true], ["Measurement", "Essai de force de dénudage non réalisé par lot", false], ["Method", "Préchauffage du conducteur non standardisé", false]],
-      "action": "Ajuster le préchauffage du conducteur et ajouter l'essai de force de dénudage par lot",
-      "note": "Analyse en cours : préchauffage du conducteur et formulation du lot de matière sur {line}."
-    },
-    "CABLE_CRUSHED": {
-      "scenarios": [
-        ["Câble écrasé / pincé — {zone}, {line}", "Câble écrasé ou pincé (méplat visible) sur {zone}, probablement à l'enroulement ou à la coupe. Ligne {line}, lot {lot}, client {client}."],
-        ["Pincement au tronçonnage — {line}", "Pincement de la gaine au passage de la coupe : pression des galets trop forte. Lot {lot}, client {client}."]
-      ],
-      "causes": [["Machine", "Pression des galets d'entraînement trop forte", true], ["Method", "Réglage des galets non vérifié à chaque changement de diamètre", false], ["Manpower", "Empilement de couronnes sans cale", false], ["Measurement", "Contrôle d'ovalité absent en fin de ligne", false]],
-      "action": "Régler la pression des galets et contrôler l'ovalité en fin de ligne",
-      "note": "Analyse en cours : pression des galets et ovalité sur {line}."
-    }
+ "_comment": "Narratives of the 20 cable defects of defect_catalog.json, used by retheme_live_claims.py to rewrite the claims of the live dataset (claim wording, causes, plan actions). Placeholders: {line} {zone} {lot} {client}. Categories are the stored 6M names: Machine, Method, Material, Manpower, Milieu, Measurement. Each cause is [category, text, can be the root cause].",
+ "zones": [
+  "bobine d'alimentation",
+  "tête de ligne",
+  "sortie de filière",
+  "enrouleur",
+  "tronçon de 12 m",
+  "début de touret",
+  "fin de touret",
+  "zone de refroidissement"
+ ],
+ "defects": {
+  "CUT_INSULATION": {
+   "scenarios": [
+    [
+     "Gaine entaillée sur {zone} — {line}",
+     "Entaille de la gaine d'isolation relevée sur {zone}, profondeur visible jusqu'au conducteur par endroits. Détection au contrôle visuel en sortie de {line}. Lot {lot}, client {client}."
+    ],
+    [
+     "Coupure de gaine au tronçonnage — {line}",
+     "Gaine partiellement sectionnée après la coupe : lame émoussée ou guide mal réglé suspecté. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Lame de coupe émoussée",
+     true
+    ],
+    [
+     "Machine",
+     "Guide de coupe mal réglé après changement de référence",
+     true
+    ],
+    [
+     "Method",
+     "Fréquence de remplacement des lames non définie",
+     false
+    ],
+    [
+     "Manpower",
+     "Manipulation des bobines sans protection",
+     false
+    ],
+    [
+     "Measurement",
+     "Contrôle visuel de la gaine non réalisé en début de série",
+     false
+    ]
+   ],
+   "action": "Remplacer les lames et régler le guide de coupe",
+   "note": "Analyse en cours : état des lames et réglage du guide de coupe sur {line}. Contrôle visuel de la gaine renforcé."
+  },
+  "SCRATCH_INSULATION": {
+   "scenarios": [
+    [
+     "Rayures sur la gaine — {zone}, {line}",
+     "Rayures et enlèvement de matière sur la gaine en sortie de ligne, sans atteindre le conducteur. Frottement suspecté sur le chemin de câble. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Marques d'abrasion sur isolant — {line}",
+     "Marques d'abrasion répétées sur {zone} : poulies et guides à contrôler. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Guide d'extrusion usé créant un point de frottement",
+     true
+    ],
+    [
+     "Machine",
+     "Poulie de renvoi marquée ou encrassée",
+     true
+    ],
+    [
+     "Milieu",
+     "Poussières abrasives sur le chemin de câble",
+     false
+    ],
+    [
+     "Manpower",
+     "Manipulation des bobines sans protection",
+     false
+    ]
+   ],
+   "action": "Contrôler les guides et poulies et polir les points de frottement",
+   "note": "Analyse en cours : guides et poulies sur {line}. Relevé des points de frottement le long du chemin de câble."
+  },
+  "COPPER_BROKEN": {
+   "scenarios": [
+    [
+     "Brins de cuivre cassés — {zone}, {line}",
+     "Brins de cuivre cassés ou désaffleurants relevés sur {zone} à l'inspection. Risque de piqûre à la mise en œuvre chez le client. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Brins désaffleurants en sortie de {line}",
+     "Brins qui dépassent de la section après la coupe : contrôle de la tension de toronnage demandé. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Tension de bobinage trop élevée au toronnage",
+     true
+    ],
+    [
+     "Material",
+     "Fil machine avec défaut de ductilité sur une bobine du fournisseur",
+     true
+    ],
+    [
+     "Method",
+     "Fenêtre de tension non verrouillée dans la gamme",
+     false
+    ],
+    [
+     "Measurement",
+     "Contrôle de traction du toron trop espacé",
+     false
+    ]
+   ],
+   "action": "Régler la tension de toronnage et contrôler le fil machine reçu",
+   "note": "Analyse en cours : tension de toronnage et lot de fil machine sur {line}. Essai de traction demandé."
+  },
+  "MARKING_DEFECT": {
+   "scenarios": [
+    [
+     "Marquage illisible — lot {lot}",
+     "Marquage inkjet illisible ou absent sur la gaine : référence et numéro de lot non lisibles. Encre ou tête d'impression à contrôler. Ligne {line}, client {client}."
+    ],
+    [
+     "Marquage décalé / effacé — {line}",
+     "Marquage décalé et partiellement effacé au frottement sur {zone}. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Tête d'impression encrassée",
+     true
+    ],
+    [
+     "Material",
+     "Encre hors date de validité",
+     true
+    ],
+    [
+     "Method",
+     "Nettoyage de la tête non planifié",
+     false
+    ],
+    [
+     "Measurement",
+     "Lecture du marquage non contrôlée en fin de ligne",
+     false
+    ]
+   ],
+   "action": "Nettoyer la tête, régler le contraste du marquage et ajouter un contrôle de lisibilité",
+   "note": "Analyse en cours : tête d'impression et encre sur {line}. Contrôle de lisibilité ajouté en fin de ligne."
+  },
+  "COLOR_NON_CONFORMITY": {
+   "scenarios": [
+    [
+     "Couleur de gaine non conforme — {line}",
+     "Teinte de la gaine différente de la référence (écart visuel et au colorimètre). Risque d'erreur d'identification au câblage. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Écart de teinte entre bobines — {zone}",
+     "Variation de teinte entre deux bobines du même lot. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Material",
+     "Mauvais lot de mélange maître chargé en extrusion",
+     true
+    ],
+    [
+     "Method",
+     "Contrôle couleur au changement de bobine non formalisé",
+     false
+    ],
+    [
+     "Manpower",
+     "Erreur de chargement de la trémie",
+     false
+    ],
+    [
+     "Measurement",
+     "Colorimètre non étalonné",
+     true
+    ]
+   ],
+   "action": "Vérifier le mélange maître chargé et formaliser le contrôle couleur au changement de lot",
+   "note": "Analyse en cours : mélange maître et contrôle couleur sur {line}. Comparaison avec l'échantillon de référence."
+  },
+  "INSULATION_THICKNESS": {
+   "scenarios": [
+    [
+     "Épaisseur d'isolant hors tolérance — {line}",
+     "Épaisseur d'isolant mesurée hors tolérance sur {zone}. Dérive de la vitesse de ligne ou usure de filière suspectée. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Isolant trop fin sur un côté — {line}",
+     "Épaisseur minimale non respectée sur un côté de la gaine. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Filière d'extrusion usée ou mal centrée",
+     true
+    ],
+    [
+     "Machine",
+     "Vitesse de ligne non asservie à la pression d'extrudeuse",
+     true
+    ],
+    [
+     "Measurement",
+     "Mesure d'épaisseur en ligne non étalonnée",
+     false
+    ],
+    [
+     "Method",
+     "Première pièce non validée après changement de filière",
+     false
+    ]
+   ],
+   "action": "Recentrer la filière et recaler la vitesse de ligne, puis valider la première longueur",
+   "note": "Analyse en cours : filière et vitesse de ligne sur {line}. Mesures d'épaisseur sur coupes demandées."
+  },
+  "SPOOL_DAMAGED": {
+   "scenarios": [
+    [
+     "Touret endommagé à l'expédition — {client}",
+     "Touret ou emballage endommagé (joue fendue, spires déformées) constaté avant expédition. Lot {lot}, ligne {line}, client {client}."
+    ],
+    [
+     "Spires écrasées sur touret — {line}",
+     "Spires du début de touret écrasées par un mauvais calage pendant la manutention. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Method",
+     "Instruction de conditionnement non reprise sur le poste",
+     true
+    ],
+    [
+     "Manpower",
+     "Manutention des tourets sans palonnier",
+     false
+    ],
+    [
+     "Material",
+     "Touret de qualité inférieure livré par le fournisseur",
+     true
+    ],
+    [
+     "Measurement",
+     "Pas de contrôle d'emballage avant expédition",
+     false
+    ]
+   ],
+   "action": "Mettre à jour l'instruction de conditionnement et former l'équipe à la manutention",
+   "note": "Investigation conditionnement et manutention sur {line}. Comparaison avec les lots précédents et retour client."
+  },
+  "SPARK_TEST_FAILURE": {
+   "scenarios": [
+    [
+     "Défaut à l'essai d'étincelage — {line}",
+     "Claquage détecté à l'essai d'étincelage sur {zone} : défaut d'isolation (porosité ou paroi trop fine). Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Étincelages répétés en fin de série — {line}",
+     "Plusieurs étincelages consécutifs en fin de série. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Électrode de l'étinceleuse encrassée ou mal réglée",
+     false
+    ],
+    [
+     "Material",
+     "Granulés d'isolant humides ou contaminés",
+     true
+    ],
+    [
+     "Machine",
+     "Température d'extrusion hors fenêtre",
+     true
+    ],
+    [
+     "Method",
+     "Tension d'essai non vérifiée au changement de référence",
+     false
+    ]
+   ],
+   "action": "Étuver les granulés, recaler la température d'extrusion et vérifier la tension d'essai",
+   "note": "Analyse en cours : matière, température d'extrusion et tension d'essai sur {line}."
+  },
+  "CONDUCTOR_DIAMETER": {
+   "scenarios": [
+    [
+     "Diamètre du conducteur hors tolérance — {line}",
+     "Diamètre du conducteur mesuré hors tolérance après tréfilage sur {zone}. Usure de filière suspectée. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Dérive de diamètre en cours de bobine — {line}",
+     "Dérive progressive du diamètre entre le début et la fin de bobine. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Filière de tréfilage usée",
+     true
+    ],
+    [
+     "Measurement",
+     "Micromètre laser non étalonné",
+     true
+    ],
+    [
+     "Method",
+     "Fréquence de contrôle du diamètre trop espacée",
+     false
+    ],
+    [
+     "Material",
+     "Fil machine de diamètre en limite de tolérance",
+     false
+    ]
+   ],
+   "action": "Remplacer la filière de tréfilage et étalonner le micromètre laser",
+   "note": "Analyse en cours : état des filières et étalonnage du micromètre sur {line}."
+  },
+  "OUTER_DIAMETER": {
+   "scenarios": [
+    [
+     "Diamètre extérieur hors tolérance — {line}",
+     "Diamètre extérieur du câble hors tolérance sur {zone}. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Diamètre extérieur trop fort — {line}",
+     "Surdimension de la gaine mesurée en fin de ligne. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Réglage de la filière d'extrusion dérivé",
+     true
+    ],
+    [
+     "Machine",
+     "Vitesse du cabestan instable",
+     false
+    ],
+    [
+     "Measurement",
+     "Mesure en ligne non corrélée au contrôle laboratoire",
+     true
+    ],
+    [
+     "Method",
+     "Fiche de réglage de la filière incomplète",
+     false
+    ]
+   ],
+   "action": "Recaler la filière et corréler la mesure en ligne avec le contrôle laboratoire",
+   "note": "Analyse en cours : réglage de la filière et mesure en ligne sur {line}."
+  },
+  "ECCENTRICITY": {
+   "scenarios": [
+    [
+     "Excentricité de l'isolant — {line}",
+     "Conducteur décentré dans l'isolant (excentricité hors limite) sur {zone}. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Isolant décentré — contrôle laser — {line}",
+     "Écart d'excentricité détecté par le contrôle laser en sortie. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Tête d'équerre mal centrée",
+     true
+    ],
+    [
+     "Machine",
+     "Pointe et filière non appairées",
+     true
+    ],
+    [
+     "Method",
+     "Procédure de centrage non tracée",
+     false
+    ],
+    [
+     "Measurement",
+     "Contrôle d'excentricité réalisé hors ligne",
+     false
+    ]
+   ],
+   "action": "Recentrer la tête d'équerre et appairer la pointe et la filière",
+   "note": "Analyse en cours : centrage de la tête d'équerre sur {line}. Coupes transversales demandées."
+  },
+  "CONDUCTOR_RESISTANCE": {
+   "scenarios": [
+    [
+     "Résistance électrique hors spécification — {line}",
+     "Résistance linéique du conducteur supérieure à la spécification sur {zone}. Section de cuivre ou recuit à vérifier. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Résistance conducteur en limite haute — {line}",
+     "Valeurs de résistance en limite haute sur plusieurs bobines consécutives. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Recuit insuffisant du conducteur",
+     true
+    ],
+    [
+     "Material",
+     "Cuivre avec teneur en impuretés élevée",
+     true
+    ],
+    [
+     "Measurement",
+     "Pont de mesure non étalonné",
+     false
+    ],
+    [
+     "Method",
+     "Fréquence de contrôle de résistance trop faible",
+     false
+    ]
+   ],
+   "action": "Vérifier les paramètres de recuit et le certificat du cuivre, puis étalonner le pont de mesure",
+   "note": "Analyse en cours : recuit et certificat du cuivre sur {line}. Mesures de résistance de contre-expertise."
+  },
+  "COPPER_OXIDATION": {
+   "scenarios": [
+    [
+     "Oxydation du cuivre — {zone}, {line}",
+     "Ternissement et oxydation du cuivre relevés sur {zone} (stockage ou recuit). Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Cuivre terni en début de bobine — {line}",
+     "Début de bobine oxydé : atmosphère de recuit ou durée de stockage à vérifier. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Atmosphère du four de recuit non protectrice",
+     true
+    ],
+    [
+     "Milieu",
+     "Humidité élevée dans la zone de stockage",
+     true
+    ],
+    [
+     "Method",
+     "Durée de stockage entre tréfilage et extrusion non limitée",
+     false
+    ],
+    [
+     "Manpower",
+     "Bobines laissées à découvert entre deux équipes",
+     false
+    ]
+   ],
+   "action": "Rétablir l'atmosphère protectrice du four et limiter la durée de stockage des bobines",
+   "note": "Analyse en cours : atmosphère du four et stockage des bobines sur {line}."
+  },
+  "COPPER_BURNT": {
+   "scenarios": [
+    [
+     "Brins brûlés après arc à {zone}, {line}",
+     "Brins de cuivre brûlés ou fondus relevés sur {zone} après un arc électrique. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Fusion de brins sur bobine à {line}",
+     "Brins fondus et gaine noircie sur une bobine : contact ou décharge à vérifier. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Contact ou fuite de courant sur un guide ou une poulie de la ligne",
+     true
+    ],
+    [
+     "Machine",
+     "Étincelage ou décharge lors du passage dans l'équipement de test",
+     true
+    ],
+    [
+     "Material",
+     "Brin déjà endommagé avant le passage sous tension",
+     false
+    ],
+    [
+     "Method",
+     "Contrôle d'isolement des guides non réalisé avant le démarrage",
+     false
+    ]
+   ],
+   "action": "Contrôler l'isolement des guides et poulies et vérifier le réglage de l'équipement de test avant de relancer la ligne",
+   "note": "Analyse en cours : isolement des guides et réglage de l'équipement de test sur {line}."
+  },
+  "INSULATION_BLISTER": {
+   "scenarios": [
+    [
+     "Cloques sur l'isolant — {line}",
+     "Cloques et bulles visibles sur la gaine en sortie d'extrusion sur {zone}. Humidité de la matière ou température trop élevée. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Bulles d'air dans la gaine — {line}",
+     "Bulles d'air détectées au contrôle visuel et à l'étincelage. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Material",
+     "Matière insuffisamment séchée avant extrusion",
+     true
+    ],
+    [
+     "Machine",
+     "Température de la zone de fusion trop élevée",
+     true
+    ],
+    [
+     "Method",
+     "Temps de séchage non vérifié au démarrage",
+     false
+    ],
+    [
+     "Milieu",
+     "Humidité ambiante élevée à la trémie",
+     false
+    ]
+   ],
+   "action": "Sécher la matière selon la gamme et régler le profil de température de l'extrudeuse",
+   "note": "Analyse en cours : séchage de la matière et profil de température sur {line}."
+  },
+  "FOREIGN_MATTER": {
+   "scenarios": [
+    [
+     "Corps étranger dans l'isolant — {line}",
+     "Particule étrangère incluse dans la gaine, repérée sur {zone}. Contamination de la matière ou de la filière. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Inclusions dans la gaine — {line}",
+     "Inclusions ponctuelles de matière étrangère au contrôle visuel. Ligne {line}, lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Material",
+     "Granulés contaminés à la réception",
+     true
+    ],
+    [
+     "Method",
+     "Nettoyage de la vis et de la filière non tracé au changement de couleur",
+     true
+    ],
+    [
+     "Milieu",
+     "Poussières dans la zone d'alimentation",
+     false
+    ],
+    [
+     "Manpower",
+     "Sacs de matière ouverts sans fermeture",
+     false
+    ]
+   ],
+   "action": "Purger la vis et la filière, vérifier la propreté de l'alimentation en matière",
+   "note": "Analyse en cours : propreté de l'alimentation et purge de la vis sur {line}."
+  },
+  "STRAND_COUNT": {
+   "scenarios": [
+    [
+     "Nombre de brins incorrect — {line}",
+     "Nombre de brins du toron différent de la gamme (un brin manquant) sur {zone}. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Brin manquant au toronnage — {line}",
+     "Un brin manquant détecté au contrôle de section. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Rupture de brin non détectée par le capteur de la toronneuse",
+     true
+    ],
+    [
+     "Method",
+     "Contrôle de section non réalisé en début de série",
+     false
+    ],
+    [
+     "Manpower",
+     "Chargement incomplet des bobines d'alimentation",
+     true
+    ],
+    [
+     "Measurement",
+     "Comptage de brins non inclus à l'autocontrôle",
+     false
+    ]
+   ],
+   "action": "Contrôler le capteur de rupture de brin et ajouter le comptage de brins à l'autocontrôle",
+   "note": "Analyse en cours : capteur de rupture de brin et chargement des bobines sur {line}."
+  },
+  "SPOOL_LENGTH": {
+   "scenarios": [
+    [
+     "Longueur sur touret incorrecte — {line}",
+     "Longueur réelle du touret différente de la longueur étiquetée (écart supérieur à la tolérance). Compteur à contrôler. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Écart de métrage sur touret — {line}",
+     "Métrage inférieur à la commande constaté au contrôle final. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Dérive du codeur de longueur",
+     true
+    ],
+    [
+     "Measurement",
+     "Compteur de longueur non étalonné",
+     true
+    ],
+    [
+     "Method",
+     "Recoupe sans nouvelle validation",
+     false
+    ],
+    [
+     "Manpower",
+     "Saisie manuelle de la longueur erronée",
+     false
+    ]
+   ],
+   "action": "Étalonner le codeur de longueur et valider le métrage à chaque changement de touret",
+   "note": "Analyse en cours : codeur de longueur et métrage sur {line}. Comparaison avec les lots précédents."
+  },
+  "LAY_LENGTH": {
+   "scenarios": [
+    [
+     "Pas de câblage non conforme — {line}",
+     "Pas de câblage hors spécification mesuré sur {zone}. Réglage du rapport de la cordeuse à vérifier. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Pas de toronnage instable — {line}",
+     "Variation du pas de toronnage en cours de bobine. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Rapport de la cordeuse mal réglé",
+     true
+    ],
+    [
+     "Method",
+     "Fiche de réglage du pas non mise à jour à la dernière révision",
+     false
+    ],
+    [
+     "Measurement",
+     "Mesure du pas réalisée sur une longueur trop courte",
+     false
+    ],
+    [
+     "Manpower",
+     "Changement de pignons sans vérification",
+     true
+    ]
+   ],
+   "action": "Recaler le rapport de la cordeuse et mettre à jour la fiche de réglage du pas",
+   "note": "Analyse en cours : rapport de la cordeuse et fiche de réglage sur {line}."
+  },
+  "ADHESION_FAILURE": {
+   "scenarios": [
+    [
+     "Adhérence de l'isolant non conforme — {line}",
+     "Force de dénudage hors spécification : isolant trop adhérent (ou trop lâche) sur {zone}. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Dénudage difficile chez le client — {client}",
+     "Retour client : isolant difficile à dénuder, résidus sur le conducteur. Lot {lot}, ligne {line}."
+    ]
+   ],
+   "causes": [
+    [
+     "Material",
+     "Lot de matière d'isolant avec formulation différente",
+     true
+    ],
+    [
+     "Machine",
+     "Température du conducteur à l'entrée de la tête trop basse",
+     true
+    ],
+    [
+     "Measurement",
+     "Essai de force de dénudage non réalisé par lot",
+     false
+    ],
+    [
+     "Method",
+     "Préchauffage du conducteur non standardisé",
+     false
+    ]
+   ],
+   "action": "Ajuster le préchauffage du conducteur et ajouter l'essai de force de dénudage par lot",
+   "note": "Analyse en cours : préchauffage du conducteur et formulation du lot de matière sur {line}."
+  },
+  "CABLE_CRUSHED": {
+   "scenarios": [
+    [
+     "Câble écrasé / pincé — {zone}, {line}",
+     "Câble écrasé ou pincé (méplat visible) sur {zone}, probablement à l'enroulement ou à la coupe. Ligne {line}, lot {lot}, client {client}."
+    ],
+    [
+     "Pincement au tronçonnage — {line}",
+     "Pincement de la gaine au passage de la coupe : pression des galets trop forte. Lot {lot}, client {client}."
+    ]
+   ],
+   "causes": [
+    [
+     "Machine",
+     "Pression des galets d'entraînement trop forte",
+     true
+    ],
+    [
+     "Method",
+     "Réglage des galets non vérifié à chaque changement de diamètre",
+     false
+    ],
+    [
+     "Manpower",
+     "Empilement de couronnes sans cale",
+     false
+    ],
+    [
+     "Measurement",
+     "Contrôle d'ovalité absent en fin de ligne",
+     false
+    ]
+   ],
+   "action": "Régler la pression des galets et contrôler l'ovalité en fin de ligne",
+   "note": "Analyse en cours : pression des galets et ovalité sur {line}."
   }
+ }
 }

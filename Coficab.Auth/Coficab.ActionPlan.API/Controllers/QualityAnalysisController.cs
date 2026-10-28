@@ -377,12 +377,13 @@ public class QualityAnalysisController : ControllerBase
             if (!response.IsSuccessStatusCode) return Ok(new { available = false, reason = "unavailable" });
             var body = await response.Content.ReadFromJsonAsync<CvPredictionBody>(cancellationToken: cancellationToken);
             if (body is null) return Ok(new { available = false, reason = "unavailable" });
+            var similar_cases = body.SimilarCases ?? [];
             // a defect that is seen but not named: no code to propose, the form only tells the operator to look
             if (string.IsNullOrWhiteSpace(body.DefectType))
-                return Ok(body.AnomalyDetected == true ? new { available = false, reason = "anomaly", anomalyDetected = true, confidence = Math.Clamp(body.Confidence, 0, 1) } : new { available = false, reason = "noDefect", anomalyDetected = false, confidence = 0.0 });
+                return Ok(body.AnomalyDetected == true ? new { available = false, reason = "anomaly", anomalyDetected = true, confidence = Math.Clamp(body.Confidence, 0, 1), similar_cases } : new { available = false, reason = "noDefect", anomalyDetected = false, confidence = 0.0, similar_cases });
             var resolver = await Coficab.ActionPlan.Application.ReferenceLists.DefectTypeResolver.LoadAsync(_db, cancellationToken);
             return Ok(new { available = true, defectType = resolver.Resolve(body.DefectType.Trim()), confidence = Math.Clamp(body.Confidence, 0, 1),
-                            lineFamilies = body.LineFamilies ?? [], lines = body.Lines ?? [],
+                            lineFamilies = body.LineFamilies ?? [], lines = body.Lines ?? [], similar_cases,
                             threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
@@ -391,7 +392,19 @@ public class QualityAnalysisController : ControllerBase
         }
     }
 
-    private sealed record CvPredictionBody(string? DefectType, double Confidence, string[]? LineFamilies = null, string[]? Lines = null, bool? AnomalyDetected = null);
+    private sealed record CvPredictionBody(string? DefectType, double Confidence, string[]? LineFamilies = null, string[]? Lines = null, bool? AnomalyDetected = null,
+        [property: System.Text.Json.Serialization.JsonPropertyName("similar_cases")] List<SimilarCaseBody>? SimilarCases = null);
+
+    /// <summary>A past case that looks like the photo (the image service decides which; the names are the ones of its contract).</summary>
+    private sealed record SimilarCaseBody(
+        [property: System.Text.Json.Serialization.JsonPropertyName("id_reclamation")] string? IdReclamation,
+        [property: System.Text.Json.Serialization.JsonPropertyName("photo_url")] string? PhotoUrl,
+        [property: System.Text.Json.Serialization.JsonPropertyName("code_defaut")] string? CodeDefaut,
+        [property: System.Text.Json.Serialization.JsonPropertyName("libelle_defaut")] string? LibelleDefaut,
+        [property: System.Text.Json.Serialization.JsonPropertyName("score_similarite")] double ScoreSimilarite,
+        [property: System.Text.Json.Serialization.JsonPropertyName("source")] string? Source,
+        [property: System.Text.Json.Serialization.JsonPropertyName("reference")] string? Reference,
+        [property: System.Text.Json.Serialization.JsonPropertyName("severite")] string? Severite);
 
     [HttpPost("claims")]
     [Consumes("multipart/form-data")] // Indique à Swagger / OpenApi qu'il s'agit d'un upload de fichier

@@ -11,15 +11,16 @@ CABLE = [d["code"] for d in CATALOG["defects"] if d["kind"] == "cable"]
 FACTORY = [d["code"] for d in CATALOG["defects"] if d["kind"] == "factory"]
 
 
-def test_the_catalogue_has_25_types_and_2889_claims_with_11_percent_of_workshop_defects():
+def test_the_catalogue_has_26_types_and_2889_claims_with_11_percent_of_workshop_defects():
     counts = {d["code"]: d["count"] for d in CATALOG["defects"]}
-    assert len(counts) == 25 and len(CABLE) == 20 and len(FACTORY) == 5
+    assert len(counts) == 26 and len(CABLE) == 21 and len(FACTORY) == 5
+    assert counts["COPPER_BURNT"] == 0                       # a code that exists for the photo model, with no claim yet (nothing invented)
     assert sum(counts.values()) == 2889
     assert round(100 * sum(counts[c] for c in FACTORY) / 2889) == 11
     top7 = [counts[c] for c in ("CUT_INSULATION", "SCRATCH_INSULATION", "COPPER_BROKEN", "MARKING_DEFECT",
                                 "COLOR_NON_CONFORMITY", "INSULATION_THICKNESS", "SPOOL_DAMAGED")]
     assert top7 == [261, 233, 233, 206, 173, 168, 145]
-    assert all(48 <= n <= 130 for code, n in counts.items() if code not in ("CUT_INSULATION", "SCRATCH_INSULATION", "COPPER_BROKEN", "MARKING_DEFECT", "COLOR_NON_CONFORMITY", "INSULATION_THICKNESS", "SPOOL_DAMAGED"))
+    assert all(48 <= n <= 130 for code, n in counts.items() if code != "COPPER_BURNT" and code not in ("CUT_INSULATION", "SCRATCH_INSULATION", "COPPER_BROKEN", "MARKING_DEFECT", "COLOR_NON_CONFORMITY", "INSULATION_THICKNESS", "SPOOL_DAMAGED"))
 
 
 def test_each_defect_is_found_only_on_the_lines_of_its_process():

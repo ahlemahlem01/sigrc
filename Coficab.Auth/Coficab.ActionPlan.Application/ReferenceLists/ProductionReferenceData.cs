@@ -32,6 +32,7 @@ public static class ProductionReferenceData
         new Entry(ReferenceListKeys.DefectType, "ECCENTRICITY", "Excentricité de l'isolant"),
         new Entry(ReferenceListKeys.DefectType, "CONDUCTOR_RESISTANCE", "Résistance électrique hors spécification"),
         new Entry(ReferenceListKeys.DefectType, "COPPER_OXIDATION", "Oxydation / ternissement du cuivre"),
+        new Entry(ReferenceListKeys.DefectType, "COPPER_BURNT", "Brins brûlés / fondus (arc électrique)"),
         new Entry(ReferenceListKeys.DefectType, "INSULATION_BLISTER", "Cloques / bulles sur l'isolant"),
         new Entry(ReferenceListKeys.DefectType, "FOREIGN_MATTER", "Corps étranger dans l'isolant"),
         new Entry(ReferenceListKeys.DefectType, "STRAND_COUNT", "Nombre de brins incorrect"),

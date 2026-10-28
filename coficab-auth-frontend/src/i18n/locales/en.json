@@ -640,7 +640,30 @@
       "actions": "How the assignees are doing, and the actions to handle."
     }
   },
+  "cvReview": {
+    "title": "Training photo validation",
+    "subtitle": "Only the photos validated here are used to retrain the image model. Check the defect code, then validate or set the photo aside.",
+    "loadError": "The photos could not be loaded.",
+    "saveError": "The decision could not be saved.",
+    "tab": {
+      "pending": "To validate",
+      "validated": "Validated",
+      "rejected": "Set aside"
+    },
+    "empty": {
+      "pending": "No photo to validate right now.",
+      "validated": "No validated photo: retraining has nothing to learn from.",
+      "rejected": "No photo set aside."
+    },
+    "operator": "Code kept by the operator",
+    "model": "Model proposal",
+    "trainsAs": "Trains the model as",
+    "label": "Defect code to use",
+    "validate": "Validate",
+    "reject": "Set aside"
+  },
   "adminNav": {
+    "cvReview": "Photo validation",
     "thresholds": "Thresholds and targets",
     "analysesSummary": "Summary",
     "capaSteering": "Steering",
@@ -2458,6 +2481,13 @@
     "next": "Next: {{tool}}"
   },
   "createClaim": {
+    "similarTitle": "Similar cases",
+    "similarHint": "Click a case to take over its defect code.",
+    "similarWeak": "No past case is really close to this photo: these examples are only indicative.",
+    "similarScore": "{{pct}} % alike",
+    "similarClaim": "Claim {{ref}}",
+    "similarReference": "Reference example",
+    "similarApplied": "Code taken over: {{code}}",
     "cvAnalysing": "Analysing the photo…",
     "cvNone": "No known defect is recognised on this photo (or it shows no defect): pick the code yourself.",
     "cvUnavailable": "Image analysis is not available right now: pick the code yourself.",
@@ -4790,6 +4820,7 @@
     "ECCENTRICITY": "Insulation eccentricity",
     "CONDUCTOR_RESISTANCE": "Electrical resistance out of specification",
     "COPPER_OXIDATION": "Copper oxidation / tarnishing",
+    "COPPER_BURNT": "Burnt / fused strands (electric arc)",
     "INSULATION_BLISTER": "Blisters / bubbles on insulation",
     "FOREIGN_MATTER": "Foreign matter in insulation",
     "STRAND_COUNT": "Wrong strand count",

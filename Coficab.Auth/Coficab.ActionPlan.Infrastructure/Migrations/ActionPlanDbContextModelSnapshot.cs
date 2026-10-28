@@ -724,6 +724,21 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("CvValidatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CvValidatedById")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CvValidatedDefectType")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CvValidationStatus")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<DateTime?>("Deadline")
                         .HasColumnType("datetime2");
 
