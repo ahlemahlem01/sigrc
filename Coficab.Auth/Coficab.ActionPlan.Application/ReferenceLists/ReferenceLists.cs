@@ -65,7 +65,7 @@ public class SaveReferenceListCommandHandler : IRequestHandler<SaveReferenceList
             }
             // Severity levels and defect types may carry a display wording (a defect code such as CUT_INSULATION is shown with its
             // label); the value itself stays what the claims store. Customers, lines and shifts are plain names.
-            var labelled = request.ListKey == ReferenceListKeys.Severity || request.ListKey == ReferenceListKeys.DefectType;
+            var labelled = request.ListKey == ReferenceListKeys.Severity || request.ListKey == ReferenceListKeys.DefectType || request.ListKey == ReferenceListKeys.Domain;
             row.Label = !labelled || string.IsNullOrWhiteSpace(input.Label) ? null : input.Label.Trim();
             row.SortOrder = input.SortOrder;
             // A merged spelling stays inactive; only an explicit unmerge brings it back.

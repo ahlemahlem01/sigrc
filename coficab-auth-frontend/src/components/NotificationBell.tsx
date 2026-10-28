@@ -26,6 +26,7 @@ function typeLabel(type?: string): string | null {
   if (kind === 'quality_anomaly_alert') return i18n.t('notificationBell.kindAlert');
   if (kind === 'alert_report_to_validate') return i18n.t('notificationBell.kindToValidate');
   if (kind.startsWith('alert_report_')) return i18n.t('notificationBell.kindValidation');
+  if (kind === 'plan_comment') return i18n.t('notificationBell.kindComment');
   if (kind.includes('plan') || kind.includes('capa')) return 'CAPA';
   if (kind === 'recognition_podium' || kind === 'badge_awarded') return i18n.t('notificationBell.kindRecognition');
   if (kind === 'document_added') return i18n.t('notificationBell.kindDocument');

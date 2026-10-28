@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ReferenceLists, referenceListsService } from '../services/referenceListsService';
 import { setDefectItems } from '../utils/defectLabel';
+import { DomainOption, domainLabel, STANDARD_DOMAINS } from '../utils/planDomain';
 
 const LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
 
@@ -63,5 +64,13 @@ export function useReferenceLists() {
     return allowed.length > 0 && text.length > 0 && !allowed.some((a) => a.trim().toLowerCase() === text);
   };
 
-  return { isRefused, defectTypes, severityLabel, activeSeverities, clients: listed('client'), productionLines: listed('production-line'), shifts: listed('shift') };
+  /** The business domains of the action plans: the active entries of the list, or the seven standard ones while nothing is configured. */
+  const domains: DomainOption[] = (() => {
+    const active = (data?.lists.domain ?? []).filter((i) => i.isActive && !i.mergedInto).sort((a, b) => a.sortOrder - b.sortOrder);
+    return active.length > 0
+      ? active.map((i) => ({ value: i.value, label: domainLabel(i.value, i.label) }))
+      : STANDARD_DOMAINS.map((value) => ({ value, label: domainLabel(value) }));
+  })();
+
+  return { isRefused, domains, defectTypes, severityLabel, activeSeverities, clients: listed('client'), productionLines: listed('production-line'), shifts: listed('shift') };
 }

@@ -17,7 +17,7 @@ export interface DuplicateGroup {
   variants: { value: string; claims: number; isActive: boolean }[];
 }
 
-export type ReferenceListKey = 'defect-type' | 'severity' | 'client' | 'production-line' | 'shift';
+export type ReferenceListKey = 'defect-type' | 'severity' | 'client' | 'production-line' | 'shift' | 'domain';
 
 export interface ReferenceLists {
   lists: Record<ReferenceListKey, ReferenceItem[]>;

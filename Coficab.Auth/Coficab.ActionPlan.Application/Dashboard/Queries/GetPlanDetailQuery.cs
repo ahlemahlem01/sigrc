@@ -21,7 +21,9 @@ public record PlanActionRowDto(
     string State,
     DateTime? Deadline,
     int LateDays,
-    PlanPersonDto Responsible);
+    PlanPersonDto Responsible,
+    /// <summary>Proofs (documents) attached to the action.</summary>
+    int ProofCount = 0);
 
 public record PlanEventDto(DateTime At, string Type, string By, string? Note, string? FromStatus, string? ToStatus, string? FromAssignee, string? ToAssignee);
 
@@ -40,6 +42,9 @@ public record PlanDetailDto(
     string? Description,
     string Type,
     string Status,
+    string Domain,
+    /// <summary>Step of the general workflow (1 Detection ... 6 Closure), read from the plan: see PlanWorkflow.</summary>
+    int WorkflowStage,
     Guid OrganizationId,
     string OrganizationName,
     Guid DepartmentId,
@@ -94,7 +99,7 @@ public class GetPlanDetailQueryHandler : IRequestHandler<GetPlanDetailQuery, Pla
             };
             var late = !PlanDeadlines.IsFinished(a) && a.Deadline.HasValue ? Math.Max(0, (today - a.Deadline.Value.Date).Days) : 0;
             var progress = a.Progress switch { ActionProgress.Validated => 100, ActionProgress.Cancelled => 0, _ => (int)a.Progress };
-            return new PlanActionRowDto(a.Id, a.Title, a.Description, a.Priority, progress, state, a.Deadline, late, Person(a.AssignedToId));
+            return new PlanActionRowDto(a.Id, a.Title, a.Description, a.Priority, progress, state, a.Deadline, late, Person(a.AssignedToId), a.Documents.Count(d => !d.IsArchived));
         }).ToList();
 
         var open = PlanDeadlines.IsOpen(plan);
@@ -134,7 +139,7 @@ public class GetPlanDetailQueryHandler : IRequestHandler<GetPlanDetailQuery, Pla
             .OrderByDescending(h => h.CreatedAt).Select(h => new { h.CreatedAt, h.Note }).FirstOrDefaultAsync(ct);
 
         return new PlanDetailDto(
-            plan.Id, plan.Title, plan.Description, plan.Type.ToString(), plan.Status.ToString(),
+            plan.Id, plan.Title, plan.Description, plan.Type.ToString(), plan.Status.ToString(), plan.Domain, PlanWorkflow.Of(plan),
             plan.OrganizationId, plan.Organization?.Name ?? string.Empty, plan.DepartmentId, plan.Department?.Name ?? string.Empty,
             Person(plan.AssignedToId), Person(plan.CreatedBy), plan.CreatedAt, plan.Deadline, plan.CompletedAt,
             Math.Clamp(plan.Progress, 0, 100), health, claim, rows, history, lastRejection?.CreatedAt, lastRejection?.Note);

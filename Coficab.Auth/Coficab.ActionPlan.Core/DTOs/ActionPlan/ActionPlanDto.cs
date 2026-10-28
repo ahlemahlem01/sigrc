@@ -11,6 +11,8 @@ public class ActionPlanDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public ActionPlanType Type { get; set; }
+    /// <summary>Business domain code (reference list "domain").</summary>
+    public string Domain { get; set; } = "QUALITY";
     public ActionPlanStatus Status { get; set; }
     public string OwnerId { get; set; } = string.Empty;
     public Guid OrganizationId { get; set; }          // ADD

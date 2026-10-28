@@ -44,7 +44,10 @@ public class ActionPlanMappingProfile : Profile
                                ? 100
                                : Coficab.ActionPlan.Application.Services.PlanProgress.FromActions(
                                    (src.PlanActions ?? new List<PlanAction>()).Where(a => !a.IsArchived).Select(a => a.Progress), src.Progress)));
-        CreateMap<CreateActionPlanDto, CoreEntities.ActionPlan>();
+        // the domain is checked against the reference list by the service, which sets it
+        CreateMap<CreateActionPlanDto, CoreEntities.ActionPlan>()
+            .ForMember(dest => dest.Domain, opt => opt.Ignore())
+            .ForMember(dest => dest.PlanActions, opt => opt.Ignore());   // CreateAsync adds them itself
         CreateMap<UpdateActionPlanDto, CoreEntities.ActionPlan>()
    .ForMember(dest => dest.Id, opt => opt.Ignore())
     .ForMember(dest => dest.CreatedAt, opt => opt.Ignore())
@@ -54,6 +57,7 @@ public class ActionPlanMappingProfile : Profile
     .ForMember(dest => dest.ArchivedAt, opt => opt.Ignore())
     .ForMember(dest => dest.ArchivedBy, opt => opt.Ignore())
     .ForMember(dest => dest.IsArchived, opt => opt.Ignore())
+    .ForMember(dest => dest.Domain, opt => opt.Ignore())
     .ForMember(dest => dest.ClaimId, opt => opt.Ignore());
         // PlanAction
         CreateMap<PlanAction, PlanActionDto>();

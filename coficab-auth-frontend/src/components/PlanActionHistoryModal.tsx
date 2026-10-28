@@ -211,6 +211,8 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
 
         setAssignments(a);
         setProgress(progressItems);
+        // nobody was assigned or removed (the usual case): open on the progress changes instead of an empty tab
+        if (initialTab === 'assignments' && a.length === 0 && progressItems.length > 0) setTab('progress');
 
         const ids = collectIds(a, progressItems);
         const resolved = await buildNameMap(token, ids, nameById);
@@ -274,7 +276,7 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
 
           {!loading && !error && tab === 'assignments' && (
             assignments.length === 0 ? (
-              <div className="pah-empty">{t('actionHistory.noAssignments')}</div>
+              <div className="pah-empty">{t('actionHistory.noAssignments')}<br /><span style={{ fontSize: 12 }}>{t('actionHistory.assignmentsHint')}</span></div>
             ) : (
               <ul className="pah-list">
                 {assignments.map((h) => {
@@ -324,21 +326,28 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
               <div className="pah-empty">{t('actionHistory.noProgress')}</div>
             ) : (
               <ul className="pah-list">
-                {progress.map((h, i) => (
-                  <li key={h.id || `${h.createdAt}-${i}`} className="pah-item">
-                    <div className="pah-item-top">
-                      <span className="pah-pill pah-progress">{t('actionHistory.progress')}</span>
-                      <span className="pah-date">{fmtDate(h.createdAt)}</span>
-                    </div>
-                    <div className="pah-change">
-                      {h.oldProgress}% → <strong>{h.newProgress}%</strong>
-                    </div>
-                    <div className="pah-meta">
-                      {t('actionHistory.by', { name: resolveName(h.changedBy, null, names) })}
-                    </div>
-                    {h.note && <div className="pah-note">{h.note}</div>}
-                  </li>
-                ))}
+                {progress.map((h, i) => {
+                  const changed = h.oldProgress !== h.newProgress;
+                  const kind = /^preuve/i.test(h.note ?? '') ? 'proof' : /^avertissement/i.test(h.note ?? '') ? 'warning' : 'progress';
+                  return (
+                    <li key={h.id || `${h.createdAt}-${i}`} className="pah-item">
+                      <div className="pah-item-top">
+                        <span className={`pah-pill ${kind === 'progress' ? 'pah-progress' : 'pah-' + kind}`}>{t(`actionHistory.kind.${kind}`)}</span>
+                      </div>
+                      {changed && (
+                        <div className="pah-change">
+                          <span className="pah-from" title={t('actionHistory.oldValue')}>{h.oldProgress}%</span>
+                          <span className="pah-arrow">→</span>
+                          <span className="pah-to">{h.newProgress}%</span>
+                        </div>
+                      )}
+                      {h.note && <div className={changed ? 'pah-note' : 'pah-change'}>{h.note}</div>}
+                      <div className="pah-meta">
+                        {fmtDate(h.createdAt)} · {t('actionHistory.by', { name: resolveName(h.changedBy, null, names) })}
+                      </div>
+                    </li>
+                  );
+                })}
               </ul>
             )
           )}
@@ -409,6 +418,8 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
         .pah-unassigned { background: #fee2e2; color: #991b1b; }
         .pah-reassigned { background: #ede9fe; color: #5b21b6; }
         .pah-progress, .pah-other { background: #e0e7ff; color: #3730a3; }
+        .pah-proof { background: #ccfbf1; color: #0f766e; }
+        .pah-warning { background: #fef3c7; color: #92400e; }
         .pah-change { font-size: 14px; color: #0f172a; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
         .pah-from { color: #94a3b8; text-decoration: line-through; }
         .pah-to { color: #166534; font-weight: 700; }

@@ -1,3 +1,4 @@
+import { domainOf } from '../../utils/planDomain';
 import { getActionPlans, getArchivedActionPlans, getUsersForAssignment } from '../../services/actionPlanService';
 
 export type UiType = 'preventif' | 'correctif' | 'amelioration';
@@ -12,6 +13,7 @@ export type FlatAction = {
   planCode?: string;
   claimId?: string;
   type: UiType;
+  domain: string;
   process: string;
   /** Display progress 0–100 (Validated→100, Cancelled→0 for bars). */
   progress: number;
@@ -36,6 +38,7 @@ export type PlanRow = {
   claimId?: string;
   title: string;
   type: UiType;
+  domain: string;
   status: UiStatus;
   progress: number;
   process: string;
@@ -162,6 +165,7 @@ function mapRawPlans(
     const claimIdRaw = p.claimId || p.ClaimId;
     const claimId = claimIdRaw ? String(claimIdRaw) : undefined;
     const process = String(p.departmentName || p.DepartmentName || p.department?.name || '—');
+    const planDomain = domainOf({ domain: p.domain ?? p.Domain });
     const planAssignedId = p.assignedToId || p.AssignedToId || undefined;
     const planAssignedName = pickName(
       p.assignedToName, p.AssignedToName,
@@ -200,6 +204,7 @@ function mapRawPlans(
         planCode,
         claimId,
         type: actionType,
+        domain: planDomain,
         process: actionProcess,
         progress,
         progressRaw,
@@ -230,6 +235,7 @@ function mapRawPlans(
       claimId,
       title: planTitle,
       type,
+      domain: planDomain,
       status: planArchived ? 'archived' : status,
       progress: Number(p.progress ?? p.Progress ?? 0) || 0,
       process,

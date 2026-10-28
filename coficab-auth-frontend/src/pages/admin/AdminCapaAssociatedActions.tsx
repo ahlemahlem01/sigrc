@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { bulkAssignPlans, getUsersForAssignment } from '../../services/actionPlanService';
 import { FlatAction, loadCapaDataset, PlanRow, UiType } from './capaAnalytics';
+import { inDomain } from '../../utils/planDomain';
 import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { CapaPageHeader } from '../../components/capa/CapaAdminUi';
@@ -42,7 +43,7 @@ function formatDate(iso?: string): string {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 }
 
-export default function AdminCapaAssociatedActions({ embedded = false, focus }: { embedded?: boolean; focus?: 'late' | 'noActions' }) {
+export default function AdminCapaAssociatedActions({ embedded = false, focus, domain }: { embedded?: boolean; focus?: 'late' | 'noActions'; domain?: string }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -71,14 +72,14 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
     setError(null);
     try {
       const data = await loadCapaDataset(accessToken);
-      setPlans(data.plans);
-      setActions(data.actions);
+      setPlans(inDomain(data.plans, domain ?? 'all'));
+      setActions(inDomain(data.actions, domain ?? 'all'));
     } catch (e) {
       setError(e instanceof Error ? e.message : t('associatedActions.loadError'));
     } finally {
       setLoading(false);
     }
-  }, [accessToken, t]);
+  }, [accessToken, t, domain]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -131,10 +132,11 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus }: 
       rows.push({ plan: p, actions: [], late: planLate ? 1 : 0, open: 0, closed: 0, toValidate: 0, daysLate: planLate ? daysSince(p.deadline) : 0 });
     });
     Array.from(byPlan.entries()).forEach(([planId, list]) => {
-      const plan = planMap.get(planId) || {
+      const plan: PlanRow = planMap.get(planId) || {
         id: planId,
         title: list[0]?.planTitle || '—',
         type: list[0]?.type || 'preventif',
+        domain: list[0]?.domain || 'QUALITY',
         status: 'ongoing' as const,
         progress: 0,
         process: list[0]?.process || '—',

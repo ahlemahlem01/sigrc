@@ -17,6 +17,7 @@ import {
   Clock, CheckCircle2, AlertCircle, TrendingUp, History,
 } from 'lucide-react';
 import { computeIatfSla, slaToneStyles } from '../../utils/iatfSla';
+import PlanComments from '../../components/capa/PlanComments';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
@@ -822,6 +823,12 @@ export default function FrontActionPlanDetail() {
           )}
         </div>
       </div>
+
+      {accessToken && plan && (
+        <div style={{ maxWidth: 1100, margin: '16px auto 0', padding: '0 16px' }}>
+          <PlanComments token={accessToken} planId={plan.id} />
+        </div>
+      )}
 
       {warnOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !warnBusy && setWarnOpen(false)}>

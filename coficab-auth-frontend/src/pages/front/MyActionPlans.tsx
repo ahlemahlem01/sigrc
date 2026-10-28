@@ -7,6 +7,8 @@ import {
   getUserActionPlans,
 } from '../../services/actionPlanService';
 import './MyActionPlans.styles.css';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { domainLabel, domainOf } from '../../utils/planDomain';
 
 interface AssignedPlan {
   id: string;
@@ -15,6 +17,7 @@ interface AssignedPlan {
   description?: string;
   status: number;
   type?: number;
+  domain?: string;
   progress: number;
   permissions?: { view: boolean; edit: boolean; delete: boolean };
   createdAt?: string;
@@ -245,6 +248,8 @@ export default function MyActionPlans() {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [severityFilter, setSeverityFilter] = useState<'all' | 1 | 2 | 3>('all');
+  const [domainFilter, setDomainFilter] = useState('all');
+  const { domains } = useReferenceLists();
   const [filterDateFrom, setFilterDateFrom] = useState('');
   const [filterDateTo, setFilterDateTo] = useState('');
   const [isSeverityOpen, setIsSeverityOpen] = useState(false);
@@ -278,6 +283,7 @@ export default function MyActionPlans() {
             description: (raw as any).description ?? (raw as any).Description,
             status: Number((raw as any).status ?? (raw as any).Status ?? 0),
             type: (raw as any).type ?? (raw as any).Type,
+            domain: domainOf({ domain: (raw as any).domain ?? (raw as any).Domain }),
             progress: toProgress((raw as any).progress ?? (raw as any).Progress),
             createdAt: (raw as any).createdAt ?? (raw as any).CreatedAt,
             deadline: (raw as any).deadline ?? (raw as any).Deadline,
@@ -396,6 +402,9 @@ export default function MyActionPlans() {
     if (severityFilter !== 'all') {
       list = list.filter((p) => p.severity === severityFilter);
     }
+    if (domainFilter !== 'all') {
+      list = list.filter((p) => domainOf(p) === domainFilter);
+    }
     if (filterDateFrom || filterDateTo) {
       list = list.filter((p) => {
         if (!p.nearestDeadline) return false;
@@ -416,7 +425,7 @@ export default function MyActionPlans() {
       );
     }
     return [...list].sort((a, b) => comparePlans(a, b, sortField, sortDir));
-  }, [plans, tab, search, sortField, sortDir, severityFilter, filterDateFrom, filterDateTo]);
+  }, [plans, tab, search, sortField, sortDir, severityFilter, domainFilter, filterDateFrom, filterDateTo]);
 
   const hasDateFilter = !!(filterDateFrom || filterDateTo);
   const severityLabel =
@@ -527,6 +536,19 @@ export default function MyActionPlans() {
             ))}
           </div>
           <div className="map-filters">
+            <label className="map-filter-dd">
+              <select
+                className="map-filter-btn"
+                value={domainFilter}
+                onChange={(e) => setDomainFilter(e.target.value)}
+                aria-label={t('planDomain.label')}
+              >
+                <option value="all">{t('planDomain.all')}</option>
+                {domains.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
+            </label>
             <div className="map-filter-dd">
               <button
                 type="button"
@@ -716,6 +738,7 @@ export default function MyActionPlans() {
                         <p className="map-title">{plan.title}</p>
                         {plan.description ? <p className="map-sub">{plan.description}</p> : null}
                         <div className="map-metaline">
+                          <span className="map-sev">{domainLabel(domainOf(plan))}</span>
                           {SEVERITY_LABEL_KEYS[plan.severity] ? (
                             <span className={`map-sev ${sevCls}`}>{t(SEVERITY_LABEL_KEYS[plan.severity])}</span>
                           ) : null}

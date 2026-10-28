@@ -20,6 +20,8 @@ import { EmployeeRecommendationBanner } from '../../components/EmployeeRecommend
 import { CsvImportButton } from '../../components/CsvImportButton';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { DEFAULT_DOMAIN, domainLabel, domainOf } from '../../utils/planDomain';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COFICAB = '#000168';
@@ -160,6 +162,7 @@ function mapPlanFromApi(p: any): ActionPlan {
     description: p.description || p.Description || '',
     status,
     type: toUiType(p.type ?? p.Type),
+    domain: domainOf({ domain: p.domain ?? p.Domain }),
     progress,
     assignedToId: p.assignedToId || p.AssignedToId || undefined,
     createdById: p.createdBy || p.CreatedBy || p.ownerId || p.OwnerId || p.createdById || '',
@@ -365,6 +368,8 @@ function PlanRow({ plan, users, index, onEdit, onArchive, onRestore, onValidate,
         <div className="fap-row-meta">
           <span>{t(tc.label)}</span>
           <span>·</span>
+          <span>{domainLabel(domainOf(plan))}</span>
+          <span>·</span>
           <span>{t('plansAdmin.assignee', { name: assignee })}</span>
           {plan.claimId && (
             <>
@@ -456,11 +461,13 @@ export const FrontActionPlans: React.FC = () => {
   const [filterDept, setFilterDept]         = useState('');
   const [filterStatus, setFilterStatus]     = useState<string>('all');
   const [filterType, setFilterType]         = useState<string>('all');
+  const [filterDomain, setFilterDomain]     = useState<string>('all');
+  const { domains } = useReferenceLists();
   const [showFilters, setShowFilters]       = useState(false);
   const [searchParams] = useSearchParams();
   const sourceAlertId = searchParams.get('alertId') || '';
   const [formData, setFormData] = useState({
-    title: '', description: '', type: 'preventif' as ActionPlanType,
+    title: '', description: '', type: 'preventif' as ActionPlanType, domain: DEFAULT_DOMAIN,
     organizationId: '', departmentId: '', assignedToId: '', deadline: '', claimId: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
@@ -534,7 +541,7 @@ export const FrontActionPlans: React.FC = () => {
 
   const openEdit = async (plan: ActionPlan) => {
     setFormData({
-      title: plan.title, description: plan.description || '', type: plan.type,
+      title: plan.title, description: plan.description || '', type: plan.type, domain: domainOf(plan),
       organizationId: plan.organizationId || '', departmentId: plan.departmentId || '',
       assignedToId: plan.assignedToId || '',
       deadline: plan.deadline ? plan.deadline.split('T')[0] : '',
@@ -551,7 +558,7 @@ export const FrontActionPlans: React.FC = () => {
   };
 
   const resetForm = () => {
-    setFormData({ title: '', description: '', type: 'preventif', organizationId: '', departmentId: '', assignedToId: '', deadline: '', claimId: '' });
+    setFormData({ title: '', description: '', type: 'preventif', domain: DEFAULT_DOMAIN, organizationId: '', departmentId: '', assignedToId: '', deadline: '', claimId: '' });
     setFormErrors({}); setFilteredDepts([]); setPlanActions([]);
     setNewPlanAction({ title: '', description: '', priority: 'medium', deadline: '', assignedToId: '' });
     setPlanActionErrors({}); setEditingPlanActionId(null); setEditPlanActionData({});
@@ -591,7 +598,7 @@ export const FrontActionPlans: React.FC = () => {
       setSubmitting(true);
       const res = await createActionPlan(accessToken, {
         title: formData.title, description: formData.description,
-        type: typeToNumber[formData.type], departmentId: formData.departmentId,
+        type: typeToNumber[formData.type], domain: formData.domain, departmentId: formData.departmentId,
         organizationId: formData.organizationId, assignedToId: formData.assignedToId || undefined,
         deadline: formData.deadline || undefined,
         claimId: formData.claimId?.trim() || undefined,
@@ -630,7 +637,7 @@ export const FrontActionPlans: React.FC = () => {
       setSubmitting(true);
       await updateActionPlan(accessToken, editingPlan.id, {
         title: formData.title, description: formData.description, status: statusToNumber(editingPlan.status),
-        type: typeToNumber[formData.type], departmentId: formData.departmentId,
+        type: typeToNumber[formData.type], domain: formData.domain, departmentId: formData.departmentId,
         organizationId: formData.organizationId, assignedToId: formData.assignedToId || undefined,
         deadline: formData.deadline || undefined,
         claimId: formData.claimId?.trim() || undefined,
@@ -719,6 +726,7 @@ export const FrontActionPlans: React.FC = () => {
     if (filterDept && p.departmentId !== filterDept) return false;
     if (filterStatus !== 'all' && p.status !== filterStatus) return false;
     if (filterType !== 'all' && p.type !== filterType) return false;
+    if (filterDomain !== 'all' && domainOf(p) !== filterDomain) return false;
     return true;
   });
   const paged = usePagedList(displayed, 20);
@@ -781,7 +789,7 @@ export const FrontActionPlans: React.FC = () => {
     },
   ];
 
-  const activeFilters = [filterStatus !== 'all', filterType !== 'all', !!filterDept].filter(Boolean).length;
+  const activeFilters = [filterStatus !== 'all', filterType !== 'all', filterDomain !== 'all', !!filterDept].filter(Boolean).length;
 
   const emptyLabel = t(`plansAdmin.empty.${viewFilter}`);
 
@@ -1033,8 +1041,16 @@ export const FrontActionPlans: React.FC = () => {
                 <option value="amelioration">{t('plansAdmin.typeImprovement')}</option>
               </select>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-slate-500 mb-1">{t('planDomain.label')}</label>
+              <select value={filterDomain} onChange={(e) => setFilterDomain(e.target.value)}
+                className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white outline-none">
+                <option value="all">{t('planDomain.all')}</option>
+                {domains.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
+            </div>
             {activeFilters > 0 && (
-              <button type="button" onClick={() => { setFilterDept(''); setFilterStatus('all'); setFilterType('all'); }}
+              <button type="button" onClick={() => { setFilterDept(''); setFilterStatus('all'); setFilterType('all'); setFilterDomain('all'); }}
                 className="text-xs text-slate-500 underline self-end mb-2">
                 {t('common.reset')}
               </button>
@@ -1155,6 +1171,14 @@ export const FrontActionPlans: React.FC = () => {
                     </select>
                     {formErrors.departmentId && <p className="text-xs text-rose-500 mt-1">{formErrors.departmentId}</p>}
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t('planDomain.label')}</label>
+                  <select value={formData.domain} onChange={e => setFormData({ ...formData, domain: e.target.value })} title={t('planDomain.help')}
+                    className="w-full px-3 py-2.5 text-sm border border-slate-200 rounded-lg bg-white outline-none focus:ring-2 focus:ring-[#000168]/20 focus:border-[#000168]">
+                    {domains.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </select>
                 </div>
 
                 {/* Assigné & Deadline */}

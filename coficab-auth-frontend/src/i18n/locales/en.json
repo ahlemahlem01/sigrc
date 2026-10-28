@@ -662,6 +662,98 @@
     "validate": "Validate",
     "reject": "Set aside"
   },
+  "planDomains": {
+    "QUALITY": "Quality",
+    "PRODUCTION": "Production",
+    "MAINTENANCE": "Maintenance",
+    "HSE": "HSE",
+    "LOGISTICS": "Logistics",
+    "HR": "Human resources",
+    "CONTINUOUS_IMPROVEMENT": "Continuous improvement"
+  },
+  "planDomain": {
+    "label": "Domain",
+    "all": "All domains",
+    "help": "Business area of the plan (quality, production, maintenance, HSE...)."
+  },
+  "workflowStages": {
+    "noteVerification": "Verification starts as soon as all actions are finished: it does not wait for the effectiveness check (step D6 of the 8D), which still has to be validated before closure.",
+    "noteBackwards": "The step is recalculated each time the page opens: if a new action is added to a plan in Verification, it goes back to Execution or Planning.",
+    "title": "Workflow steps",
+    "pipeline": "Where the plans stand in the workflow",
+    "note": "Steps 1 to 5: open plans. Step 6: plans closed in the period. The step is read from the plan (assignment, actions, progress); it changes no status.",
+    "DETECTION": "Detection",
+    "ANALYSIS": "Analysis",
+    "PLANNING": "Planning",
+    "EXECUTION": "Execution",
+    "VERIFICATION": "Verification",
+    "CLOSURE": "Closure",
+    "hint": {
+      "DETECTION": "Plan created, not yet given to an owner.",
+      "ANALYSIS": "Owner named, no detailed action: looking for the causes.",
+      "PLANNING": "Actions defined, none started.",
+      "EXECUTION": "At least one action started.",
+      "VERIFICATION": "All actions finished: validation and effectiveness check.",
+      "CLOSURE": "Plan closed."
+    }
+  },
+  "proofs": {
+    "toggle": "Proofs attached: {{count}}",
+    "by": "Added by {{name}}",
+    "unknown": "—",
+    "download": "Download",
+    "loadError": "The proofs could not be loaded."
+  },
+  "planTimeline": {
+    "title": "Plan history",
+    "loading": "Loading the history…",
+    "empty": "No event yet.",
+    "loadError": "The history could not be loaded.",
+    "type": {
+      "comment_added": "Comment added",
+      "created": "Plan created",
+      "status_changed": "Status changed",
+      "assigned": "Assigned",
+      "reassigned": "Reassigned",
+      "unassigned": "Assignment removed",
+      "fields_updated": "Information changed",
+      "archived": "Archived",
+      "restored": "Restored",
+      "rejected": "Sent back",
+      "resubmitted": "Submitted again",
+      "marked_completed": "Marked completed",
+      "progress_updated": "Progress updated",
+      "warning_sent": "Warning",
+      "subaction_progress": "Action progress",
+      "subaction_completed": "Action completed",
+      "subaction_validated": "Action validated",
+      "subaction_rejected": "Action rejected",
+      "subaction_warning": "Warning on an action",
+      "subaction_proof": "Proof added"
+    }
+  },
+  "planComments": {
+    "title": "Comments",
+    "placeholder": "Write a comment…",
+    "send": "Send",
+    "sending": "Sending…",
+    "shortcut": "Ctrl+Enter to send",
+    "empty": "No comment yet. Write the first one: the people involved in this plan will be notified.",
+    "loading": "Loading…",
+    "now": "just now",
+    "minutesAgo_one": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} min ago",
+    "hoursAgo_one": "{{count}} h ago",
+    "hoursAgo_other": "{{count}} h ago",
+    "edited": "edited",
+    "edit": "Edit",
+    "remove": "Delete",
+    "admin": "Admin",
+    "removeTitle": "Delete this comment?",
+    "removeText": "It disappears from the page but stays archived: nothing is erased.",
+    "loadError": "The comments could not be loaded.",
+    "saveError": "The comment could not be saved."
+  },
   "adminNav": {
     "cvReview": "Photo validation",
     "thresholds": "Thresholds and targets",
@@ -1268,6 +1360,13 @@
     }
   },
   "indicators": {
+    "criticalActions": "Critical open actions",
+    "criticalSub": "{{pct}} % of open actions · {{late}} late",
+    "criticalNone": "No open action.",
+    "efficacy": "Efficacy rate",
+    "efficacySub": "{{effective}} effective plan(s) out of {{evaluated}} evaluated",
+    "efficacyNone": "No closed plan has an effectiveness check yet (step D6 of the 8D).",
+    "byDomain": "By domain",
     "plansOpen": "Open plans",
     "plansLate": "Late plans",
     "plansCreated": "Plans created",
@@ -3219,6 +3318,7 @@
     "importing": "Importing…"
   },
   "notificationBell": {
+    "kindComment": "Comment",
     "justNow": "just now",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}} h ago",
@@ -3248,6 +3348,9 @@
     "assign": "Assign"
   },
   "actionHistory": {
+    "oldValue": "Previous value",
+    "kind": {"progress": "Progress", "proof": "Proof", "warning": "Warning"},
+    "assignmentsHint": "Here: who was given or taken off this action. Nothing until the action changes owner.",
     "assigned": "Assigned",
     "unassigned": "Unassigned",
     "reassigned": "Reassigned",
@@ -5390,6 +5493,7 @@
     "searchList": "Search the list…",
     "noMatch": "No value matches the search.",
     "vocab": {
+      "domain": {"title": "Action plan domains", "help": "The domains offered for an action plan. Add your own, change the order or switch one off: existing plans keep their domain.", "placeholder": "E.g. SECURITY"},
       "client": { "title": "Customers", "help": "Suggested when a claim is created or edited. Free typing is still possible.", "placeholder": "e.g. STELLANTIS-01" },
       "production-line": { "title": "Production lines", "help": "Suggested when a claim's production data is filled in.", "placeholder": "e.g. WR-04" },
       "shift": { "title": "Shifts", "help": "Suggested when a claim's production data is filled in.", "placeholder": "e.g. Morning" },

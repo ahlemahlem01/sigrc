@@ -8,6 +8,8 @@ public class CreateActionPlanDto
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public ActionPlanType Type { get; set; }
+    /// <summary>Business domain; empty = quality. Must be an active entry of the reference list "domain".</summary>
+    public string? Domain { get; set; }
     public Guid OrganizationId { get; set; }     // ADD — frontend sends this
     public Guid DepartmentId { get; set; }
     public string? AssignedToId { get; set; }     // ADD — optional, frontend sends `|| undefined`

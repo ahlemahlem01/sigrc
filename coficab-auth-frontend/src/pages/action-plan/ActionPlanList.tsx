@@ -24,12 +24,15 @@ import {
 import { ACTION_PLAN_API_URL as BASE_URL } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { DEFAULT_DOMAIN, domainLabel, domainOf } from '../../utils/planDomain';
 
 interface ActionPlan {
   id: string;
   title: string;
   description?: string;
   type: number;
+  domain: string;
   status: number;
   ownerId: string;
   departmentId: string;
@@ -67,6 +70,7 @@ function normalizePlan(raw: any): ActionPlan {
     title: raw?.title ?? raw?.Title ?? '',
     description: raw?.description ?? raw?.Description,
     type: typeCode(raw?.type ?? raw?.Type),
+    domain: domainOf({ domain: raw?.domain ?? raw?.Domain }),
     status: archived ? 4 : status,
     ownerId: String(raw?.ownerId ?? raw?.OwnerId ?? ''),
     departmentId: String(raw?.departmentId ?? raw?.DepartmentId ?? ''),
@@ -145,6 +149,8 @@ const ActionPlanList = () => {
   const [filterStatus, setFilterStatus] = useState<number | 'all'>(initialStatus);
   const [filterDepartment, setFilterDepartment] = useState('all');
   const [filterType, setFilterType] = useState<'all' | number>('all');
+  const [filterDomain, setFilterDomain] = useState('all');
+  const { domains } = useReferenceLists();
   const [filterFrom, setFilterFrom] = useState('');
   const [filterTo, setFilterTo] = useState('');
   const [lateOnly, setLateOnly] = useState(searchParams.get('late') === '1');
@@ -154,6 +160,7 @@ const ActionPlanList = () => {
     title: '',
     description: '',
     type: 1,
+    domain: DEFAULT_DOMAIN,
     departmentId: '',
     status: 1,
   });
@@ -205,7 +212,7 @@ const ActionPlanList = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ title: '', description: '', type: 1, departmentId: '', status: 1 });
+    setForm({ title: '', description: '', type: 1, domain: DEFAULT_DOMAIN, departmentId: '', status: 1 });
     setShowModal(true);
   };
 
@@ -216,12 +223,14 @@ const ActionPlanList = () => {
           title: form.title,
           description: form.description,
           status: form.status,
+          domain: form.domain,
         });
       } else {
         await createActionPlan(accessToken!, {
           title: form.title,
           description: form.description,
           type: form.type,
+          domain: form.domain,
           departmentId: form.departmentId,
         });
       }
@@ -277,6 +286,7 @@ const ActionPlanList = () => {
     .filter((p) => filterStatus === 'all' || filterStatus === 4 || p.status === filterStatus)
     .filter((p) => filterDepartment === 'all' || p.departmentName === filterDepartment)
     .filter((p) => filterType === 'all' || p.type === filterType)
+    .filter((p) => filterDomain === 'all' || p.domain === filterDomain)
     .filter((p) => {
       if (!filterFrom && !filterTo) return true;
       const due = dayStamp(p.deadline);
@@ -458,6 +468,22 @@ const ActionPlanList = () => {
             </select>
           </label>
           <label className="block">
+            <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('planDomain.label')}</span>
+            <select
+              className={capaSelectCls}
+              value={filterDomain}
+              onChange={(e) => {
+                setFilterDomain(e.target.value);
+                setPage(1);
+              }}
+            >
+              <option value="all">{t('planDomain.all')}</option>
+              {domains.map((d) => (
+                <option key={d.value} value={d.value}>{d.label}</option>
+              ))}
+            </select>
+          </label>
+          <label className="block">
             <span className="block text-[11px] font-semibold uppercase tracking-wide text-slate-500 mb-1">{t('capaDash.dueFrom')}</span>
             <input
               type="date"
@@ -528,6 +554,7 @@ const ActionPlanList = () => {
               <tr>
                 <th className="px-4 py-3 text-left font-semibold">{t('dashboard.colTitle')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('planDetail.type')}</th>
+                <th className="px-4 py-3 text-left font-semibold">{t('planDomain.label')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('planDetail.department')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('common.status')}</th>
                 <th className="px-4 py-3 text-left font-semibold">{t('dashboard.colDeadline')}</th>
@@ -555,7 +582,7 @@ const ActionPlanList = () => {
                   ))
                 ) : filteredPlans.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
                       {showArchived ? t('planList.noArchived') : t('planList.noPlans')}
                     </td>
                   </tr>
@@ -578,6 +605,7 @@ const ActionPlanList = () => {
                           {getTypeLabel(plan.type)}
                         </span>
                       </td>
+                      <td className="px-4 py-3.5 text-slate-600">{domainLabel(plan.domain)}</td>
                       <td className="px-4 py-3.5 text-slate-500">{plan.departmentName || '—'}</td>
                       <td className="px-4 py-3.5">
                         <span
@@ -671,6 +699,17 @@ const ActionPlanList = () => {
                 onChange={(e) => setForm({ ...form, description: e.target.value })}
                 rows={3}
               />
+              <select
+                className={capaSelectCls}
+                aria-label={t('planDomain.label')}
+                title={t('planDomain.help')}
+                value={form.domain}
+                onChange={(e) => setForm({ ...form, domain: e.target.value })}
+              >
+                {domains.map((d) => (
+                  <option key={d.value} value={d.value}>{d.label}</option>
+                ))}
+              </select>
               {!editing && (
                 <>
                   <select

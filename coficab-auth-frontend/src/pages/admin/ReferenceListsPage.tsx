@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import { resetReferenceListsCache } from '../../hooks/useReferenceLists';
+import { domainLabel } from '../../utils/planDomain';
 import {
   DuplicateGroup,
   ReferenceItem,
@@ -13,7 +14,7 @@ import {
 const NAVY = '#000168';
 const LINE = '#e4e8f2';
 const LEVELS = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-const VOCABULARY: ReferenceListKey[] = ['client', 'production-line', 'shift', 'defect-type'];
+const VOCABULARY: ReferenceListKey[] = ['client', 'production-line', 'shift', 'defect-type', 'domain'];
 const TABS: ReferenceListKey[] = [...VOCABULARY, 'severity'];
 const STRICT_KEYS: ReferenceListKey[] = ['client', 'production-line', 'shift'];
 const PAGE_SIZE = 10;
@@ -23,7 +24,7 @@ const ReferenceListsPage: React.FC = () => {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const [lists, setLists] = useState<ReferenceLists['lists'] | null>(null);
-  const [dirty, setDirty] = useState<Record<ReferenceListKey, boolean>>({ 'defect-type': false, severity: false, client: false, 'production-line': false, shift: false });
+  const [dirty, setDirty] = useState<Record<ReferenceListKey, boolean>>({ 'defect-type': false, severity: false, client: false, 'production-line': false, shift: false, domain: false });
   const [newValue, setNewValue] = useState<Record<string, string>>({});
   const [strict, setStrict] = useState<Record<string, boolean>>({});
   const [tab, setTab] = useState<ReferenceListKey>('client');
@@ -223,10 +224,12 @@ const ReferenceListsPage: React.FC = () => {
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                   <h2 className="text-sm font-bold m-0">{t(`referenceLists.vocab.${key}.title`)}</h2>
                   <div className="flex gap-2">
-                    <button type="button" onClick={() => void importFromClaims(key)} disabled={busy}
-                      className="px-3 py-1.5 text-sm font-semibold rounded-lg border bg-white disabled:opacity-40" style={{ borderColor: LINE, color: NAVY }}>
-                      {t('referenceLists.importFromClaims')}
-                    </button>
+                    {key !== 'domain' && (
+                      <button type="button" onClick={() => void importFromClaims(key)} disabled={busy}
+                        className="px-3 py-1.5 text-sm font-semibold rounded-lg border bg-white disabled:opacity-40" style={{ borderColor: LINE, color: NAVY }}>
+                        {t('referenceLists.importFromClaims')}
+                      </button>
+                    )}
                     {saveButton(key)}
                   </div>
                 </div>
@@ -263,7 +266,7 @@ const ReferenceListsPage: React.FC = () => {
                     <tbody>
                       {visible.map((i) => (
                         <tr key={i.value} className={i.isActive ? '' : 'opacity-50'}>
-                          <td className="py-1 pr-2">{i.value}</td>
+                          <td className="py-1 pr-2">{key === 'domain' ? `${domainLabel(i.value, i.label)} (${i.value})` : i.value}</td>
                           <td className="py-1 pr-2 w-20">
                             <input className={`${input} w-16`} type="number" value={i.sortOrder}
                               onChange={(e) => patch(key, i.value, { sortOrder: Number(e.target.value) || 0 })} />

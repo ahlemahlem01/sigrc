@@ -6,6 +6,11 @@ import { useAuth } from '../../context/AuthContext';
 import { fetchPlanDetail, type PlanDetail } from '../../services/capaIndicatorsService';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import ConfirmDialog from '../../components/ConfirmDialog';
+import { domainLabel } from '../../utils/planDomain';
+import WorkflowStages from '../../components/capa/WorkflowStages';
+import ActionProofs from '../../components/capa/ActionProofs';
+import PlanTimeline from '../../components/capa/PlanTimeline';
+import PlanComments from '../../components/capa/PlanComments';
 import {
   archiveActionPlan,
   createPlanAction,
@@ -255,6 +260,7 @@ export default function PlanPage() {
           <div className="flex flex-wrap items-center gap-2 mt-2">
             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: '#eef0ff', color: NAVY }}>{statusLabel}</span>
             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">{typeLabel}</span>
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-indigo-50 text-indigo-700" title={t('planDomain.label')}>{domainLabel(plan.domain)}</span>
             <span className="px-2.5 py-1 rounded-full text-[11px] font-bold" style={{ background: `${healthTone}1a`, color: healthTone }}>{healthText}</span>
           </div>
         </div>
@@ -286,6 +292,9 @@ export default function PlanPage() {
       {notice && (
         <div className={`mb-4 px-4 py-2.5 rounded-lg text-sm border ${notice.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-red-50 border-red-200 text-red-700'}`}>{notice.text}</div>
       )}
+
+      {/* the six steps of the general workflow (read from the plan) */}
+      <div className="mb-4"><WorkflowStages current={plan.workflowStage} compact /></div>
 
       {/* what blocks it */}
       {(h.waitingValidation > 0 || plan.lastRejectComment) && (
@@ -321,6 +330,7 @@ export default function PlanPage() {
                           {a.deadline && <> · {date(a.deadline)}</>}
                           {a.lateDays > 0 && <b style={{ color: BAD }}> · {t('planPage.daysLate', { count: a.lateDays })}</b>}
                         </div>
+                        {accessToken && <ActionProofs token={accessToken} planActionId={a.id} count={a.proofCount ?? 0} refreshKey={plan.history.length} />}
                       </div>
                       <div className="shrink-0 text-right">
                         {(a.state === 'waitingValidation' || a.state === 'open') && !closed && (
@@ -386,22 +396,14 @@ export default function PlanPage() {
               <p className="text-xs text-slate-600 m-0 leading-relaxed">{plan.description}</p>
             </Card>
           )}
+
+          {accessToken && id && <PlanComments token={accessToken} planId={id} />}
         </div>
       </div>
 
       <Card title={t('planPage.history')} className="mt-3">
-        {plan.history.length === 0 ? (
-          <p className="text-sm text-slate-400 m-0">{t('planPage.noHistory')}</p>
-        ) : (
-          <ul className="m-0 p-0 list-none space-y-2">
-            {plan.history.map((e, i) => (
-              <li key={i} className="flex items-baseline gap-3 text-xs">
-                <span className="tabular-nums text-slate-400 w-28 shrink-0">{dateTime(e.at)}</span>
-                <span className="text-slate-700"><b>{e.by || '—'}</b> · {eventText(e)}{e.note && e.type !== 'created' ? <span className="text-slate-500"> — {e.note}</span> : null}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+        {/* the plan's own events and those of its sub-actions (progress, proofs, validation, rejection) */}
+        {accessToken && id ? <PlanTimeline token={accessToken} planId={id} refreshKey={plan.history.length} /> : null}
       </Card>
 
       {ask && (

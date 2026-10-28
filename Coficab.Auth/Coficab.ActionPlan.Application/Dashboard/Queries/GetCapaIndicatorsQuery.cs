@@ -20,11 +20,28 @@ public record CapaIndicatorKpisDto(
     CapaFigureDto Opened,
     CapaFigureDto Closed,
     CapaFigureDto OnTimeRate,
-    CapaFigureDto AvgClosureDays);
+    CapaFigureDto AvgClosureDays,
+    /// <summary>Unfinished actions of open plans (the base of the critical-actions figure).</summary>
+    int OpenActions,
+    /// <summary>Unfinished actions of open plans whose priority is High (1): the most urgent level a detailed action can have.</summary>
+    int CriticalOpenActions,
+    /// <summary>Among those, the ones already past their deadline.</summary>
+    int CriticalLateActions,
+    /// <summary>Share of closed plans (in the period, and in the period before) whose effectiveness check found no defect: see <see cref="EfficacyEvaluated"/>.</summary>
+    CapaFigureDto EfficacyRate,
+    /// <summary>Plans closed in the period that were evaluated: their 8D file holds an effectiveness check on at least one lot (D6).</summary>
+    int EfficacyEvaluated,
+    /// <summary>Among those, the ones whose check was validated with no defect found: the same rule as the D6 step of the 8D.</summary>
+    int EfficacyEffective);
 
 public record CapaIndicatorTypeDto(string Type, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
 
 public record CapaIndicatorDepartmentDto(Guid Id, string Name, string Organization, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
+
+public record CapaIndicatorDomainDto(string Domain, int OpenPlans, int LatePlans, int ClosedInPeriod, double? OnTimeRate);
+
+/// <summary>Plans at one step of the general workflow: the open plans of the perimeter for steps 1 to 5, the plans closed in the period for step 6.</summary>
+public record CapaIndicatorStageDto(int Stage, string Code, int Plans);
 
 public record CapaIndicatorMonthDto(string Month, int Opened, int Closed);
 
@@ -39,10 +56,14 @@ public record CapaIndicatorsDto(
     IReadOnlyList<CapaIndicatorDepartmentDto> ByDepartment,
     IReadOnlyList<CapaIndicatorMonthDto> Monthly,
     IReadOnlyList<CapaIndicatorOwnerDto> Owners,
-    int DetailedActions);
+    int DetailedActions,
+    /// <summary>One line per business domain of the perimeter, whatever the domain filter (it feeds the domain choice and keeps the comparison).</summary>
+    IReadOnlyList<CapaIndicatorDomainDto> ByDomain,
+    IReadOnlyList<CapaIndicatorStageDto> ByStage);
 
 /// <param name="DepartmentId">Restricts every figure to one department; the by-department table still lists all of them.</param>
-public record GetCapaIndicatorsQuery(int Days = 90, IReadOnlyList<Guid>? OrganizationIds = null, Guid? DepartmentId = null) : IRequest<CapaIndicatorsDto>;
+/// <param name="Domain">Restricts every figure to one business domain (reference list "domain"), the by-domain table still lists all of them.</param>
+public record GetCapaIndicatorsQuery(int Days = 90, IReadOnlyList<Guid>? OrganizationIds = null, Guid? DepartmentId = null, string? Domain = null) : IRequest<CapaIndicatorsDto>;
 
 /// <summary>
 /// CAPA indicators computed on the plans (not on their detailed actions, which are often missing): same definition of
@@ -53,6 +74,8 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
     private const int MaxDays = 366;
     private const int MonthsShown = 6;
     private const int OwnersShown = 6;
+    /// <summary>Priority of a detailed action: 1 = High, 2 = Medium, 3 = Low.</summary>
+    private const int CriticalPriority = 1;
 
     private readonly IApplicationDbContext _context;
 
@@ -72,7 +95,9 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var query = _context.ActionPlans.AsNoTracking().Include(p => p.PlanActions).Include(p => p.Department).Include(p => p.Organization)
             .Where(p => !p.IsArchived);
         if (request.OrganizationIds is { Count: > 0 } orgs) query = query.Where(p => orgs.Contains(p.OrganizationId));
-        var allPlans = await query.ToListAsync(ct);
+        var perimeter = await query.ToListAsync(ct);
+        var domain = request.Domain?.Trim();
+        var allPlans = string.IsNullOrEmpty(domain) ? perimeter : perimeter.Where(p => string.Equals(p.Domain, domain, StringComparison.OrdinalIgnoreCase)).ToList();
         var plans = request.DepartmentId is { } departmentId ? allPlans.Where(p => p.DepartmentId == departmentId).ToList() : allPlans;
 
         var open = plans.Where(PlanDeadlines.IsOpen).ToList();
@@ -95,6 +120,28 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var openedPrev = plans.Count(p => p.CreatedAt >= prevStart && p.CreatedAt < start);
 
         var openActions = open.SelectMany(p => p.PlanActions.Where(a => !a.IsArchived)).ToList();
+        var unfinished = openActions.Where(a => !PlanDeadlines.IsFinished(a)).ToList();
+        var critical = unfinished.Where(a => a.Priority == CriticalPriority).ToList();
+
+        // Efficacy = what the 8D file says about the lots checked after the corrective action (D6): evaluated = at least one lot checked,
+        // effective = validated and no defect found (the rule the 8D itself applies to move on). Plans without a claim or without a check are not judged.
+        var claimIds = closedAll.Where(p => p.ClaimId != null).Select(p => p.ClaimId!.Value).Distinct().ToList();
+        var checks = claimIds.Count == 0
+            ? new Dictionary<Guid, (bool Evaluated, bool Effective)>()
+            : (await _context.EightDDossiers.AsNoTracking().Where(d => claimIds.Contains(d.ClaimId))
+                .Select(d => new { d.ClaimId, d.LotsChecked, d.DefectsFound, d.EffectivenessValidated }).ToListAsync(ct))
+                .GroupBy(d => d.ClaimId)
+                .ToDictionary(g => g.Key, g => (
+                    Evaluated: g.Any(d => (d.LotsChecked ?? 0) > 0),
+                    Effective: g.Any(d => (d.LotsChecked ?? 0) > 0 && d.EffectivenessValidated && (d.DefectsFound ?? 0) == 0)));
+        (int Evaluated, int Effective) Efficacy(List<Core.Entities.ActionPlan> list)
+        {
+            var judged = list.Where(p => p.ClaimId != null && checks.TryGetValue(p.ClaimId.Value, out var c) && c.Evaluated).ToList();
+            return (judged.Count, judged.Count(p => checks[p.ClaimId!.Value].Effective));
+        }
+        var efficacyNow = Efficacy(closedNow);
+        var efficacyPrev = Efficacy(closedPrev);
+
         var kpis = new CapaIndicatorKpisDto(
             open.Count,
             late.Count,
@@ -104,7 +151,13 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
             new CapaFigureDto(openedNow, openedPrev),
             new CapaFigureDto(closedNow.Count, closedPrev.Count),
             new CapaFigureDto(OnTime(closedNow), OnTime(closedPrev)),
-            new CapaFigureDto(AvgDays(closedNow), AvgDays(closedPrev)));
+            new CapaFigureDto(AvgDays(closedNow), AvgDays(closedPrev)),
+            unfinished.Count,
+            critical.Count,
+            critical.Count(a => a.Deadline.HasValue && a.Deadline.Value.Date < today),
+            new CapaFigureDto(Rate(efficacyNow.Effective, efficacyNow.Evaluated), Rate(efficacyPrev.Effective, efficacyPrev.Evaluated)),
+            efficacyNow.Evaluated,
+            efficacyNow.Effective);
 
         var aging = new OverviewAgingDto(0, 0, 0);
         var lags = late.Select(p => PlanDeadlines.MaxLagDays(p, today)).ToList();
@@ -158,6 +211,23 @@ public class GetCapaIndicatorsQueryHandler : IRequestHandler<GetCapaIndicatorsQu
         var owners = perOwner.Select(x => new CapaIndicatorOwnerDto(names.GetValueOrDefault(x.Id) ?? "—", x.Open, x.Late)).ToList();
 
         var detailed = open.Sum(p => p.PlanActions.Count(a => !a.IsArchived));
-        return new CapaIndicatorsDto(days, now, kpis, aging, byType, byDepartment, monthly, owners, detailed);
+
+        var openPerimeter = perimeter.Where(PlanDeadlines.IsOpen).ToList();
+        var closedPerimeter = perimeter.Where(p => p.Status == ActionPlanStatus.Closed && p.CompletedAt != null && p.CompletedAt >= start && p.CompletedAt < end).ToList();
+        var byDomain = perimeter.Select(p => p.Domain).Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(d => new CapaIndicatorDomainDto(
+                d,
+                openPerimeter.Count(p => string.Equals(p.Domain, d, StringComparison.OrdinalIgnoreCase)),
+                openPerimeter.Count(p => string.Equals(p.Domain, d, StringComparison.OrdinalIgnoreCase) && PlanDeadlines.OverdueDays(p, today) > 0),
+                closedPerimeter.Count(p => string.Equals(p.Domain, d, StringComparison.OrdinalIgnoreCase)),
+                OnTime(closedPerimeter.Where(p => string.Equals(p.Domain, d, StringComparison.OrdinalIgnoreCase)).ToList())))
+            .OrderByDescending(d => d.LatePlans).ThenByDescending(d => d.OpenPlans).ThenBy(d => d.Domain)
+            .ToList();
+        var byStage = Enumerable.Range(PlanWorkflow.Detection, PlanWorkflow.Closure)
+            .Select(stage => new CapaIndicatorStageDto(
+                stage, PlanWorkflow.Code(stage),
+                stage == PlanWorkflow.Closure ? closedNow.Count : open.Count(p => PlanWorkflow.Of(p) == stage)))
+            .ToList();
+        return new CapaIndicatorsDto(days, now, kpis, aging, byType, byDepartment, monthly, owners, detailed, byDomain, byStage);
     }
 }

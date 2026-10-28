@@ -115,6 +115,13 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("QUALITY");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
@@ -158,6 +165,8 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
 
                     b.HasIndex("DepartmentId");
 
+                    b.HasIndex("Domain");
+
                     b.HasIndex("OrganizationId");
 
                     b.HasIndex("Reference")
@@ -165,6 +174,56 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasFilter("[Reference] IS NOT NULL");
 
                     b.ToTable("ActionPlans", "actionplan");
+                });
+
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.ActionPlanComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ActionPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ArchivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ArchivedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActionPlanId", "CreatedAt");
+
+                    b.ToTable("ActionPlanComments", "actionplan");
                 });
 
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.ActionPlanHistory", b =>
@@ -3121,6 +3180,17 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Navigation("Department");
 
                     b.Navigation("Organization");
+                });
+
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.ActionPlanComment", b =>
+                {
+                    b.HasOne("Coficab.ActionPlan.Core.Entities.ActionPlan", "ActionPlan")
+                        .WithMany()
+                        .HasForeignKey("ActionPlanId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActionPlan");
                 });
 
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.ActionPlanHistory", b =>

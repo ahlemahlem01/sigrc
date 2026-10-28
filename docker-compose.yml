@@ -58,6 +58,14 @@ services:
       Cors__AllowedOrigins: http://localhost:3001,http://${PUBLIC_HOST:-localhost}:3001
       Seed__SuperAdminPassword: ${SEED_SUPERADMIN_PASSWORD:-}
       Seed__AdminPassword: ${SEED_ADMIN_PASSWORD:-}
+      # Mail server for the "forgot password", lockout and welcome e-mails (STARTTLS). Without it nothing can be sent: set SMTP_* in .env.
+      EmailSettings__Host: ${SMTP_HOST:-}
+      EmailSettings__Port: ${SMTP_PORT:-587}
+      EmailSettings__Username: ${SMTP_USERNAME:-}
+      EmailSettings__Password: ${SMTP_PASSWORD:-}
+      EmailSettings__FromName: ${SMTP_FROM_NAME:-Coficab}
+      # Reset-link lifetime (minutes) and rate limits (per client address); the defaults are 60, 10 per 15 min, 20 per 15 min, 60 per minute.
+      Auth__PasswordResetLifetimeMinutes: ${PASSWORD_RESET_MINUTES:-60}
     volumes:
       # Token signing keys must survive a container re-creation, otherwise every session is invalidated.
       - authkeys:/root/.dotnet/corefx

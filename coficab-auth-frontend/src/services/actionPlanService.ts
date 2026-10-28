@@ -26,6 +26,8 @@ export const createActionPlan = (token: string, data: {
   type: number;
   departmentId: string;
   organizationId?: string;
+  /** Business domain (reference list "domain"); empty = quality. */
+  domain?: string;
   assignedToId?: string;
   deadline?: string;
   claimId?: string;
@@ -47,6 +49,7 @@ export const updateActionPlan = (token: string, id: string, data: {
   description?: string;
   status?: number;
   type?: number;
+  domain?: string;
   departmentId?: string;
   organizationId?: string;
   assignedToId?: string;
@@ -315,8 +318,65 @@ export const uploadPlanActionDocument = (token: string, planActionId: string, fi
   });
 };
 
+export interface PlanActionProof {
+  id: string;
+  fileName: string;
+  fileType: string;
+  uploadedBy: string;
+  uploadedByName?: string | null;
+  createdAt: string;
+}
+
 export const getPlanActionDocuments = (token: string, planActionId: string) =>
-  axios.get(`${BASE_URL}/planaction/${planActionId}/documents`, getHeaders(token));
+  axios.get<PlanActionProof[]>(`${BASE_URL}/planaction/${planActionId}/documents`, getHeaders(token));
+
+/** The bytes of a proof (the file is private: it needs the token, so it is fetched, then shown or saved from an object URL). */
+export const downloadPlanActionProof = async (token: string, documentId: string): Promise<Blob> =>
+  (await axios.get<Blob>(`${BASE_URL}/planaction/documents/${documentId}/file`, { ...getHeaders(token), responseType: 'blob' })).data;
+
+export interface PlanComment {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorRole: 'admin' | 'employee';
+  body: string;
+  createdAt: string;
+  editedAt?: string | null;
+  mine: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+}
+
+/** Comments on a plan, oldest first: administrators and the people who work on the plan (the others get a notification). */
+export const getPlanComments = async (token: string, planId: string): Promise<PlanComment[]> =>
+  (await axios.get<PlanComment[]>(`${BASE_URL}/actionplan/${planId}/comments`, getHeaders(token))).data;
+
+export const addPlanComment = async (token: string, planId: string, body: string): Promise<PlanComment> =>
+  (await axios.post<PlanComment>(`${BASE_URL}/actionplan/${planId}/comments`, { body }, getHeaders(token))).data;
+
+export const editPlanComment = async (token: string, planId: string, commentId: string, body: string): Promise<PlanComment> =>
+  (await axios.put<PlanComment>(`${BASE_URL}/actionplan/${planId}/comments/${commentId}`, { body }, getHeaders(token))).data;
+
+/** Archives a comment (nothing is deleted). */
+export const archivePlanComment = async (token: string, planId: string, commentId: string): Promise<void> => {
+  await axios.delete(`${BASE_URL}/actionplan/${planId}/comments/${commentId}`, getHeaders(token));
+};
+
+export interface PlanTimelineEvent {
+  id: string;
+  actionType: string;
+  changedBy: string;
+  changedByName?: string | null;
+  note?: string | null;
+  oldStatus?: number | null;
+  newStatus?: number | null;
+  newAssignedToName?: string | null;
+  createdAt: string;
+}
+
+/** The history of a plan the caller can see: the plan's own events and those of its sub-actions (progress, proofs, validation). */
+export const getPlanTimeline = async (token: string, planId: string): Promise<PlanTimelineEvent[]> =>
+  (await axios.get<PlanTimelineEvent[]>(`${BASE_URL}/actionplan/assigned/${planId}/history`, getHeaders(token))).data;
 
 // ✅ FIXED: was `${BASE_URL}/api/plan-actions/${id}/history`
 // → doubled /api AND used the wrong route segment. Correct backend route:

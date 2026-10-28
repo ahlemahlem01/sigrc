@@ -23,6 +23,10 @@ public class AssignedActionPlanDto
     public string? Description { get; set; }
     /// <summary>1 PA (preventive), 2 PAC (corrective), 3 PAP (improvement)</summary>
     public int Type { get; set; }
+    public string Domain { get; set; } = "QUALITY";
+    public Guid DepartmentId { get; set; }
+    /// <summary>The department of the plan (the employee's page shows it).</summary>
+    public string? DepartmentName { get; set; }
     public int Status { get; set; }
     public int Progress { get; set; }
     public string AssignedToId { get; set; } = string.Empty;

@@ -19,4 +19,6 @@ public class PlanActionDto
     public int? Order { get; set; }
     public ActionPlanStatus? Status { get; set; }
     public DateTime CreatedAt { get; set; }
+    /// <summary>Proofs (documents) attached to the action; filled by the plan's action list.</summary>
+    public int DocumentCount { get; set; }
 }

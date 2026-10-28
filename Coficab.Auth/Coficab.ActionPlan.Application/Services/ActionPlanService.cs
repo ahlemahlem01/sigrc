@@ -139,6 +139,7 @@ public class ActionPlanService : IActionPlanService
                 Id = p.Id,
                 Title = p.Title,
                 Type = (int)p.Type,
+                Domain = p.Domain,
                 Status = (int)p.Status,
                 DepartmentName = p.Department.Name,
                 OrganizationId = p.OrganizationId,
@@ -265,9 +266,27 @@ public class ActionPlanService : IActionPlanService
         return _mapper.Map<ActionPlanDto>(plan);
     }
 
+    /// <summary>The domain of a plan: the one asked for if it is an active entry of the "domain" list, else the fallback (a domain that is not in the list is refused).</summary>
+    private async Task<string> ResolveDomainAsync(string? requested, string fallback)
+    {
+        var code = (requested ?? string.Empty).Trim();
+        if (code.Length == 0) return fallback;
+        var active = await _context.ReferenceItems.AsNoTracking()
+            .Where(r => r.ListKey == ReferenceListKeys.Domain && r.IsActive && r.MergedInto == null)
+            .Select(r => r.Value).ToListAsync();
+        // an installation that has not got the list yet (or switched everything off) is not blocked: the standard codes stay valid
+        var allowed = active.Count > 0 ? active : CoreEntities.ActionPlanDomains.Standard.Select(d => d.Code).ToList();
+        var match = allowed.FirstOrDefault(a => string.Equals(a.Trim(), code, StringComparison.OrdinalIgnoreCase));
+        return match?.Trim() ?? throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("domain", $"Domaine inconnu : « {code} ». Choisissez un domaine de la liste de référence.") });
+    }
+
     public async Task<ActionPlanDto> CreateAsync(CreateActionPlanDto dto, string createdBy)
     {
         var plan = _mapper.Map<CoreEntities.ActionPlan>(dto);
+        plan.Domain = await ResolveDomainAsync(dto.Domain, CoreEntities.ActionPlanDomains.Default);
+        // a client that sends only the department (the admin creation page) gets the organization of that department
+        if (plan.OrganizationId == Guid.Empty)
+            plan.OrganizationId = await _context.Departments.AsNoTracking().Where(d => d.Id == dto.DepartmentId).Select(d => d.OrganizationId).FirstOrDefaultAsync();
         plan.CreatedBy = createdBy;
         plan.OwnerId = createdBy;
         plan.Status = ActionPlanStatus.Created;
@@ -380,9 +399,11 @@ public class ActionPlanService : IActionPlanService
         var oldDepartmentId = plan.DepartmentId;
         var oldType = plan.Type;
         var oldOrganizationId = plan.OrganizationId;
+        var oldDomain = plan.Domain;
         var hadAssignedUser = !string.IsNullOrEmpty(plan.AssignedToId);
 
         _mapper.Map(dto, plan);
+        plan.Domain = await ResolveDomainAsync(dto.Domain, oldDomain);
         plan.UpdatedBy = updatedBy;
 
         if (plan.Status == ActionPlanStatus.Created && !hadAssignedUser && !string.IsNullOrEmpty(plan.AssignedToId))
@@ -461,6 +482,7 @@ public class ActionPlanService : IActionPlanService
         if (oldDepartmentId != plan.DepartmentId) fieldChanges.Add("Département modifié");
         if (oldType != plan.Type) fieldChanges.Add($"Type: {oldType} → {plan.Type}");
         if (oldOrganizationId != plan.OrganizationId) fieldChanges.Add("Organisation modifiée");
+        if (!string.Equals(oldDomain, plan.Domain, StringComparison.Ordinal)) fieldChanges.Add($"Domaine: {oldDomain} → {plan.Domain}");
 
         if (fieldChanges.Any())
         {
@@ -657,6 +679,9 @@ public class ActionPlanService : IActionPlanService
                 Title = a.ActionPlan.Title,
                 Description = a.ActionPlan.Description,
                 Type = (int)a.ActionPlan.Type,
+                Domain = a.ActionPlan.Domain,
+                DepartmentId = a.ActionPlan.DepartmentId,
+                DepartmentName = null,
                 Status = (int)a.ActionPlan.Status,
                 Progress = ComputeProgress(a.ActionPlan),
                 AssignedToId = a.UserId,
@@ -699,6 +724,9 @@ public class ActionPlanService : IActionPlanService
                 Title = plan.Title,
                 Description = plan.Description,
                 Type = (int)plan.Type,
+                Domain = plan.Domain,
+                DepartmentId = plan.DepartmentId,
+                DepartmentName = null,
                 Status = (int)plan.Status,
                 Progress = ComputeProgress(plan),
                 AssignedToId = plan.AssignedToId ?? uid,
@@ -717,6 +745,7 @@ public class ActionPlanService : IActionPlanService
             };
         }
 
+        await FillDepartmentNamesAsync(byId.Values);
         return byId.Values.OrderByDescending(p => p.CreatedAt);
     }
 
@@ -742,13 +771,16 @@ public class ActionPlanService : IActionPlanService
         if (!hasAssignment && !isOwner && !isDirectAssignee && !hasAction)
             return null;
 
-        return new AssignedActionPlanDto
+        var assigned = new AssignedActionPlanDto
         {
             Id = plan.Id.ToString(),
             Reference = plan.Reference,
             Title = plan.Title,
             Description = plan.Description,
             Type = (int)plan.Type,
+            Domain = plan.Domain,
+            DepartmentId = plan.DepartmentId,
+            DepartmentName = null,
             Status = (int)plan.Status,
             Progress = ComputeProgress(plan),
             AssignedToId = assignment?.UserId ?? plan.AssignedToId ?? uid,
@@ -765,6 +797,18 @@ public class ActionPlanService : IActionPlanService
             AssignedBy = assignment?.AssignedBy ?? plan.UpdatedBy,
             ClaimId = plan.ClaimId
         };
+        await FillDepartmentNamesAsync(new[] { assigned });
+        return assigned;
+    }
+
+    /// <summary>The department name of each plan, looked up apart (a join would drop a plan whose department is missing).</summary>
+    private async Task FillDepartmentNamesAsync(IEnumerable<AssignedActionPlanDto> plans)
+    {
+        var list = plans.ToList();
+        var ids = list.Select(p => p.DepartmentId).Where(i => i != Guid.Empty).Distinct().ToList();
+        if (ids.Count == 0) return;
+        var names = await _context.Departments.AsNoTracking().IgnoreQueryFilters().Where(d => ids.Contains(d.Id)).ToDictionaryAsync(d => d.Id, d => d.Name);
+        foreach (var p in list) p.DepartmentName = names.GetValueOrDefault(p.DepartmentId);
     }
 
     public async Task<bool> UpdateAssignedPermissionsAsync(Guid assignmentId, UpdatePermissionsDto dto)
@@ -808,6 +852,9 @@ public class ActionPlanService : IActionPlanService
             Reference = a.ActionPlan.Reference,
             Title = a.ActionPlan.Title,
             Description = a.ActionPlan.Description,
+            Domain = a.ActionPlan.Domain,
+            DepartmentId = a.ActionPlan.DepartmentId,
+            DepartmentName = null,
             Status = (int)a.ActionPlan.Status,
             Progress = ComputeProgress(a.ActionPlan),
             AssignedToId = a.UserId,
@@ -985,11 +1032,12 @@ public class ActionPlanService : IActionPlanService
         return hasAction;
     }
 
-    public async Task<IEnumerable<ActionPlanHistoryDto>> GetAllHistoryAsync()
+    public async Task<IEnumerable<ActionPlanHistoryDto>> GetAllHistoryAsync(Guid? planId = null)
     {
         var history = await _context.ActionPlanHistories
             .IgnoreQueryFilters()
             .Include(h => h.ActionPlan).ThenInclude(p => p.Department)
+            .Where(h => planId == null || h.ActionPlanId == planId)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
@@ -998,6 +1046,7 @@ public class ActionPlanService : IActionPlanService
             .IgnoreQueryFilters()
             .Include(h => h.PlanAction).ThenInclude(a => a.ActionPlan).ThenInclude(p => p.Department)
             .Where(h => h.PlanAction != null && h.PlanAction.ActionPlan != null)
+            .Where(h => planId == null || h.PlanAction.ActionPlanId == planId)
             .OrderByDescending(h => h.CreatedAt)
             .ToListAsync();
 
@@ -1070,6 +1119,7 @@ public class ActionPlanService : IActionPlanService
         if (h.NewProgress == ActionProgress.SeventyFive && h.OldProgress == ActionProgress.Hundred
             && note.StartsWith("Rejet", StringComparison.OrdinalIgnoreCase)) return "subaction_rejected";
         if (h.OldProgress == h.NewProgress && note.StartsWith("Avertissement", StringComparison.OrdinalIgnoreCase)) return "subaction_warning";
+        if (h.OldProgress == h.NewProgress && note.StartsWith("Preuve", StringComparison.OrdinalIgnoreCase)) return "subaction_proof";
         if (h.NewProgress == ActionProgress.Hundred) return "subaction_completed";
         return "subaction_progress";
     }

@@ -9,6 +9,8 @@ public class ActionPlan : BaseEntity
     public string? Reference { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
+    /// <summary>Business domain (reference list "domain"); quality unless said otherwise.</summary>
+    public string Domain { get; set; } = ActionPlanDomains.Default;
     public ActionPlanType Type { get; set; }
     public ActionPlanStatus Status { get; set; } = ActionPlanStatus.Created;
     public string OwnerId { get; set; } = string.Empty;

@@ -662,6 +662,98 @@
     "validate": "Convalida",
     "reject": "Scarta"
   },
+  "planDomains": {
+    "QUALITY": "Qualità",
+    "PRODUCTION": "Produzione",
+    "MAINTENANCE": "Manutenzione",
+    "HSE": "HSE",
+    "LOGISTICS": "Logistica",
+    "HR": "Risorse umane",
+    "CONTINUOUS_IMPROVEMENT": "Miglioramento continuo"
+  },
+  "planDomain": {
+    "label": "Dominio",
+    "all": "Tutti i domini",
+    "help": "Area di attività del piano (qualità, produzione, manutenzione, HSE...)."
+  },
+  "workflowStages": {
+    "noteVerification": "La verifica inizia appena tutte le azioni sono terminate: non attende il controllo di efficacia (fase D6 dell'8D), che va ancora convalidato prima della chiusura.",
+    "noteBackwards": "La fase si ricalcola da sola a ogni apertura: se si aggiunge una nuova azione a un piano in Verifica, torna in Esecuzione o in Pianificazione.",
+    "title": "Fasi del workflow",
+    "pipeline": "A che punto sono i piani nel workflow",
+    "note": "Fasi da 1 a 5: piani aperti. Fase 6: piani chiusi nel periodo. La fase si legge dal piano (assegnazione, azioni, avanzamento): non cambia alcuno stato.",
+    "DETECTION": "Rilevazione",
+    "ANALYSIS": "Analisi",
+    "PLANNING": "Pianificazione",
+    "EXECUTION": "Esecuzione",
+    "VERIFICATION": "Verifica",
+    "CLOSURE": "Chiusura",
+    "hint": {
+      "DETECTION": "Piano creato, non ancora affidato a un responsabile.",
+      "ANALYSIS": "Responsabile indicato, nessuna azione dettagliata: ricerca delle cause.",
+      "PLANNING": "Azioni definite, nessuna iniziata.",
+      "EXECUTION": "Almeno un'azione iniziata.",
+      "VERIFICATION": "Tutte le azioni sono terminate: convalida e controllo di efficacia.",
+      "CLOSURE": "Piano chiuso."
+    }
+  },
+  "proofs": {
+    "toggle": "Prove allegate: {{count}}",
+    "by": "Aggiunta da {{name}}",
+    "unknown": "—",
+    "download": "Scarica",
+    "loadError": "Impossibile caricare le prove."
+  },
+  "planTimeline": {
+    "title": "Storico del piano",
+    "loading": "Caricamento dello storico…",
+    "empty": "Nessun evento per ora.",
+    "loadError": "Impossibile caricare lo storico.",
+    "type": {
+      "comment_added": "Commento aggiunto",
+      "created": "Piano creato",
+      "status_changed": "Stato modificato",
+      "assigned": "Assegnato",
+      "reassigned": "Riassegnato",
+      "unassigned": "Assegnazione rimossa",
+      "fields_updated": "Informazioni modificate",
+      "archived": "Archiviato",
+      "restored": "Ripristinato",
+      "rejected": "Rinviato",
+      "resubmitted": "Inviato di nuovo",
+      "marked_completed": "Segnato come completato",
+      "progress_updated": "Avanzamento aggiornato",
+      "warning_sent": "Avviso",
+      "subaction_progress": "Avanzamento di un'azione",
+      "subaction_completed": "Azione completata",
+      "subaction_validated": "Azione convalidata",
+      "subaction_rejected": "Azione rifiutata",
+      "subaction_warning": "Avviso su un'azione",
+      "subaction_proof": "Prova aggiunta"
+    }
+  },
+  "planComments": {
+    "title": "Commenti",
+    "placeholder": "Scrivi un commento…",
+    "send": "Invia",
+    "sending": "Invio…",
+    "shortcut": "Ctrl+Invio per inviare",
+    "empty": "Nessun commento per ora. Scrivi il primo: le persone coinvolte in questo piano saranno avvisate.",
+    "loading": "Caricamento…",
+    "now": "adesso",
+    "minutesAgo_one": "{{count}} min fa",
+    "minutesAgo_other": "{{count}} min fa",
+    "hoursAgo_one": "{{count}} h fa",
+    "hoursAgo_other": "{{count}} h fa",
+    "edited": "modificato",
+    "edit": "Modifica",
+    "remove": "Elimina",
+    "admin": "Admin",
+    "removeTitle": "Eliminare questo commento?",
+    "removeText": "Scompare dalla pagina ma resta archiviato: nulla viene cancellato.",
+    "loadError": "Impossibile caricare i commenti.",
+    "saveError": "Impossibile salvare il commento."
+  },
   "adminNav": {
     "cvReview": "Validazione foto",
     "thresholds": "Soglie e obiettivi",
@@ -1268,6 +1360,13 @@
     }
   },
   "indicators": {
+    "criticalActions": "Azioni critiche aperte",
+    "criticalSub": "{{pct}} % delle azioni aperte · {{late}} in ritardo",
+    "criticalNone": "Nessuna azione aperta.",
+    "efficacy": "Tasso di efficacia",
+    "efficacySub": "{{effective}} piano/i efficace/i su {{evaluated}} valutato/i",
+    "efficacyNone": "Nessun piano chiuso ha ancora un controllo di efficacia (fase D6 dell'8D).",
+    "byDomain": "Per dominio",
     "plansOpen": "Piani aperti",
     "plansLate": "Piani in ritardo",
     "plansCreated": "Piani creati",
@@ -3219,6 +3318,7 @@
     "importing": "Importazione…"
   },
   "notificationBell": {
+    "kindComment": "Commento",
     "justNow": "proprio ora",
     "minutesAgo": "{{n}} min fa",
     "hoursAgo": "{{n}} h fa",
@@ -3248,6 +3348,9 @@
     "assign": "Assegna"
   },
   "actionHistory": {
+    "oldValue": "Valore precedente",
+    "kind": {"progress": "Avanzamento", "proof": "Prova", "warning": "Avviso"},
+    "assignmentsHint": "Qui: a chi è stata data o tolta questa azione. Niente finché l'azione non cambia responsabile.",
     "assigned": "Assegnata",
     "unassigned": "Non più assegnata",
     "reassigned": "Riassegnata",
@@ -5390,6 +5493,7 @@
     "searchList": "Cerca nell'elenco…",
     "noMatch": "Nessun valore corrisponde alla ricerca.",
     "vocab": {
+      "domain": {"title": "Domini dei piani d'azione", "help": "I domini proposti per un piano d'azione. Aggiungi il tuo, cambia l'ordine o disattivane uno: i piani esistenti mantengono il loro dominio.", "placeholder": "Es. SECURITY"},
       "client": { "title": "Clienti", "help": "Proposti quando si crea o modifica un reclamo. La digitazione libera resta possibile.", "placeholder": "Es. STELLANTIS-01" },
       "production-line": { "title": "Linee di produzione", "help": "Proposte quando si compilano i dati di produzione di un reclamo.", "placeholder": "Es. WR-04" },
       "shift": { "title": "Turni", "help": "Proposti quando si compilano i dati di produzione di un reclamo.", "placeholder": "Es. Mattina" },

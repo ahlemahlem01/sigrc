@@ -51,6 +51,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<AlertTimelineEvent> AlertTimelineEvents => Set<AlertTimelineEvent>();
     public DbSet<AlertReport> AlertReports => Set<AlertReport>();
     public DbSet<AlertComment> AlertComments => Set<AlertComment>();
+    public DbSet<ActionPlanComment> ActionPlanComments => Set<ActionPlanComment>();
     public DbSet<AlertAttachment> AlertAttachments => Set<AlertAttachment>();
     public DbSet<CalendarEvent> CalendarEvents => Set<CalendarEvent>();
     public DbSet<SemanticEmbedding> SemanticEmbeddings => Set<SemanticEmbedding>();
@@ -526,8 +527,18 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
         modelBuilder.Entity<Department>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<Function>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<UserFunction>().HasQueryFilter(e => !e.IsArchived);
+        modelBuilder.Entity<ActionPlanComment>(entity =>
+        {
+            entity.ToTable("ActionPlanComments");
+            entity.Property(c => c.Body).IsRequired().HasMaxLength(2000);
+            entity.Property(c => c.AuthorId).IsRequired().HasMaxLength(100);
+            entity.HasOne(c => c.ActionPlan).WithMany().HasForeignKey(c => c.ActionPlanId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(c => new { c.ActionPlanId, c.CreatedAt });
+        });
         modelBuilder.Entity<CoreEntities.ActionPlan>().HasQueryFilter(e => !e.IsArchived);
         modelBuilder.Entity<CoreEntities.ActionPlan>().Property(p => p.Reference).HasMaxLength(32);
+        modelBuilder.Entity<CoreEntities.ActionPlan>().Property(p => p.Domain).HasMaxLength(50).HasDefaultValue(CoreEntities.ActionPlanDomains.Default);
+        modelBuilder.Entity<CoreEntities.ActionPlan>().HasIndex(p => p.Domain);
         modelBuilder.Entity<CoreEntities.ActionPlan>().HasIndex(p => p.Reference).IsUnique().HasFilter("[Reference] IS NOT NULL");
         modelBuilder.Entity<CoreEntities.ActionPlan>()
             .HasOne<Alert>()

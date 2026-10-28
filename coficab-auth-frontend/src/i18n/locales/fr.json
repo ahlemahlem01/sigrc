@@ -662,6 +662,98 @@
     "validate": "Valider",
     "reject": "Écarter"
   },
+  "planDomains": {
+    "QUALITY": "Qualité",
+    "PRODUCTION": "Production",
+    "MAINTENANCE": "Maintenance",
+    "HSE": "HSE",
+    "LOGISTICS": "Logistique",
+    "HR": "Ressources humaines",
+    "CONTINUOUS_IMPROVEMENT": "Amélioration continue"
+  },
+  "planDomain": {
+    "label": "Domaine",
+    "all": "Tous les domaines",
+    "help": "Secteur d'activité du plan (qualité, production, maintenance, HSE...)."
+  },
+  "workflowStages": {
+    "noteVerification": "La vérification commence dès que toutes les actions sont terminées : elle n'attend pas le contrôle d'efficacité (étape D6 du 8D), qui reste à valider avant la clôture.",
+    "noteBackwards": "L'étape se recalcule toute seule à chaque ouverture : si une nouvelle action est ajoutée à un plan en Vérification, il repasse en Exécution ou en Planification.",
+    "title": "Étapes du workflow",
+    "pipeline": "Où en sont les plans dans le workflow",
+    "note": "Étapes 1 à 5 : plans ouverts. Étape 6 : plans clôturés sur la période. L'étape se lit sur le plan (assignation, actions, avancement), elle ne change aucun statut.",
+    "DETECTION": "Détection",
+    "ANALYSIS": "Analyse",
+    "PLANNING": "Planification",
+    "EXECUTION": "Exécution",
+    "VERIFICATION": "Vérification",
+    "CLOSURE": "Clôture",
+    "hint": {
+      "DETECTION": "Plan créé, pas encore confié à un responsable.",
+      "ANALYSIS": "Responsable désigné, aucune action détaillée : recherche des causes.",
+      "PLANNING": "Actions définies, aucune commencée.",
+      "EXECUTION": "Au moins une action commencée.",
+      "VERIFICATION": "Toutes les actions sont terminées : validation et contrôle d'efficacité.",
+      "CLOSURE": "Plan clôturé."
+    }
+  },
+  "proofs": {
+    "toggle": "Preuves jointes : {{count}}",
+    "by": "Ajoutée par {{name}}",
+    "unknown": "—",
+    "download": "Télécharger",
+    "loadError": "Impossible de charger les preuves."
+  },
+  "planTimeline": {
+    "title": "Historique du plan",
+    "loading": "Chargement de l'historique…",
+    "empty": "Aucun événement pour le moment.",
+    "loadError": "Impossible de charger l'historique.",
+    "type": {
+      "comment_added": "Commentaire ajouté",
+      "created": "Plan créé",
+      "status_changed": "Statut modifié",
+      "assigned": "Assigné",
+      "reassigned": "Réassigné",
+      "unassigned": "Assignation retirée",
+      "fields_updated": "Informations modifiées",
+      "archived": "Archivé",
+      "restored": "Restauré",
+      "rejected": "Renvoyé",
+      "resubmitted": "Soumis de nouveau",
+      "marked_completed": "Marqué terminé",
+      "progress_updated": "Avancement mis à jour",
+      "warning_sent": "Avertissement",
+      "subaction_progress": "Avancement d'une action",
+      "subaction_completed": "Action terminée",
+      "subaction_validated": "Action validée",
+      "subaction_rejected": "Action rejetée",
+      "subaction_warning": "Avertissement sur une action",
+      "subaction_proof": "Preuve ajoutée"
+    }
+  },
+  "planComments": {
+    "title": "Commentaires",
+    "placeholder": "Écrire un commentaire…",
+    "send": "Envoyer",
+    "sending": "Envoi…",
+    "shortcut": "Ctrl+Entrée pour envoyer",
+    "empty": "Aucun commentaire pour le moment. Écrivez le premier : les personnes concernées par ce plan seront prévenues.",
+    "loading": "Chargement…",
+    "now": "à l'instant",
+    "minutesAgo_one": "il y a {{count}} min",
+    "minutesAgo_other": "il y a {{count}} min",
+    "hoursAgo_one": "il y a {{count}} h",
+    "hoursAgo_other": "il y a {{count}} h",
+    "edited": "modifié",
+    "edit": "Modifier",
+    "remove": "Supprimer",
+    "admin": "Admin",
+    "removeTitle": "Supprimer ce commentaire ?",
+    "removeText": "Il disparaît de la page mais reste archivé : rien n'est effacé.",
+    "loadError": "Impossible de charger les commentaires.",
+    "saveError": "Le commentaire n'a pas pu être enregistré."
+  },
   "adminNav": {
     "cvReview": "Validation des photos",
     "thresholds": "Seuils et objectifs",
@@ -1268,6 +1360,13 @@
     }
   },
   "indicators": {
+    "criticalActions": "Actions critiques ouvertes",
+    "criticalSub": "{{pct}} % des actions ouvertes · {{late}} en retard",
+    "criticalNone": "Aucune action ouverte.",
+    "efficacy": "Taux d'efficacité",
+    "efficacySub": "{{effective}} plan(s) efficace(s) sur {{evaluated}} évalué(s)",
+    "efficacyNone": "Aucun plan clôturé n'a encore de contrôle d'efficacité (étape D6 du 8D).",
+    "byDomain": "Par domaine",
     "plansOpen": "Plans ouverts",
     "plansLate": "Plans en retard",
     "plansCreated": "Plans créés",
@@ -3219,6 +3318,7 @@
     "importing": "Import…"
   },
   "notificationBell": {
+    "kindComment": "Commentaire",
     "justNow": "à l'instant",
     "minutesAgo": "il y a {{n}} min",
     "hoursAgo": "il y a {{n}} h",
@@ -3248,6 +3348,9 @@
     "assign": "Assigner"
   },
   "actionHistory": {
+    "oldValue": "Ancienne valeur",
+    "kind": {"progress": "Avancement", "proof": "Preuve", "warning": "Avertissement"},
+    "assignmentsHint": "Ici : qui a reçu ou perdu cette action. Rien tant que l'action n'a pas changé de responsable.",
     "assigned": "Assignée",
     "unassigned": "Désassignée",
     "reassigned": "Réassignée",
@@ -5390,6 +5493,7 @@
     "searchList": "Rechercher dans la liste…",
     "noMatch": "Aucune valeur ne correspond à la recherche.",
     "vocab": {
+      "domain": {"title": "Domaines des plans d'action", "help": "Les domaines proposés pour un plan d'action. Ajoutez le vôtre, changez l'ordre ou désactivez-en un : les plans existants gardent leur domaine.", "placeholder": "Ex. SECURITY"},
       "client": { "title": "Clients", "help": "Proposés quand on crée ou modifie une réclamation. La saisie libre reste possible.", "placeholder": "Ex. STELLANTIS-01" },
       "production-line": { "title": "Lignes de production", "help": "Proposées quand on renseigne les données de production d'une réclamation.", "placeholder": "Ex. WR-04" },
       "shift": { "title": "Équipes", "help": "Proposées quand on renseigne les données de production d'une réclamation.", "placeholder": "Ex. Matin" },

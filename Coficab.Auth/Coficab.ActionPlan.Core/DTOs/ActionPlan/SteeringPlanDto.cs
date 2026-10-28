@@ -5,6 +5,7 @@ public class SteeringPlanDto
     public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public int Type { get; set; }
+    public string Domain { get; set; } = "QUALITY";
     public int Status { get; set; }
     public string DepartmentName { get; set; } = string.Empty;
     public Guid OrganizationId { get; set; }

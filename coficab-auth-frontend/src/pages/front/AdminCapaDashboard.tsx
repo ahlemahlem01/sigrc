@@ -10,6 +10,10 @@ import { fixMojibake } from '../../utils/textEncoding';
 import UserAvatar from '../../components/UserAvatar';
 import { ListSkeleton } from '../../components/TableSkeleton';
 import type { ActionPlanType, PlanActionPriority } from './action-plan.types';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { useOrganizationScope } from '../../context/OrganizationScopeContext';
+import { fetchCapaIndicators, type CapaIndicators } from '../../services/capaIndicatorsService';
+import { domainOf, inDomain } from '../../utils/planDomain';
 
 const COFICAB = '#000168';
 const PAGE_SIZE = 8;
@@ -24,6 +28,7 @@ type Row = {
   title: string;
   urgency: PlanActionPriority;
   nature: ActionPlanType;
+  domain: string;
   process: string;
   responsibleId?: string;
   responsibleName: string;
@@ -155,7 +160,10 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [kpis, setKpis] = useState({ delayed: 0, pending: 0, inProgress: 0, realized: 0 });
+  const [filterDomain, setFilterDomain] = useState('all');
+  const { domains } = useReferenceLists();
+  const { param: scopeParam } = useOrganizationScope();
+  const [figures, setFigures] = useState<CapaIndicators['kpis'] | null>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [activeKpi, setActiveKpi] = useState<KpiKey | 'all'>('all');
 
@@ -275,6 +283,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
             title: fixMojibake(a.title || a.Title) || t('dashboard.untitled'),
             urgency: toUiPriority(a.priority ?? a.Priority),
             nature: toUiType(a.planType ?? a.PlanType ?? p.type ?? p.Type) || nature,
+            domain: domainOf({ domain: p.domain ?? p.Domain }),
             process: fixMojibake(a.departmentName || a.DepartmentName) || process,
             responsibleId: assignee ? String(assignee) : undefined,
             responsibleName: personName(assignee, apiName),
@@ -299,6 +308,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
             title: fixMojibake(p.title || p.Title) || t('dashboard.untitled'),
             urgency: 'high',
             nature,
+            domain: domainOf({ domain: p.domain ?? p.Domain }),
             process,
             responsibleId: assignee ? String(assignee) : undefined,
             responsibleName: personName(assignee, apiName),
@@ -329,6 +339,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
           title: fixMojibake(a.title || a.Title) || t('dashboard.untitled'),
           urgency: toUiPriority(a.priority ?? a.Priority),
           nature: toUiType(parent?.type ?? parent?.Type),
+          domain: domainOf({ domain: parent?.domain ?? parent?.Domain }),
           process: fixMojibake(parent?.departmentName || parent?.DepartmentName) || '—',
           responsibleId: assignee ? String(assignee) : undefined,
           responsibleName: personName(assignee, apiName),
@@ -339,13 +350,6 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
           bucket: 'delayed',
         });
       }
-
-      setKpis({
-        delayed: mapped.filter((r) => r.bucket === 'delayed').length,
-        pending: mapped.filter((r) => r.bucket === 'pending').length,
-        inProgress: mapped.filter((r) => r.bucket === 'inProgress').length,
-        realized: mapped.filter((r) => r.bucket === 'realized').length,
-      });
 
       mapped.sort((a, b) => b.daysLate - a.daysLate || a.title.localeCompare(b.title, 'fr'));
       setRows(mapped);
@@ -361,6 +365,27 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
   }, [accessToken, t]);
 
   useEffect(() => { void load(); }, [load]);
+
+  // the two plan-level indicators of the specification (critical open actions, efficacy rate) come from the server, like the back-office dashboard
+  useEffect(() => {
+    if (!accessToken) return;
+    let live = true;
+    fetchCapaIndicators(accessToken, 90, scopeParam, undefined, filterDomain === 'all' ? undefined : filterDomain)
+      .then((d) => { if (live) setFigures(d.kpis); })
+      .catch(() => { if (live) setFigures(null); });
+    return () => { live = false; };
+  }, [accessToken, scopeParam, filterDomain]);
+
+  /** The four figures follow the chosen domain (all domains = everything). */
+  const kpis = useMemo(() => {
+    const scoped = inDomain(rows, filterDomain);
+    return {
+      delayed: scoped.filter((r) => r.bucket === 'delayed').length,
+      pending: scoped.filter((r) => r.bucket === 'pending').length,
+      inProgress: scoped.filter((r) => r.bucket === 'inProgress').length,
+      realized: scoped.filter((r) => r.bucket === 'realized').length,
+    };
+  }, [rows, filterDomain]);
 
   const processes = useMemo(
     () => Array.from(new Set(rows.map((r) => r.process).filter((p) => p && p !== '—'))).sort((a, b) => a.localeCompare(b, i18n.language)),
@@ -394,6 +419,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
       }
       if (filterUrgency !== 'all' && r.urgency !== filterUrgency) return false;
       if (filterNature !== 'all' && r.nature !== filterNature) return false;
+      if (filterDomain !== 'all' && r.domain !== filterDomain) return false;
       if (filterProcess !== 'all' && r.process !== filterProcess) return false;
       if (filterFrom || filterTo) {
         const due = dayStamp(r.deadline);
@@ -412,7 +438,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
         r.statusLabel.toLowerCase().includes(term)
       );
     }).sort((a, b) => b.daysLate - a.daysLate || a.title.localeCompare(b.title, 'fr'));
-  }, [rows, q, activeKpi, filterUrgency, filterNature, filterProcess, filterFrom, filterTo, filterResponsible]);
+  }, [rows, q, activeKpi, filterUrgency, filterNature, filterDomain, filterProcess, filterFrom, filterTo, filterResponsible]);
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
@@ -422,7 +448,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
 
   useEffect(() => {
     setPage(1);
-  }, [q, activeKpi, filterUrgency, filterNature, filterProcess, filterFrom, filterTo, filterResponsible]);
+  }, [q, activeKpi, filterUrgency, filterNature, filterDomain, filterProcess, filterFrom, filterTo, filterResponsible]);
 
   const cardDefs: { key: KpiKey; label: string; value: number; accent: string; tint: string }[] = [
     { key: 'delayed', label: t('dashboard.delayed'), value: kpis.delayed, accent: '#dc2626', tint: '#fef2f2' },
@@ -542,6 +568,30 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
               </p>
             </button>
           ))}
+          {figures && (
+            <>
+              <div className="acd-card text-left rounded-xl px-4 py-3" style={{ ['--acd-accent' as string]: figures.criticalOpenActions > 0 ? '#dc2626' : '#059669', cursor: 'default' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t('indicators.criticalActions')}</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: figures.criticalOpenActions > 0 ? '#dc2626' : '#059669' }}>{figures.criticalOpenActions}</div>
+                <p className="text-xs mt-1 text-slate-500 leading-snug">
+                  {figures.openActions === 0
+                    ? t('indicators.criticalNone')
+                    : t('indicators.criticalSub', { pct: ((100 * figures.criticalOpenActions) / figures.openActions).toFixed(1), late: figures.criticalLateActions })}
+                </p>
+              </div>
+              <div className="acd-card text-left rounded-xl px-4 py-3" style={{ ['--acd-accent' as string]: '#2563eb', cursor: 'default' }}>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t('indicators.efficacy')}</div>
+                <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: '#2563eb' }}>
+                  {figures.efficacyRate.current == null ? '—' : `${figures.efficacyRate.current.toFixed(1)} %`}
+                </div>
+                <p className="text-xs mt-1 text-slate-500 leading-snug">
+                  {figures.efficacyEvaluated === 0
+                    ? t('indicators.efficacyNone')
+                    : t('indicators.efficacySub', { effective: figures.efficacyEffective, evaluated: figures.efficacyEvaluated })}
+                </p>
+              </div>
+            </>
+          )}
         </div>
         )}
 
@@ -576,6 +626,10 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
               <option value="preventif">{t('dashboard.naturePreventive')}</option>
               <option value="correctif">{t('dashboard.natureCorrective')}</option>
               <option value="amelioration">{t('dashboard.natureImprovement')}</option>
+            </select>
+            <select value={filterDomain} onChange={(e) => setFilterDomain(e.target.value)} className={selectCls} aria-label={t('planDomain.label')}>
+              <option value="all">{t('planDomain.all')}</option>
+              {domains.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
             <select value={filterProcess} onChange={(e) => setFilterProcess(e.target.value)} className={selectCls}>
               <option value="all">{t('dashboard.allDepartments')}</option>

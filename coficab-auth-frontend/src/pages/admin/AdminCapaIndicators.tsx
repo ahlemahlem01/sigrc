@@ -12,6 +12,9 @@ import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import EmployeeActivityWidget from './dashboard/EmployeeActivityWidget';
 import DashboardSummaryBar from './dashboard/DashboardSummaryBar';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { domainLabel } from '../../utils/planDomain';
+import WorkflowStages from '../../components/capa/WorkflowStages';
 
 type Period = '7d' | '1m' | '3m' | '1y';
 const PERIOD_DAYS: Record<Period, number> = { '7d': 7, '1m': 30, '3m': 90, '1y': 365 };
@@ -74,6 +77,8 @@ export default function AdminCapaIndicators() {
   const { param: scopeParam } = useOrganizationScope();
   const [period, setPeriod] = useState<Period>('3m');
   const [departmentId, setDepartmentId] = useState('');
+  const [domain, setDomain] = useState('');
+  const { domains } = useReferenceLists();
   const [data, setData] = useState<CapaIndicators | null>(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
@@ -83,7 +88,7 @@ export default function AdminCapaIndicators() {
     setLoading(true);
     setError('');
     try {
-      const next = await fetchCapaIndicators(accessToken, PERIOD_DAYS[period], scopeParam, departmentId || undefined);
+      const next = await fetchCapaIndicators(accessToken, PERIOD_DAYS[period], scopeParam, departmentId || undefined, domain || undefined);
       setData(next);
       // a department that left the followed organizations no longer exists in the list
       if (departmentId && !next.byDepartment.some((d) => d.id === departmentId)) setDepartmentId('');
@@ -92,7 +97,7 @@ export default function AdminCapaIndicators() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, period, scopeParam, departmentId, t]);
+  }, [accessToken, period, scopeParam, departmentId, domain, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -118,8 +123,11 @@ export default function AdminCapaIndicators() {
         `${t('indicators.plansLate')}: ${k.latePlans}`,
         `${t('indicators.plansClosed')}: ${fmt(k.closed.current)}`,
         `${t('indicators.onTime')}: ${k.onTimeRate.current == null ? '—' : `${fmt(k.onTimeRate.current, 1)} %`}`,
+        `${t('indicators.criticalActions')}: ${k.criticalOpenActions}`,
+        `${t('indicators.efficacy')}: ${k.efficacyRate.current == null ? '—' : `${fmt(k.efficacyRate.current, 1)} %`}`,
         `Period: ${period}`,
         ...(selectedDepartment ? [`${t('planDetail.department')}: ${selectedDepartment.name}`] : []),
+        ...(domain ? [`${t('planDomain.label')}: ${domainLabel(domain)}`] : []),
       ],
       columns: [
         { key: 'name', label: t('indicators.colDepartment') },
@@ -138,6 +146,17 @@ export default function AdminCapaIndicators() {
   return (
     <div className="text-slate-900 w-full min-w-0">
       <div className="flex flex-wrap items-center justify-end gap-2 mb-4">
+        <select
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          aria-label={t('planDomain.label')}
+          className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 max-w-[220px]"
+        >
+          <option value="">{t('planDomain.all')}</option>
+          {domains.map((d) => (
+            <option key={d.value} value={d.value}>{d.label}</option>
+          ))}
+        </select>
         <select
           value={departmentId}
           onChange={(e) => setDepartmentId(e.target.value)}
@@ -180,6 +199,22 @@ export default function AdminCapaIndicators() {
               unit={k.onTimeRate.current == null ? undefined : '%'}
               tone={k.onTimeRate.current == null ? '#94a3b8' : k.onTimeRate.current >= 85 ? GOOD : k.onTimeRate.current >= 70 ? ORANGE : BAD}
               delta={<Delta figure={k.onTimeRate} unit="pts" />}
+            />
+            <Kpi
+              label={t('indicators.criticalActions')}
+              value={fmt(k.criticalOpenActions)}
+              tone={k.criticalOpenActions > 0 ? BAD : GOOD}
+              sub={k.openActions === 0
+                ? t('indicators.criticalNone')
+                : t('indicators.criticalSub', { pct: fmt((100 * k.criticalOpenActions) / k.openActions, 1), late: k.criticalLateActions })}
+            />
+            <Kpi
+              label={t('indicators.efficacy')}
+              value={fmt(k.efficacyRate.current, 1)}
+              unit={k.efficacyRate.current == null ? undefined : '%'}
+              tone={k.efficacyRate.current == null ? '#94a3b8' : k.efficacyRate.current >= 85 ? GOOD : k.efficacyRate.current >= 70 ? ORANGE : BAD}
+              sub={k.efficacyEvaluated === 0 ? t('indicators.efficacyNone') : t('indicators.efficacySub', { effective: k.efficacyEffective, evaluated: k.efficacyEvaluated })}
+              delta={<Delta figure={k.efficacyRate} unit="pts" />}
             />
             <Kpi
               label={t('indicators.avgClosure')}
@@ -225,6 +260,40 @@ export default function AdminCapaIndicators() {
               )}
             </Panel>
           </div>
+
+          <Panel title={t('workflowStages.pipeline')} className="mb-5">
+            <WorkflowStages counts={data.byStage.map((s) => s.plans)} compact />
+            <p className="text-[11px] text-slate-500 mt-2 mb-0">{t('workflowStages.note')}</p>
+          </Panel>
+
+          {data.byDomain.length > 1 && (
+            <Panel title={t('indicators.byDomain')} className="mb-5">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-500">
+                      <th className="py-1 pr-3 font-semibold">{t('planDomain.label')}</th>
+                      <th className="py-1 pr-3 font-semibold">{t('indicators.colOpen')}</th>
+                      <th className="py-1 pr-3 font-semibold">{t('indicators.colLate')}</th>
+                      <th className="py-1 pr-3 font-semibold">{t('indicators.colClosed')}</th>
+                      <th className="py-1 font-semibold">{t('indicators.colOnTime')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.byDomain.map((d) => (
+                      <tr key={d.domain} className={`border-t border-slate-100 ${domain && domain.toUpperCase() === d.domain.toUpperCase() ? 'bg-indigo-50/60' : ''}`}>
+                        <td className="py-1.5 pr-3 font-medium text-slate-700">{domainLabel(d.domain)}</td>
+                        <td className="py-1.5 pr-3 tabular-nums">{d.openPlans}</td>
+                        <td className="py-1.5 pr-3 tabular-nums" style={d.latePlans > 0 ? { color: BAD } : undefined}>{d.latePlans}</td>
+                        <td className="py-1.5 pr-3 tabular-nums">{d.closedInPeriod}</td>
+                        <td className="py-1.5 tabular-nums">{d.onTimeRate == null ? '—' : `${fmt(d.onTimeRate, 1)} %`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
+          )}
 
           <Panel title={t('indicators.monthlyPlans')} className="mb-5">
             <div className="h-52">

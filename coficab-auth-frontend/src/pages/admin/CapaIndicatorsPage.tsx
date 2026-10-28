@@ -8,6 +8,7 @@ import { PageSkeleton } from '../../components/TableSkeleton';
 import DashInfoTip from './dashboard/DashInfoTip';
 import WorkflowEvolutionSection from './dashboard/WorkflowEvolutionSection';
 import { COFICAB, PLANS_ACCENT } from './dashboard/dashPalette';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
 
 const DAYS = 365;
 const NAVY = '#000168';
@@ -35,6 +36,8 @@ export default function CapaIndicatorsPage() {
   const { accessToken } = useAuth();
   const { param: scopeParam } = useOrganizationScope();
   const [departmentId, setDepartmentId] = useState('');
+  const [domain, setDomain] = useState('');
+  const { domains } = useReferenceLists();
   const [data, setData] = useState<CapaIndicators | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,7 +47,7 @@ export default function CapaIndicatorsPage() {
     setLoading(true);
     setError('');
     try {
-      const next = await fetchCapaIndicators(accessToken, DAYS, scopeParam, departmentId || undefined);
+      const next = await fetchCapaIndicators(accessToken, DAYS, scopeParam, departmentId || undefined, domain || undefined);
       setData(next);
       // a department that left the followed organizations no longer exists in the list
       if (departmentId && !next.byDepartment.some((d) => d.id === departmentId)) setDepartmentId('');
@@ -53,7 +56,7 @@ export default function CapaIndicatorsPage() {
     } finally {
       setLoading(false);
     }
-  }, [accessToken, scopeParam, departmentId, t]);
+  }, [accessToken, scopeParam, departmentId, domain, t]);
 
   useEffect(() => { void load(); }, [load]);
 
@@ -77,6 +80,18 @@ export default function CapaIndicatorsPage() {
           <p className="text-sm mt-1 mb-0" style={{ color: COFICAB.muted }}>{t('capaIndicators.subtitle')}</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={domain}
+            onChange={(e) => setDomain(e.target.value)}
+            aria-label={t('planDomain.label')}
+            className="px-3 py-2 text-xs font-semibold rounded-xl border bg-white max-w-[220px]"
+            style={{ borderColor: COFICAB.line, color: COFICAB.navy }}
+          >
+            <option value="">{t('planDomain.all')}</option>
+            {domains.map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
+            ))}
+          </select>
           <select
             value={departmentId}
             onChange={(e) => setDepartmentId(e.target.value)}

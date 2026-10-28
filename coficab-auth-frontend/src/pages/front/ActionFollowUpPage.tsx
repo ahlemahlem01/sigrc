@@ -1,3 +1,4 @@
+import { domainOf, inDomain } from '../../utils/planDomain';
 import TablePagination from '../../components/TablePagination';
 import { usePagedList } from '../../hooks/usePagedList';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,6 +23,7 @@ type ViewMode = 'monitoring' | 'realization';
 type MonitorLevel = 'onTrack' | 'watch' | 'belated' | 'done' | 'cancelled';
 
 type ActionRow = {
+  domain: string;
   id: string;
   actionPlanId: string;
   planTitle: string;
@@ -139,7 +141,7 @@ const MONITOR_BADGE: Record<MonitorLevel, { bg: string; color: string }> = {
   cancelled: { bg: '#f1f5f9', color: '#64748b' },
 };
 
-export default function ActionFollowUpPage({ embedded = false, focus }: { embedded?: boolean; focus?: 'belated' | 'realized' }) {
+export default function ActionFollowUpPage({ embedded = false, focus, domain }: { embedded?: boolean; focus?: 'belated' | 'realized'; domain?: string }) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const navigate = useNavigate();
@@ -208,6 +210,7 @@ export default function ActionFollowUpPage({ embedded = false, focus }: { embedd
           ) || process;
 
           mapped.push({
+            domain: domainOf({ domain: p.domain ?? p.Domain }),
             id: String(a.id || a.Id),
             actionPlanId: planId,
             planTitle,
@@ -250,7 +253,7 @@ export default function ActionFollowUpPage({ embedded = false, focus }: { embedd
 
   // "To handle": late actions, finished ones waiting for validation, and those due within 3 days
   const isTodo = (r: ActionRow) => r.planOpen && (r.followStatus === 'belated' || r.followStatus === 'realized' || r.monitoring === 'watch');
-  const base = useMemo(() => (embedded ? rows.filter(isTodo) : rows), [rows, embedded]);
+  const base = useMemo(() => inDomain(embedded ? rows.filter(isTodo) : rows, domain ?? 'all'), [rows, embedded, domain]);
   const todoCounts = useMemo(() => ({
     all: base.length,
     belated: base.filter((r) => r.followStatus === 'belated').length,

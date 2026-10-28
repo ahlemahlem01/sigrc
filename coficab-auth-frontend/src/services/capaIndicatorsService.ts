@@ -16,6 +16,14 @@ export interface CapaIndicators {
     closed: CapaFigure;
     onTimeRate: CapaFigure;
     avgClosureDays: CapaFigure;
+    /** Unfinished actions of open plans, and among them the High-priority ones (critical) and the critical ones already late. */
+    openActions: number;
+    criticalOpenActions: number;
+    criticalLateActions: number;
+    /** Share (%) of the evaluated closed plans whose effectiveness check (D6 of the 8D) found no defect; null while nothing was evaluated. */
+    efficacyRate: CapaFigure;
+    efficacyEvaluated: number;
+    efficacyEffective: number;
   };
   aging: { under30: number; from30To90: number; over90: number };
   byType: { type: string; openPlans: number; latePlans: number; closedInPeriod: number; onTimeRate: number | null }[];
@@ -23,13 +31,17 @@ export interface CapaIndicators {
   monthly: { month: string; opened: number; closed: number }[];
   owners: { name: string; openPlans: number; latePlans: number }[];
   detailedActions: number;
+  /** One line per business domain of the perimeter, whatever the domain filter. */
+  /** The six steps of the general workflow: open plans for 1 to 5, plans closed in the period for 6. */
+  byStage: { stage: number; code: string; plans: number }[];
+  byDomain: { domain: string; openPlans: number; latePlans: number; closedInPeriod: number; onTimeRate: number | null }[];
 }
 
 /** GET /api/dashboard/capa-indicators?days= : CAPA indicators computed on the plans (admins only). */
-export async function fetchCapaIndicators(token: string, days: number, organizationIds?: string, departmentId?: string): Promise<CapaIndicators> {
+export async function fetchCapaIndicators(token: string, days: number, organizationIds?: string, departmentId?: string, domain?: string): Promise<CapaIndicators> {
   const res = await axios.get(`${API_BASE}/dashboard/capa-indicators`, {
     headers: { Authorization: `Bearer ${token}` },
-    params: { days, ...(organizationIds ? { organizationIds } : {}), ...(departmentId ? { departmentId } : {}) },
+    params: { days, ...(organizationIds ? { organizationIds } : {}), ...(departmentId ? { departmentId } : {}), ...(domain ? { domain } : {}) },
   });
   return (res.data?.data ?? res.data) as CapaIndicators;
 }
@@ -85,6 +97,9 @@ export interface PlanDetail {
   description: string | null;
   type: string;
   status: string;
+  domain: string;
+  /** Step of the general workflow, 1 (detection) to 6 (closure), read from the plan. */
+  workflowStage: number;
   organizationId: string;
   organizationName: string;
   departmentId: string;
@@ -99,7 +114,7 @@ export interface PlanDetail {
   claim: { id: string; title: string; clientId: string; severity: string; statusCode: string } | null;
   actions: {
     id: string; title: string; description: string | null; priority: number; progress: number;
-    state: 'open' | 'waitingValidation' | 'validated' | 'cancelled'; deadline: string | null; lateDays: number; responsible: PlanPerson;
+    state: 'open' | 'waitingValidation' | 'validated' | 'cancelled'; deadline: string | null; lateDays: number; responsible: PlanPerson; proofCount: number;
   }[];
   history: { at: string; type: string; by: string; note: string | null; fromStatus: string | null; toStatus: string | null; fromAssignee: string | null; toAssignee: string | null }[];
   lastRejectedAt: string | null;

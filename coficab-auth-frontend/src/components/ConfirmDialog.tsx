@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   title: string;
@@ -12,6 +13,7 @@ type Props = {
 
 /** In-page confirmation: the browser's native confirm() is silently blocked in embedded browsers. */
 export default function ConfirmDialog({ title, text, confirmLabel, danger, busy, onConfirm, onCancel }: Props) {
+  const { t } = useTranslation();
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !busy) onCancel(); };
     window.addEventListener('keydown', onKey);
@@ -24,7 +26,7 @@ export default function ConfirmDialog({ title, text, confirmLabel, danger, busy,
         <h3 className="text-lg font-bold text-gray-900 m-0">{title}</h3>
         <p className="text-sm text-gray-600 mt-2 mb-0">{text}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" disabled={busy} onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
+          <button type="button" disabled={busy} onClick={onCancel} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">{t('common.cancel')}</button>
           <button
             type="button"
             autoFocus

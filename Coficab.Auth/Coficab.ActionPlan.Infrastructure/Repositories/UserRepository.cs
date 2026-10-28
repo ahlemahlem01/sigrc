@@ -61,8 +61,11 @@ public class UserRepository : IUserRepository
 
     private async Task<List<string>> GetUserIdsFromAuthDbAsync(string role)
     {
+        // The authentication tables (schema app_auth) live in the same database as the plans unless AuthDb says otherwise: without this
+        // fallback nobody was found as an administrator and no administrator notification was ever delivered.
         var cs = _configuration.GetConnectionString("AuthDb")
-            ?? _configuration["AuthApi:ConnectionString"];
+            ?? _configuration["AuthApi:ConnectionString"]
+            ?? _configuration.GetConnectionString("DefaultConnection");
         if (!string.IsNullOrWhiteSpace(cs)) cs = Coficab.Auth.API.Data.SqlConnectionResilience.WithDefaults(cs);
         if (string.IsNullOrWhiteSpace(cs) || string.IsNullOrWhiteSpace(role))
             return new List<string>();

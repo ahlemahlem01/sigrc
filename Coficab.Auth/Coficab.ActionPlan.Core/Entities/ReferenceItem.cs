@@ -36,8 +36,29 @@ public static class ReferenceListKeys
     public const string ProductionLine = "production-line";
     public const string Shift = "shift";
 
-    public static readonly string[] All = { DefectType, Severity, Client, ProductionLine, Shift };
+    /// <summary>Business domains of the action plans (quality, production, maintenance, HSE...): the multi-sector scope of the plan module.</summary>
+    public const string Domain = "domain";
+
+    public static readonly string[] All = { DefectType, Severity, Client, ProductionLine, Shift, Domain };
     /// <summary>The lists whose values are plain names (no wording, no fixed levels) and can be filled from the claims.</summary>
     public static readonly string[] Vocabulary = { DefectType, Client, ProductionLine, Shift };
     public static readonly string[] SeverityLevels = { "LOW", "MEDIUM", "HIGH", "CRITICAL" };
+}
+
+/// <summary>The business domains an action plan belongs to. The list is a reference list (domain): these seven are the ones every installation starts with.</summary>
+public static class ActionPlanDomains
+{
+    public const string Quality = "QUALITY";
+    public const string Default = Quality;     // plans born from a claim, an alert or an import without a domain are quality plans
+
+    public static readonly (string Code, string Label)[] Standard =
+    {
+        (Quality, "Qualité"),
+        ("PRODUCTION", "Production"),
+        ("MAINTENANCE", "Maintenance"),
+        ("HSE", "HSE"),
+        ("LOGISTICS", "Logistique"),
+        ("HR", "Ressources humaines"),
+        ("CONTINUOUS_IMPROVEMENT", "Amélioration continue"),
+    };
 }

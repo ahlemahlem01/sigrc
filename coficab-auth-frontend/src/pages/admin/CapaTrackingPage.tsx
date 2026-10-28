@@ -11,6 +11,7 @@ import AdminCapaAssociatedActions from './AdminCapaAssociatedActions';
 import ActionFollowUpPage from '../front/ActionFollowUpPage';
 import CapaFlowOverview from './CapaFlowOverview';
 import CapaAssigneeGlance from './CapaAssigneeGlance';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
 
 const TABS = [
   { id: 'todo', labelKey: 'tracking.todo' },
@@ -39,7 +40,7 @@ const BAD = '#dc2626';
 const ORANGE = '#ea580c';
 const GOOD = '#2f855a';
 
-function Figure({ label, value, hint, tone, active, onClick }: { label: string; value: number; hint: string; tone: string; active: boolean; onClick: () => void }) {
+function Figure({ label, value, hint, tone, active, onClick }: { label: string; value: number | string; hint: string; tone: string; active: boolean; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -68,14 +69,17 @@ export default function CapaTrackingPage() {
   const focus = view === 'plans' ? (rawFocus === 'late' || rawFocus === 'noActions' ? rawFocus : undefined) : (rawFocus === 'belated' || rawFocus === 'realized' ? rawFocus : undefined);
   const navigate = useNavigate();
   const [figures, setFigures] = useState<CapaIndicators['kpis'] | null>(null);
+  // the business domain narrows the figures and both lists below (empty = every domain)
+  const [domain, setDomain] = useState('');
+  const { domains } = useReferenceLists();
   const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     if (!accessToken || tab !== 'todo') return;
     let live = true;
-    fetchCapaIndicators(accessToken, 90, scopeParam).then((d) => { if (live) setFigures(d.kpis); }).catch(() => { if (live) setFigures(null); });
+    fetchCapaIndicators(accessToken, 90, scopeParam, undefined, domain || undefined).then((d) => { if (live) setFigures(d.kpis); }).catch(() => { if (live) setFigures(null); });
     return () => { live = false; };
-  }, [accessToken, scopeParam, tab, refreshKey]);
+  }, [accessToken, scopeParam, tab, refreshKey, domain]);
 
   useEffect(() => {
     if (!focus) return;
@@ -111,16 +115,23 @@ export default function CapaTrackingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-3">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Plans</div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <Figure label={t('tracking.latePlans')} value={figures.latePlans} tone={figures.latePlans > 0 ? BAD : GOOD} hint={t('tracking.latePlansHint', { open: figures.openPlans })} active={view === 'plans' && focus === 'late'} onClick={() => pick('plans', 'late')} />
                   <Figure label={t('tracking.noActionPlans')} value={figures.plansWithoutActions} tone={NAVY} hint={t('tracking.noActionPlansHint')} active={view === 'plans' && focus === 'noActions'} onClick={() => pick('plans', 'noActions')} />
+                  <Figure label={t('indicators.efficacy')} value={figures.efficacyRate.current == null ? '—' : `${figures.efficacyRate.current.toFixed(1)} %`}
+                    tone={figures.efficacyRate.current == null ? '#94a3b8' : figures.efficacyRate.current >= 85 ? GOOD : figures.efficacyRate.current >= 70 ? ORANGE : BAD}
+                    hint={figures.efficacyEvaluated === 0 ? t('indicators.efficacyNone') : t('indicators.efficacySub', { effective: figures.efficacyEffective, evaluated: figures.efficacyEvaluated })}
+                    active={false} onClick={() => undefined} />
                 </div>
               </div>
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1.5">Actions détaillées</div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <Figure label={t('tracking.lateActions')} value={figures.lateActions} tone={figures.lateActions > 0 ? BAD : GOOD} hint={t('tracking.lateActionsHint')} active={view === 'actions' && focus === 'belated'} onClick={() => pick('actions', 'belated')} />
                   <Figure label={t('tracking.toValidate')} value={figures.actionsToValidate} tone={figures.actionsToValidate > 0 ? ORANGE : GOOD} hint={t('tracking.toValidateHint')} active={view === 'actions' && focus === 'realized'} onClick={() => pick('actions', 'realized')} />
+                  <Figure label={t('indicators.criticalActions')} value={figures.criticalOpenActions} tone={figures.criticalOpenActions > 0 ? BAD : GOOD}
+                    hint={figures.openActions === 0 ? t('indicators.criticalNone') : t('indicators.criticalSub', { pct: ((100 * figures.criticalOpenActions) / figures.openActions).toFixed(1), late: figures.criticalLateActions })}
+                    active={false} onClick={() => undefined} />
                 </div>
               </div>
             </div>
@@ -129,6 +140,11 @@ export default function CapaTrackingPage() {
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <SegmentedToggle options={VIEWS.map((v) => ({ id: v.id, labelKey: v.labelKey }))} value={view} onChange={(id) => go({ tab: 'todo', view: id })} />
             <div className="flex items-center gap-2">
+              <select value={domain} onChange={(e) => setDomain(e.target.value)} aria-label={t('planDomain.label')}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 max-w-[220px]">
+                <option value="">{t('planDomain.all')}</option>
+                {domains.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+              </select>
               <button type="button" onClick={() => setRefreshKey((k) => k + 1)} className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50">{t('dashboard.refresh')}</button>
               <button type="button" onClick={() => navigate('/admin/action-plans/create')} className="px-3 py-1.5 text-xs font-semibold rounded-lg text-white" style={{ background: NAVY }}>+ {t('admin.newPlan')}</button>
             </div>
@@ -136,8 +152,8 @@ export default function CapaTrackingPage() {
           <p className="text-xs text-slate-500 -mt-2 mb-0">{t(`tracking.viewHint.${view}`)}</p>
 
           <div className="ap-tab-body" style={{ width: '100%', minWidth: 0 }}>
-            {view === 'plans' && <><CapaFlowOverview key={refreshKey} /><AdminCapaAssociatedActions key={`${refreshKey}-${focus}`} embedded focus={focus as 'late' | 'noActions' | undefined} /></>}
-            {view === 'actions' && <><CapaAssigneeGlance key={refreshKey} /><ActionFollowUpPage key={`${refreshKey}-${focus}`} embedded focus={focus as 'belated' | 'realized' | undefined} /></>}
+            {view === 'plans' && <><CapaFlowOverview key={refreshKey} /><AdminCapaAssociatedActions key={`${refreshKey}-${focus}-${domain}`} embedded domain={domain || undefined} focus={focus as 'late' | 'noActions' | undefined} /></>}
+            {view === 'actions' && <><CapaAssigneeGlance key={refreshKey} /><ActionFollowUpPage key={`${refreshKey}-${focus}-${domain}`} embedded domain={domain || undefined} focus={focus as 'belated' | 'realized' | undefined} /></>}
           </div>
         </>
       )}

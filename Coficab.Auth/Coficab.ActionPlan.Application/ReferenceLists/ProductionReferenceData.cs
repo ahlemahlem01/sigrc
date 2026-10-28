@@ -18,6 +18,14 @@ public static class ProductionReferenceData
 
     public static readonly IReadOnlyList<Entry> Entries = new[]
     {
+        // Business domains of the action plans (multi-sector scope); an installation can add its own in the reference lists
+        new Entry(ReferenceListKeys.Domain, "QUALITY", "Qualité"),
+        new Entry(ReferenceListKeys.Domain, "PRODUCTION", "Production"),
+        new Entry(ReferenceListKeys.Domain, "MAINTENANCE", "Maintenance"),
+        new Entry(ReferenceListKeys.Domain, "HSE", "HSE"),
+        new Entry(ReferenceListKeys.Domain, "LOGISTICS", "Logistique"),
+        new Entry(ReferenceListKeys.Domain, "HR", "Ressources humaines"),
+        new Entry(ReferenceListKeys.Domain, "CONTINUOUS_IMPROVEMENT", "Amélioration continue"),
         // Cable defect codes (the catalogue of ml-service/defect_catalog.json; a test checks both stay identical)
         new Entry(ReferenceListKeys.DefectType, "CUT_INSULATION", "Coupure / Entaille sur gaine"),
         new Entry(ReferenceListKeys.DefectType, "SCRATCH_INSULATION", "Rayures / marques sur la gaine"),

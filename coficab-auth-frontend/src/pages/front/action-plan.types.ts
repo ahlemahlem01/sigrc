@@ -52,6 +52,8 @@ export interface ActionPlan {
   title: string;
   description?: string;
   type: ActionPlanType;
+  /** Business domain code (reference list "domain"). */
+  domain?: string;
   status: ActionPlanStatus;
   progress?: number;  
   departmentId: string;
@@ -78,6 +80,7 @@ export interface ActionPlanFilters {
   departmentId?: string;
   status?: ActionPlanStatus | 'all';
   type?: ActionPlanType | 'all';
+  domain?: string;
   assignedToId?: string;
   organizationId?: string;
   includeArchived?: boolean;
@@ -87,6 +90,7 @@ export interface CreateActionPlanDTO {
   title: string;
   description?: string;
   type: ActionPlanType;
+  domain?: string;
   departmentId: string;
   organizationId: string;
   assignedToId?: string;

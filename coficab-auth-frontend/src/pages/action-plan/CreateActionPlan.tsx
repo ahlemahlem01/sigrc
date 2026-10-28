@@ -19,6 +19,8 @@ import {
 import { EmployeeRecommendationBanner } from '../../components/EmployeeRecommendationBanner';
 import './CreateActionPlan.css';
 import { useTranslation } from 'react-i18next';
+import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { DEFAULT_DOMAIN, domainLabel } from '../../utils/planDomain';
 
 interface DepartmentDto {
   id: string;
@@ -71,6 +73,8 @@ export default function CreateActionPlan() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState(1);
+  const [domain, setDomain] = useState(DEFAULT_DOMAIN);
+  const { domains } = useReferenceLists();
   const [departmentId, setDepartmentId] = useState('');
 
   const [actions, setActions] = useState<PlanActionForm[]>([
@@ -172,6 +176,7 @@ export default function CreateActionPlan() {
         title,
         description,
         type,
+        domain,
         departmentId,
       });
 
@@ -253,6 +258,15 @@ export default function CreateActionPlan() {
                     ))}
                   </select>
                 </div>
+              </div>
+
+              <div className="mb-3">
+                <label className="capa-create-label">{t('planDomain.label')} *</label>
+                <select className={capaSelectCls} value={domain} onChange={(e) => setDomain(e.target.value)} required title={t('planDomain.help')}>
+                  {domains.map((d) => (
+                    <option key={d.value} value={d.value}>{d.label}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -415,6 +429,10 @@ export default function CreateActionPlan() {
               <div className="capa-create-sum-row">
                 <span>{t('planDetail.type')}</span>
                 <span className="font-semibold text-[#000168]">{typeLabel}</span>
+              </div>
+              <div className="capa-create-sum-row">
+                <span>{t('planDomain.label')}</span>
+                <span className="font-semibold text-[#000168]">{domainLabel(domain)}</span>
               </div>
               <div className="capa-create-sum-row">
                 <span>{t('planDetail.department')}</span>

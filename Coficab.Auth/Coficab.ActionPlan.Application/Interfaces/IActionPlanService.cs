@@ -38,7 +38,8 @@ public interface IActionPlanService
     Task<IEnumerable<ActionPlanHistory>> GetPlanHistoryAsync(Guid planId);
     Task RestoreAsync(Guid id, string restoredBy);
    // Task<IEnumerable<ActionPlanHistory>> GetAllHistoryAsync();
-    Task<IEnumerable<ActionPlanHistoryDto>> GetAllHistoryAsync();
+    /// <summary>The history of every plan and of its sub-actions, or only of one plan.</summary>
+    Task<IEnumerable<ActionPlanHistoryDto>> GetAllHistoryAsync(Guid? planId = null);
     Task<IEnumerable<ActionPlanDto>> GetPendingValidationAsync();
     /// <summary>Sends a plan awaiting validation back to its assignee with a reason.</summary>
     Task RejectAsync(Guid planId, string adminId, string comment);

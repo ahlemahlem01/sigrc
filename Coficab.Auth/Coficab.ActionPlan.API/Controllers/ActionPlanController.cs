@@ -89,7 +89,7 @@ public class ActionPlanController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] bool includeActions = false, [FromQuery] string? organizationIds = null)
+    public async Task<IActionResult> GetAll([FromQuery] bool includeActions = false, [FromQuery] string? organizationIds = null, [FromQuery] string? domain = null)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -100,15 +100,20 @@ public class ActionPlanController : ControllerBase
             var plans = await _actionPlanService.GetVisibleAsync(userId, IsSuperAdmin(), includeActions);
             if (OrganizationFilter.Parse(organizationIds) is { } orgs)
                 plans = plans.Where(p => orgs.Contains(p.OrganizationId)).ToList();
+            if (!string.IsNullOrWhiteSpace(domain))
+                plans = plans.Where(p => string.Equals(p.Domain, domain.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
             return Ok(plans);
         }
 
+        // an employee only gets the plans assigned to them; the domain narrows that list, it never widens it
         var mine = await _actionPlanService.GetUserAssignedPlansAsync(userId);
+        if (!string.IsNullOrWhiteSpace(domain))
+            mine = mine.Where(p => string.Equals(p.Domain, domain.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
         return Ok(mine);
     }
 
     [HttpGet("steering")]
-    public async Task<IActionResult> GetSteering([FromQuery] string? organizationIds = null)
+    public async Task<IActionResult> GetSteering([FromQuery] string? organizationIds = null, [FromQuery] string? domain = null)
     {
         var userId = GetCurrentUserId();
         if (string.IsNullOrEmpty(userId))
@@ -120,6 +125,8 @@ public class ActionPlanController : ControllerBase
         var rows = await _actionPlanService.GetSteeringAsync(userId, IsSuperAdmin());
         if (OrganizationFilter.Parse(organizationIds) is { } orgs)
             rows = rows.Where(r => orgs.Contains(r.OrganizationId)).ToList();
+        if (!string.IsNullOrWhiteSpace(domain))
+            rows = rows.Where(r => string.Equals(r.Domain, domain.Trim(), StringComparison.OrdinalIgnoreCase)).ToList();
         return Ok(rows);
     }
 
@@ -530,6 +537,32 @@ public class ActionPlanController : ControllerBase
             _logger.LogError(ex, "Erreur lors de la récupération des plans assignés");
             return StatusCode(500, new { error = "Une erreur est survenue." });
         }
+    }
+
+    /// <summary>The history of a plan the caller can see (the plan's own events and those of its sub-actions: progress, proofs, validation, rejection).</summary>
+    [HttpGet("assigned/{id:guid}/history")]
+    public async Task<IActionResult> GetAssignedPlanHistory(Guid id)
+    {
+        var userId = GetCurrentUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var visible = IsQualityAdmin() || await _actionPlanService.GetAssignedPlanByIdAsync(id, userId) != null;
+        if (!visible)
+            return NotFound(new { error = "Plan d'action non trouvé ou non assigné." });
+
+        var events = (await _actionPlanService.GetAllHistoryAsync(id)).ToList();
+        // people by name, never by identifier (also inside the stored notes such as "Plan auto-assigné à <id>")
+        var ids = events.SelectMany(e => new[] { e.ChangedBy, e.NewAssignedToId, e.OldAssignedToId }).OfType<string>().Where(u => u.Length > 0).Distinct().ToList();
+        var names = await _db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.UserId)).ToDictionaryAsync(u => u.UserId, u => u.Name, StringComparer.OrdinalIgnoreCase);
+        foreach (var e in events)
+        {
+            if (string.IsNullOrWhiteSpace(e.ChangedByName) && names.TryGetValue(e.ChangedBy ?? "", out var who)) e.ChangedByName = who;
+            if (e.Note is not null)
+                foreach (var (userId2, name) in names)
+                    e.Note = e.Note.Replace(userId2, name, StringComparison.OrdinalIgnoreCase);
+        }
+        return Ok(events);
     }
 
     [HttpGet("assigned/{id}")]

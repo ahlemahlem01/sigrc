@@ -29,6 +29,12 @@ import {
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import axios from 'axios';
 import './MyActionPlanDetail.styles.css';
+import WorkflowStages from '../../components/capa/WorkflowStages';
+import ActionProofs from '../../components/capa/ActionProofs';
+import PlanTimeline from '../../components/capa/PlanTimeline';
+import PlanComments from '../../components/capa/PlanComments';
+import { domainLabel, domainOf } from '../../utils/planDomain';
+import { workflowStageOf } from '../../utils/workflowStage';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 
@@ -40,6 +46,8 @@ interface ActionPlan {
   description?: string;
   status: number;
   type: number;
+  domain?: string;
+  assignedToId?: string;
   progress: number;
   departmentId?: string;
   departmentName?: string;
@@ -189,6 +197,8 @@ export default function MyActionPlanDetail() {
   const [directProgress, setDirectProgress] = useState(0);
   const [savingDirect, setSavingDirect] = useState(false);
   const [historyActionId, setHistoryActionId] = useState<string | null>(null);
+  // changes whenever the actions are reloaded: proofs and the plan history reload with them
+  const historyTick = useMemo(() => actions.map((a) => `${a.id}:${a.progress}:${a.documentCount ?? 0}`).join('|'), [actions]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [rejection, setRejection] = useState<{ comment: string; at?: string } | null>(null);
   const [resubmitting, setResubmitting] = useState(false);
@@ -233,6 +243,8 @@ export default function MyActionPlanDetail() {
         status: Number(planRaw?.status ?? planRaw?.Status ?? 1),
         type: Number(planRaw?.type ?? planRaw?.Type ?? 0),
         progress: toProgress(planRaw?.progress ?? planRaw?.Progress),
+        domain: domainOf({ domain: planRaw?.domain ?? planRaw?.Domain }),
+        assignedToId: String(planRaw?.assignedToId ?? planRaw?.AssignedToId ?? '').trim() || undefined,
         departmentId: planRaw?.departmentId ?? planRaw?.DepartmentId,
         departmentName: fixText(planRaw?.departmentName ?? planRaw?.DepartmentName) || undefined,
         createdAt: planRaw?.createdAt ?? planRaw?.CreatedAt,
@@ -541,6 +553,10 @@ export default function MyActionPlanDetail() {
         </div>
       )}
 
+      <div style={{ margin: '0 0 14px' }}>
+        <WorkflowStages current={workflowStageOf({ status: plan.status, assignedToId: plan.assignedToId }, actions.map((a) => ({ progress: toProgress(a.progress) })))} compact />
+      </div>
+
       <section className={`mpd-summary${planIsOverdue ? ' is-overdue' : ''}`}>
         <div className="mpd-summary-main">
           <div className="mpd-badges">
@@ -548,6 +564,7 @@ export default function MyActionPlanDetail() {
             {plan.type != null && (
               <span className="mpd-badge mpd-badge--type">{TYPE_LABEL[plan.type] ?? t('deadlines.untitledPlan')}</span>
             )}
+            <span className="mpd-badge mpd-badge--type" title={t('planDomain.label')}>{domainLabel(plan.domain)}</span>
             {plan.departmentName && (
               <span className="mpd-chip">
                 <Building2 size={12} /> {plan.departmentName}
@@ -777,10 +794,8 @@ export default function MyActionPlanDetail() {
                         )}
                       </div>
 
-                      {(action.documentCount ?? 0) > 0 && (
-                        <div className="mpd-proof-count">
-                          {t('planDetail.proofCount', { count: action.documentCount })}
-                        </div>
+                      {accessToken && (
+                        <ActionProofs token={accessToken} planActionId={action.id} count={action.documentCount ?? 0} refreshKey={historyTick} />
                       )}
                     </div>
                   </div>
@@ -790,7 +805,8 @@ export default function MyActionPlanDetail() {
           )}
         </section>
 
-        <aside className="mpd-panel mpd-aside">
+        <div style={{ display: 'grid', gap: 16, alignContent: 'start', minWidth: 0 }}>
+        <aside className="mpd-panel mpd-aside" style={{ position: 'static' }}>
           <h2>{t('planDetail.details')}</h2>
           <dl className="mpd-dl">
             <div>
@@ -821,7 +837,14 @@ export default function MyActionPlanDetail() {
             </div>
           </dl>
         </aside>
+          {accessToken && id && <PlanComments token={accessToken} planId={id} />}
+        </div>
       </div>
+
+      <section className="mpd-panel" style={{ marginTop: 16 }}>
+        <h2>{t('planTimeline.title')}</h2>
+        {accessToken && id && <PlanTimeline token={accessToken} planId={id} refreshKey={historyTick} />}
+      </section>
 
       {editingAction && (
         <div

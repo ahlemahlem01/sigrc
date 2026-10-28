@@ -39,6 +39,7 @@ public interface IApplicationDbContext
     DbSet<AlertTimelineEvent> AlertTimelineEvents { get; }
     DbSet<AlertReport> AlertReports { get; }
     DbSet<AlertComment> AlertComments { get; }
+    DbSet<ActionPlanComment> ActionPlanComments { get; }
     DbSet<AlertAttachment> AlertAttachments { get; }
     DbSet<CalendarEvent> CalendarEvents { get; }
     DbSet<SemanticEmbedding> SemanticEmbeddings { get; }

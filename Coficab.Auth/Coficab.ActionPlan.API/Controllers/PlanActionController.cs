@@ -95,7 +95,80 @@ public class PlanActionController : ControllerBase
         var aliases = await Application.QualityAnalyses.Queries.Claims.ClaimVisibility.AliasesAsync(db, HttpContext.RequestAborted);
         foreach (var a in actions.Where(a => !string.IsNullOrWhiteSpace(a.AssignedToId)))
             a.AssignedToName = Application.QualityAnalyses.Queries.Claims.ClaimVisibility.PersonName(profiles, a.AssignedToId, null, aliases);
+
+        var ids = actions.Select(a => a.Id).ToList();
+        var proofs = await db.ActionDocuments.AsNoTracking().Where(d => ids.Contains(d.PlanActionId) && !d.IsArchived)
+            .GroupBy(d => d.PlanActionId).Select(g => new { g.Key, Count = g.Count() }).ToDictionaryAsync(x => x.Key, x => x.Count, HttpContext.RequestAborted);
+        foreach (var a in actions) a.DocumentCount = proofs.GetValueOrDefault(a.Id);
         return Ok(actions);
+    }
+
+    private const long MaxProofBytes = 10 * 1024 * 1024;
+
+    /// <summary>Attaches a proof (photo, report, office file) to a sub-action. Whoever can work on the plan can add one; the file is private and only served by the download route.</summary>
+    [HttpPost("{id:guid}/documents")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> UploadProof(Guid id, IFormFile file, [FromServices] IWebHostEnvironment env, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var action = await _db.PlanActions.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id && !a.IsArchived, ct);
+        if (action is null) return NotFound();
+        if (!await CanAccessPlanAsync(action.ActionPlanId, userId)) return Forbid();
+
+        if (file is not { Length: > 0 }) return BadRequest(new { error = "Fichier requis." });
+        if (file.Length > MaxProofBytes) return BadRequest(new { error = "Fichier trop volumineux (10 Mo maximum)." });
+        if (!Services.DocumentStorage.IsAllowed(file.FileName)) return BadRequest(new { error = "Format refusé : PDF, image, Office ou texte uniquement." });
+
+        var stored = await Services.DocumentStorage.SaveAsync(env, file, userId, ct);
+        var doc = new Core.Entities.ActionDocument
+        {
+            PlanActionId = id, FileName = Path.GetFileName(file.FileName), FilePath = stored, FileType = file.ContentType ?? string.Empty,
+            UploadedBy = userId, CreatedBy = userId,
+        };
+        _db.ActionDocuments.Add(doc);
+        // the proof is part of the action's history, next to its progress changes
+        _db.PlanActionHistories.Add(new Core.Entities.PlanActionHistory
+        {
+            PlanActionId = id, ChangedBy = userId, OldProgress = action.Progress, NewProgress = action.Progress,
+            Note = $"Preuve ajoutée : {doc.FileName}", CreatedBy = userId, UpdatedAt = DateTime.UtcNow, UpdatedBy = userId,
+        });
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { doc.Id, doc.FileName, doc.FileType, doc.UploadedBy, doc.CreatedAt });
+    }
+
+    [HttpGet("{id:guid}/documents")]
+    public async Task<IActionResult> GetProofs(Guid id, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var action = await _db.PlanActions.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (action is null) return NotFound();
+        if (!await CanAccessPlanAsync(action.ActionPlanId, userId)) return Forbid();
+
+        var docs = await _db.ActionDocuments.AsNoTracking().Where(d => d.PlanActionId == id && !d.IsArchived)
+            .OrderBy(d => d.CreatedAt).Select(d => new { d.Id, d.FileName, d.FileType, d.UploadedBy, d.CreatedAt }).ToListAsync(ct);
+        var uploaders = docs.Select(d => d.UploadedBy).Where(u => !string.IsNullOrWhiteSpace(u)).Distinct().ToList();
+        var names = await _db.UserProfiles.AsNoTracking().Where(u => uploaders.Contains(u.UserId)).ToDictionaryAsync(u => u.UserId, u => u.Name, ct);
+        return Ok(docs.Select(d => new { d.Id, d.FileName, d.FileType, d.UploadedBy, UploadedByName = names.GetValueOrDefault(d.UploadedBy), d.CreatedAt }));
+    }
+
+    /// <summary>The file of one proof, for the people who can see the plan.</summary>
+    [HttpGet("documents/{documentId:guid}/file")]
+    public async Task<IActionResult> DownloadProof(Guid documentId, [FromServices] IWebHostEnvironment env, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var doc = await _db.ActionDocuments.AsNoTracking().Include(d => d.PlanAction).FirstOrDefaultAsync(d => d.Id == documentId && !d.IsArchived, ct);
+        if (doc is null) return NotFound();
+        if (!await CanAccessPlanAsync(doc.PlanAction.ActionPlanId, userId)) return Forbid();
+
+        var path = Services.DocumentStorage.Resolve(env, doc.FilePath);
+        if (path is null || !System.IO.File.Exists(path)) return NotFound();
+        return PhysicalFile(path, string.IsNullOrWhiteSpace(doc.FileType) ? "application/octet-stream" : doc.FileType, doc.FileName);
     }
 
     [HttpGet("overdue")]
@@ -297,6 +370,34 @@ public class PlanActionController : ControllerBase
         return Ok(actions);
     }
 
+    /// <summary>A progress value as a percentage for the screens (validated shows as 100, cancelled as 0).</summary>
+    private static int Percent(ActionProgress p) => p == ActionProgress.Validated ? 100 : p == ActionProgress.Cancelled ? 0 : (int)p;
+
+    /// <summary>Who was given, or taken off, a sub-action, and by whom.</summary>
+    [HttpGet("{id:guid}/assignment-history")]
+    public async Task<IActionResult> GetAssignmentHistory(Guid id)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var existing = await _service.GetByIdAsync(id);
+        if (existing is null) return NotFound();
+        if (!await CanAccessPlanAsync(existing.ActionPlanId, userId))
+            return Forbid();
+
+        var rows = (await _service.GetAssignmentHistoryAsync(id)).OrderByDescending(h => h.CreatedAt).ToList();
+        var ids = rows.SelectMany(h => new[] { h.ChangedBy, h.OldAssignedToId, h.NewAssignedToId }).OfType<string>().Where(u => u.Length > 0).Distinct().ToList();
+        var names = await _db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.UserId)).ToDictionaryAsync(u => u.UserId, u => u.Name, StringComparer.OrdinalIgnoreCase);
+        string? Name(string? uid, string? stored) => !string.IsNullOrWhiteSpace(uid) && names.TryGetValue(uid, out var n) ? n : stored;
+        return Ok(rows.Select(h => new
+        {
+            h.Id, h.PlanActionId, h.ChangedBy, ChangedByName = Name(h.ChangedBy, h.ChangedByName), h.ActionType,
+            h.OldAssignedToId, h.NewAssignedToId, OldAssignedToName = Name(h.OldAssignedToId, h.OldAssignedToName), NewAssignedToName = Name(h.NewAssignedToId, h.NewAssignedToName),
+            h.Note, h.CreatedAt,
+        }));
+    }
+
     [HttpGet("{id}/history")]
     public async Task<IActionResult> GetHistory(Guid id)
     {
@@ -309,7 +410,14 @@ public class PlanActionController : ControllerBase
         if (!await CanAccessPlanAsync(existing.ActionPlanId, userId))
             return Forbid();
 
-        var history = await _service.GetProgressHistoryAsync(id);
-        return Ok(history);
+        // a plain projection: the raw entity points back to its action and plan (a cycle the serializer refuses)
+        var history = (await _service.GetProgressHistoryAsync(id)).OrderByDescending(h => h.CreatedAt).ToList();
+        var ids = history.Select(h => h.ChangedBy).Where(u => !string.IsNullOrWhiteSpace(u)).Distinct().ToList();
+        var names = await _db.UserProfiles.AsNoTracking().Where(u => ids.Contains(u.UserId)).ToDictionaryAsync(u => u.UserId, u => u.Name);
+        return Ok(history.Select(h => new
+        {
+            h.Id, h.PlanActionId, h.ChangedBy, ChangedByName = names.GetValueOrDefault(h.ChangedBy),
+            OldProgress = Percent(h.OldProgress), NewProgress = Percent(h.NewProgress), h.Note, h.CreatedAt,
+        }));
     }
 }
