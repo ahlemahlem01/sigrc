@@ -4,7 +4,9 @@ using Coficab.Auth.API.Models;
 using Coficab.Auth.API.Services;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.RateLimiting;
 using OpenIddict.Abstractions;
 using OpenIddict.Server.AspNetCore;
 
@@ -13,17 +15,22 @@ builder.AddCoficabSerilog("coficab-auth");
 
 // ─── Database (User Secrets in Development: ConnectionStrings:DefaultConnection)
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (string.IsNullOrWhiteSpace(connectionString))
+// The "Testing" environment (automated tests) uses an in-memory database selected by "Database:Provider": "InMemory"
+if (!builder.Environment.IsEnvironment("Testing") && string.IsNullOrWhiteSpace(connectionString))
     throw new InvalidOperationException(
         "ConnectionStrings:DefaultConnection is missing. Set it with: dotnet user-secrets set \"ConnectionStrings:DefaultConnection\" \"<SQL Server connection string>\"");
 
-builder.Services.AddDbContext<AppDbContext>(options =>
+builder.Services.AddDbContext<AppDbContext>((services, options) =>
 {
-    options.UseSqlServer(Coficab.Auth.API.Data.SqlConnectionResilience.WithDefaults(connectionString), sql =>
-    {
-        sql.MigrationsHistoryTable("__EFMigrationsHistory", "app_auth");
-        sql.CommandTimeout(60);
-    });
+    var settings = services.GetRequiredService<IConfiguration>();
+    if (string.Equals(settings["Database:Provider"], "InMemory", StringComparison.OrdinalIgnoreCase))
+        options.UseInMemoryDatabase(settings["Database:Name"] ?? "AuthTests");
+    else
+        options.UseSqlServer(Coficab.Auth.API.Data.SqlConnectionResilience.WithDefaults(connectionString!), sql =>
+        {
+            sql.MigrationsHistoryTable("__EFMigrationsHistory", "app_auth");
+            sql.CommandTimeout(60);
+        });
     options.UseOpenIddict();
 });
 
@@ -45,6 +52,37 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 })
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
+
+// A reset link lives as long as the e-mail says (it used to be Identity's default of one day while the mail promised one hour).
+builder.Services.Configure<DataProtectionTokenProviderOptions>(o =>
+    o.TokenLifespan = TimeSpan.FromMinutes(Math.Max(5, builder.Configuration.GetValue("Auth:PasswordResetLifetimeMinutes", 60))));
+
+builder.Services.AddMemoryCache();
+
+// ─── Rate limits (per client address). Behind the Docker network every visitor shares an address, so the figures are generous:
+// they stop a script, not a person. Tunable with RateLimiting:*.
+builder.Services.AddRateLimiter(limiter =>
+{
+    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    limiter.OnRejected = (context, _) =>
+    {
+        if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retry))
+            context.HttpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(retry.TotalSeconds)).ToString();
+        return ValueTask.CompletedTask;
+    };
+    void PerAddress(string policy, string key, int permits, TimeSpan window) =>
+        limiter.AddPolicy(policy, http => RateLimitPartition.GetFixedWindowLimiter(
+            http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue(key, permits),
+                Window = window,
+                QueueLimit = 0,
+            }));
+    PerAddress("forgot", "RateLimiting:ForgotPerWindow", 10, TimeSpan.FromMinutes(15));
+    PerAddress("reset", "RateLimiting:ResetPerWindow", 20, TimeSpan.FromMinutes(15));
+    PerAddress("token", "RateLimiting:TokenPerMinute", 60, TimeSpan.FromMinutes(1));
+});
 
 // ─── OpenIddict ──────────────────────────────────────────────
 var usingEphemeralKeys = false;
@@ -179,6 +217,7 @@ app.Use(async (context, next) =>
 });
 
 app.UseRouting();
+app.UseRateLimiter();
 app.UseCoficabRequestLogging();
 app.UseCors("CoficabFrontend");
 app.UseAuthentication();
@@ -218,3 +257,6 @@ static X509Certificate2? LoadCertificate(IConfiguration configuration, string ke
         configuration[$"{key}:Password"],
         X509KeyStorageFlags.EphemeralKeySet);
 }
+
+/// <summary>Anchors the integration tests to this assembly (the top-level Program type stays internal: the Action Plan API has its own).</summary>
+public sealed class AuthApiMarker { }

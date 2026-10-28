@@ -115,6 +115,10 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<string>("Description")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import axios from 'axios';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { resetPassword } from '../services/authService';
 import { useTranslation } from 'react-i18next';
@@ -12,12 +13,14 @@ export default function ResetPasswordPage() {
 
   const handleSubmit = async () => {
     const email = params.get('email') ?? '';
-    const token = decodeURIComponent(params.get('token') ?? '');
+    const token = params.get('token') ?? '';   // already decoded by the URL parser
     try {
       await resetPassword(email, token, newPassword);
       navigate('/login');
-    } catch {
-      setError(t('resetPassword.invalidLink'));
+    } catch (e) {
+      // the server explains the password rules (to the holder of a valid link); anything else is just "invalid link"
+      const data = axios.isAxiosError(e) ? (e.response?.data as { code?: string; message?: string } | undefined) : undefined;
+      setError(data?.code === 'weak_password' && data.message ? data.message : t('resetPassword.invalidLink'));
     }
   };
 

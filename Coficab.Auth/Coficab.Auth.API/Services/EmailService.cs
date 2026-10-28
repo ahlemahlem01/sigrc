@@ -39,7 +39,7 @@ public class EmailService
 
     // ─── Reset password ───────────────────────────────────────
 
-    public async Task SendResetPasswordEmailAsync(string toEmail, string resetLink)
+    public virtual async Task SendResetPasswordEmailAsync(string toEmail, string resetLink, int validMinutes = 60)
     {
         var message = new MimeMessage();
         message.From.Add(FromAddress());
@@ -51,7 +51,7 @@ public class EmailService
                 <h2>Réinitialisation de mot de passe</h2>
                 <p>Cliquez sur le lien ci-dessous pour réinitialiser votre mot de passe :</p>
                 <a href="{resetLink}">Réinitialiser mon mot de passe</a>
-                <p>Ce lien expire dans 1 heure.</p>
+                <p>Ce lien expire dans {(validMinutes % 60 == 0 ? $"{validMinutes / 60} heure(s)" : $"{validMinutes} minutes")} et ne peut être utilisé qu'une seule fois.</p>
                 <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
             """
         };
@@ -61,7 +61,7 @@ public class EmailService
 
     // ─── Welcome / account created ────────────────────────────
 
-    public async Task SendWelcomeEmailAsync(string toEmail, string fullName, string temporaryPassword)
+    public virtual async Task SendWelcomeEmailAsync(string toEmail, string fullName, string temporaryPassword)
     {
         var message = new MimeMessage();
         message.From.Add(FromAddress());
@@ -93,9 +93,31 @@ public class EmailService
         await SendAsync(message);
     }
 
+    // ─── Password changed ─────────────────────────────────────
+
+    /// <summary>Tells the owner of the account that the password was just reset, so a reset they did not ask for does not go unnoticed.</summary>
+    public virtual async Task SendPasswordChangedEmailAsync(string toEmail, string fullName)
+    {
+        var message = new MimeMessage();
+        message.From.Add(FromAddress());
+        message.To.Add(MailboxAddress.Parse(toEmail));
+        message.Subject = "Mot de passe modifié – Coficab";
+        message.Body = new TextPart("html")
+        {
+            Text = $"""
+                <h2>Votre mot de passe a été modifié</h2>
+                <p>Bonjour {System.Net.WebUtility.HtmlEncode(fullName)},</p>
+                <p>Le mot de passe de votre compte Coficab vient d'être réinitialisé. Vos autres sessions ouvertes ont été fermées.</p>
+                <p><strong>Si ce n'est pas vous</strong>, contactez immédiatement votre administrateur.</p>
+            """
+        };
+
+        await SendAsync(message);
+    }
+
     // ─── Account locked ───────────────────────────────────────
 
-    public async Task SendLockoutEmailAsync(string toEmail, string fullName, DateTimeOffset lockoutEnd)
+    public virtual async Task SendLockoutEmailAsync(string toEmail, string fullName, DateTimeOffset lockoutEnd)
     {
         var message = new MimeMessage();
         message.From.Add(FromAddress());

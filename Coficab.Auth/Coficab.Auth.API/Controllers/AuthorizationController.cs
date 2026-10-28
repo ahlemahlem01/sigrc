@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using OpenIddict.Abstractions;
@@ -38,7 +39,12 @@ public class AuthorizationController : ControllerBase
         _auditService = auditService;
     }
 
+    /// <summary>A short, one-way fingerprint of the security stamp: it travels in the tokens so that a password reset or a lockout can cancel them, without exposing the stamp.</summary>
+    internal static string StampFingerprint(string? stamp) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(stamp ?? string.Empty)))[..16];
+
     [HttpPost("~/connect/token")]
+    [EnableRateLimiting("token")]
     public async Task<IActionResult> Exchange()
     {
         var request = HttpContext.GetOpenIddictServerRequest()
@@ -92,9 +98,15 @@ public class AuthorizationController : ControllerBase
             }
 
             if (!result.Succeeded)
+            {
+                await _auditService.LogAsync(
+                    action: "LOGIN_FAILED",
+                    targetEmail: user.Email!,
+                    detail: "Mot de passe incorrect.");
                 return Forbid(
                     CreateErrorProperties("The email or password is incorrect."),
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
 
             // Successful login
             user.LastLoginAt = DateTime.UtcNow;
@@ -124,6 +136,19 @@ public class AuthorizationController : ControllerBase
                     CreateErrorProperties("The refresh token is no longer valid."),
                     OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
 
+            // A refresh is a new sign-in: a locked account does not get one, and neither does a session opened before the password
+            // was reset (the security stamp changed) or before the stamp was carried in the tokens at all.
+            if (await _userManager.IsLockedOutAsync(user))
+                return Forbid(
+                    CreateErrorProperties("The account is locked.", "account_locked"),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
+            var carried = result.Principal?.GetClaim("sst");
+            if (carried is null || !string.Equals(carried, StampFingerprint(await _userManager.GetSecurityStampAsync(user)), StringComparison.Ordinal))
+                return Forbid(
+                    CreateErrorProperties("The session is no longer valid. Please sign in again."),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+
             var principal = await BuildClaimsPrincipal(
                 user, result.Principal?.GetScopes() ?? []);
 
@@ -146,6 +171,7 @@ public class AuthorizationController : ControllerBase
         identity.AddClaim(OpenIddictConstants.Claims.Email, user.Email ?? "");
         identity.AddClaim(OpenIddictConstants.Claims.Name, user.FullName);
         identity.AddClaim("department", user.Department);
+        identity.AddClaim("sst", StampFingerprint(await _userManager.GetSecurityStampAsync(user)));
 
         var roles = await _userManager.GetRolesAsync(user);
         foreach (var role in roles)

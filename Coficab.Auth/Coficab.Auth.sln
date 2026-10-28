@@ -24,6 +24,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ActionPlan.Applicat
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.ActionPlan.API.Tests", "Coficab.ActionPlan.API.Tests\Coficab.ActionPlan.API.Tests.csproj", "{F4E872E2-A14C-4446-8742-69722A90C135}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Coficab.Auth.API.Tests", "Coficab.Auth.API.Tests\Coficab.Auth.API.Tests.csproj", "{A2AC9318-B49D-4CEE-929F-20947331FB3D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -130,6 +132,18 @@ Global
 		{F4E872E2-A14C-4446-8742-69722A90C135}.Release|x64.Build.0 = Release|Any CPU
 		{F4E872E2-A14C-4446-8742-69722A90C135}.Release|x86.ActiveCfg = Release|Any CPU
 		{F4E872E2-A14C-4446-8742-69722A90C135}.Release|x86.Build.0 = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|x64.Build.0 = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Debug|x86.Build.0 = Debug|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|x64.ActiveCfg = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|x64.Build.0 = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|x86.ActiveCfg = Release|Any CPU
+		{A2AC9318-B49D-4CEE-929F-20947331FB3D}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
