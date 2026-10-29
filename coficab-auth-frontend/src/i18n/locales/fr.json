@@ -4796,7 +4796,6 @@
   },
   "permMatrix": {
     "loadFailed": "Impossible de charger la matrice.",
-    "removeDirect": "Retirer l'attribution directe (le droit du rôle reste)",
     "fromRole": "Droit donné par le rôle de la personne : il ne se retire pas ici.",
     "newRight": "Droit créé récemment",
     "helpDetails": {
@@ -5169,9 +5168,9 @@
     "planReturned": "Plan renvoyé à son responsable avec le motif.",
     "actionValidated": "Sous-action validée.",
     "actionReturned": "Sous-action renvoyée à son responsable avec le motif.",
-    "reassignPlan": "Réassigner le plan",
+    "reassignPlan": "Rassigner le plan",
     "reassignAction": "Réassigner",
-    "reassignPlanTitle": "Réassigner tout le plan",
+    "reassignPlanTitle": "Rassigner tout le plan",
     "reassignActionTitle": "Réassigner la sous-action",
     "reassignPlanHint": "Le plan et toutes ses sous-actions non validées sont confiés à cette personne. Chaque changement est gardé dans l'historique de la sous-action (onglet Assignations).",
     "reassignActionHint": "Seule cette sous-action change de responsable. Le changement est gardé dans son historique (onglet Assignations).",

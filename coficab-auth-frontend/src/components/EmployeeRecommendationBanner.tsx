@@ -40,8 +40,6 @@ export interface RecommendationEmployee {
 }
 
 export interface EmployeeRecommendationBannerProps {
-  /** Days given to do the work (from the deadline chosen): a model feature, so a change of deadline asks for a new recommendation. */
-  allocDays?: number | null;
   defectType?: string | null;
   severity?: string | null;
   /**
@@ -113,7 +111,6 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
   departmentCode,
   departmentName,
   employees,
-  allocDays,
   onAssign,
   requireDepartment = true,
   className = '',
@@ -290,7 +287,6 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
             DefectType: defect,
             Severity: sev,
             DepartmentId: mlDept,
-            AllocDays: allocDays ?? undefined,
           },
           candidates,
           controller.signal
@@ -318,13 +314,12 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
             defect,
             source
           );
-          const rawPct = Math.min(1, Math.max(0, r.score)) * 100;   // classified as it is, rounded only to be shown
-          const scorePct = Math.round(rawPct);
+          const scorePct = Math.round(Math.min(1, Math.max(0, r.score)) * 100);
           mapped.push({
             employeeId: String(r.employeeId),
             name: source?.name || String(r.employeeId),
             scorePct,
-            riskLevel: r.riskLevel ?? riskFromPct(rawPct),
+            riskLevel: r.riskLevel ?? riskFromPct(scorePct),
             reason: statsById[id]
               ? t('recommend.reasonHistory', {
                   rate: Math.round(statsById[id].onTimeRate * 100),
@@ -366,7 +361,6 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
     dossierReady,
     defect,
     sev,
-    allocDays,
     mlDept,
     deptKey,
     requireDepartment,

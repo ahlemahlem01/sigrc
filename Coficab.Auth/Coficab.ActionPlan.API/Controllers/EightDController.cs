@@ -102,7 +102,7 @@ public class EightDController : ControllerBase
     [HttpPost("{claimId:guid}/validate")]
     public async Task<IActionResult> Validate(Guid claimId, [FromBody] ValidateEightDDossierDto dto, CancellationToken ct)
     {
-        if (!IsQualityAdmin() && !Services.PermissionAccess.Has(User, Services.PermissionAccess.ValidateEightD)) return Forbid();
+        if (!Services.PermissionAccess.Has(User, Services.PermissionAccess.ValidateEightD)) return Forbid();
         try
         {
             var blocked = await WorkflowBlockAsync(claimId, dto.IsApproved ? "CLOTUREE" : "EN_ANALYSE", ct);
