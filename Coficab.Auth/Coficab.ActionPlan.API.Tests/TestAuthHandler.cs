@@ -16,6 +16,8 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
     public const string RoleHeader = "X-Test-Role";
     /// <summary>Overrides the user id, for tests that need two different people (e.g. admin and employee).</summary>
     public const string UserIdHeader = "X-Test-UserId";
+    /// <summary>Rights granted one by one (comma separated), as the "permission" claims of a real token.</summary>
+    public const string PermissionHeader = "X-Test-Permission";
     public const string Anonymous = "anonymous";
     public static readonly Guid TestUserId = Guid.Parse("11111111-1111-1111-1111-111111111111");
 
@@ -39,7 +41,7 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
         if (userId.Length == 0)
             userId = TestUserId.ToString();
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim("sub", userId),
@@ -47,6 +49,8 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             new Claim(ClaimTypes.Role, role),
             new Claim("role", role),
         };
+        foreach (var permission in Request.Headers[PermissionHeader].ToString().Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            claims.Add(new Claim("permission", permission));
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
         var ticket = new AuthenticationTicket(principal, SchemeName);

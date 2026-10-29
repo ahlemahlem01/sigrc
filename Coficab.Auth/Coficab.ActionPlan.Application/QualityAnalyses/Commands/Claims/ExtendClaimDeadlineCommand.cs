@@ -63,11 +63,12 @@ public class ExtendClaimDeadlineCommandHandler : IRequestHandler<ExtendClaimDead
         {
             try
             {
-                await _notifications.NotifyAsync(
+                await _notifications.NotifyLocalizedAsync(
                     assignee,
                     "claim_deadline_extended",
                     "Échéance prolongée",
                     DeadlineExtensionRules.NotificationMessage(claim.Title, old, newDeadline, request.Reason),
+                    DeadlineExtensionRules.NotificationData(claim.Title, old, newDeadline, request.Reason),
                     actionPlanId: null,
                     linkPath: $"/pages/front/my-claims?claimId={claim.Id}",
                     claimId: claim.Id);

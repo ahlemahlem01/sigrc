@@ -196,7 +196,8 @@ public class AuthorizationController : ControllerBase
             .Select(up => up.Permission.Name)
             .ToListAsync();
 
-        foreach (var permission in permissions)
+        // the rights of the role, plus those granted one by one from the permission matrix
+        foreach (var permission in permissions.Concat(Coficab.Auth.API.Data.RolePermissionDefaults.For(roles)).Distinct(StringComparer.OrdinalIgnoreCase))
             identity.AddClaim("permission", permission);
 
         identity.SetDestinations(claim => claim.Type switch

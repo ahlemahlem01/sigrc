@@ -6,6 +6,7 @@ using Coficab.ActionPlan.Core.DTOs.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Coficab.ActionPlan.API.Controllers;
 
@@ -16,16 +17,20 @@ public class IshikawaController : ControllerBase
 {
     private readonly ISender _mediator;
     private readonly D4ChainService _d4Chain;
+    private readonly Coficab.ActionPlan.Application.Interfaces.IApplicationDbContext _db;
 
-    public IshikawaController(ISender mediator, D4ChainService d4Chain)
+    public IshikawaController(ISender mediator, D4ChainService d4Chain, Coficab.ActionPlan.Application.Interfaces.IApplicationDbContext db)
     {
         _mediator = mediator;
         _d4Chain = d4Chain;
+        _db = db;
     }
 
     /// <summary>The Ishikawa comes after D3: causes cannot be added before the containment is done (unless already started).</summary>
     private async Task<ConflictObjectResult?> EnsureOpenAsync(Guid claimId)
     {
+        if (await Services.ClosedDossier.IsClosedAsync(_db, claimId, HttpContext.RequestAborted))
+            return Conflict(Services.ClosedDossier.Refusal);
         var chain = await _d4Chain.EvaluateAsync(claimId, HttpContext.RequestAborted);
         return chain.Tools.Ishikawa.Open
             ? null
@@ -88,6 +93,10 @@ public class IshikawaController : ControllerBase
     [HttpPut("causes/{causeId:guid}/archive")]
     public async Task<IActionResult> ArchiveCause(Guid causeId, [FromBody] ArchiveIshikawaCauseRequest request)
     {
+        var cause = await _db.IshikawaCauses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == causeId, HttpContext.RequestAborted);
+        if (cause != null && await Services.ClosedDossier.IsClosedAsync(_db, cause.ClaimId, HttpContext.RequestAborted))
+            return Conflict(Services.ClosedDossier.Refusal);
+
         var command = new ArchiveIshikawaCauseCommand(
             causeId,
             request.ArchivedBy,

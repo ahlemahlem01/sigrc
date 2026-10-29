@@ -4,6 +4,8 @@ import { Info, Sparkles } from 'lucide-react';
 import ParetoActions from '../../../pages/claims/Pareto/ParetoActions';
 import ParetoChart from '../../../pages/claims/Pareto/ParetoChart';
 import MiningInsightsPanel, { useMiningInsights } from './MiningInsightsPanel';
+import { useClaimClosed } from '../../../hooks/useClaimClosed';
+import { ClosedDossierBanner } from '../../../components/ClosedDossierBanner';
 import CausesPareto from './CausesPareto';
 import ManualParetoPanel from './ManualParetoPanel';
 import { activeFilters, EMPTY_MANUAL, ManualParetoConfig, manualRequest } from './manualPareto';
@@ -37,6 +39,8 @@ export default function ParetoAnalysis() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pcVersion, setPcVersion] = useState(0);
   const [pcError, setPcError] = useState<string | null>(null);
+  const closedClaim = useClaimClosed(claimId);
+  const [pickedText, setPickedText] = useState<string | null>(null);
   const [measure, setMeasure] = useState<ParetoMeasure>('count');
   // 'guided' = the setup chosen from the claim (axis recommended by the mining); 'manual' = the person sets the axis, filters, period and measure
   const [kind, setKind] = useState<'guided' | 'manual'>('guided');
@@ -284,18 +288,31 @@ export default function ParetoAnalysis() {
 
       {claimId && <CausesPareto claimId={claimId} evidence={mining.data?.causeEvidence} loading={mining.loading} />}
 
-      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
+      {closedClaim && <ClosedDossierBanner />}
+
+      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={closedClaim} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
 
       {claim && claimId && (
         <MiningInsightsPanel
           data={mining.data}
           loading={mining.loading}
-          onPick={(cause) => {
+          chosenText={pickedText}
+          onPick={closedClaim ? undefined : (cause) => {
             if (!accessToken) return;
             setPcError(null);
             priorityCauseService
               .select(claimId, { text: cause.text, category: cause.category, source: 'mining' }, accessToken)
-              .then(() => setPcVersion((v) => v + 1))
+              .then(() => {
+                setPcVersion((v) => v + 1);
+                setPickedText(cause.text);
+                // the chosen cause is shown in the card at the top: bring it into view so the click visibly did something
+                const card = document.getElementById('priority-cause-card');
+                if (card) {
+                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  card.classList.add('pc-flash');
+                  window.setTimeout(() => card.classList.remove('pc-flash'), 2600);
+                }
+              })
               .catch((e: any) => setPcError(e?.response?.data?.message || t('priorityCause.failed')));
           }}
         />

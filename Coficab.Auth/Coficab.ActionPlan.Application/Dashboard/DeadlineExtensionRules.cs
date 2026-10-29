@@ -12,6 +12,7 @@ public static class DeadlineExtensionRules
     public const int MinReasonLength = 10;
     public const int MaxReasonLength = 500;
     public const int MaxDaysAhead = 180;
+    private const int MaxNotificationMessage = 500;
 
     /// <summary>Null when the extension is allowed, otherwise a stable code the API returns and the UI translates.</summary>
     public static string? Check(DateTime? currentDeadline, DateTime newDeadline, DateTime today, string? reason)
@@ -27,8 +28,22 @@ public static class DeadlineExtensionRules
     }
 
     /// <summary>What the person whose deadline moved reads in their notification: new date, old date, extra days and the reason.</summary>
-    public static string NotificationMessage(string title, DateTime oldDeadline, DateTime newDeadline, string reason) =>
-        $"L'échéance de « {title} » est prolongée au {newDeadline:dd/MM/yyyy} (+{ExtraDays(oldDeadline, newDeadline)} j, ancienne échéance : {oldDeadline:dd/MM/yyyy}). Motif : {reason.Trim()}";
+    public static string NotificationMessage(string title, DateTime oldDeadline, DateTime newDeadline, string reason)
+    {
+        var text = $"L'échéance de « {title} » est prolongée au {newDeadline:dd/MM/yyyy} (+{ExtraDays(oldDeadline, newDeadline)} j, ancienne échéance : {oldDeadline:dd/MM/yyyy}). Motif : {reason.Trim()}";
+        return text.Length > MaxNotificationMessage ? text[..(MaxNotificationMessage - 1)] + "…" : text;   // the column holds 500 characters
+    }
+
+    /// <summary>The same facts as data (ISO dates), so the screen of each reader writes the sentence in their language.</summary>
+    public static string NotificationData(string title, DateTime oldDeadline, DateTime newDeadline, string reason) =>
+        System.Text.Json.JsonSerializer.Serialize(new
+        {
+            title,
+            oldDeadline = oldDeadline.ToString("yyyy-MM-dd"),
+            newDeadline = newDeadline.ToString("yyyy-MM-dd"),
+            days = ExtraDays(oldDeadline, newDeadline),
+            reason = reason.Trim(),
+        });
 
     public static int ExtraDays(DateTime currentDeadline, DateTime newDeadline) => (newDeadline.Date - currentDeadline.Date).Days;
 

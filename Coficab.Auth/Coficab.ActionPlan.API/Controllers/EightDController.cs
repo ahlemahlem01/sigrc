@@ -100,9 +100,9 @@ public class EightDController : ControllerBase
     }
 
     [HttpPost("{claimId:guid}/validate")]
-    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Validate(Guid claimId, [FromBody] ValidateEightDDossierDto dto, CancellationToken ct)
     {
+        if (!Services.PermissionAccess.Has(User, Services.PermissionAccess.ValidateEightD)) return Forbid();
         try
         {
             var blocked = await WorkflowBlockAsync(claimId, dto.IsApproved ? "CLOTUREE" : "EN_ANALYSE", ct);
@@ -134,6 +134,9 @@ public class EightDController : ControllerBase
         var userId = CurrentUserId();
         if (!IsQualityAdmin() && !await UserCanAccessClaimAsync(claimId, userId, ct))
             return Forbid();
+
+        if (await Services.ClosedDossier.IsClosedAsync(_db, claimId, ct))
+            return Conflict(Services.ClosedDossier.Refusal);
 
         var bytes = await _service.RegenerateCustomerPdfAsync(claimId, userId, ct);
         return File(bytes, "application/pdf", $"8D_Client_{claimId.ToString()[..8]}.pdf");

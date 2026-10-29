@@ -47,4 +47,18 @@ public class DeadlineExtensionRulesTests
         var line = DeadlineExtensionRules.Describe(new DateTime(2026, 10, 10), new DateTime(2026, 11, 5), " " + Reason + " ");
         Assert.Equal("2026-10-10 → 2026-11-05 (+26 d) · Fournisseur en retard sur le lot.", line);
     }
+
+    [Fact]
+    public void TheFallbackMessage_FitsTheColumn_AndTheDataKeepsTheFullReason()
+    {
+        var reason = new string('x', 500);
+        var message = DeadlineExtensionRules.NotificationMessage("Plan", new DateTime(2026, 10, 10), new DateTime(2026, 11, 5), reason);
+        Assert.True(message.Length <= 500);
+
+        var data = System.Text.Json.JsonDocument.Parse(DeadlineExtensionRules.NotificationData("Plan", new DateTime(2026, 10, 10), new DateTime(2026, 11, 5), reason)).RootElement;
+        Assert.Equal("2026-10-10", data.GetProperty("oldDeadline").GetString());
+        Assert.Equal("2026-11-05", data.GetProperty("newDeadline").GetString());
+        Assert.Equal(26, data.GetProperty("days").GetInt32());
+        Assert.Equal(reason, data.GetProperty("reason").GetString());
+    }
 }

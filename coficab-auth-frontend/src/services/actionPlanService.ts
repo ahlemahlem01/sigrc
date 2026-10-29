@@ -290,6 +290,18 @@ export const validatePlanAction = (token: string, planActionId: string, note?: s
 export const rejectPlanAction = (token: string, planActionId: string, message: string) =>
   axios.post(`${BASE_URL}/planaction/${planActionId}/reject`, { message }, getHeaders(token));
 
+/** Administrators: more time for a late, unfinished sub-action; the old date, the new one and the reason go to its history. */
+export const extendPlanActionDeadline = (token: string, planActionId: string, newDeadline: string, reason: string) =>
+  axios.post(`${BASE_URL}/planaction/${planActionId}/deadline-extension`, { newDeadline, reason }, getHeaders(token));
+
+/** Administrators: gives one sub-action to another person (kept in its assignment history). */
+export const reassignPlanAction = (token: string, planActionId: string, userId: string, note?: string) =>
+  axios.post(`${BASE_URL}/planaction/${planActionId}/reassign`, { userId, note }, getHeaders(token));
+
+/** Administrators: gives the whole plan (and its sub-actions not yet validated) to another person. */
+export const reassignActionPlan = (token: string, planId: string, userId: string, note?: string) =>
+  axios.post(`${BASE_URL}/actionplan/${planId}/reassign`, { userId, note }, getHeaders(token));
+
 /** Administrators: warns the person in charge of a sub-action. */
 export const warnPlanAction = (token: string, planActionId: string, message: string) =>
   axios.post(`${BASE_URL}/planaction/${planActionId}/warn`, { message }, getHeaders(token));
@@ -403,6 +415,10 @@ export const getPlanActionHistory = async (
   );
   return response.data;
 };
+
+/** Rewrites the description of a sub-action; the old and the new text are kept in its history. */
+export const updatePlanActionDescription = async (token: string, planActionId: string, description: string) =>
+  (await axios.patch(`${BASE_URL}/planaction/${planActionId}/description`, { description }, getHeaders(token))).data;
 
 export type PlanActionAssignmentHistoryItem = {
   id: string;

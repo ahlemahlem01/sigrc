@@ -6,6 +6,7 @@ import { IshikawaCategory, IshikawaCauseInput, IshikawaProbabilityTier } from '.
 import { AnalysisToolsNav } from './AnalysisToolsNav';
 import { LockedStep, useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
+import { useClaimClosed } from '../../hooks/useClaimClosed';
 import i18n from '../../i18n';
 
 interface IshikawaPageProps {
@@ -116,9 +117,12 @@ const categoryLabel = (cat: string) => i18n.t(`ishikawa.cat.${cat}`, { defaultVa
 
 const truncate = (text: string, max: number) => (text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text);
 
-export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId, readOnly = false }) => {
+export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId, readOnly: readOnlyProp = false }) => {
   const { t } = useTranslation();
   const claimId = propClaimId || window.location.pathname.split('/').pop() || '';
+  // a closed claim is shown as it was, whoever opens it
+  const closedClaim = useClaimClosed(readOnlyProp ? undefined : claimId);
+  const readOnly = readOnlyProp || closedClaim;
   const order = useD4Order(readOnly ? undefined : claimId);
   const { user, accessToken, isLoading: isAuthLoading } = useAuth();
   const location = useLocation();

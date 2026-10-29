@@ -109,7 +109,9 @@ public class QualityAssistantService : IQualityAssistantService
             {
                 _logger.LogWarning("Gemini Quality Assistant HTTP {Status}: {Body}",
                     (int)response.StatusCode, Truncate(responseJson, 800));
-                throw new InvalidOperationException($"Erreur lors de la génération IA ({(int)response.StatusCode}).");
+                throw new InvalidOperationException(response.StatusCode is System.Net.HttpStatusCode.TooManyRequests or System.Net.HttpStatusCode.ServiceUnavailable
+                    ? "Le service IA est saturé ou son quota gratuit du jour est atteint. Réessayez dans quelques minutes."
+                    : $"Erreur lors de la génération IA ({(int)response.StatusCode}).");
             }
 
             using var doc = JsonDocument.Parse(responseJson);

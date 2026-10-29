@@ -1,3 +1,4 @@
+import { localizedNotification } from '../../utils/notificationText';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -929,17 +930,20 @@ export default function FrontWorkspaceHome() {
               <div className="fwh-empty soft">{t('employeeWorkspace.decisionsEmpty')}</div>
             ) : (
               <ul className="fwh-decisions">
-                {decisions.map((n) => (
+                {decisions.map((n) => {
+                  const text = localizedNotification(n, t, (iso) => new Date(iso).toLocaleDateString(locale));
+                  return (
                   <li key={n.id}>
                     <button type="button" className="fwh-decision" onClick={() => n.linkPath && navigate(n.linkPath)} disabled={!n.linkPath}>
                       <span className="fwh-decision-head">
-                        <strong>{n.title}</strong>
+                        <strong>{text.title}</strong>
                         <span>{formatShortDate(n.createdAt, locale)}</span>
                       </span>
-                      <span className="fwh-decision-msg">{n.message}</span>
+                      <span className="fwh-decision-msg">{text.message}</span>
                     </button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </section>

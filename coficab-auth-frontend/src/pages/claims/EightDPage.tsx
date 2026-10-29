@@ -32,6 +32,8 @@ import { PriorityCauseBanner } from './PriorityCause';
 import { D4ChainChecklist } from './D4Chain';
 import { useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
+import { ClosedDossierBanner } from '../../components/ClosedDossierBanner';
+import { isAdminUser } from '../../utils/roles';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
 import { computePpm, formatPpm } from '../../utils/Ppm';
@@ -162,6 +164,8 @@ const EightDPage: React.FC = () => {
   const locked = ['PENDING_VALIDATION', 'VALIDATED', 'CLOSED'].includes(
     String(dossier?.statusCode || '').toUpperCase()
   );
+  // validated and closed: the file and its customer PDF stay exactly as they were
+  const closedDossier = ['VALIDATED', 'CLOSED'].includes(String(dossier?.statusCode || '').toUpperCase());
 
   const buildPayload = (): SaveEightDDossier => ({
     championId: user?.id || user?.sub,
@@ -602,6 +606,7 @@ const EightDPage: React.FC = () => {
           </div>
           {claimId && <EightDHistory claimId={claimId} accessToken={accessToken} />}
         </div>
+        {closedDossier && <ClosedDossierBanner />}
 
         <div className="e8d-progress" aria-hidden>
           <span style={{ width: `${(doneCount / 8) * 100}%` }} />
@@ -786,7 +791,7 @@ const EightDPage: React.FC = () => {
                           {a.progress}% · {a.proofCount ? t('eightD.proofs', { count: a.proofCount }) : t('eightD.proofMissing')} · {a.done ? t('eightD.actionDone') : t('eightD.statusOpen')}
                         </span>
                       </div>
-                      <button type="button" className="e8d-btn" onClick={() => navigate(`/pages/front/action-plans/${dossier.capaPlanId}`)}>
+                      <button type="button" className="e8d-btn" onClick={() => navigate(isAdminUser(user as any) ? `/pages/front/action-plans/${dossier.capaPlanId}` : `/pages/front/my-action-plans/${dossier.capaPlanId}`)}>
                         {t('eightD.continue')}
                       </button>
                     </div>
@@ -867,9 +872,11 @@ const EightDPage: React.FC = () => {
                       : t('eightD.pdfHint')}
                   </p>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button type="button" className="e8d-btn primary" disabled={pdfBusy || (!isAdmin && currentLocked)} onClick={() => void handleGeneratePdf()}>
-                      {pdfBusy ? '…' : dossier?.hasCustomerPdf ? t('eightD.regenerate') : t('eightD.generatePdf')}
-                    </button>
+                    {!closedDossier && (
+                      <button type="button" className="e8d-btn primary" disabled={pdfBusy || (!isAdmin && currentLocked)} onClick={() => void handleGeneratePdf()}>
+                        {pdfBusy ? '…' : dossier?.hasCustomerPdf ? t('eightD.regenerate') : t('eightD.generatePdf')}
+                      </button>
+                    )}
                     <button type="button" className="e8d-btn" disabled={pdfBusy} onClick={() => void handlePreviewPdf()}><Eye size={14} /> {t('eightD.preview')}</button>
                     <button type="button" className="e8d-btn" disabled={pdfBusy} onClick={() => void handlePdf()}><Download size={14} /> {t('eightD.download')}</button>
                   </div>

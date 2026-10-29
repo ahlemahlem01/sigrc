@@ -1452,6 +1452,13 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("BranchType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("OCCURRENCE");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
@@ -1797,6 +1804,9 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DataJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
@@ -2071,12 +2081,18 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
+                    b.Property<string>("NewDescription")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("NewProgress")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("OldDescription")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("OldProgress")
                         .HasColumnType("int");

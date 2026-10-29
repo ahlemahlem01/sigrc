@@ -156,16 +156,19 @@ public class D4ChainTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
-    public async Task IshikawaCauses_CannotBeAdded_BeforeD3_ButCanOnceStartedOrClosed()
+    public async Task IshikawaCauses_CannotBeAdded_BeforeD3_NorOnceTheClaimIsClosed()
     {
         var early = await AddClaim(Me);
+        var started = await AddClaim(Me, "EN_ANALYSE", fiveWhyStatus: "PENDING_VALIDATION");
         var closed = await AddClaim(Me, "CLOTUREE");
 
         var blocked = await ClientAs("user").PostAsJsonAsync("/api/Ishikawa/causes", new { claimId = early, category = "Machine", causeDescription = "Usure", createdBy = "t" });
-        var allowed = await ClientAs("user").PostAsJsonAsync("/api/Ishikawa/causes", new { claimId = closed, category = "Machine", causeDescription = "Usure", createdBy = "t" });
+        var allowed = await ClientAs("user").PostAsJsonAsync("/api/Ishikawa/causes", new { claimId = started, category = "Machine", causeDescription = "Usure", createdBy = "t" });
+        var readOnly = await ClientAs("user").PostAsJsonAsync("/api/Ishikawa/causes", new { claimId = closed, category = "Machine", causeDescription = "Usure", createdBy = "t" });
 
         Assert.Equal(HttpStatusCode.Conflict, blocked.StatusCode);
-        Assert.NotEqual(HttpStatusCode.Conflict, allowed.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Conflict, allowed.StatusCode);   // already under way: never locked back
+        Assert.Equal(HttpStatusCode.Conflict, readOnly.StatusCode);     // closed: read-only
     }
 
     [Fact]

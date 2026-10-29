@@ -192,6 +192,8 @@ public class AdminController : ControllerBase
             IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
             Roles = rolesByUser.TryGetValue(user.Id, out var roles) ? roles : new List<string>(),
             Permissions = permissionsByUser.TryGetValue(user.Id, out var permissions) ? permissions : new List<string>(),
+            // what the role gives by itself: shown as granted in the matrix, and not removable there
+            InheritedPermissions = Coficab.Auth.API.Data.RolePermissionDefaults.For(rolesByUser.TryGetValue(user.Id, out var roleNames) ? roleNames : new List<string>()),
             CreatedAt = (DateTimeOffset?)null,
         }).ToList();
 

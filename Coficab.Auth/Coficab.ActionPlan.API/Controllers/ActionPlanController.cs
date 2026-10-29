@@ -412,7 +412,7 @@ public class ActionPlanController : ControllerBase
     [HttpPost("{id:guid}/deadline-extension")]
     public async Task<IActionResult> ExtendDeadline(Guid id, [FromBody] ExtendPlanDeadlineDto dto, CancellationToken ct)
     {
-        if (!IsPlatformAdmin()) return Forbid();
+        if (!PermissionAccess.Has(User, PermissionAccess.ExtendDeadline)) return Forbid();
         var by = GetCurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
         if (dto?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
@@ -491,6 +491,83 @@ public class ActionPlanController : ControllerBase
         }
 
         return Ok(new { assigned, skipped });
+    }
+
+    public sealed class ReassignPlanRequest
+    {
+        public string? UserId { get; set; }
+        public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Administrators: gives the whole plan to another person: the plan's responsible and every sub-action not yet validated.
+    /// Each sub-action records the change in its own assignment history, and the plan in its history.
+    /// </summary>
+    [HttpPost("{id:guid}/reassign")]
+    public async Task<IActionResult> ReassignPlan(Guid id, [FromBody] ReassignPlanRequest request)
+    {
+        if (!IsQualityAdmin() && !PermissionAccess.Has(User, PermissionAccess.Reassign)) return Forbid();
+        var by = GetCurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var target = (request.UserId ?? string.Empty).Trim();
+        if (!Guid.TryParse(target, out var targetId))
+            return BadRequest(new { error = "Choisissez la personne à qui assigner le plan." });
+        if (!await _userService.UserExistsAsync(targetId))
+            return NotFound(new { error = "Utilisateur non trouvé." });
+
+        var visible = await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin());
+        var plan = visible.Contains(id) ? await _actionPlanService.GetByIdAsync(id) : null;
+        if (plan is null) return NotFound(new { error = "Plan non trouvé." });
+        if (plan.Status is ActionPlanStatus.Closed or ActionPlanStatus.Archived)
+            return BadRequest(new { error = "Un plan clôturé ou archivé ne peut plus être réassigné." });
+
+        var actions = (await _planActionService.GetByActionPlanAsync(id)).ToList();
+        var movable = actions
+            .Where(a => a.Progress != ActionProgress.Validated && a.Progress != ActionProgress.Cancelled
+                        && !string.Equals(a.AssignedToId, target, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        var planMoves = !string.Equals(plan.AssignedToId, target, StringComparison.OrdinalIgnoreCase);
+        if (!planMoves && movable.Count == 0)
+            return BadRequest(new { error = "Ce plan est déjà assigné à cette personne." });
+
+        var previous = plan.AssignedToId;
+        var note = string.IsNullOrWhiteSpace(request.Note) ? "Réassignation du plan par un administrateur" : request.Note.Trim();
+
+        if (planMoves)
+        {
+            await _actionPlanService.UpdateAsync(id, new UpdateActionPlanDto
+            {
+                Title = plan.Title,
+                Description = plan.Description,
+                Status = plan.Status,
+                Type = plan.Type,
+                OrganizationId = plan.OrganizationId,
+                DepartmentId = plan.DepartmentId,
+                AssignedToId = target,
+                Deadline = plan.Deadline,
+            }, by);
+        }
+
+        // the new person can open and work on the plan
+        await _actionPlanService.AssignToUserAsync(new AssignActionPlanDto
+        {
+            UserId = target,
+            ActionPlanId = id.ToString(),
+            Permissions = new ActionPlanPermissions { View = true, Edit = true },
+        }, by);
+
+        foreach (var action in movable)
+            await _planActionService.ReassignAsync(action.Id, target, by, note, notify: false);
+
+        await _notificationService.NotifyAsync(target, "plan_reassigned", "Plan assigné",
+            $"Le plan « {plan.Title} » vous a été assigné ({movable.Count} sous-action(s)).", id);
+        if (!string.IsNullOrWhiteSpace(previous) && !string.Equals(previous, target, StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(previous, by, StringComparison.OrdinalIgnoreCase))
+            await _notificationService.NotifyAsync(previous, "plan_unassigned", "Plan réassigné",
+                $"Le plan « {plan.Title} » a été confié à une autre personne.", id);
+
+        return Ok(new { planId = id, assignedToId = target, movedActions = movable.Count });
     }
 
     // ============================================================

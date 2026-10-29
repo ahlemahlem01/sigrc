@@ -3,7 +3,7 @@ import { CalendarClock, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { qualityAnalysisService } from '../services/qualityAnalysisService';
-import { extendPlanDeadline } from '../services/actionPlanService';
+import { extendPlanDeadline, extendPlanActionDeadline } from '../services/actionPlanService';
 import { dateLocale } from '../i18n';
 
 export const MIN_REASON = 10;
@@ -20,7 +20,7 @@ export const canExtendDeadline = (deadline?: string | null, open = true): boolea
 };
 
 interface Props {
-  kind: 'claim' | 'plan';
+  kind: 'claim' | 'plan' | 'action';
   id: string;
   deadline?: string | null;
   /** Not closed, not archived, not a draft. */
@@ -29,19 +29,19 @@ interface Props {
 }
 
 /**
- * Administrators and super administrators give a late claim or CAPA plan more time. The reason is mandatory and, with the
+ * Administrators and super administrators give a late claim, CAPA plan or sub-action more time. The reason is mandatory and, with the
  * old and the new date, goes to the history: nothing is overwritten silently.
  */
 export const ExtendDeadline: React.FC<Props> = ({ kind, id, deadline, open = true, onDone }) => {
   const { t } = useTranslation();
-  const { accessToken, hasRole } = useAuth();
+  const { accessToken, hasRole, hasPermission } = useAuth();
   const [show, setShow] = useState(false);
   const [date, setDate] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!(hasRole('admin') || hasRole('superadmin')) || !canExtendDeadline(deadline, open)) return null;
+  if (!(hasRole('admin') || hasRole('superadmin') || hasPermission('capa:extend_deadline')) || !canExtendDeadline(deadline, open)) return null;
 
   const today = dayStart(new Date());
   const max = new Date(today); max.setDate(max.getDate() + MAX_DAYS_AHEAD);
@@ -57,6 +57,7 @@ export const ExtendDeadline: React.FC<Props> = ({ kind, id, deadline, open = tru
     setError(null);
     try {
       if (kind === 'claim') await qualityAnalysisService.extendClaimDeadline(id, date, reason.trim(), accessToken);
+      else if (kind === 'action') await extendPlanActionDeadline(accessToken, id, date, reason.trim());
       else await extendPlanDeadline(accessToken, id, date, reason.trim());
       setShow(false);
       onDone();

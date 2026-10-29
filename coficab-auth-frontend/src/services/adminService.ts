@@ -21,6 +21,8 @@ export interface UserDto {
   accessFailedCount?: number;
   roles: string[];
   permissions: string[];
+  /** Rights the role gives by itself: shown as granted in the matrix, not removable there. */
+  inheritedPermissions?: string[];
   createdAt?: string | null;
 }
 
@@ -62,6 +64,7 @@ export interface StoredPermission {
   appId: string;
   isDefault: boolean;
   isActive: boolean;
+  createdAt?: string;
 }
 
 const readStoredPermission = (row: any): StoredPermission => ({
@@ -73,12 +76,19 @@ const readStoredPermission = (row: any): StoredPermission => ({
   appId: String(row?.appId ?? row?.AppId ?? ''),
   isDefault: Boolean(row?.isDefault ?? row?.IsDefault),
   isActive: Boolean(row?.isActive ?? row?.IsActive ?? true),
+  createdAt: row?.createdAt ?? row?.CreatedAt ?? undefined,
 });
 
 export const listStoredPermissions = async (token: string): Promise<StoredPermission[]> => {
   const res = await axios.get(`${AUTH_API}/api/permissions`, authHeader(token));
   const rows = Array.isArray(res.data) ? res.data : [];
   return rows.map(readStoredPermission);
+};
+
+/** The codes of rights the project can enforce that are not created yet. */
+export const listAvailablePermissionCodes = async (token: string): Promise<string[]> => {
+  const res = await axios.get(`${AUTH_API}/api/permissions/available-codes`, authHeader(token));
+  return Array.isArray(res.data) ? res.data.map(String) : [];
 };
 
 export const createStoredPermission = async (token: string, data: {

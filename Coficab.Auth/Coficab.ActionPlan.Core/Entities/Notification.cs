@@ -13,6 +13,8 @@ public class Notification : BaseEntity
     public ActionPlan? ActionPlan { get; set; }
     public Guid? ClaimId { get; set; }
     public string? LinkPath { get; set; }
+    /// <summary>Raw facts of the notification (dates, title, reason) so each reader's screen writes it in their own language; Title and Message stay as the fallback text.</summary>
+    public string? DataJson { get; set; }
     public bool IsRead { get; set; } = false;
     public DateTime? ReadAt { get; set; }
 }

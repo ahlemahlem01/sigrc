@@ -735,6 +735,8 @@
       "subaction_validated": "Action validée",
       "subaction_rejected": "Action rejetée",
       "subaction_warning": "Avertissement sur une action",
+      "subaction_deadline_extended": "Échéance prolongée de la sous-action",
+      "subaction_description": "Description modifiée",
       "subaction_proof": "Preuve ajoutée"
     }
   },
@@ -3080,6 +3082,7 @@
     "rootCauseOccurrence": "Cause racine Occurrence",
     "rootCauseDetection": "Cause racine Détection",
     "aiSynthesis": "Synthèse IA",
+    "synthesizing": "Génération…",
     "rootCauseOccurrencePlaceholder": "Cause racine : pourquoi le défaut est apparu…",
     "rootCauseDetectionPlaceholder": "Cause racine : pourquoi le contrôle a échoué…",
     "capaStep": "Étape 4 · CAPA",
@@ -3355,6 +3358,7 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {{n}} min",
     "hoursAgo": "il y a {{n}} h",
+    "deadlineExtended": {"title": "Échéance prolongée", "message": "L'échéance de « {{title}} » a été prolongée au {{newDate}} (+{{days}} j, ancienne échéance : {{oldDate}}). Motif : {{reason}}"},
     "kindDeadline": "Échéance",
     "kindAssignment": "Assignation",
     "kindAlert": "Alerte qualité",
@@ -3385,7 +3389,10 @@
   },
   "actionHistory": {
     "oldValue": "Ancienne valeur",
-    "kind": {"progress": "Avancement", "proof": "Preuve", "warning": "Avertissement"},
+    "descriptionBefore": "Avant",
+    "descriptionAfter": "Après",
+    "descriptionEmpty": "(vide)",
+    "kind": {"progress": "Avancement", "proof": "Preuve", "warning": "Avertissement", "description": "Description", "deadline": "Échéance prolongée"},
     "assignmentsHint": "Ici : qui a reçu ou perdu cette action. Rien tant que l'action n'a pas changé de responsable.",
     "assigned": "Assignée",
     "unassigned": "Désassignée",
@@ -3442,7 +3449,7 @@
     "heroTitle2": "réinventés",
     "heroSubtitle1": "Pionnier de la Conduction.",
     "heroText": "COFICAB conçoit des architectures de conduction électrique de haute technologie, spécialement blindées pour propulser l'ère de l'électromobilité mondiale sans émission.",
-    "heroCta": "DÉCOUVRIR NOS SOLUTIONS",
+    "heroCta": "ACCÉDER AUX ANALYSES QUALITÉ",
     "partners": "Ils nous font confiance : les grandes équipes d’ingénierie automobile",
     "s1Kicker": "[ 01 // MÉTALLURGIE & INNOVATION ]",
     "s1Title1": "Façonner la structure",
@@ -3605,6 +3612,12 @@
     "deadline": "Échéance",
     "progress": "Avancement",
     "editProgress": "Modifier la progression",
+    "editDescription": "Modifier la description",
+    "descriptionPlaceholder": "Ce qu'il faut faire précisément, le critère de réussite et la preuve",
+    "descriptionHint": "L'ancien texte reste dans l'historique de cette sous-action.",
+    "descriptionRequired": "La description ne peut pas être vide.",
+    "descriptionUnchanged": "La description n'a pas changé.",
+    "descriptionFailed": "La description n'a pas pu être enregistrée.",
     "proofField": "Preuve CAPA (recommandée à 100 %)"
   },
   "planView": {
@@ -3835,6 +3848,22 @@
       "label": "Assigner un plan d'action",
       "description": "Désigner le responsable d'un plan d'action."
     },
+    "capa_extend_deadline": {
+      "label": "Prolonger une échéance",
+      "description": "Donner plus de temps à une réclamation, un plan ou une action en retard, avec un motif."
+    },
+    "capa_reassign": {
+      "label": "Réassigner un plan ou une action",
+      "description": "Confier un plan d'action, ou une seule de ses actions, à une autre personne."
+    },
+    "analysis_validate_fivewhy": {
+      "label": "Valider un 5 Pourquoi",
+      "description": "Approuver ou renvoyer une analyse 5 Pourquoi soumise."
+    },
+    "8d_validate": {
+      "label": "Valider un dossier 8D",
+      "description": "Valider et clôturer, ou renvoyer, un dossier 8D soumis."
+    },
     "capa_validate": {
       "label": "Valider un plan d'action",
       "description": "Accepter ou refuser un plan d'action."
@@ -3850,6 +3879,10 @@
     "analysis_generate_ai": {
       "label": "Générer une synthèse IA",
       "description": "Produire une synthèse rédigée par l'assistant."
+    },
+    "assistant_unrestricted": {
+      "label": "Utiliser l'assistant sans restriction",
+      "description": "L'assistant répond avec les données de toute l'organisation, comme pour un administrateur, et non plus seulement avec les données personnelles de la personne."
     },
     "8d_complete_steps": {
       "label": "Compléter les étapes 8D",
@@ -4301,6 +4334,8 @@
   },
   "plansAdmin": {
     "statusCreated": "En attente d'assignation",
+    "lateKpiTitle": "Plans en retard",
+    "lateKpiHint": "Plans ouverts dont l'échéance, ou celle d'une action non terminée, est dépassée",
     "statusOngoing": "En cours",
     "statusClosed": "Validé",
     "statusArchived": "Archivé",
@@ -4332,7 +4367,8 @@
       "rejected": "Aucun plan renvoyé",
       "ongoing": "Aucun plan en cours",
       "created": "Aucun plan en attente d’assignation",
-      "all": "Aucun plan trouvé"
+      "all": "Aucun plan trouvé",
+      "late": "Aucun plan en retard"
     },
     "group": "Groupe Coficab",
     "imported_one": "{{count}} plan importé",
@@ -4354,7 +4390,9 @@
       "created_one": "{{count}} plan en attente",
       "created_other": "{{count}} plans en attente",
       "all_one": "{{count}} plan trouvé",
-      "all_other": "{{count}} plans trouvés"
+      "all_other": "{{count}} plans trouvés",
+      "late_one": "{{count}} plan en retard",
+      "late_other": "{{count}} plans en retard"
     },
     "forSearch": "pour « {{search}} »",
     "editPlan": "Modifier le plan",
@@ -4758,6 +4796,19 @@
   },
   "permMatrix": {
     "loadFailed": "Impossible de charger la matrice.",
+    "fromRole": "Droit donné par le rôle de la personne : il ne se retire pas ici.",
+    "newRight": "Droit créé récemment",
+    "helpDetails": {
+      "title": "Comment ça marche ?",
+      "greyTitle": "Cases grisées.",
+      "grey": "Le droit vient du rôle de la personne : il ne se retire pas ici.",
+      "addTitle": "Accorder un droit en plus.",
+      "add": "Cochez la case : il est enregistré aussitôt. Décochez pour le retirer.",
+      "relogTitle": "Reconnexion.",
+      "relog": "La personne doit se reconnecter pour que le changement soit pris en compte.",
+      "newTitle": "Un droit manque ?",
+      "new": "Créez-le dans la page « Toutes les permissions » (réservée au superadmin)."
+    },
     "updateFailed": "Mise à jour impossible.",
     "users_one": "{{count}} utilisateur",
     "users_other": "{{count}} utilisateurs",
@@ -4846,6 +4897,28 @@
     "allows": "Ce que cela autorise",
     "allowsPh": "Accepter ou refuser un plan avant sa clôture",
     "internalRef": "Référence interne. Elle doit correspondre à une fonctionnalité du projet.",
+    "newBadge": "Nouveau",
+    "assignIt": "Attribuer ce droit →",
+    "help": {
+      "title": "Comment ça marche ? Créer et attribuer un droit",
+      "what": "Un droit ouvre une fonction précise de l'application (prolonger une échéance, valider un 8D, utiliser l'assistant sans restriction…). Il se crée ici, puis s'attribue à une personne dans la page « Assignation ».",
+      "step1": "Cliquez sur « Nouvelle permission ».",
+      "step2": "Choisissez une référence dans la liste : elle ne propose que les fonctions que l'application sait appliquer et dont le droit n'a pas encore été créé.",
+      "step3": "L'intitulé, l'explication et la catégorie se remplissent d'après la référence. Vous pouvez les modifier, puis enregistrer.",
+      "step4": "Ouvrez « Assignation », choisissez la catégorie et cochez la case de la personne.",
+      "delegateTitle": "Créer un droit permet de le déléguer.",
+      "delegate": "Tant qu'un droit n'est pas créé, seuls les administrateurs peuvent faire l'action. Une fois créé, il apparaît dans la matrice et se donne à une personne précise.",
+      "roleTitle": "Rôles.",
+      "role": "Un administrateur ou un superadmin a tous les droits par son rôle. Un employé a seulement ceux du travail courant : les autres, vous les accordez un par un.",
+      "limitTitle": "Pourquoi pas un code libre ?",
+      "limit": "Un droit doit correspondre à une fonction réelle, sinon il ne ferait rien. Pour un tout nouveau droit, la fonction doit d'abord être prévue dans le code.",
+      "relogTitle": "Reconnexion.",
+      "relog": "Un droit accordé ou retiré s'applique quand la personne se reconnecte, car il est porté par sa session.",
+      "deactivateTitle": "Désactiver.",
+      "deactivate": "Un droit désactivé disparaît de la matrice, mais rien n'est supprimé : on peut le réactiver."
+    },
+    "pickCode": "Choisir une référence disponible…",
+    "noCodeLeft": "Toutes les références prévues par le projet ont déjà un droit créé.",
     "searchPh": "Rechercher un droit…",
     "filterAria": "Filtrer par catégorie",
     "allCategories": "Toutes les catégories",
@@ -5041,6 +5114,9 @@
     "pillFiveWhy": "5 Why · à valider",
     "rootCause": "Cause racine"
   },
+  "closedDossier": {
+    "banner": "Dossier clôturé : consultation seule."
+  },
   "planDetailFront": {
     "statusAwaitingAssignment": "En attente d'assignation",
     "statusN": "Statut {{n}}",
@@ -5072,7 +5148,40 @@
     "noActionsArchived": "Aucune action enregistrée pour ce plan archivé.",
     "noActions": "Aucune action définie pour ce plan.",
     "noDeadline": "Pas d'échéance",
-    "assignmentHistory": "Historique d'assignation"
+    "assignmentHistory": "Historique d'assignation",
+    "readyTitle": "Plan terminé : en attente de votre validation",
+    "readyHint": "Toutes les sous-actions sont à 100 % ({{proofs}} preuve(s) jointe(s)). Vérifiez, puis validez ou renvoyez le plan.",
+    "validatePlan": "Valider le plan (D5)",
+    "returnPlan": "Renvoyer le plan",
+    "validateAction": "Valider",
+    "returnAction": "Renvoyer",
+    "validatePlanTitle": "Valider ce plan CAPA (D5) ?",
+    "validatePlanMessage": "Le plan sera clôturé et son responsable prévenu.",
+    "returnPlanTitle": "Renvoyer le plan avec un motif",
+    "validateActionTitle": "Valider cette sous-action ?",
+    "validateActionMessage": "Elle sera verrouillée et son responsable prévenu.",
+    "returnActionTitle": "Renvoyer « {{title}} » avec un motif",
+    "confirmValidate": "Valider",
+    "confirmReturn": "Renvoyer",
+    "decisionFailed": "La décision n'a pas pu être enregistrée.",
+    "planValidated": "Plan validé et clôturé.",
+    "planReturned": "Plan renvoyé à son responsable avec le motif.",
+    "actionValidated": "Sous-action validée.",
+    "actionReturned": "Sous-action renvoyée à son responsable avec le motif.",
+    "reassignPlan": "Rassigner le plan",
+    "reassignAction": "Réassigner",
+    "reassignPlanTitle": "Rassigner tout le plan",
+    "reassignActionTitle": "Réassigner la sous-action",
+    "reassignPlanHint": "Le plan et toutes ses sous-actions non validées sont confiés à cette personne. Chaque changement est gardé dans l'historique de la sous-action (onglet Assignations).",
+    "reassignActionHint": "Seule cette sous-action change de responsable. Le changement est gardé dans son historique (onglet Assignations).",
+    "reassignTo": "Nouvelle personne responsable",
+    "reassignPick": "Choisir une personne…",
+    "reassignNote": "Motif (facultatif)",
+    "reassignNotePlaceholder": "Ex. : absence, charge de travail, compétence…",
+    "reassignConfirm": "Assigner",
+    "reassignedPlan": "Plan réassigné à {{name}}.",
+    "reassignedAction": "Sous-action réassignée à {{name}}.",
+    "reassignFailed": "La réassignation a échoué."
   },
   "planActionsMgmt": {
     "createFailed": "Échec de la création. Veuillez réessayer.",
@@ -5439,6 +5548,7 @@
     "keep": "Retenir cette cause",
     "replace": "Remplacer la cause retenue",
     "keepThis": "Retenir",
+    "kept": "Retenue",
     "by": "choisie par {{who}} le {{when}}",
     "history": "Choix précédents ({{count}})",
     "failed": "La cause n’a pas pu être enregistrée.",

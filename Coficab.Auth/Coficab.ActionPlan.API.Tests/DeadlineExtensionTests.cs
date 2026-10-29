@@ -161,10 +161,11 @@ public class DeadlineExtensionTests : IClassFixture<ActionPlanApiFactory>
         var plan = await SeedPlanAsync(-6, assignedTo: employee);
         Assert.Equal(HttpStatusCode.OK, (await As("superadmin").PostAsJsonAsync($"/api/ActionPlan/{plan}/deadline-extension", new { newDeadline = Day(9), reason = Reason })).StatusCode);
 
-        _factory.Notifier.Verify(n => n.NotifyAsync(employee, "claim_deadline_extended", "Échéance prolongée",
+        _factory.Notifier.Verify(n => n.NotifyLocalizedAsync(employee, "claim_deadline_extended", "Échéance prolongée",
             It.Is<string>(m => m.Contains(DateTime.UtcNow.Date.AddDays(9).ToString("dd/MM/yyyy")) && m.Contains(DateTime.UtcNow.Date.AddDays(-6).ToString("dd/MM/yyyy")) && m.Contains("Lot bloqué")),
+            It.Is<string>(d => d.Contains("\"days\":15") && d.Contains(DateTime.UtcNow.Date.AddDays(9).ToString("yyyy-MM-dd")) && d.Contains("Lot bloqu")),   // the JSON escapes accents: the reader decodes them
             null, It.Is<string?>(l => l != null && l.Contains(claim.ToString())), claim), Times.Once);
-        _factory.Notifier.Verify(n => n.NotifyAsync(employee, "plan_deadline_extended", "Échéance prolongée", It.IsAny<string>(), plan, null, null), Times.Once);
+        _factory.Notifier.Verify(n => n.NotifyLocalizedAsync(employee, "plan_deadline_extended", "Échéance prolongée", It.IsAny<string>(), It.IsAny<string>(), plan, null, null), Times.Once);
     }
 
     [Fact]
@@ -173,11 +174,11 @@ public class DeadlineExtensionTests : IClassFixture<ActionPlanApiFactory>
         var self = TestAuthHandler.TestUserId.ToString();
         var mine = await SeedClaimAsync(-6, assignedTo: self);
         await As("superadmin").PostAsJsonAsync($"/api/QualityAnalysis/claims/{mine}/deadline-extension", new { newDeadline = Day(9), reason = Reason });
-        _factory.Notifier.Verify(n => n.NotifyAsync(self, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<Guid?>()), Times.Never);
+        _factory.Notifier.Verify(n => n.NotifyLocalizedAsync(self, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<Guid?>()), Times.Never);
 
         var employee = Guid.NewGuid().ToString();
         var refused = await SeedClaimAsync(-6, assignedTo: employee);
         await As("superadmin").PostAsJsonAsync($"/api/QualityAnalysis/claims/{refused}/deadline-extension", new { newDeadline = Day(9), reason = "court" });
-        _factory.Notifier.Verify(n => n.NotifyAsync(employee, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<Guid?>()), Times.Never);
+        _factory.Notifier.Verify(n => n.NotifyLocalizedAsync(employee, It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<Guid?>(), It.IsAny<string?>(), It.IsAny<Guid?>()), Times.Never);
     }
 }

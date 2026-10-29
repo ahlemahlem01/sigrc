@@ -89,11 +89,13 @@ interface CardProps {
   footer?: React.ReactNode;
   /** Error of a suggestion shortcut used elsewhere on the page. */
   externalError?: string | null;
+  /** A closed claim: the current cause and its history are shown, nothing can be chosen. */
+  readOnly?: boolean;
   onChanged: () => void;
 }
 
 /** Choose, change and review the priority cause. Typing it by hand is always possible. */
-export function PriorityCauseCard({ claimId, version, evidence, footer, externalError, onChanged }: CardProps) {
+export function PriorityCauseCard({ claimId, version, evidence, footer, externalError, readOnly = false, onChanged }: CardProps) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
   const { current, history, loaded } = usePriorityCause(claimId, version);
@@ -164,8 +166,10 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
   }, [loaded, current, top, text, category]);
 
   return (
-    <section className="pc-card" aria-labelledby="pc-title">
+    <section className="pc-card" id="priority-cause-card" aria-labelledby="pc-title">
       <style>{`
+        @keyframes pcFlash { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,.55); } 100% { box-shadow: 0 0 0 14px rgba(59,130,246,0); } }
+        .pc-card.pc-flash { animation: pcFlash 1.2s ease-out 2; border-color: #3b82f6; }
         .pc-card { margin: 14px 0; background: #fff; border: 1px solid #c7d2fe; border-radius: 14px; padding: 14px 16px; }
         .pc-card h3 { margin: 0 0 4px; font-size: 15px; color: #000168; display: flex; gap: 8px; align-items: center; }
         .pc-hint { margin: 0 0 10px; font-size: 12.5px; color: #64748b; line-height: 1.45; }
@@ -212,7 +216,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         </ul>
       )}
 
-      {ishikawaSorted.length > 0 && (
+      {!readOnly && ishikawaSorted.length > 0 && (
         <div className="pc-ik">
           <div className="pc-meta">{ranked ? t('priorityCause.fromIshikawaRanked') : t('priorityCause.fromIshikawa')}</div>
           <ul>
@@ -249,6 +253,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         </div>
       )}
 
+      {!readOnly && (
       <div className="pc-row">
         <input
           value={text}
@@ -265,6 +270,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
           {current ? t('priorityCause.replace') : t('priorityCause.keep')}
         </button>
       </div>
+      )}
       {prefilled && text.trim() && <div className="pc-meta" style={{ marginTop: 6 }}>{t('priorityCause.prefilled')}</div>}
       {(error || externalError) && <div className="pc-err" role="alert">{error || externalError}</div>}
 

@@ -35,7 +35,8 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddApplication();
 
-builder.Services.AddHttpClient();
+builder.Services.AddTransient<Coficab.ActionPlan.Application.Services.GeminiModelFallbackHandler>();
+builder.Services.AddHttpClient().ConfigureHttpClientDefaults(b => b.AddHttpMessageHandler<Coficab.ActionPlan.Application.Services.GeminiModelFallbackHandler>());
 builder.Services.AddHttpClient("AuthApi")
     .ConfigurePrimaryHttpMessageHandler(() =>
     {

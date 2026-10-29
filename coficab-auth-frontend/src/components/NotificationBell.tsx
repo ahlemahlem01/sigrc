@@ -4,6 +4,9 @@ import { useNavigate } from 'react-router-dom';
 import { useNotifications, NotificationItem } from '../hooks/useNotifications';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../i18n';
+import { localizedNotification, notificationPath } from '../utils/notificationText';
+import { useAuth } from '../context/AuthContext';
+import { isAdminUser } from '../utils/roles';
 
 const IconBell = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -34,18 +37,6 @@ function typeLabel(type?: string): string | null {
   return null;
 }
 
-function resolvePath(n: NotificationItem): string | null {
-  if (n.linkPath && n.linkPath.startsWith('/') && !n.linkPath.startsWith('//')) {
-    return n.linkPath;
-  }
-  if (n.claimId) {
-    return `/pages/front/my-claims?claimId=${encodeURIComponent(n.claimId)}`;
-  }
-  if (n.type === 'recognition_podium') return '/dashboard';
-  if (n.actionPlanId) return `/pages/front/action-plans/${n.actionPlanId}`;
-  return null;
-}
-
 interface NotificationBellProps {
   color?: string;
 }
@@ -56,6 +47,8 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ color = '#0d
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = isAdminUser(user as any);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -67,7 +60,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ color = '#0d
 
   const handleClick = async (n: NotificationItem) => {
     if (!n.isRead) await markAsRead(n.id);
-    const path = resolvePath(n);
+    const path = notificationPath(n, isAdmin);
     if (path) navigate(path);
     setOpen(false);
   };
@@ -126,6 +119,7 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ color = '#0d
           ) : (
             notifications.map(n => {
               const kind = typeLabel(n.type);
+              const text = localizedNotification(n, t, (iso) => new Date(iso).toLocaleDateString(dateLocale()));
               const isClaim = String(n.type || '').toLowerCase() === 'claim_assigned';
               return (
                 <div
@@ -148,11 +142,11 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ color = '#0d
                           {kind}
                         </span>
                       )}
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0d1340' }}>{n.title}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#0d1340' }}>{text.title}</span>
                     </div>
                     {!n.isRead && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', flexShrink: 0, marginTop: 4 }} />}
                   </div>
-                  <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.4 }}>{n.message}</p>
+                  <p style={{ fontSize: 11, color: '#64748b', margin: 0, lineHeight: 1.4 }}>{text.message}</p>
                   <span style={{ fontSize: 10, color: '#94a3b8', marginTop: 4, display: 'block' }}>{timeAgo(n.createdAt)}</span>
                 </div>
               );

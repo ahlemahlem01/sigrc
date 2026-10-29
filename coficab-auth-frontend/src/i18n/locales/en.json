@@ -735,6 +735,8 @@
       "subaction_validated": "Action validated",
       "subaction_rejected": "Action rejected",
       "subaction_warning": "Warning on an action",
+      "subaction_deadline_extended": "Action deadline extended",
+      "subaction_description": "Description changed",
       "subaction_proof": "Proof added"
     }
   },
@@ -3080,6 +3082,7 @@
     "rootCauseOccurrence": "Occurrence root cause",
     "rootCauseDetection": "Detection root cause",
     "aiSynthesis": "AI synthesis",
+    "synthesizing": "Generating…",
     "rootCauseOccurrencePlaceholder": "Root cause: why the defect appeared…",
     "rootCauseDetectionPlaceholder": "Root cause: why inspection failed…",
     "capaStep": "Step 4 · CAPA",
@@ -3355,6 +3358,7 @@
     "justNow": "just now",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}} h ago",
+    "deadlineExtended": {"title": "Deadline extended", "message": "The deadline of \"{{title}}\" has been extended to {{newDate}} (+{{days}} d, previous deadline: {{oldDate}}). Reason: {{reason}}"},
     "kindDeadline": "Deadline",
     "kindAssignment": "Assignment",
     "kindAlert": "Quality alert",
@@ -3385,7 +3389,10 @@
   },
   "actionHistory": {
     "oldValue": "Previous value",
-    "kind": {"progress": "Progress", "proof": "Proof", "warning": "Warning"},
+    "descriptionBefore": "Before",
+    "descriptionAfter": "After",
+    "descriptionEmpty": "(empty)",
+    "kind": {"progress": "Progress", "proof": "Proof", "warning": "Warning", "description": "Description", "deadline": "Deadline extended"},
     "assignmentsHint": "Here: who was given or taken off this action. Nothing until the action changes owner.",
     "assigned": "Assigned",
     "unassigned": "Unassigned",
@@ -3442,7 +3449,7 @@
     "heroTitle2": "reinvented",
     "heroSubtitle1": "Pioneer of Conduction.",
     "heroText": "COFICAB designs high-tech electrical conduction architectures, specially shielded to power the era of zero-emission global e-mobility.",
-    "heroCta": "DISCOVER OUR SOLUTIONS",
+    "heroCta": "ACCESS QUALITY ANALYSES",
     "partners": "Trusted by leading automotive engineering teams",
     "s1Kicker": "[ 01 // METALLURGY & INNOVATION ]",
     "s1Title1": "Shaping the invisible",
@@ -3605,6 +3612,12 @@
     "deadline": "Deadline",
     "progress": "Progress",
     "editProgress": "Edit progress",
+    "editDescription": "Edit description",
+    "descriptionPlaceholder": "What exactly has to be done, the success criterion and the proof",
+    "descriptionHint": "The previous text is kept in the history of this sub-action.",
+    "descriptionRequired": "The description cannot be empty.",
+    "descriptionUnchanged": "The description has not changed.",
+    "descriptionFailed": "The description could not be saved.",
     "proofField": "CAPA proof (recommended at 100%)"
   },
   "planView": {
@@ -3835,6 +3848,22 @@
       "label": "Assign an action plan",
       "description": "Choose the owner of an action plan."
     },
+    "capa_extend_deadline": {
+      "label": "Extend a deadline",
+      "description": "Give a late claim, plan or action more time, with a reason."
+    },
+    "capa_reassign": {
+      "label": "Reassign a plan or an action",
+      "description": "Hand a plan, or only one of its actions, to someone else."
+    },
+    "analysis_validate_fivewhy": {
+      "label": "Validate a 5 Why",
+      "description": "Approve or return a submitted 5 Why analysis."
+    },
+    "8d_validate": {
+      "label": "Validate an 8D file",
+      "description": "Validate and close, or return, a submitted 8D file."
+    },
     "capa_validate": {
       "label": "Validate an action plan",
       "description": "Accept or reject an action plan."
@@ -3850,6 +3879,10 @@
     "analysis_generate_ai": {
       "label": "Generate an AI summary",
       "description": "Produce a summary written by the assistant."
+    },
+    "assistant_unrestricted": {
+      "label": "Use the assistant without restriction",
+      "description": "The assistant answers with the data of the whole organisation, as it does for an administrator, and not only with the person's own data."
     },
     "8d_complete_steps": {
       "label": "Complete 8D steps",
@@ -4301,6 +4334,8 @@
   },
   "plansAdmin": {
     "statusCreated": "Awaiting assignment",
+    "lateKpiTitle": "Late plans",
+    "lateKpiHint": "Open plans whose deadline, or that of an unfinished action, has passed",
     "statusOngoing": "In progress",
     "statusClosed": "Validated",
     "statusArchived": "Archived",
@@ -4332,7 +4367,8 @@
       "rejected": "No plan sent back",
       "ongoing": "No plan in progress",
       "created": "No plan awaiting assignment",
-      "all": "No plan found"
+      "all": "No plan found",
+      "late": "No late plan"
     },
     "group": "Coficab Group",
     "imported_one": "{{count}} plan imported",
@@ -4354,7 +4390,9 @@
       "created_one": "{{count}} waiting plan",
       "created_other": "{{count}} waiting plans",
       "all_one": "{{count}} plan found",
-      "all_other": "{{count}} plans found"
+      "all_other": "{{count}} plans found",
+      "late_one": "{{count}} late plan",
+      "late_other": "{{count}} late plans"
     },
     "forSearch": "for “{{search}}”",
     "editPlan": "Edit the plan",
@@ -4758,6 +4796,19 @@
   },
   "permMatrix": {
     "loadFailed": "Could not load the matrix.",
+    "fromRole": "Right given by the person's role: it cannot be removed here.",
+    "newRight": "Recently created right",
+    "helpDetails": {
+      "title": "How does it work?",
+      "greyTitle": "Greyed boxes.",
+      "grey": "The right comes from the person's role: it cannot be removed here.",
+      "addTitle": "Granting an extra right.",
+      "add": "Tick the box: it is saved at once. Untick to remove it.",
+      "relogTitle": "Signing in again.",
+      "relog": "The person must sign in again for the change to apply.",
+      "newTitle": "A right is missing?",
+      "new": "Create it in the \"All permissions\" page (super administrator only)."
+    },
     "updateFailed": "Update failed.",
     "users_one": "{{count}} user",
     "users_other": "{{count}} users",
@@ -4846,6 +4897,28 @@
     "allows": "What it allows",
     "allowsPh": "Accept or reject a plan before it is closed",
     "internalRef": "Internal reference. It must match a feature of the project.",
+    "newBadge": "New",
+    "assignIt": "Assign this right →",
+    "help": {
+      "title": "How does it work? Creating and granting a right",
+      "what": "A right opens a specific function of the application (extend a deadline, validate an 8D, use the assistant without restriction…). It is created here, then granted to a person in the \"Assignment\" page.",
+      "step1": "Click \"New permission\".",
+      "step2": "Choose a reference in the list: it only offers the functions the application can enforce and whose right has not been created yet.",
+      "step3": "The label, the explanation and the category are filled in from the reference. You can edit them, then save.",
+      "step4": "Open \"Assignment\", choose the category and tick the person's box.",
+      "delegateTitle": "Creating a right makes it delegable.",
+      "delegate": "As long as a right is not created, only administrators can do the action. Once created, it appears in the matrix and can be given to a specific person.",
+      "roleTitle": "Roles.",
+      "role": "An administrator or a super administrator holds every right through their role. An employee only has those of daily work: the others are granted one by one.",
+      "limitTitle": "Why not a free code?",
+      "limit": "A right must match a real function, otherwise it would do nothing. For a brand new right, the function must first be provided in the code.",
+      "relogTitle": "Signing in again.",
+      "relog": "A right granted or removed applies when the person signs in again, because it travels with their session.",
+      "deactivateTitle": "Deactivating.",
+      "deactivate": "A deactivated right disappears from the matrix, but nothing is deleted: it can be reactivated."
+    },
+    "pickCode": "Choose an available reference…",
+    "noCodeLeft": "Every reference the project provides already has a right.",
     "searchPh": "Search for a permission…",
     "filterAria": "Filter by category",
     "allCategories": "All categories",
@@ -5041,6 +5114,9 @@
     "pillFiveWhy": "5 Why · to validate",
     "rootCause": "Root cause"
   },
+  "closedDossier": {
+    "banner": "Closed file: read-only."
+  },
   "planDetailFront": {
     "statusAwaitingAssignment": "Awaiting assignment",
     "statusN": "Status {{n}}",
@@ -5072,7 +5148,40 @@
     "noActionsArchived": "No actions recorded for this archived plan.",
     "noActions": "No actions defined for this plan.",
     "noDeadline": "No deadline",
-    "assignmentHistory": "Assignment history"
+    "assignmentHistory": "Assignment history",
+    "readyTitle": "Plan finished: waiting for your validation",
+    "readyHint": "Every sub-action is at 100% ({{proofs}} proof(s) attached). Check, then validate or return the plan.",
+    "validatePlan": "Validate the plan (D5)",
+    "returnPlan": "Return the plan",
+    "validateAction": "Validate",
+    "returnAction": "Return",
+    "validatePlanTitle": "Validate this CAPA plan (D5)?",
+    "validatePlanMessage": "The plan will be closed and its owner told.",
+    "returnPlanTitle": "Return the plan with a reason",
+    "validateActionTitle": "Validate this sub-action?",
+    "validateActionMessage": "It will be locked and its owner told.",
+    "returnActionTitle": "Return \"{{title}}\" with a reason",
+    "confirmValidate": "Validate",
+    "confirmReturn": "Return",
+    "decisionFailed": "The decision could not be saved.",
+    "planValidated": "Plan validated and closed.",
+    "planReturned": "Plan returned to its owner with the reason.",
+    "actionValidated": "Sub-action validated.",
+    "actionReturned": "Sub-action returned to its owner with the reason.",
+    "reassignPlan": "Reassign the plan",
+    "reassignAction": "Reassign",
+    "reassignPlanTitle": "Reassign the whole plan",
+    "reassignActionTitle": "Reassign the sub-action",
+    "reassignPlanHint": "The plan and all its sub-actions not yet validated are given to this person. Each change is kept in the sub-action's history (Assignments tab).",
+    "reassignActionHint": "Only this sub-action changes owner. The change is kept in its history (Assignments tab).",
+    "reassignTo": "New person in charge",
+    "reassignPick": "Choose a person…",
+    "reassignNote": "Reason (optional)",
+    "reassignNotePlaceholder": "E.g. absence, workload, skills…",
+    "reassignConfirm": "Assign",
+    "reassignedPlan": "Plan reassigned to {{name}}.",
+    "reassignedAction": "Sub-action reassigned to {{name}}.",
+    "reassignFailed": "The reassignment failed."
   },
   "planActionsMgmt": {
     "createFailed": "Could not create it. Please try again.",
@@ -5439,6 +5548,7 @@
     "keep": "Keep this cause",
     "replace": "Replace the chosen cause",
     "keepThis": "Keep",
+    "kept": "Kept",
     "by": "chosen by {{who}} on {{when}}",
     "history": "Previous choices ({{count}})",
     "failed": "The cause could not be saved.",

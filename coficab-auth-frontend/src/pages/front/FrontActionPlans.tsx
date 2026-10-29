@@ -206,8 +206,9 @@ const IcoChevR  = () => <Ico d="M9 5l7 7-7 7" />;
 const IcoX      = () => <Ico d="M6 18L18 6M6 6l12 12" />;
 const IcoFilter = () => <Ico d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />;
 const IcoCheck  = () => <Ico d="M20 6L9 17l-5-5" />;
+const IcoAlert  = () => <Ico d="M12 8v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />;
 
-type ViewFilter = 'all' | 'ongoing' | 'created' | 'archived' | 'pending' | 'closed' | 'rejected';
+type ViewFilter = 'all' | 'ongoing' | 'created' | 'archived' | 'pending' | 'closed' | 'rejected' | 'late';
 
 type ChartSlice = {
   key: ViewFilter;
@@ -313,6 +314,21 @@ function userLabel(users: User[], id?: string | null): string {
 }
 
 // ── Plan row (liste simple) ───────────────────────────────────────────────────
+/** An open plan is late when its own deadline, or the deadline of one of its unfinished actions, has passed. */
+function planIsLate(plan: ActionPlan): boolean {
+  if (plan.status === 'archived' || plan.status === 'closed') return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const passed = (iso?: string | null) => {
+    if (!iso) return false;
+    const d = new Date(iso);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime() < today.getTime();
+  };
+  const actionLate = (plan.planActions || []).some((pa) => Number(pa.progress ?? 0) < 100 && passed(pa.deadline));
+  return passed(plan.deadline) || actionLate;
+}
+
 function PlanRow({ plan, users, index, onEdit, onArchive, onRestore, onValidate, onView, viewFilter, validating }: {
   plan: ActionPlan; users: User[]; index: number;
   onEdit: () => void; onArchive: () => void;
@@ -322,26 +338,7 @@ function PlanRow({ plan, users, index, onEdit, onArchive, onRestore, onValidate,
   const { t } = useTranslation();
   const sc = getPlanStatus(plan);
   const tc = safeType(plan.type);
-  const startOfToday = (() => {
-    const n = new Date();
-    n.setHours(0, 0, 0, 0);
-    return n.getTime();
-  })();
-  const planOpen = plan.status !== 'archived' && plan.status !== 'closed';
-  const openActionOverdue = (plan.planActions || []).some((pa) => {
-    if (!pa.deadline) return false;
-    const prog = Number(pa.progress ?? 0);
-    if (prog >= 100) return false;
-    const d = new Date(pa.deadline);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() < startOfToday;
-  });
-  const planDeadlineOverdue = !!plan.deadline && (() => {
-    const d = new Date(plan.deadline);
-    d.setHours(0, 0, 0, 0);
-    return d.getTime() < startOfToday;
-  })();
-  const isOverdue = planOpen && (planDeadlineOverdue || openActionOverdue);
+  const isOverdue = planIsLate(plan);
   const assignee = userLabel(users, plan.assignedToId);
   const progress =
     plan.status === 'closed' || plan.status === 'archived'
@@ -715,6 +712,7 @@ export const FrontActionPlans: React.FC = () => {
     viewFilter === 'rejected' ? rejectedPlans :
     viewFilter === 'ongoing'  ? actionPlans.filter((p) => p.status === 'ongoing' && (p.progress ?? 0) < 100) :
     viewFilter === 'created'  ? actionPlans.filter((p) => p.status === 'created') :
+    viewFilter === 'late'     ? actionPlans.filter(planIsLate) :
     actionPlans; // 'all' = tous les plans non archivés
 
   const selectKpi = (f: ViewFilter) => {
@@ -748,6 +746,7 @@ export const FrontActionPlans: React.FC = () => {
   };
 
   const closedPlans = actionPlans.filter((p) => p.status === 'closed');
+  const lateCount = actionPlans.filter(planIsLate).length;
   const total = actionPlans.length + archivedPlans.length;
   const pendingCount = pendingPlans.length
     || actionPlans.filter((p) => p.status === 'ongoing' && (p.progress ?? 0) >= 100).length;
@@ -834,6 +833,22 @@ export const FrontActionPlans: React.FC = () => {
           display:grid; grid-template-columns: 180px minmax(0,1fr); gap:12px 24px; align-items:center;
           background:#fff; border:1px solid var(--line); border-radius:16px; padding:14px 18px;
         }
+        .fap-kpi-late {
+          display:flex; align-items:center; gap:16px; width:100%; text-align:left; font-family:inherit; cursor:pointer;
+          background:#fff1f2; border:1px solid #fecdd3; border-left:5px solid #e11d48; border-radius:16px; padding:14px 18px;
+          transition: box-shadow .15s ease, transform .15s ease, background .15s ease;
+        }
+        .fap-kpi-late:hover { box-shadow:0 4px 14px rgba(225,29,72,.14); transform:translateY(-1px); }
+        .fap-kpi-late.on { background:#ffe4e6; border-color:#e11d48; box-shadow:0 0 0 2px rgba(225,29,72,.18); }
+        .fap-kpi-late.none { background:#f8fafc; border-color:#e2e8f0; border-left-color:#94a3b8; }
+        .fap-kpi-late-ico { display:flex; align-items:center; justify-content:center; width:40px; height:40px; border-radius:12px; background:#fff; color:#e11d48; flex:none; }
+        .fap-kpi-late.none .fap-kpi-late-ico { color:#94a3b8; }
+        .fap-kpi-late-body { display:grid; grid-template-columns:auto minmax(0,1fr); column-gap:12px; align-items:baseline; flex:1; min-width:0; }
+        .fap-kpi-late-body strong { grid-row:1 / span 2; font-size:30px; line-height:1; font-weight:800; color:#be123c; }
+        .fap-kpi-late.none .fap-kpi-late-body strong { color:#64748b; }
+        .fap-kpi-late-title { font-size:14px; font-weight:700; color:#0f172a; }
+        .fap-kpi-late-body em { font-style:normal; font-size:12px; color:#64748b; }
+        .fap-kpi-late-go { font-size:18px; font-weight:700; color:#be123c; flex:none; }
         .fap-chart-viz { position:relative; height:148px; }
         .fap-chart-center {
           position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -987,6 +1002,21 @@ export const FrontActionPlans: React.FC = () => {
           onSelect={selectKpi}
           onReset={() => setViewFilter('all')}
         />
+
+        <button
+          type="button"
+          className={`fap-kpi-late${viewFilter === 'late' ? ' on' : ''}${lateCount === 0 ? ' none' : ''}`}
+          onClick={() => selectKpi('late')}
+          aria-pressed={viewFilter === 'late'}
+        >
+          <span className="fap-kpi-late-ico"><IcoAlert /></span>
+          <span className="fap-kpi-late-body">
+            <strong>{lateCount}</strong>
+            <span className="fap-kpi-late-title">{t('plansAdmin.lateKpiTitle')}</span>
+            <em>{t('plansAdmin.lateKpiHint')}</em>
+          </span>
+          <span className="fap-kpi-late-go" aria-hidden>{viewFilter === 'late' ? '✕' : '→'}</span>
+        </button>
 
         <div className="fap-toolbar">
           <div className="fap-search-wrap">

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   assignStoredPermission,
@@ -13,13 +14,19 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 
 const PAGE_SIZE = 12;
+// a right created in the last day is flagged as new, so it is found at once in the matrix
+const NEW_FOR_MS = 24 * 60 * 60 * 1000;
 
 export default function PermissionMatrixPage() {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
+  const [params] = useSearchParams();
+  const focusName = params.get('focus');
   const [users, setUsers] = useState<UserDto[]>([]);
   const [permissions, setPermissions] = useState<StoredPermission[]>([]);
   const [grants, setGrants] = useState<Record<string, string[]>>({});
+  // what each person's role already gives: shown as granted, and not removable from here
+  const [inherited, setInherited] = useState<Record<string, string[]>>({});
   const [userQuery, setUserQuery] = useState('');
   const [permissionQuery, setPermissionQuery] = useState('');
   const [category, setCategory] = useState('');
@@ -38,11 +45,14 @@ export default function PermissionMatrixPage() {
         listStoredPermissions(accessToken),
       ]);
       const next: Record<string, string[]> = {};
+      const fromRole: Record<string, string[]> = {};
       userRows.forEach((user) => {
         next[user.id] = user.permissions || [];
+        fromRole[user.id] = user.inheritedPermissions || [];
       });
       setUsers(userRows);
       setGrants(next);
+      setInherited(fromRole);
       setPermissions(permissionRows.filter((row) => row.isActive));
     } catch (err: any) {
       setError(err?.response?.data?.message || i18n.t('permMatrix.loadFailed'));
@@ -62,9 +72,27 @@ export default function PermissionMatrixPage() {
     return names;
   }, [permissions]);
 
+  const isNew = useCallback((row: StoredPermission) => {
+    if (focusName && row.name === focusName) return true;
+    const created = row.createdAt ? Date.parse(row.createdAt) : NaN;
+    return Number.isFinite(created) && Date.now() - created < NEW_FOR_MS;
+  }, [focusName]);
+
+  const newByCategory = useMemo(() => {
+    const names = new Set<string>();
+    permissions.forEach((row) => { if (row.category && isNew(row)) names.add(row.category); });
+    return names;
+  }, [permissions, isNew]);
+
+  // opens on the area of the right that was just created (or asked for in the link), otherwise on the first area
   useEffect(() => {
-    if (!category && categories.length > 0) setCategory(categories[0]);
-  }, [category, categories]);
+    if (category || categories.length === 0) return;
+    const wanted = params.get('category');
+    const newest = permissions
+      .filter((row) => row.category && isNew(row))
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+    setCategory(wanted && categories.indexOf(wanted) >= 0 ? wanted : newest?.category || categories[0]);
+  }, [category, categories, permissions, params, isNew]);
 
   useEffect(() => { setPage(0); }, [userQuery, permissionQuery, category]);
 
@@ -120,11 +148,20 @@ export default function PermissionMatrixPage() {
       <style>{PAGE_CSS}</style>
       <p className="mx-kicker">{t('permMatrix.users', { count: users.length })} · {t('permMatrix.rights', { count: permissions.length })}</p>
       <p className="mx-muted">{t('permMatrix.help')}</p>
+      <details className="mx-help">
+        <summary>{t('permMatrix.helpDetails.title')}</summary>
+        <ul>
+          <li><strong>{t('permMatrix.helpDetails.greyTitle')}</strong> {t('permMatrix.helpDetails.grey')}</li>
+          <li><strong>{t('permMatrix.helpDetails.addTitle')}</strong> {t('permMatrix.helpDetails.add')}</li>
+          <li><strong>{t('permMatrix.helpDetails.relogTitle')}</strong> {t('permMatrix.helpDetails.relog')}</li>
+          <li><strong>{t('permMatrix.helpDetails.newTitle')}</strong> {t('permMatrix.helpDetails.new')}</li>
+        </ul>
+      </details>
 
       <div className="mx-chips" role="tablist" aria-label={t('permMatrix.domain')}>
         {categories.map((item) => (
           <button key={item} type="button" className={`mx-chip${category === item ? ' on' : ''}`} onClick={() => setCategory(item)}>
-            {categoryTitle(item)}
+            {categoryTitle(item)}{newByCategory.has(item) && <span className="mx-dot" title={t('permMatrix.newRight')} />}
           </button>
         ))}
       </div>
@@ -151,6 +188,7 @@ export default function PermissionMatrixPage() {
                   {visiblePermissions.map((permission) => (
                     <th key={permission.id} title={permissionHelp(permission.name, permission.description)}>
                       {permissionTitle(permission.name, permission.displayName)}
+                      {isNew(permission) && <b className="mx-new">{t('permCatalog.newBadge')}</b>}
                     </th>
                   ))}
                 </tr>
@@ -163,14 +201,16 @@ export default function PermissionMatrixPage() {
                       <small>{user.email}</small>
                     </td>
                     {visiblePermissions.map((permission) => {
-                      const checked = (grants[user.id] || []).indexOf(permission.name) >= 0;
+                      const fromRole = (inherited[user.id] || []).indexOf(permission.name) >= 0;
+                      const checked = fromRole || (grants[user.id] || []).indexOf(permission.name) >= 0;
                       const key = `${user.id}:${permission.id}`;
                       return (
                         <td key={permission.id}>
                           <input
                             type="checkbox"
                             checked={checked}
-                            disabled={busyKey === key}
+                            disabled={fromRole || busyKey === key}
+                            title={fromRole ? t('permMatrix.fromRole') : undefined}
                             aria-label={t('permMatrix.cellAria', { right: permissionTitle(permission.name, permission.displayName), user: user.fullName || user.email })}
                             onChange={() => void toggle(user, permission)}
                           />
@@ -204,6 +244,12 @@ export default function PermissionMatrixPage() {
 const PAGE_CSS = `
   .mx-page { color: #0f172a; }
   .mx-kicker { margin: 0 0 2px; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #000168; }
+  .mx-help { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 10px; margin: 0 0 12px; }
+  .mx-help summary { cursor: pointer; padding: 9px 14px; font-size: 13px; font-weight: 700; color: #000168; }
+  .mx-help ul { margin: 0; padding: 0 16px 10px 34px; font-size: 13px; color: #334155; line-height: 1.55; }
+  .mx-help li { margin-bottom: 4px; }
+  .mx-dot { display: inline-block; width: 8px; height: 8px; margin-left: 7px; border-radius: 50%; background: #10b981; vertical-align: middle; }
+  .mx-new { display: block; width: fit-content; margin: 4px auto 0; padding: 1px 8px; border-radius: 999px; background: #059669; color: #fff; font-size: 11px; font-weight: 700; }
   .mx-muted { margin: 0 0 12px; color: #64748b; font-size: 13px; }
   .mx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .mx-chip { border: 1px solid #e2e8f0; background: #fff; color: #334155; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }

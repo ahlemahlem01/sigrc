@@ -60,6 +60,8 @@ public class PriorityCauseController : ControllerBase
     {
         var (claim, error) = await AuthorizeAsync(claimId, ct);
         if (error != null) return error;
+        if (await Services.ClosedDossier.IsClosedAsync(_db, claimId, ct))
+            return Conflict(Services.ClosedDossier.Refusal);
 
         var text = (request.Text ?? string.Empty).Trim();
         if (text.Length == 0 || text.Length > 500)

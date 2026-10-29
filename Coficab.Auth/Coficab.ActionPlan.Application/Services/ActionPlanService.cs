@@ -424,10 +424,11 @@ public class ActionPlanService : IActionPlanService
             recipients.AddRange(await _context.UserActionPlanAssignments.AsNoTracking()
                 .Where(a => a.ActionPlanId == plan.Id).Select(a => a.UserId).ToListAsync(ct));
             var message = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationMessage(plan.Title, old, target, reason);
+            var data = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationData(plan.Title, old, target, reason);
             foreach (var userId in recipients.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim())
                          .Distinct(StringComparer.OrdinalIgnoreCase)
                          .Where(r => !string.Equals(r, byUserId, StringComparison.OrdinalIgnoreCase)))
-                await _notificationService.NotifyAsync(userId, "plan_deadline_extended", "Échéance prolongée", message, plan.Id);
+                await _notificationService.NotifyLocalizedAsync(userId, "plan_deadline_extended", "Échéance prolongée", message, data, plan.Id);
         }
         catch
         {
@@ -1171,6 +1172,8 @@ public class ActionPlanService : IActionPlanService
             && note.StartsWith("Rejet", StringComparison.OrdinalIgnoreCase)) return "subaction_rejected";
         if (h.OldProgress == h.NewProgress && note.StartsWith("Avertissement", StringComparison.OrdinalIgnoreCase)) return "subaction_warning";
         if (h.OldProgress == h.NewProgress && note.StartsWith("Preuve", StringComparison.OrdinalIgnoreCase)) return "subaction_proof";
+        if (h.OldProgress == h.NewProgress && h.NewDescription != null) return "subaction_description";
+        if (h.OldProgress == h.NewProgress && note.StartsWith("Échéance prolongée", StringComparison.OrdinalIgnoreCase)) return "subaction_deadline_extended";
         if (h.NewProgress == ActionProgress.Hundred) return "subaction_completed";
         return "subaction_progress";
     }

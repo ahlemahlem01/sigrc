@@ -104,6 +104,8 @@ services:
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
       # Google retires models from time to time: change GEMINI_MODEL in .env, no code change needed.
       Gemini__Model: ${GEMINI_MODEL:-gemini-3.6-flash}
+      # Models tried in turn when the main one answers "quota reached" or "overloaded" (each model has its own free quota).
+      Gemini__FallbackModels: ${GEMINI_FALLBACK_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash,gemini-3.7-flash,gemini-3.8-flash}
       # The semantic search backfill is only useful with a Gemini key.
       Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}
     volumes:
