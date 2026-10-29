@@ -100,7 +100,7 @@ public class PasswordController : ControllerBase
         {
             // Only the password rules are explained (the holder of a valid token may know them); everything else is just "invalid link".
             var rules = result.Errors.Where(e => e.Code.StartsWith("Password", StringComparison.Ordinal)).Select(e => e.Description).ToList();
-            return BadRequest(rules.Count > 0 ? new { code = WeakPassword, message = string.Join(" ", rules) } : new { code = InvalidLink, message = (string?)null });
+            return BadRequest(rules.Count > 0 ? new { code = WeakPassword, message = (string?)string.Join(" ", rules) } : new { code = InvalidLink, message = (string?)null });
         }
 
         // Resetting the password is also the way out of a lockout; the security stamp changed, so every older session
