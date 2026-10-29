@@ -112,7 +112,7 @@ export const ExtendDeadline: React.FC<Props> = ({ kind, id, deadline, open = tru
               {t('extendDeadline.reason')} <span style={{ fontWeight: 400, color: '#64748b' }}>({t('extendDeadline.reasonHint', { min: MIN_REASON })})</span>
               <textarea
                 value={reason}
-                maxLength={500}
+                maxLength={400}
                 rows={3}
                 onChange={(e) => setReason(e.target.value)}
                 style={{ padding: '8px 10px', borderRadius: 8, border: '1px solid #cbd5e1', font: 'inherit', resize: 'vertical' }}

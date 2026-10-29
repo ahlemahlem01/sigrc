@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getTurnstileConfig, TurnstileConfig } from '../services/turnstileService';
+import { getTurnstileConfig, resetTurnstileConfig, TurnstileConfig } from '../services/turnstileService';
 
 /**
  * State of the Turnstile check for a form: whether it is on, the token the visitor earned, and a counter that renews the widget
@@ -32,7 +32,12 @@ export function useTurnstile() {
     hintKey: errorCode === null ? null : errorCode.startsWith('1102') ? 'host' : errorCode.startsWith('1101') ? 'key' : 'client',
     resetKey,
     /** Ask for a new token (call after every attempt, successful or not). */
-    renew: () => { setToken(null); setResetKey((k) => k + 1); },
+    renew: () => {
+      setToken(null);
+      setResetKey((k) => k + 1);
+      // the first answer may have been a failed request reported as "off": ask again so that the widget can appear
+      if (!enabled) { resetTurnstileConfig(); void getTurnstileConfig().then(setConfig); }
+    },
     ready: config !== null && (!enabled || !!token),
   };
 }

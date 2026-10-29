@@ -92,6 +92,16 @@ public class ReassignmentTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public async Task AReasonLongerThanTheHistoryAllows_IsRefused_ForAnActionAndForAPlan()
+    {
+        var (plan, running, _, _) = await SeedAsync();
+        var tooLong = new string('x', 301);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Reassign(ClientAs("admin"), $"/api/planaction/{running}/reassign", Newcomer, tooLong)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Reassign(ClientAs("admin"), $"/api/ActionPlan/{plan}/reassign", Newcomer, tooLong)).StatusCode);
+        Assert.Empty(await AssignmentHistory(running));
+    }
+
+    [Fact]
     public async Task TheWholePlan_MovesWithItsOpenSubActions_AndEachOneKeepsItsOwnHistory()
     {
         var (plan, running, finished, validated) = await SeedAsync();

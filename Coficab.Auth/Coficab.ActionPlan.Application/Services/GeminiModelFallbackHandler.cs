@@ -7,7 +7,7 @@ namespace Coficab.ActionPlan.Application.Services;
 
 /// <summary>
 /// The free tier of the AI service allows few requests per model and per day, and a model is sometimes overloaded. When a
-/// generation request is answered "quota reached" (429) or "overloaded" (503), the same request is sent to the next model of
+/// generation request is answered "quota reached" (429), "overloaded" (503) or "model not found" (404), the same request is sent to the next model of
 /// Gemini:FallbackModels (their quotas are separate), so every screen that uses the AI benefits without changing its code.
 /// A model that does not answer within a few seconds counts as overloaded, so that one slow model never holds the chain.
 /// Anything else (success, a refused request, another service) goes through untouched.
@@ -64,7 +64,9 @@ public sealed class GeminiModelFallbackHandler : DelegatingHandler
                 last = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);   // no answer in time: the model counts as overloaded
             }
 
-            if (last.StatusCode != HttpStatusCode.TooManyRequests && last.StatusCode != HttpStatusCode.ServiceUnavailable) return last;
+            // quota reached, overloaded, or a model that Google has retired: the next model gets its chance
+            if (last.StatusCode != HttpStatusCode.TooManyRequests && last.StatusCode != HttpStatusCode.ServiceUnavailable
+                && last.StatusCode != HttpStatusCode.NotFound) return last;
             if (clock.Elapsed > chainLimit) break;
 
             if (i < models.Count - 1)

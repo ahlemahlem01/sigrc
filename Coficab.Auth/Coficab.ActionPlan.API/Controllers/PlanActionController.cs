@@ -232,6 +232,10 @@ public class PlanActionController : ControllerBase
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
         if (request?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
 
+        var existing = await _service.GetByIdAsync(id);
+        if (existing is null || !(await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin())).Contains(existing.ActionPlanId))
+            return NotFound(new { code = "notFound", message = "Sous-action non trouvée." });
+
         var result = await _service.ExtendDeadlineAsync(id, request.NewDeadline.Value, request.Reason ?? string.Empty, by);
         return result.Code switch
         {
@@ -254,7 +258,11 @@ public class PlanActionController : ControllerBase
         if (!IsQualityAdmin() && !Services.PermissionAccess.Has(User, Services.PermissionAccess.Reassign)) return Forbid();
         var by = CurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
-        if (await _service.GetByIdAsync(id) is null) return NotFound(new { error = "Sous-action non trouvée." });
+        var existing = await _service.GetByIdAsync(id);
+        if (existing is null || !(await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin())).Contains(existing.ActionPlanId))
+            return NotFound(new { error = "Sous-action non trouvée." });
+        if ((request.Note ?? string.Empty).Length > 300)
+            return BadRequest(new { error = "Le motif ne doit pas dépasser 300 caractères." });
 
         try
         {

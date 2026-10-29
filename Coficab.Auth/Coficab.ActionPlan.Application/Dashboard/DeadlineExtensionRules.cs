@@ -10,7 +10,7 @@ public record DeadlineExtensionResult(string? Code, DateTime? OldDeadline = null
 public static class DeadlineExtensionRules
 {
     public const int MinReasonLength = 10;
-    public const int MaxReasonLength = 500;
+    public const int MaxReasonLength = 400;   // the history note adds about 60 characters around it (500 in the column)
     public const int MaxDaysAhead = 180;
     private const int MaxNotificationMessage = 500;
 

@@ -37,6 +37,8 @@ export interface PlanAction {
   assignedToId?: string;
   assignedToName?: string;
   assignedTo?: User;
+  /** The action was cancelled: it is not an unfinished action (its progress shows as 0). */
+  cancelled?: boolean;
   /** Raw progress: 0-100, 101 validated, 102 cancelled. */
   progressRaw?: number;
   actionPlanId?: string;

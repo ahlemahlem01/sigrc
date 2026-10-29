@@ -170,7 +170,7 @@ public class GeminiService : IGeminiService
         };
 
         var httpClient = _httpClientFactory.CreateClient();
-        httpClient.Timeout = TimeSpan.FromSeconds(30);
+        httpClient.Timeout = TimeSpan.FromSeconds(90);   // room for the chain of fallback models (80 s at most)
         var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
         HttpResponseMessage response;

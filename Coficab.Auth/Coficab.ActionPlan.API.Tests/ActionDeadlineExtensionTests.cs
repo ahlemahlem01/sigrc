@@ -95,6 +95,19 @@ public class ActionDeadlineExtensionTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public async Task SomeoneWithTheRight_CannotChangeAnActionOfAPlanTheyCannotSee()
+    {
+        var action = await SeedAsync(daysLate: 6);   // the plan belongs to the test user, in another organization than the stranger's
+        var stranger = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        stranger.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, "user");
+        stranger.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, "66666666-6666-6666-6666-666666666666");
+        stranger.DefaultRequestHeaders.Add(TestAuthHandler.PermissionHeader, "capa:extend_deadline,capa:reassign");
+
+        Assert.Equal(HttpStatusCode.NotFound, (await Extend(stranger, action, Date(9), "Motif suffisamment long")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await stranger.PostAsJsonAsync($"/api/planaction/{action}/reassign", new { userId = "55555555-5555-5555-5555-555555555555" })).StatusCode);
+    }
+
+    [Fact]
     public async Task OnlyAdministrators_CanExtend()
     {
         var action = await SeedAsync(daysLate: 6);

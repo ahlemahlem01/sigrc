@@ -4796,6 +4796,7 @@
   },
   "permMatrix": {
     "loadFailed": "Could not load the matrix.",
+    "removeDirect": "Remove the direct grant (the role's right stays)",
     "fromRole": "Right given by the person's role: it cannot be removed here.",
     "newRight": "Recently created right",
     "helpDetails": {

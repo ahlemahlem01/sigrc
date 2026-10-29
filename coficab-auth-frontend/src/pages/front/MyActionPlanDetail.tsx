@@ -203,9 +203,10 @@ export default function MyActionPlanDetail() {
   const [descActionId, setDescActionId] = useState<string | null>(null);
   const [descDraft, setDescDraft] = useState('');
   const [descSaving, setDescSaving] = useState(false);
+  const [descVersion, setDescVersion] = useState(0);   // counts the rewrites: the history reloads after each one
   const [descError, setDescError] = useState<string | null>(null);
   // changes whenever the actions are reloaded: proofs and the plan history reload with them
-  const historyTick = useMemo(() => actions.map((a) => `${a.id}:${a.progress}:${a.documentCount ?? 0}:${(a.description ?? '').length}`).join('|'), [actions]);
+  const historyTick = useMemo(() => actions.map((a) => `${a.id}:${a.progress}:${a.documentCount ?? 0}`).join('|') + `#${descVersion}`, [actions, descVersion]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [rejection, setRejection] = useState<{ comment: string; at?: string } | null>(null);
   const [resubmitting, setResubmitting] = useState(false);
@@ -432,6 +433,7 @@ export default function MyActionPlanDetail() {
     try {
       await updatePlanActionDescription(accessToken, descActionId, text);
       setActions((prev) => prev.map((a) => (a.id === descActionId ? { ...a, description: text } : a)));
+      setDescVersion((v) => v + 1);
       setDescActionId(null);
     } catch (e: any) {
       setDescError(e?.response?.data?.error || e?.response?.data?.message || t('planDetail.descriptionFailed'));

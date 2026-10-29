@@ -214,6 +214,9 @@ export default function PermissionMatrixPage() {
                             aria-label={t('permMatrix.cellAria', { right: permissionTitle(permission.name, permission.displayName), user: user.fullName || user.email })}
                             onChange={() => void toggle(user, permission)}
                           />
+                          {fromRole && (grants[user.id] || []).indexOf(permission.name) >= 0 && (
+                            <button type="button" className="mx-direct" title={t('permMatrix.removeDirect')} onClick={() => void toggle(user, permission)}>×</button>
+                          )}
                         </td>
                       );
                     })}
@@ -250,6 +253,7 @@ const PAGE_CSS = `
   .mx-help li { margin-bottom: 4px; }
   .mx-dot { display: inline-block; width: 8px; height: 8px; margin-left: 7px; border-radius: 50%; background: #10b981; vertical-align: middle; }
   .mx-new { display: block; width: fit-content; margin: 4px auto 0; padding: 1px 8px; border-radius: 999px; background: #059669; color: #fff; font-size: 11px; font-weight: 700; }
+  .mx-direct { margin-left: 6px; border: 1px solid #fecaca; background: #fff; color: #b91c1c; border-radius: 6px; width: 20px; height: 20px; line-height: 1; cursor: pointer; font-weight: 700; }
   .mx-muted { margin: 0 0 12px; color: #64748b; font-size: 13px; }
   .mx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .mx-chip { border: 1px solid #e2e8f0; background: #fff; color: #334155; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }

@@ -187,7 +187,7 @@ export default function ParetoAnalysis() {
           config={manual}
           onChange={setManual}
           onPrefill={claim ? () => setManual({
-            ...EMPTY_MANUAL,
+            ...manual,   // the period, the dates, the measure and the severity chosen so far are kept
             dimension: manual.dimension,
             defectType: claim.defectType || '',
             productionLine: (claim as any).productionLine || '',
@@ -290,7 +290,7 @@ export default function ParetoAnalysis() {
 
       {closedClaim && <ClosedDossierBanner />}
 
-      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={closedClaim} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
+      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={closedClaim} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPickedText(null); setPcVersion((v) => v + 1); }} />}
 
       {claim && claimId && (
         <MiningInsightsPanel

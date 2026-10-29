@@ -51,6 +51,15 @@ public class GeminiModelFallbackHandlerTests
     }
 
     [Fact]
+    public async Task AModelThatNoLongerExists_MovesToTheNextModel()
+    {
+        var inner = new Scripted(HttpStatusCode.NotFound, HttpStatusCode.OK);
+        var response = await Generate(Client(inner));
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal(2, inner.Seen.Count);
+    }
+
+    [Fact]
     public async Task ASuccessOrARefusedRequest_IsNotRetried()
     {
         var ok = new Scripted(HttpStatusCode.OK);

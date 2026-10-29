@@ -1004,7 +1004,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       const cvPending = cvNote?.kind === 'analysing';
                       const aiPending = aiVision?.status === 'analysing';
                       // the AI leads only when the image model has finished without a result
-                      const aiLeads = !cv && !!cvNote && !cvPending && !!aiCode;
+                      const aiLeads = !cv && !cvPending && !!aiCode;
                       const unsure = !!cv && cv.confidence < cv.threshold;
                       const confirmBtn = (code: string) => {
                         const accepted = same(formData.defectType, code);

@@ -110,6 +110,13 @@ function toUiPriority(raw: unknown): PlanActionPriority {
   return 'medium';
 }
 
+/** A cancelled action (raw 102) shows as 0 %, but it is not an unfinished action. */
+function isCancelledProgress(raw: unknown): boolean {
+  if (typeof raw === 'number') return raw === 102;
+  const s = String(raw ?? '').trim().toLowerCase();
+  return s === 'cancelled' || s === 'canceled' || s === '102';
+}
+
 function parseActionProgress(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) {
     if (raw === 101) return 100; // Validated
@@ -182,6 +189,7 @@ function mapPlanFromApi(p: any): ActionPlan {
       priority: toUiPriority(pa.priority ?? pa.Priority),
       status: toUiStatus(pa.status ?? pa.Status),
       progress: parseActionProgress(pa.progress ?? pa.Progress),
+      cancelled: isCancelledProgress(pa.progress ?? pa.Progress),
       assignedToId: pa.assignedToId || pa.AssignedToId || undefined,
       deadline: pa.deadline || pa.Deadline || undefined,
       documentCount: Number(pa.documentCount ?? pa.DocumentCount ?? 0),
@@ -314,6 +322,17 @@ function userLabel(users: User[], id?: string | null): string {
 }
 
 // ── Plan row (liste simple) ───────────────────────────────────────────────────
+/** Whole days from today to a chosen date (at least 1), or null when no date is chosen. */
+function daysUntil(date?: string | null): number | null {
+  if (!date) return null;
+  const target = new Date(date);
+  if (Number.isNaN(target.getTime())) return null;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+  return Math.max(1, Math.round((target.getTime() - today.getTime()) / 86400000));
+}
+
 /** An open plan is late when its own deadline, or the deadline of one of its unfinished actions, has passed. */
 function planIsLate(plan: ActionPlan): boolean {
   if (plan.status === 'archived' || plan.status === 'closed') return false;
@@ -325,7 +344,7 @@ function planIsLate(plan: ActionPlan): boolean {
     d.setHours(0, 0, 0, 0);
     return d.getTime() < today.getTime();
   };
-  const actionLate = (plan.planActions || []).some((pa) => Number(pa.progress ?? 0) < 100 && passed(pa.deadline));
+  const actionLate = (plan.planActions || []).some((pa) => !(pa as any).cancelled && Number(pa.progress ?? 0) < 100 && passed(pa.deadline));
   return passed(plan.deadline) || actionLate;
 }
 
@@ -1216,6 +1235,7 @@ export const FrontActionPlans: React.FC = () => {
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5">{t('claimDetail.assignedTo')}</label>
                     <EmployeeRecommendationBanner
+                      allocDays={daysUntil(newPlanAction.deadline || formData.deadline)}
                       defectType={TYPE_TO_DEFECT[formData.type] || 'Fonctionnel'}
                       severity={PRIORITY_TO_SEVERITY[newPlanAction.priority || 'medium'] || 'MEDIUM'}
                       employees={users.map((u: any) => ({

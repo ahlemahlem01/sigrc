@@ -134,7 +134,7 @@ export const AdminValidationHub: React.FC = () => {
     setSelected(new Set());
   };
 
-  const loadDossiers = useCallback(async () => {
+  const loadDossiers = useCallback(async (quiet = false) => {
     if (!accessToken) return;
     let rows: Claim[] = [];
     try {
@@ -143,6 +143,8 @@ export const AdminValidationHub: React.FC = () => {
       rows = [];
     }
     if (!rows?.length) {
+      // the periodic reading only looks at what is pending: the full list is read on demand
+      if (quiet) return;
       const all = await qualityAnalysisService.getClaims(undefined, accessToken);
       rows = (all || []).filter(isPendingDossier);
     } else {
@@ -202,7 +204,7 @@ export const AdminValidationHub: React.FC = () => {
     if (!accessToken) return;
     const quiet = () => {
       if (document.visibilityState === 'hidden') return;
-      void Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy()]).catch(() => undefined);
+      void Promise.all([loadDossiers(true), loadCapa(), loadRejected(), loadFiveWhy()]).catch(() => undefined);
     };
     const timer = window.setInterval(quiet, 30000);
     document.addEventListener('visibilitychange', quiet);

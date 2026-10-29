@@ -45,23 +45,27 @@ export default function ParetoChart({
 
   useEffect(() => {
     if (!accessToken) return;
+    let live = true;   // false once the filters changed: the answer of an older request is dropped
     const fetchPareto = async () => {
       setLoading(true);
       setError(null);
       try {
         const request: ParetoRequestDto = { dimension, clientId, productionLine, defectType, shift, severity, dateFrom, dateTo, measure };
         const result = await paretoService.getPareto(request, accessToken);
+        if (!live) return;
         setData(result);
         onDataLoaded?.(result);
       } catch (err) {
+        if (!live) return;
         setError(i18n.t('pareto.loadFailed'));
         console.error(err);
       } finally {
-        setLoading(false);
+        if (live) setLoading(false);
       }
     };
 
     fetchPareto();
+    return () => { live = false; };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- parent callbacks are not memoised; listing them would re-run on every render
   }, [dimension, clientId, productionLine, defectType, shift, severity, dateFrom, dateTo, measure, accessToken]);
 

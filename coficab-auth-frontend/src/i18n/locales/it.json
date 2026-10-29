@@ -4796,6 +4796,7 @@
   },
   "permMatrix": {
     "loadFailed": "Impossibile caricare la matrice.",
+    "removeDirect": "Rimuovi l'assegnazione diretta (il diritto del ruolo resta)",
     "fromRole": "Diritto dato dal ruolo della persona: non si toglie qui.",
     "newRight": "Diritto creato di recente",
     "helpDetails": {

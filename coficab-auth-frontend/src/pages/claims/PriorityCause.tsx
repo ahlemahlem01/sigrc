@@ -271,7 +271,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         </button>
       </div>
       )}
-      {prefilled && text.trim() && <div className="pc-meta" style={{ marginTop: 6 }}>{t('priorityCause.prefilled')}</div>}
+      {!readOnly && prefilled && text.trim() && <div className="pc-meta" style={{ marginTop: 6 }}>{t('priorityCause.prefilled')}</div>}
       {(error || externalError) && <div className="pc-err" role="alert">{error || externalError}</div>}
 
       {footer && <div className="pc-footer">{footer}</div>}

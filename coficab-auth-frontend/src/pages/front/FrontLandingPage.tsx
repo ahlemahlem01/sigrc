@@ -9,6 +9,7 @@ function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) { setValue(to); return; }
     let raf = 0;
     const io = new IntersectionObserver(([entry]) => {
       if (!entry.isIntersecting) return;

@@ -510,6 +510,9 @@ public class ActionPlanController : ControllerBase
         var by = GetCurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
 
+        if ((request.Note ?? string.Empty).Length > 300)
+            return BadRequest(new { error = "Le motif ne doit pas dépasser 300 caractères." });
+
         var target = (request.UserId ?? string.Empty).Trim();
         if (!Guid.TryParse(target, out var targetId))
             return BadRequest(new { error = "Choisissez la personne à qui assigner le plan." });

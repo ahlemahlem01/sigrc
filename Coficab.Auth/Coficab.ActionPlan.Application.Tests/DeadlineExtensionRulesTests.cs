@@ -23,7 +23,17 @@ public class DeadlineExtensionRulesTests
 
     [Fact]
     public void ReasonTooLong_IsRefused() =>
-        Assert.Equal("reasonTooLong", DeadlineExtensionRules.Check(Today.AddDays(-5), Today.AddDays(7), Today, new string('x', 501)));
+        Assert.Equal("reasonTooLong", DeadlineExtensionRules.Check(Today.AddDays(-5), Today.AddDays(7), Today, new string('x', DeadlineExtensionRules.MaxReasonLength + 1)));
+
+    [Fact]
+    public void TheLongestReason_StillFitsTheHistoryColumn()
+    {
+        var reason = new string('x', DeadlineExtensionRules.MaxReasonLength);
+        Assert.Null(DeadlineExtensionRules.Check(Today.AddDays(-5), Today.AddDays(7), Today, reason));
+        // the note of an action is "Échéance prolongée : " + the description of the change (500 characters in the column)
+        var note = "Échéance prolongée : " + DeadlineExtensionRules.Describe(Today.AddDays(-5), Today.AddDays(DeadlineExtensionRules.MaxDaysAhead), reason);
+        Assert.True(note.Length <= 500, note.Length.ToString());
+    }
 
     [Fact]
     public void OnlyALateItem_IsExtended()
