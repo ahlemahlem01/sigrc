@@ -126,7 +126,6 @@ export default function PlanPage() {
 
   const locale = i18n.language === 'en' ? 'en-GB' : i18n.language === 'it' ? 'it-IT' : 'fr-FR';
   const date = (iso?: string | null) => (iso ? new Date(iso).toLocaleDateString(locale, { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
-  const dateTime = (iso: string) => new Date(iso).toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
 
   if (loading) return <PageSkeleton figures={4} panels={2} />;
   if (error || !plan) {
@@ -243,12 +242,6 @@ export default function PlanPage() {
   const statusLabel = t(`planPage.status.${plan.status}`, { defaultValue: plan.status });
   const typeLabel = t(`planPage.type.${plan.type}`, { defaultValue: plan.type });
 
-  const eventText = (e: PlanDetail['history'][number]) => {
-    if (e.type === 'status_changed' && e.toStatus) return t('planPage.event.status', { from: t(`planPage.status.${e.fromStatus}`, { defaultValue: e.fromStatus ?? '—' }), to: t(`planPage.status.${e.toStatus}`, { defaultValue: e.toStatus }) });
-    if (e.type === 'assigned') return t('planPage.event.assigned', { name: e.toAssignee ?? '—' });
-    if (e.type === 'unassigned') return t('planPage.event.unassigned');
-    return t(`planPage.event.${e.type}`, { defaultValue: e.note || e.type });
-  };
 
   return (
     <div className="text-slate-900 w-full min-w-0 pb-8">
