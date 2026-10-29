@@ -16,6 +16,8 @@ interface ParetoChartProps {
   clientId?: string;
   productionLine?: string;
     defectType?: string; 
+  shift?: string;
+  severity?: string;
   dateFrom?: string;
   dateTo?: string;
   /** "count" ranks by number of dossiers, "impact" by defective quantity × severity. */
@@ -28,6 +30,8 @@ export default function ParetoChart({
   clientId,
   productionLine,
     defectType, 
+  shift,
+  severity,
   dateFrom,
   dateTo,
   measure = 'count',
@@ -45,7 +49,7 @@ export default function ParetoChart({
       setLoading(true);
       setError(null);
       try {
-        const request: ParetoRequestDto = { dimension, clientId, productionLine, defectType, dateFrom, dateTo, measure };
+        const request: ParetoRequestDto = { dimension, clientId, productionLine, defectType, shift, severity, dateFrom, dateTo, measure };
         const result = await paretoService.getPareto(request, accessToken);
         setData(result);
         onDataLoaded?.(result);
@@ -59,7 +63,7 @@ export default function ParetoChart({
 
     fetchPareto();
   // eslint-disable-next-line react-hooks/exhaustive-deps -- parent callbacks are not memoised; listing them would re-run on every render
-  }, [dimension, clientId, productionLine, defectType, dateFrom, dateTo, measure, accessToken]);
+  }, [dimension, clientId, productionLine, defectType, shift, severity, dateFrom, dateTo, measure, accessToken]);
 
   if (loading) return <div className="pareto-state">{t('pareto.loading')}</div>;
   if (error) return <div className="pareto-state pareto-state-error">{error}</div>;

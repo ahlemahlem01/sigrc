@@ -295,6 +295,7 @@ export const ClaimsListPage: React.FC = () => {
           canEdit={canAssign}
           onApplySuggestedDeadline={applySuggestedDeadline}
           applyingDeadline={applyingDeadline}
+          onDeadlineExtended={() => refetch()}
         />
       </div>
 

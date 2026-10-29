@@ -34,6 +34,7 @@ import { useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { computePpm, formatPpm } from '../../utils/Ppm';
 
 const NAVY = '#000168';
 
@@ -514,17 +515,22 @@ const EightDPage: React.FC = () => {
         .e8d-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 700; }
         .e8d-progress { height: 6px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin: 12px 0 16px; }
         .e8d-progress > span { display: block; height: 100%; background: ${NAVY}; border-radius: 99px; }
-        .e8d-rail { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 14px; }
-        .e8d-dot { flex: 0 0 auto; min-width: 118px; border: 1px solid #e2e8f0; background: #fff; border-radius: 12px; padding: 9px 10px; text-align: left; cursor: pointer; font-family: inherit; }
-        .e8d-dot.on { border-color: ${NAVY}; box-shadow: 0 0 0 2px rgba(0,1,104,.12); }
-        .e8d-dot.done { background: #ecfdf5; border-color: #a7f3d0; }
-        .e8d-dot.wait { opacity: .45; cursor: not-allowed; filter: grayscale(.35); background: #f8fafc; }
-        .e8d-dot.d0 { min-width: 96px; }
+        .e8d-rail { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); margin: 4px 0 18px; }
+        .e8d-dot { position: relative; background: none; border: 0; padding: 0 2px; text-align: center; cursor: pointer; font-family: inherit; min-width: 0; }
+        .e8d-dot::before { content: ''; position: absolute; top: 15px; right: 50%; width: 100%; height: 2px; background: #e2e8f0; }
+        .e8d-dot:first-child::before { display: none; }
+        .e8d-dot.done::before { background: #34d399; }
+        .e8d-dot b { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff; color: #64748b; font-size: 11px; font-weight: 800; letter-spacing: 0; }
+        .e8d-dot.done b { background: #10b981; border-color: #10b981; color: #fff; }
+        .e8d-dot.on b { background: ${NAVY}; border-color: ${NAVY}; color: #fff; box-shadow: 0 0 0 4px rgba(0,1,104,.14); }
+        .e8d-dot.wait { cursor: not-allowed; }
+        .e8d-dot.wait b { background: #f1f5f9; border-color: #e2e8f0; color: #94a3b8; }
+        .e8d-dot span { display: none; margin-top: 6px; font-size: 11px; font-weight: 600; color: #475569; line-height: 1.2; }
+        .e8d-dot.on span { color: ${NAVY}; font-weight: 750; }
+        @media (min-width: 900px) { .e8d-dot span { display: block; } }
         .e8d-origin { font-size: 11px; color: #94a3b8; margin: 4px 0 0; line-height: 1.35; }
         .e8d-origin span { color: #64748b; font-style: italic; }
         .e8d-origin em { font-style: normal; color: #94a3b8; }
-        .e8d-dot b { display: block; font-size: 10px; color: ${NAVY}; letter-spacing: .04em; }
-        .e8d-dot span { display: block; font-size: 12px; font-weight: 650; color: #0f172a; margin-top: 2px; line-height: 1.25; }
         .e8d-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 14px; align-items: start; }
         .e8d-layout.d8 { grid-template-columns: 1fr; }
         .e8d-card, .e8d-coach { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px 18px 16px; }
@@ -611,7 +617,7 @@ const EightDPage: React.FC = () => {
             onClick={() => goStep(0)}
             title={t('eightD.backD0')}
           >
-            <b>D0 ✓</b>
+            <b>D0</b>
             <span>{t('workflows.d0Started')}</span>
           </button>
           {(dossier?.steps || []).map((s) => {
@@ -625,7 +631,7 @@ const EightDPage: React.FC = () => {
                 onClick={() => goStep(s.step)}
                 title={frozen ? (s.hint || t('workflows.finishPrevious')) : copy?.title || s.label}
               >
-                <b>{s.code} {s.complete ? '✓' : frozen ? <Lock size={10} /> : ''}</b>
+                <b>{frozen ? <Lock size={11} aria-hidden /> : s.code}</b>
                 <span>{copy?.title || s.label}</span>
               </button>
             );
@@ -671,6 +677,18 @@ const EightDPage: React.FC = () => {
                   <p className="e8d-hint" style={{ margin: '8px 0 0' }}>
                     {t('eightD.client', { client: dossier?.clientId })} · {defectLabel(dossier?.defectType)} · {t('closedArchive.lot', { lot: dossier?.lotNumber })}
                   </p>
+                  {(() => {
+                    const ppm = computePpm({ producedQuantity: dossier?.producedQuantity, defectiveQuantity: dossier?.defectiveQuantity });
+                    return (
+                      <p className="e8d-hint" style={{ margin: '8px 0 0' }}>
+                        {ppm.isComputable
+                          ? t('eightD.d2Quantities', { produced: formatPpm(dossier!.producedQuantity as number), defective: formatPpm(dossier!.defectiveQuantity as number), ppm: formatPpm(ppm.value as number) })
+                          : t('eightD.d2QuantitiesMissing')}
+                        {' · '}
+                        <a href={`/pages/front/quality-analyses/5why/${claimId}`} onClick={(e) => { e.preventDefault(); navigate(`/pages/front/quality-analyses/5why/${claimId}`); }}>{t('fiveWhy.enterQuantities')}</a>
+                      </p>
+                    );
+                  })()}
                 </div>
               </>
             )}

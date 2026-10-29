@@ -1,3 +1,4 @@
+import { ExtendDeadline } from '../../components/ExtendDeadline';
 import { parseProgress, parseProgressRaw, toUiStatus } from '../admin/capaAnalytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -670,6 +671,7 @@ export default function FrontActionPlanDetail() {
                 {!isArchived && !isClosed && new Date(plan.deadline).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
                   ? ` · ${t('planDetailFront.lateLower')}`
                   : ''}
+                <ExtendDeadline kind="plan" id={plan.id} deadline={plan.deadline} open={!isArchived && !isClosed} onDone={() => { void loadData(); }} />
               </div>
             )}
             <div className="cofi-apd-meta-item">

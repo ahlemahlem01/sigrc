@@ -35,6 +35,8 @@ import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 import { appendCvProposal, CvProposal } from '../../utils/cvPayload';
+import { computePpm, formatPpm } from '../../utils/Ppm';
+import { CameraCaptureModal } from '../../components/CameraCaptureModal';
 import { applySimilarCase, SimilarCase } from '../../utils/similarCase';
 
 interface CreateClaimFormProps {
@@ -42,7 +44,7 @@ interface CreateClaimFormProps {
 }
 
 export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const referenceLists = useReferenceLists();
   const { accessToken, user, isLoading: isAuthLoading } = useAuth();
   const navigate = useNavigate();
@@ -67,8 +69,16 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   // past cases that look like the photo (shown when the model is not sure of the code)
   const [similar, setSimilar] = useState<SimilarCase[]>([]);
   const [similarPicked, setSimilarPicked] = useState<string | null>(null);
+  const [aiVision, setAiVision] = useState<{ status: 'analysing' } | { status: 'unavailable' } | { status: 'done'; defectType: string | null; confidence: number; description: string } | null>(null);
   const [cvNote, setCvNote] = useState<{ kind: 'analysing' | 'none' | 'unavailable' | 'anomaly'; confidence?: number } | null>(null);
 
+  // Optional at declaration: the two quantities the PPM of the defect is computed from (also editable later on the 5 Why page)
+  const [producedQty, setProducedQty] = useState('');
+  const [defectiveQty, setDefectiveQty] = useState('');
+  const quantitiesPpm = computePpm({
+    producedQuantity: producedQty.trim() === '' ? null : Number(producedQty),
+    defectiveQuantity: defectiveQty.trim() === '' ? null : Number(defectiveQty),
+  });
   const [formData, setFormData] = useState<Omit<CreateClaimCommand, 'createdById'>>({
     title: '',
     clientId: '',
@@ -134,6 +144,9 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const canUseCamera = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia;
+
   const processFile = (file: File) => {
     if (file.size > 10 * 1024 * 1024) {
       setError(t('createClaim.fileTooLarge'));
@@ -143,6 +156,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setSelectedFile(file);
     setCv(null);
     setCvNote(null);
+    setAiVision(null);
     setSimilar([]);
     setSimilarPicked(null);
     photoRef.current = file;
@@ -161,6 +175,16 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
           else setCvNote({ kind: 'none' });
         })
         .catch(() => { if (photoRef.current === file) setCvNote({ kind: 'unavailable' }); });
+
+      // Gemini looks at the same photo at the same time: neither answer waits for the other
+      setAiVision({ status: 'analysing' });
+      qualityAnalysisService.suggestDefectWithGemini(file, i18n.language.slice(0, 2), accessToken)
+        .then((r) => {
+          if (photoRef.current !== file) return;
+          if (r.available && r.confidence !== undefined) setAiVision({ status: 'done', defectType: r.defectType ?? null, confidence: r.confidence, description: r.description ?? '' });
+          else setAiVision(r.reason === 'notConfigured' || r.reason === 'unsupported' ? null : { status: 'unavailable' });
+        })
+        .catch(() => { if (photoRef.current === file) setAiVision({ status: 'unavailable' }); });
     }
   };
 
@@ -195,6 +219,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
     setSelectedFile(null);
     setCv(null);
     setCvNote(null);
+    setAiVision(null);
     setSimilar([]);
     setSimilarPicked(null);
     photoRef.current = null;
@@ -222,6 +247,16 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
       if (!formData.lotNumber.trim() || !formData.detectionDate.trim()) {
         setError(t('createClaim.step2Required'));
         return false;
+      }
+      if (producedQty.trim() !== '' || defectiveQty.trim() !== '') {
+        if (producedQty.trim() === '' || defectiveQty.trim() === '') {
+          setError(t('fiveWhy.quantitiesBothRequired'));
+          return false;
+        }
+        if (!quantitiesPpm.isComputable) {
+          setError(quantitiesPpm.reason || t('fiveWhy.ppmNotComputable'));
+          return false;
+        }
       }
     }
     return true;
@@ -287,6 +322,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
     payload.append('SerialNumber', formData.serialNumber || '');
     payload.append('Description', formData.description || '');
     payload.append('StatusCode', statusCode);
+    if (producedQty.trim() !== '' && defectiveQty.trim() !== '' && quantitiesPpm.isComputable) {
+      payload.append('ProducedQuantity', String(Number(producedQty)));
+      payload.append('DefectiveQuantity', String(Number(defectiveQty)));
+    }
 
     if (formData.detectionDate) {
       payload.append('DetectionDate', new Date(formData.detectionDate).toISOString());
@@ -593,12 +632,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         }
 
         .pfe-camera-btn {
-          position: relative; display: none; align-items: center; justify-content: center; gap: 8px;
+          position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; border: 0;
           margin-top: 10px; height: 44px; border-radius: 10px; background: #1d4ed8; color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
         }
         .pfe-camera-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
-        /* shown on touch devices (phone, tablet) only */
-        @media (pointer: coarse) { .pfe-camera-btn { display: flex; } }
         .pfe-sim { margin-top: 10px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; }
         .pfe-sim h4 { margin: 0 0 2px; font-size: 13px; font-weight: 700; color: #0f2b5c; }
         .pfe-sim-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 8px; }
@@ -930,10 +967,17 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                         <p><strong>{t('createClaim.dropStrong')}</strong> {t('createClaim.dropRest')}</p>
                         <span>{t('createClaim.dropFormats')}</span>
                       </div>
-                      <label className="pfe-camera-btn">
-                        <Camera size={16} /> {t('createClaim.takePhoto')}
-                        <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
-                      </label>
+                      {canUseCamera ? (
+                        <button type="button" className="pfe-camera-btn" onClick={() => setCameraOpen(true)}>
+                          <Camera size={16} /> {t('createClaim.takePhoto')}
+                        </button>
+                      ) : (
+                        <label className="pfe-camera-btn">
+                          <Camera size={16} /> {t('createClaim.takePhoto')}
+                          <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} />
+                        </label>
+                      )}
+                      {cameraOpen && <CameraCaptureModal onCapture={processFile} onClose={() => setCameraOpen(false)} />}
                       </>
                     ) : (
                       <div className="pfe-file-card">
@@ -953,20 +997,112 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       </div>
                     )}
 
-                    {cvNote && !cv && (
-                      <div className="pfe-cv-card" role="status">
-                        <div className="pfe-cv-head">
-                          <strong>{t('createClaim.cvTitle')}</strong>
-                          {cvNote.kind === 'anomaly' && <span className="pfe-cv-conf low">{t('createClaim.cvConfidence', { pct: Math.round((cvNote.confidence ?? 0) * 100) })}</span>}
+                    {(cv || cvNote || aiVision) && (() => {
+                      const ai = aiVision?.status === 'done' ? aiVision : null;
+                      const aiCode = ai?.defectType ?? null;
+                      const same = (x?: string | null, y?: string | null) => !!x && !!y && x.trim().toLowerCase() === y.trim().toLowerCase();
+                      const cvPending = cvNote?.kind === 'analysing';
+                      const aiPending = aiVision?.status === 'analysing';
+                      // the AI leads only when the image model has finished without a result
+                      const aiLeads = !cv && !!cvNote && !cvPending && !!aiCode;
+                      const unsure = !!cv && cv.confidence < cv.threshold;
+                      const confirmBtn = (code: string) => {
+                        const accepted = same(formData.defectType, code);
+                        return (
+                          <button
+                            type="button"
+                            className={`pfe-cv-btn ${accepted ? 'on' : ''}`}
+                            onClick={() => setFormData((prev) => ({ ...prev, defectType: code }))}
+                          >
+                            {accepted ? t('createClaim.cvConfirmed') : t('createClaim.cvConfirm')}
+                          </button>
+                        );
+                      };
+                      const correctSelect = (
+                        <select
+                          className="pfe-cv-select"
+                          aria-label={t('createClaim.cvCorrect')}
+                          value=""
+                          onChange={(e) => { if (e.target.value) setFormData((prev) => ({ ...prev, defectType: e.target.value })); }}
+                        >
+                          <option value="">{t('createClaim.cvCorrect')}</option>
+                          {referenceLists.defectTypes.map((d) => <option key={d} value={d}>{defectLabel(d)}</option>)}
+                        </select>
+                      );
+                      const aiConf = (x: number) => (
+        <span className={`pfe-cv-conf ${x < (cv?.threshold ?? 0.7) ? 'low' : ''}`}>{t('createClaim.cvConfidence', { pct: Math.round(x * 100) })}</span>
+      );
+                      return (
+                        <div className="pfe-cv-card" role="group" aria-label={t('createClaim.cvTitle')}>
+                          <div className="pfe-cv-head">
+                            <strong>{t('createClaim.cvTitle')}</strong>
+                            {cv && <span className={`pfe-cv-conf ${unsure ? 'low' : ''}`}>{t('createClaim.cvConfidence', { pct: Math.round(cv.confidence * 100) })}</span>}
+                            {aiLeads && ai && aiConf(ai.confidence)}
+                            {!cv && !aiLeads && cvNote?.kind === 'anomaly' && <span className="pfe-cv-conf low">{t('createClaim.cvConfidence', { pct: Math.round((cvNote.confidence ?? 0) * 100) })}</span>}
+                          </div>
+
+                          {cv && (
+                            <>
+                              <div className="pfe-cv-code">{defectLabel(cv.defectType)}</div>
+                              {cv.demo && <p className="pfe-cv-demo">{t('createClaim.cvDemo')}</p>}
+                              {cv.lineFamilies && cv.lineFamilies.length > 0 && <p className="pfe-cv-hint">{t('createClaim.cvLines', { lines: cv.lineFamilies.join(' / ') })}</p>}
+                              {unsure && <p className="pfe-cv-hint">{t('createClaim.cvUnsure')}</p>}
+                              <div className="pfe-cv-actions">{confirmBtn(cv.defectType)}{correctSelect}</div>
+                            </>
+                          )}
+
+                          {aiLeads && ai && aiCode && (
+                            <>
+                              <div className="pfe-cv-code">{defectLabel(aiCode)}</div>
+                              {ai.description && <p className="pfe-cv-hint">{ai.description}</p>}
+                              <div className="pfe-cv-actions">{confirmBtn(aiCode)}{correctSelect}</div>
+                            </>
+                          )}
+
+                          {!cv && !aiLeads && (
+                            <p className="pfe-cv-hint">
+                              {(cvPending || (aiPending && !cvNote)) && <><RefreshCw size={12} className="pfe-spin" /> {t('createClaim.cvAnalysing')}</>}
+                              {cvNote?.kind === 'none' && t('createClaim.cvNone')}
+                              {cvNote?.kind === 'unavailable' && t('createClaim.cvUnavailable')}
+                              {cvNote?.kind === 'anomaly' && t('createClaim.cvAnomaly')}
+                              {!cvNote && !aiPending && aiVision?.status === 'unavailable' && t('createClaim.aiUnavailable')}
+                              {ai && !aiCode && !cvPending && ` ${ai.description || t('createClaim.aiNoDefect')}`}
+                            </p>
+                          )}
+
+                          {cv && aiVision && (
+                            <div style={{ marginTop: 10, paddingTop: 8, borderTop: '1px solid #bfdbfe' }}>
+                              <div className="pfe-cv-head">
+                                <strong>{t('createClaim.aiTitle')}</strong>
+                                {ai && aiCode && aiConf(ai.confidence)}
+                              </div>
+                              {aiPending && <p className="pfe-cv-hint"><RefreshCw size={12} className="pfe-spin" /> {t('createClaim.aiAnalysing')}</p>}
+                              {aiVision.status === 'unavailable' && <p className="pfe-cv-hint">{t('createClaim.aiUnavailable')}</p>}
+                              {ai && (
+                                <>
+                                  {aiCode ? <div className="pfe-cv-code">{defectLabel(aiCode)}</div> : <p className="pfe-cv-hint">{t('createClaim.aiNoDefect')}</p>}
+                                  {ai.description && <p className="pfe-cv-hint">{ai.description}</p>}
+                                  {aiCode && same(aiCode, cv.defectType) && <p className="pfe-cv-hint"><strong>{t('createClaim.aiAgrees')}</strong></p>}
+                                  {aiCode && !same(aiCode, cv.defectType) && (
+                                    <>
+                                      <p className="pfe-cv-hint"><strong>{t('createClaim.aiDiffers', { code: defectLabel(cv.defectType) })}</strong></p>
+                                      <div className="pfe-cv-actions">{confirmBtn(aiCode)}</div>
+                                    </>
+                                  )}
+                                </>
+                              )}
+                            </div>
+                          )}
+
+                          {(cv || aiLeads) && (
+                            <p className="pfe-cv-hint">
+                              {t('createClaim.cvKept', { code: defectLabel(formData.defectType) || '—' })}
+                              {cv && !same(formData.defectType, cv.defectType) && formData.defectType.trim() ? ` ${t('createClaim.cvLogged')}` : ''}
+                            </p>
+                          )}
                         </div>
-                        <p className="pfe-cv-hint">
-                          {cvNote.kind === 'analysing' && <><RefreshCw size={12} className="pfe-spin" /> {t('createClaim.cvAnalysing')}</>}
-                          {cvNote.kind === 'none' && t('createClaim.cvNone')}
-                          {cvNote.kind === 'unavailable' && t('createClaim.cvUnavailable')}
-                          {cvNote.kind === 'anomaly' && t('createClaim.cvAnomaly')}
-                        </p>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {similar.length > 0 && (
                       <div className="pfe-sim" role="group" aria-label={t('createClaim.similarTitle')}>
@@ -995,44 +1131,6 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                       </div>
                     )}
 
-                    {cv && (() => {
-                      const accepted = formData.defectType.trim().toLowerCase() === cv.defectType.trim().toLowerCase();
-                      const unsure = cv.confidence < cv.threshold;
-                      return (
-                        <div className="pfe-cv-card" role="group" aria-label={t('createClaim.cvTitle')}>
-                          <div className="pfe-cv-head">
-                            <strong>{t('createClaim.cvTitle')}</strong>
-                            <span className={`pfe-cv-conf ${unsure ? 'low' : ''}`}>{t('createClaim.cvConfidence', { pct: Math.round(cv.confidence * 100) })}</span>
-                          </div>
-                          <div className="pfe-cv-code">{defectLabel(cv.defectType)}</div>
-                          {cv.demo && <p className="pfe-cv-demo">{t('createClaim.cvDemo')}</p>}
-                          {cv.lineFamilies && cv.lineFamilies.length > 0 && <p className="pfe-cv-hint">{t('createClaim.cvLines', { lines: cv.lineFamilies.join(' / ') })}</p>}
-                          {unsure && <p className="pfe-cv-hint">{t('createClaim.cvUnsure')}</p>}
-                          <div className="pfe-cv-actions">
-                            <button
-                              type="button"
-                              className={`pfe-cv-btn ${accepted ? 'on' : ''}`}
-                              onClick={() => setFormData((prev) => ({ ...prev, defectType: cv.defectType }))}
-                            >
-                              {accepted ? t('createClaim.cvConfirmed') : t('createClaim.cvConfirm')}
-                            </button>
-                            <select
-                              className="pfe-cv-select"
-                              aria-label={t('createClaim.cvCorrect')}
-                              value=""
-                              onChange={(e) => { if (e.target.value) setFormData((prev) => ({ ...prev, defectType: e.target.value })); }}
-                            >
-                              <option value="">{t('createClaim.cvCorrect')}</option>
-                              {referenceLists.defectTypes.map((d) => <option key={d} value={d}>{defectLabel(d)}</option>)}
-                            </select>
-                          </div>
-                          <p className="pfe-cv-hint">
-                            {t('createClaim.cvKept', { code: defectLabel(formData.defectType) || '—' })}
-                            {!accepted && formData.defectType.trim() ? ` ${t('createClaim.cvLogged')}` : ''}
-                          </p>
-                        </div>
-                      );
-                    })()}
                   </div>
 
                     <div className="pfe-field">
@@ -1171,6 +1269,28 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                         </div>
                       </div>
                     </div>
+
+                    <div className="pfe-grid-2">
+                      <div className="pfe-field">
+                        <label>{t('fiveWhy.producedQty')}</label>
+                        <div className="pfe-input-box">
+                          <Hash size={15} className="pfe-input-icon" />
+                          <input type="number" min={0} value={producedQty} onChange={(e) => setProducedQty(e.target.value)} placeholder="10000" />
+                        </div>
+                      </div>
+                      <div className="pfe-field">
+                        <label>{t('fiveWhy.defectiveQty')}</label>
+                        <div className="pfe-input-box">
+                          <Hash size={15} className="pfe-input-icon" />
+                          <input type="number" min={0} value={defectiveQty} onChange={(e) => setDefectiveQty(e.target.value)} placeholder="25" />
+                        </div>
+                      </div>
+                    </div>
+                    <p className="pfe-hint" style={{ margin: '-6px 0 12px', fontSize: 12, color: '#64748b' }}>
+                      {quantitiesPpm.isComputable
+                        ? `${t('fiveWhy.ppmTitle')} : ${formatPpm(quantitiesPpm.value as number)} PPM`
+                        : t('createClaim.quantitiesHint')}
+                    </p>
 
                     <div className="pfe-field">
                       <label>{t('claimDetail.detectionDate')} <span className="req">*</span></label>

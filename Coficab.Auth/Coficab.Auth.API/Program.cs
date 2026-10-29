@@ -35,6 +35,8 @@ builder.Services.AddDbContext<AppDbContext>((services, options) =>
 });
 
 // ─── Services ────────────────────────────────────────────────
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ITurnstileVerifier, TurnstileVerifier>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AuditService>();
 

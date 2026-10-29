@@ -473,6 +473,12 @@
     "support": "Support"
   },
   "login": {
+    "turnstileHint": {"host": "Cloudflare refuses this site: add \"localhost\" (or your domain) to the hostnames of the Turnstile widget.", "key": "The Turnstile site key is invalid: check TURNSTILE_SITE_KEY in the .env file.", "client": "The Cloudflare check failed in this browser. Reload the page, turn off a VPN or a content blocker, and check the computer clock."},
+    "turnstileCode": "code {{code}}",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "errorCaptcha": "The security check failed or expired. Please try again.",
+    "captchaUnavailable": "The security check (Cloudflare) could not load. Check your Internet connection or contact the administrator.",
     "title": "Sign in",
     "email": "Email address",
     "password": "Password",
@@ -2501,6 +2507,7 @@
     "estimateBasis_other": ", based on {{count}} similar files ({{method}}).",
     "suggestedDeadline": "Suggested deadline:",
     "suggestedDeadlineRule": "(creation + P80)",
+    "deadlineChip": "Deadline",
     "currentDeadline": "current: {{date}}",
     "noDeadline": "no deadline set",
     "applying": "Applying…",
@@ -2579,7 +2586,17 @@
     "previous": "Previous: {{tool}}",
     "next": "Next: {{tool}}"
   },
+  "extendDeadline": {"button": "Allocate more time", "title": "Allocate more time", "current": "Current deadline: {{date}}", "newDate": "New deadline", "extra": "+{{count}} day(s) compared with the current deadline", "reason": "Reason", "reasonHint": "at least {{min}} characters", "trace": "The previous date, the new date and your reason are recorded in the history with your name. Nothing is overwritten.", "cancel": "Cancel", "confirm": "Allocate", "saving": "Saving…", "errors": {"generic": "The extension could not be saved.", "reasonRequired": "Give a reason of at least 10 characters.", "reasonTooLong": "The reason is too long (500 characters maximum).", "notLate": "Only a late item can be given more time.", "newDateInPast": "The new deadline cannot be in the past.", "notAfterCurrent": "The new deadline must be after the current one.", "tooFar": "The new deadline cannot be more than 180 days ahead.", "notOpen": "This item is closed, archived or still a draft.", "notFound": "Item not found or outside your scope.", "newDateRequired": "Choose the new deadline."}},
+  "camera": {
+    "hint": "Centre the damaged part inside the frame",
+    "zone": "Inspection zone",
+    "capture": "Capture",
+    "close": "Close",
+    "denied": "Camera access was denied. Allow it in the browser address bar, then try again.",
+    "unavailable": "No camera could be opened on this device."
+  },
   "createClaim": {
+    "quantitiesHint": "Optional: enter the produced and defective quantities to get the PPM (can be edited later on the 5 Why page).",
     "similarTitle": "Similar cases",
     "similarHint": "Click a case to take over its defect code.",
     "similarWeak": "No past case is really close to this photo: these examples are only indicative.",
@@ -2594,6 +2611,15 @@
     "cvAnomaly": "A defect is detected on the photo, but its type is not recognised: pick the code in the form's list.",
     "cvLines": "Usually found on lines: {{lines}}",
     "cvDemo": "Demonstration mode: example proposal, not a real image analysis",
+    "aiTitle": "Second opinion",
+    "aiAnalysing": "Analysing the photo with AI…",
+    "aiUnavailable": "The AI could not analyse this photo.",
+    "aiNoDefect": "No defect from the list recognised on this photo.",
+    "aiConfidence_high": "Confidence: high",
+    "aiConfidence_medium": "Confidence: medium",
+    "aiConfidence_low": "Confidence: low",
+    "aiAgrees": "Both models agree.",
+    "aiDiffers": "Differs from the image model ({{code}}): check the photo.",
     "takePhoto": "Take a photo",
     "cvTitle": "Image analysis suggestion",
     "cvConfidence": "Confidence {{pct}} %",
@@ -2764,6 +2790,10 @@
     "frozen": "Locked"
   },
   "pareto": {
+    "kind": {"label": "Setup mode", "guided": "Guided setup", "manual": "Manual analysis", "guidedHint": "The axis recommended from this claim", "manualHint": "Choose the axis, the filters and the period yourself"},
+    "dim": {"DefectType": "Defect type", "ProductionLine": "Production line", "ClientId": "Customer", "Shift": "Shift", "Severity": "Severity"},
+    "sev": {"LOW": "Low", "MEDIUM": "Medium", "HIGH": "High", "CRITICAL": "Critical"},
+    "manual": {"title": "Manual analysis", "help": "Choose what the Pareto ranks, then narrow it as you wish. The guided setup stays available.", "analyzeBy": "Rank by", "filters": "Narrow to", "all": "All", "periodTitle": "Period and measure", "periodCustom": "Exact dates", "from": "From", "to": "To", "prefill": "Take the context of this claim", "reset": "Reset everything", "resultTitle": "Manual analysis result", "noFilters": "no filter", "summary": "Ranked by {{axis}} · {{count}} claims · {{filters}}."},
     "autoTop": "Automatically use the top Pareto cause",
     "goIshikawa": "Go to Ishikawa →",
     "claimLoadFailed": "Could not load the claim.",
@@ -3008,6 +3038,7 @@
     "submitted": "Analysis completed and submitted for validation.",
     "revertedToDraft": "Analysis moved back to draft.",
     "statusFailed": "Status change failed.",
+    "quantitiesBothRequired": "Enter both quantities (produced and defective) to compute the PPM.",
     "invalidProduced": "Invalid produced quantity.",
     "invalidDefective": "Invalid defective quantity.",
     "quantitiesSaved": "Quantities saved: the PPM has been recalculated.",
@@ -3163,6 +3194,8 @@
     "roleMethods": "Engineering",
     "roleQuality": "Quality",
     "teamPlaceholder": "Production: first name\nEngineering: first name",
+    "d2Quantities": "Quantification: {{produced}} produced · {{defective}} defective · {{ppm}} PPM",
+    "d2QuantitiesMissing": "Quantification not entered (produced / defective: the PPM cannot be computed)",
     "d2Hint": "Nothing to enter: this is the claim sheet.",
     "d3Hint": "The containment is entered in its own tool, like Pareto or the 5 Why. Values already saved are carried over.",
     "containmentPlan": "Containment plan",
@@ -3322,6 +3355,7 @@
     "justNow": "just now",
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}} h ago",
+    "kindDeadline": "Deadline",
     "kindAssignment": "Assignment",
     "kindAlert": "Quality alert",
     "kindToValidate": "To validate",
@@ -3334,6 +3368,8 @@
     "empty": "No notifications"
   },
   "recommend": {
+    "risk": {"low": "Low risk", "moderate": "Moderate risk", "high": "High risk"},
+    "action": {"standard": "Standard assignment: the best candidate is likely to deliver on time.", "adjust": "Assign, but plan a margin (follow-up, lighter workload) or choose a less loaded candidate.", "alert": "Preventive alert: even the best candidate is unlikely to deliver on time. Reallocate resources or review the priority now."},
     "reason": "Skill {{skill}}/5 · Workload {{load}}%",
     "reasonHistory": "{{rate}}% on time over {{closed}} claims · {{open}} open",
     "indicative": "Indicative",
@@ -4025,6 +4061,8 @@
       "ishikawa_updated": "Ishikawa diagram updated",
       "claim_assigned": "Claim assigned",
       "claim_unassigned": "Assignment removed",
+      "claim_deadline_extended": "Deadline extended",
+      "deadline_extended": "Deadline extended",
       "claim_deadline_set": "Deadline set",
       "claim_archived": "Claim archived",
       "claim_restored": "Claim restored",
@@ -5392,6 +5430,7 @@
     }
   },
   "priorityCause": {
+    "prefilled": "Filled in from the top suggestion above: edit it if needed, then click \"Keep this cause\".",
     "title": "Priority cause to dig into",
     "hint": "Keep here the cause you will dig into with the 5 Why. It is saved in the dossier and recalled in the next steps. You can type it yourself or reuse a suggestion; a new choice replaces the old one, which stays in the history.",
     "placeholder": "E.g. wear of the welding electrodes",

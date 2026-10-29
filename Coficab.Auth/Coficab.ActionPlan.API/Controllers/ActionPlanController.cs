@@ -399,6 +399,36 @@ public class ActionPlanController : ControllerBase
         return NoContent();
     }
 
+    public sealed class ExtendPlanDeadlineDto
+    {
+        public DateTime? NewDeadline { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Administrators and super administrators give a late CAPA plan more time. A reason is required; the old date, the new date
+    /// and the reason are kept in the plan history in the same save. Never moves a date backwards.
+    /// </summary>
+    [HttpPost("{id:guid}/deadline-extension")]
+    public async Task<IActionResult> ExtendDeadline(Guid id, [FromBody] ExtendPlanDeadlineDto dto, CancellationToken ct)
+    {
+        if (!IsPlatformAdmin()) return Forbid();
+        var by = GetCurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
+        if (dto?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
+
+        var visible = await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin());
+        if (!visible.Contains(id)) return NotFound(new { code = "notFound", message = "Plan non trouvé." });
+
+        var result = await _actionPlanService.ExtendDeadlineAsync(id, dto.NewDeadline.Value, dto.Reason ?? string.Empty, by, ct);
+        return result.Code switch
+        {
+            null => Ok(new { oldDeadline = result.OldDeadline, newDeadline = result.NewDeadline, extraDays = result.ExtraDays }),
+            "notFound" => NotFound(new { code = result.Code, message = "Plan non trouvé." }),
+            _ => BadRequest(new { code = result.Code, message = "Prolongation refusée : " + result.Code }),
+        };
+    }
+
     /// <summary>Administrators: sends a warning about a plan to one person; it is kept in the plan history.</summary>
     [HttpPost("{id:guid}/warn")]
     public async Task<IActionResult> Warn(Guid id, [FromBody] WarnPlanDto dto)

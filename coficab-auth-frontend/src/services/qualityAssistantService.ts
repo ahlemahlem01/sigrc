@@ -17,9 +17,10 @@ export async function sendQualityAssistantMessage(
   message: string,
   history: QualityAssistantHistoryItem[] = [],
   language: string = 'fr',
+  token?: string | null,
 ): Promise<QualityAssistantChatResponse> {
   const { data } = await actionPlanApi.post<QualityAssistantChatResponse>(
-    '/api/quality-assistant/chat',
+    '/quality-assistant/chat',
     {
       message,
       language,
@@ -28,6 +29,8 @@ export async function sendQualityAssistantMessage(
         content: h.content,
       })),
     },
+    // the access token lives in memory (AuthContext), not in localStorage: it is passed by the caller
+    token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
   );
   return data;
 }

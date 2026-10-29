@@ -67,12 +67,16 @@ class EmployeeRecommendation(BaseModel):
     employeeId: str
     score: float
     rank: int
+    riskLevel: str   # low | moderate | high
 
 
 class RecommendResponse(BaseModel):
     recommendations: list[EmployeeRecommendation]
     model: str | None = None
     scoredCount: int
+    # Level and action of the best candidate: what to do with this dossier (standard | adjust | alert).
+    riskLevel: str | None = None
+    action: str | None = None
     # Le modèle a-t-il battu le hasard et le modèle sans variables employé à l'évaluation ? Sinon : indicatif.
     validated: bool | None = None
     trainedOn: str | None = None
@@ -86,7 +90,7 @@ def _load_meta() -> dict[str, Any]:
 
 
 import mining
-from recommend_logic import build_feature_row, rank_recommendations
+from recommend_logic import action_for, build_feature_row, rank_recommendations, risk_level
 
 
 def _build_row(dossier: DossierFeatures, emp: EmployeeCandidate) -> dict[str, Any]:
@@ -307,6 +311,7 @@ def recommend(payload: RecommendRequest) -> RecommendResponse:
             employeeId=item["employeeId"],
             score=item["score"],
             rank=item["rank"],
+            riskLevel=risk_level(item["score"]),
         )
         for item in top
     ]
@@ -315,6 +320,8 @@ def recommend(payload: RecommendRequest) -> RecommendResponse:
         recommendations=top3,
         model=runtime.meta.get("best_model"),
         scoredCount=len(payload.employees),
+        riskLevel=top3[0].riskLevel if top3 else None,
+        action=action_for(top3[0].riskLevel) if top3 else None,
         validated=runtime.meta.get("validated"),
         trainedOn=runtime.meta.get("trained_on"),
     )

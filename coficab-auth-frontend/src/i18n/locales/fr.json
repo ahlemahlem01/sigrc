@@ -473,6 +473,12 @@
     "support": "Support"
   },
   "login": {
+    "turnstileHint": {"host": "Cloudflare refuse ce site : ajoutez « localhost » (ou votre domaine) dans les noms d'hôte du widget Turnstile.", "key": "La clé du site Turnstile est invalide : vérifiez TURNSTILE_SITE_KEY dans le fichier .env.", "client": "Le contrôle Cloudflare a échoué dans ce navigateur. Rechargez la page, désactivez un VPN ou un bloqueur de contenu, et vérifiez l'heure de l'ordinateur."},
+    "turnstileCode": "code {{code}}",
+    "showPassword": "Afficher le mot de passe",
+    "hidePassword": "Masquer le mot de passe",
+    "errorCaptcha": "La vérification de sécurité a échoué ou a expiré. Réessayez.",
+    "captchaUnavailable": "La vérification de sécurité (Cloudflare) n'a pas pu se charger. Vérifiez votre connexion Internet ou contactez l'administrateur.",
     "title": "Connexion",
     "email": "Adresse Email",
     "password": "Mot de passe",
@@ -2501,6 +2507,7 @@
     "estimateBasis_other": ", basé sur {{count}} dossiers similaires ({{method}}).",
     "suggestedDeadline": "Date limite suggérée :",
     "suggestedDeadlineRule": "(création + P80)",
+    "deadlineChip": "Échéance",
     "currentDeadline": "actuelle : {{date}}",
     "noDeadline": "aucune date limite définie",
     "applying": "Application…",
@@ -2579,7 +2586,17 @@
     "previous": "Précédent : {{tool}}",
     "next": "Suivant : {{tool}}"
   },
+  "extendDeadline": {"button": "Allouer plus de temps", "title": "Allouer plus de temps", "current": "Échéance actuelle : {{date}}", "newDate": "Nouvelle échéance", "extra": "+{{count}} jour(s) par rapport à l'échéance actuelle", "reason": "Motif", "reasonHint": "au moins {{min}} caractères", "trace": "L'ancienne date, la nouvelle date et votre motif sont enregistrés dans l'historique avec votre nom. Rien n'est écrasé.", "cancel": "Annuler", "confirm": "Allouer", "saving": "Enregistrement…", "errors": {"generic": "La prolongation n'a pas pu être enregistrée.", "reasonRequired": "Indiquez un motif d'au moins 10 caractères.", "reasonTooLong": "Le motif est trop long (500 caractères maximum).", "notLate": "Seul un élément en retard peut recevoir plus de temps.", "newDateInPast": "La nouvelle échéance ne peut pas être dans le passé.", "notAfterCurrent": "La nouvelle échéance doit être postérieure à l'actuelle.", "tooFar": "La nouvelle échéance ne peut pas dépasser 180 jours.", "notOpen": "Cet élément est clôturé, archivé ou encore au brouillon.", "notFound": "Élément introuvable ou hors de votre périmètre.", "newDateRequired": "Choisissez la nouvelle échéance."}},
+  "camera": {
+    "hint": "Centrez la partie endommagée dans le cadre",
+    "zone": "Zone d'inspection",
+    "capture": "Capturer",
+    "close": "Fermer",
+    "denied": "L'accès à la caméra a été refusé. Autorisez-le dans la barre d'adresse du navigateur, puis réessayez.",
+    "unavailable": "Aucune caméra n'a pu être ouverte sur cet appareil."
+  },
   "createClaim": {
+    "quantitiesHint": "Facultatif : renseignez les quantités produite et défectueuse pour obtenir le PPM (modifiable plus tard dans la 5 Why).",
     "similarTitle": "Cas similaires",
     "similarHint": "Cliquez sur un cas pour reprendre son code défaut.",
     "similarWeak": "Aucun cas passé n'est vraiment proche de cette photo : ces exemples sont indicatifs.",
@@ -2594,6 +2611,15 @@
     "cvAnomaly": "Un défaut est détecté sur la photo, mais son type n’est pas reconnu : choisissez le code dans la liste du formulaire.",
     "cvLines": "Défaut habituellement rencontré sur les lignes : {{lines}}",
     "cvDemo": "Mode démonstration : proposition d’exemple, pas une analyse réelle de l’image",
+    "aiTitle": "Second avis",
+    "aiAnalysing": "Analyse de la photo par l'IA…",
+    "aiUnavailable": "L'IA n'a pas pu analyser cette photo.",
+    "aiNoDefect": "Aucun défaut de la liste reconnu sur cette photo.",
+    "aiConfidence_high": "Confiance : élevée",
+    "aiConfidence_medium": "Confiance : moyenne",
+    "aiConfidence_low": "Confiance : faible",
+    "aiAgrees": "Les deux modèles sont d'accord.",
+    "aiDiffers": "Diffère du modèle d'image ({{code}}) : vérifiez la photo.",
     "takePhoto": "Prendre une photo",
     "cvTitle": "Suggestion de l’analyse d’image",
     "cvConfidence": "Confiance {{pct}} %",
@@ -2764,6 +2790,10 @@
     "frozen": "Gelé"
   },
   "pareto": {
+    "kind": {"label": "Mode de configuration", "guided": "Configuration guidée", "manual": "Analyse manuelle", "guidedHint": "L'axe recommandé à partir de cette réclamation", "manualHint": "Choisir soi-même l'axe, les filtres et la période"},
+    "dim": {"DefectType": "Type de défaut", "ProductionLine": "Ligne de production", "ClientId": "Client", "Shift": "Équipe", "Severity": "Gravité"},
+    "sev": {"LOW": "Faible", "MEDIUM": "Moyenne", "HIGH": "Élevée", "CRITICAL": "Critique"},
+    "manual": {"title": "Analyse manuelle", "help": "Choisissez ce que le Pareto doit classer, puis restreignez-le comme vous le souhaitez. La configuration guidée reste disponible.", "analyzeBy": "Classer par", "filters": "Restreindre à", "all": "Tous", "periodTitle": "Période et mesure", "periodCustom": "Dates précises", "from": "Du", "to": "Au", "prefill": "Reprendre le contexte de cette réclamation", "reset": "Tout réinitialiser", "resultTitle": "Résultat de l'analyse manuelle", "noFilters": "aucun filtre", "summary": "Classé par {{axis}} · {{count}} réclamations · {{filters}}."},
     "autoTop": "Utiliser automatiquement la cause en tête du Pareto",
     "goIshikawa": "Passer à l'Ishikawa →",
     "claimLoadFailed": "Impossible de charger la réclamation.",
@@ -3008,6 +3038,7 @@
     "submitted": "Analyse terminée et soumise pour validation.",
     "revertedToDraft": "Analyse repassée en brouillon avec succès.",
     "statusFailed": "Échec du changement de statut.",
+    "quantitiesBothRequired": "Renseignez les deux quantités (produite et défectueuse) pour calculer le PPM.",
     "invalidProduced": "Quantité produite invalide.",
     "invalidDefective": "Quantité défectueuse invalide.",
     "quantitiesSaved": "Quantités enregistrées : le PPM a été recalculé.",
@@ -3163,6 +3194,8 @@
     "roleMethods": "Méthodes",
     "roleQuality": "Qualité",
     "teamPlaceholder": "Production : prénom\nMéthodes : prénom",
+    "d2Quantities": "Quantification : {{produced}} produites · {{defective}} défectueuses · {{ppm}} PPM",
+    "d2QuantitiesMissing": "Quantification non renseignée (produites / défectueuses : le PPM n'est pas calculable)",
     "d2Hint": "Rien à saisir : c’est la fiche réclamation.",
     "d3Hint": "Le confinement se saisit dans son outil, comme Pareto ou le 5 Why. Les valeurs déjà enregistrées y sont reprises.",
     "containmentPlan": "Plan de confinement",
@@ -3322,6 +3355,7 @@
     "justNow": "à l'instant",
     "minutesAgo": "il y a {{n}} min",
     "hoursAgo": "il y a {{n}} h",
+    "kindDeadline": "Échéance",
     "kindAssignment": "Assignation",
     "kindAlert": "Alerte qualité",
     "kindToValidate": "À valider",
@@ -3334,6 +3368,8 @@
     "empty": "Aucune notification"
   },
   "recommend": {
+    "risk": {"low": "Risque faible", "moderate": "Risque modéré", "high": "Risque élevé"},
+    "action": {"standard": "Attribution standard : le meilleur candidat devrait tenir les délais.", "adjust": "Assignez, mais prévoyez une marge (suivi, charge allégée) ou choisissez un candidat moins chargé.", "alert": "Alerte préventive : même le meilleur candidat risque de dépasser le délai. Réallouez les ressources ou révisez la priorité dès maintenant."},
     "reason": "Compétence {{skill}}/5 · Charge {{load}}%",
     "reasonHistory": "{{rate}} % à l'heure sur {{closed}} dossiers · {{open}} en cours",
     "indicative": "Indicatif",
@@ -4025,6 +4061,8 @@
       "ishikawa_updated": "Diagramme Ishikawa mis à jour",
       "claim_assigned": "Réclamation assignée",
       "claim_unassigned": "Assignation retirée",
+      "claim_deadline_extended": "Échéance prolongée",
+      "deadline_extended": "Échéance prolongée",
       "claim_deadline_set": "Échéance fixée",
       "claim_archived": "Réclamation archivée",
       "claim_restored": "Réclamation restaurée",
@@ -5392,6 +5430,7 @@
     }
   },
   "priorityCause": {
+    "prefilled": "Proposé d'après la meilleure suggestion ci-dessus : modifiez-le si besoin, puis cliquez sur « Retenir cette cause ».",
     "title": "Cause prioritaire à creuser",
     "hint": "Retenez ici la cause que vous allez creuser avec les 5 Pourquoi. Elle est enregistrée dans le dossier et rappelée dans les étapes suivantes. Vous pouvez la saisir vous-même ou reprendre une suggestion ; un nouveau choix remplace l’ancien, qui reste dans l’historique.",
     "placeholder": "Ex. : usure des électrodes de soudure",

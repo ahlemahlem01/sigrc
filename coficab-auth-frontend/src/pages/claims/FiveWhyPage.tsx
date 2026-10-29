@@ -703,6 +703,16 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
       setPpmError(t('fiveWhy.invalidDefective'));
       return;
     }
+    // The PPM needs both quantities, and an empty field cannot clear a stored value: ask for both, coherent.
+    if (producedValue === null || defectiveValue === null) {
+      setPpmError(t('fiveWhy.quantitiesBothRequired'));
+      return;
+    }
+    const check = computePpm({ producedQuantity: producedValue, defectiveQuantity: defectiveValue });
+    if (!check.isComputable) {
+      setPpmError(check.reason || t('fiveWhy.ppmNotComputable'));
+      return;
+    }
 
     setSavingQuantities(true);
     try {
@@ -971,6 +981,18 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
         {branchTab('OCCURRENCE', t('fiveWhy.branchOccurrence'), t('fiveWhy.branchOccurrenceHint'))}
         {branchTab('DETECTION', t('fiveWhy.branchDetection'), t('fiveWhy.branchDetectionHint'))}
       </div>
+
+      {currentStep === 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 12px', padding: '8px 14px', borderRadius: 8, background: '#FFF', border: `1px solid ${COFICAB_CARD_BORDER}`, borderLeft: `4px solid ${COFICAB_NAVY}` }}>
+          <span style={{ fontWeight: 700, color: COFICAB_NAVY, fontSize: 12, textTransform: 'uppercase' }}>{t('fiveWhy.ppmTitle')}</span>
+          {ppmResult.isComputable
+            ? <strong style={{ color: COFICAB_NAVY }}>{formatPpm(ppmResult.value as number)} <span style={{ fontSize: 11, color: '#64748B' }}>PPM</span></strong>
+            : <span style={{ fontSize: 12, color: '#92400E', fontStyle: 'italic' }}>{ppmResult.reason || t('fiveWhy.ppmNotComputable')}</span>}
+          <button type="button" className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => { setCurrentStep(2); setIsEditingQuantities(true); }}>
+            {t('fiveWhy.enterQuantities')}
+          </button>
+        </div>
+      )}
 
       {currentStep === 1 && (
         <form onSubmit={handleValidateQuestions} style={{ background: '#FFF', padding: '20px', borderRadius: '8px', border: `1px solid ${COFICAB_CARD_BORDER}` }}>

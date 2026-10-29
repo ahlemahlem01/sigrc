@@ -28,6 +28,7 @@ import { defectLabel } from '../../utils/defectLabel';
 const DECISION_TYPES = new Set([
   'plan_validated', 'plan_rejected', 'fivewhy_validated', 'fivewhy_rejected', 'eight_d_validated', 'eight_d_rejected',
   'action_validated', 'action_warning', 'alert_report_validated', 'alert_report_rejected', 'claim_assigned', 'claim_approved', 'claim_returned',
+  'claim_deadline_extended', 'plan_deadline_extended',
 ]);
 const PIPELINE_STEPS = ['D1', 'D2', 'D3', 'D4', 'D5', 'D6', 'D7', 'D8'];
 

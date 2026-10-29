@@ -473,6 +473,12 @@
     "support": "Supporto"
   },
   "login": {
+    "turnstileHint": {"host": "Cloudflare rifiuta questo sito: aggiungi \"localhost\" (o il tuo dominio) ai nomi host del widget Turnstile.", "key": "La chiave del sito Turnstile non è valida: controlla TURNSTILE_SITE_KEY nel file .env.", "client": "Il controllo Cloudflare non è riuscito in questo browser. Ricarica la pagina, disattiva una VPN o un blocco dei contenuti e controlla l'orologio del computer."},
+    "turnstileCode": "codice {{code}}",
+    "showPassword": "Mostra la password",
+    "hidePassword": "Nascondi la password",
+    "errorCaptcha": "Il controllo di sicurezza non è riuscito o è scaduto. Riprova.",
+    "captchaUnavailable": "Impossibile caricare il controllo di sicurezza (Cloudflare). Controlla la connessione a Internet o contatta l'amministratore.",
     "title": "Accesso",
     "email": "Indirizzo email",
     "password": "Password",
@@ -2501,6 +2507,7 @@
     "estimateBasis_other": ", basato su {{count}} dossier simili ({{method}}).",
     "suggestedDeadline": "Scadenza suggerita:",
     "suggestedDeadlineRule": "(creazione + P80)",
+    "deadlineChip": "Scadenza",
     "currentDeadline": "attuale: {{date}}",
     "noDeadline": "nessuna scadenza impostata",
     "applying": "Applicazione…",
@@ -2579,7 +2586,17 @@
     "previous": "Precedente: {{tool}}",
     "next": "Successivo: {{tool}}"
   },
+  "extendDeadline": {"button": "Concedi più tempo", "title": "Concedi più tempo", "current": "Scadenza attuale: {{date}}", "newDate": "Nuova scadenza", "extra": "+{{count}} giorno/i rispetto alla scadenza attuale", "reason": "Motivo", "reasonHint": "almeno {{min}} caratteri", "trace": "La data precedente, la nuova data e il tuo motivo vengono registrati nella cronologia con il tuo nome. Nulla viene sovrascritto.", "cancel": "Annulla", "confirm": "Concedi", "saving": "Salvataggio…", "errors": {"generic": "Non è stato possibile salvare la proroga.", "reasonRequired": "Indica un motivo di almeno 10 caratteri.", "reasonTooLong": "Il motivo è troppo lungo (massimo 500 caratteri).", "notLate": "Solo un elemento in ritardo può ricevere più tempo.", "newDateInPast": "La nuova scadenza non può essere nel passato.", "notAfterCurrent": "La nuova scadenza deve essere successiva a quella attuale.", "tooFar": "La nuova scadenza non può superare i 180 giorni.", "notOpen": "Questo elemento è chiuso, archiviato o ancora in bozza.", "notFound": "Elemento non trovato o fuori dal tuo ambito.", "newDateRequired": "Scegli la nuova scadenza."}},
+  "camera": {
+    "hint": "Centra la parte danneggiata nel riquadro",
+    "zone": "Zona di ispezione",
+    "capture": "Scatta",
+    "close": "Chiudi",
+    "denied": "L'accesso alla fotocamera è stato negato. Consentilo nella barra degli indirizzi del browser, poi riprova.",
+    "unavailable": "Impossibile aprire una fotocamera su questo dispositivo."
+  },
   "createClaim": {
+    "quantitiesHint": "Facoltativo: inserisci le quantità prodotta e difettosa per ottenere il PPM (modificabile più tardi nella 5 Why).",
     "similarTitle": "Casi simili",
     "similarHint": "Clicca su un caso per riprendere il suo codice difetto.",
     "similarWeak": "Nessun caso passato è davvero vicino a questa foto: gli esempi sono indicativi.",
@@ -2594,6 +2611,15 @@
     "cvAnomaly": "Sulla foto è rilevato un difetto, ma il tipo non è riconosciuto: scegli il codice dall'elenco del modulo.",
     "cvLines": "Di solito riscontrato sulle linee: {{lines}}",
     "cvDemo": "Modalità dimostrativa: proposta di esempio, non un’analisi reale dell’immagine",
+    "aiTitle": "Seconda opinione",
+    "aiAnalysing": "Analisi della foto con IA…",
+    "aiUnavailable": "L'IA non ha potuto analizzare questa foto.",
+    "aiNoDefect": "Nessun difetto dell'elenco riconosciuto in questa foto.",
+    "aiConfidence_high": "Affidabilità: alta",
+    "aiConfidence_medium": "Affidabilità: media",
+    "aiConfidence_low": "Affidabilità: bassa",
+    "aiAgrees": "I due modelli concordano.",
+    "aiDiffers": "Diverso dal modello di immagini ({{code}}): controlla la foto.",
     "takePhoto": "Scatta una foto",
     "cvTitle": "Suggerimento dall’analisi dell’immagine",
     "cvConfidence": "Confidenza {{pct}} %",
@@ -2764,6 +2790,10 @@
     "frozen": "Bloccato"
   },
   "pareto": {
+    "kind": {"label": "Modalità di configurazione", "guided": "Configurazione guidata", "manual": "Analisi manuale", "guidedHint": "L'asse consigliato a partire da questo reclamo", "manualHint": "Scegli tu l'asse, i filtri e il periodo"},
+    "dim": {"DefectType": "Tipo di difetto", "ProductionLine": "Linea di produzione", "ClientId": "Cliente", "Shift": "Turno", "Severity": "Gravità"},
+    "sev": {"LOW": "Bassa", "MEDIUM": "Media", "HIGH": "Alta", "CRITICAL": "Critica"},
+    "manual": {"title": "Analisi manuale", "help": "Scegli cosa classifica il Pareto, poi restringilo come preferisci. La configurazione guidata resta disponibile.", "analyzeBy": "Classifica per", "filters": "Restringi a", "all": "Tutti", "periodTitle": "Periodo e misura", "periodCustom": "Date precise", "from": "Dal", "to": "Al", "prefill": "Riprendi il contesto di questo reclamo", "reset": "Reimposta tutto", "resultTitle": "Risultato dell'analisi manuale", "noFilters": "nessun filtro", "summary": "Classificato per {{axis}} · {{count}} reclami · {{filters}}."},
     "autoTop": "Usa automaticamente la causa in testa al Pareto",
     "goIshikawa": "Passa a Ishikawa →",
     "claimLoadFailed": "Impossibile caricare il reclamo.",
@@ -3008,6 +3038,7 @@
     "submitted": "Analisi completata e inviata per la convalida.",
     "revertedToDraft": "Analisi riportata in bozza.",
     "statusFailed": "Cambio di stato non riuscito.",
+    "quantitiesBothRequired": "Inserisci entrambe le quantità (prodotta e difettosa) per calcolare il PPM.",
     "invalidProduced": "Quantità prodotta non valida.",
     "invalidDefective": "Quantità difettosa non valida.",
     "quantitiesSaved": "Quantità salvate: il PPM è stato ricalcolato.",
@@ -3163,6 +3194,8 @@
     "roleMethods": "Metodi",
     "roleQuality": "Qualità",
     "teamPlaceholder": "Produzione: nome\nMetodi: nome",
+    "d2Quantities": "Quantificazione: {{produced}} prodotte · {{defective}} difettose · {{ppm}} PPM",
+    "d2QuantitiesMissing": "Quantificazione non inserita (prodotte / difettose: il PPM non è calcolabile)",
     "d2Hint": "Niente da inserire: è la scheda del reclamo.",
     "d3Hint": "Il contenimento si compila nel suo strumento, come Pareto o il 5 Why. I valori già salvati vengono ripresi.",
     "containmentPlan": "Piano di contenimento",
@@ -3322,6 +3355,7 @@
     "justNow": "proprio ora",
     "minutesAgo": "{{n}} min fa",
     "hoursAgo": "{{n}} h fa",
+    "kindDeadline": "Scadenza",
     "kindAssignment": "Assegnazione",
     "kindAlert": "Allerta qualità",
     "kindToValidate": "Da convalidare",
@@ -3334,6 +3368,8 @@
     "empty": "Nessuna notifica"
   },
   "recommend": {
+    "risk": {"low": "Rischio basso", "moderate": "Rischio moderato", "high": "Rischio alto"},
+    "action": {"standard": "Assegnazione standard: il miglior candidato dovrebbe rispettare i tempi.", "adjust": "Assegna, ma prevedi un margine (monitoraggio, carico ridotto) oppure scegli un candidato meno carico.", "alert": "Allerta preventiva: anche il miglior candidato rischia di superare la scadenza. Riassegna le risorse o rivedi subito la priorità."},
     "reason": "Competenza {{skill}}/5 · Carico {{load}}%",
     "reasonHistory": "{{rate}}% in orario su {{closed}} pratiche · {{open}} aperte",
     "indicative": "Indicativo",
@@ -4025,6 +4061,8 @@
       "ishikawa_updated": "Diagramma Ishikawa aggiornato",
       "claim_assigned": "Reclamo assegnato",
       "claim_unassigned": "Assegnazione rimossa",
+      "claim_deadline_extended": "Scadenza prorogata",
+      "deadline_extended": "Scadenza prorogata",
       "claim_deadline_set": "Scadenza fissata",
       "claim_archived": "Reclamo archiviato",
       "claim_restored": "Reclamo ripristinato",
@@ -5392,6 +5430,7 @@
     }
   },
   "priorityCause": {
+    "prefilled": "Compilato con il suggerimento migliore qui sopra: modificalo se serve, poi clicca su \"Mantieni questa causa\".",
     "title": "Causa prioritaria da approfondire",
     "hint": "Indica qui la causa che approfondirai con i 5 Perché. Viene salvata nel dossier e richiamata nei passaggi successivi. Puoi scriverla tu o riprendere un suggerimento; una nuova scelta sostituisce la precedente, che resta nello storico.",
     "placeholder": "Es.: usura degli elettrodi di saldatura",

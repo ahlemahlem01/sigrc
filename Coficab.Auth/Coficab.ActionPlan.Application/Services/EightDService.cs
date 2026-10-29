@@ -653,6 +653,8 @@ public class EightDService : IEightDService
             DefectType = claim.DefectType,
             LotNumber = claim.LotNumber,
             Description = claim.Description,
+            ProducedQuantity = claim.ProducedQuantity,
+            DefectiveQuantity = claim.DefectiveQuantity,
             CurrentStep = current,
             StatusCode = dossier.StatusCode,
             ChampionId = dossier.ChampionId,

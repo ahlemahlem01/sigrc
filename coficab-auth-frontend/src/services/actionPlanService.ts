@@ -17,6 +17,10 @@ export const getActionPlans = (token: string, includeActions = false) =>
 export const getSteeringPlans = (token: string) =>
   axios.get(`${BASE_URL}/actionplan/steering`, { ...getHeaders(token), params: scopeParams() });
 
+/** Administrators: more time for a late CAPA plan. A reason is required; the old date and the reason are kept in the plan history. */
+export const extendPlanDeadline = (token: string, id: string, newDeadline: string, reason: string) =>
+  axios.post(`${BASE_URL}/actionplan/${id}/deadline-extension`, { newDeadline, reason }, getHeaders(token));
+
 export const getActionPlanById = (token: string, id: string) =>
   axios.get(`${BASE_URL}/actionplan/${id}`, getHeaders(token));
 

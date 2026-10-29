@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { ExtendDeadline, canExtendDeadline } from '../../components/ExtendDeadline';
 import {
   Building2,
   Calendar,
@@ -32,6 +33,8 @@ interface ClaimDetailCardProps {
   canEdit?: boolean;
   onApplySuggestedDeadline?: (claimId: string, deadlineIso: string) => Promise<void> | void;
   applyingDeadline?: boolean;
+  /** Called after an administrator gave the claim more time, to reload it. */
+  onDeadlineExtended?: () => void;
 }
 
 const formatClaimDate = (value?: string | null) => {
@@ -101,6 +104,7 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
   canEdit = true,
   onApplySuggestedDeadline,
   applyingDeadline = false,
+  onDeadlineExtended,
 }) => {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
@@ -183,6 +187,8 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
   })();
   const completedAtLabel = formatClaimDate(claim.completedAt || (claim as any).CompletedAt);
   const deadlineLabel = formatClaimDate(claim.deadline || (claim as any).Deadline);
+  const claimStatus = String(claim.statusCode || (claim as any).status || '').toUpperCase();
+  const claimIsOpen = !(claim as any).isArchived && !['CLOTUREE', 'CLOSED', 'CLOTURE', 'DRAFT', 'BROUILLON'].includes(claimStatus);
   const isOnTime = claim.isOnTime ?? (claim as any).IsOnTime ?? null;
   const showClosure = Boolean(completedAtLabel) || currentStatus === 'CLOTUREE';
 
@@ -279,6 +285,27 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
               </span>
             </div>
           </div>
+          {(claim.deadline || (claim as any).Deadline) && (
+            <div className="pfe-chip-card">
+              <div className="pfe-chip-icon"><Clock size={14} /></div>
+              <div className="pfe-chip-info">
+                <span className="pfe-chip-label">{t('claimDetail.deadlineChip')}</span>
+                <span
+                  className="pfe-chip-value"
+                  style={canExtendDeadline(claim.deadline || (claim as any).Deadline, claimIsOpen) ? { color: '#b91c1c', fontWeight: 700 } : undefined}
+                >
+                  {deadlineLabel}
+                </span>
+                <ExtendDeadline
+                  kind="claim"
+                  id={String(claim.id)}
+                  deadline={claim.deadline || (claim as any).Deadline}
+                  open={claimIsOpen}
+                  onDone={() => onDeadlineExtended?.()}
+                />
+              </div>
+            </div>
+          )}
           {showClosure && (
             <div className="pfe-chip-card">
               <div className="pfe-chip-icon"><CheckCircle2 size={14} /></div>
