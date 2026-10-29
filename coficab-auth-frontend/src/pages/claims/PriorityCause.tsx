@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Target } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,16 @@ import { IshikawaCauseRead } from '../../types/qualityAnalysis';
 import { MiningInsights } from '../../services/miningService';
 
 const CATEGORIES = ['Manpower', 'Machine', 'Material', 'Method', 'Milieu', 'Measurement'] as const;
+
+/** The Ishikawa endpoint groups causes by category (categories[].causes[].text); older payloads carry a flat causes[] list. Both give the same flat rows. */
+function flattenIshikawa(d: any): IshikawaCauseRead[] {
+  if (Array.isArray(d?.categories)) {
+    return d.categories.flatMap((cat: any) => (cat.causes ?? []).map((c: any) => ({
+      id: c.id, category: cat.categoryName, causeDescription: c.text ?? c.causeDescription, isRootCause: !!c.isRootCause,
+    }))).filter((c: IshikawaCauseRead) => c.id && c.causeDescription);
+  }
+  return d?.causes ?? [];
+}
 
 /** Loads the current priority cause of a claim (and its history). Refetches when `version` changes. */
 export function usePriorityCause(claimId: string | undefined, version = 0) {
@@ -79,15 +89,21 @@ interface CardProps {
   footer?: React.ReactNode;
   /** Error of a suggestion shortcut used elsewhere on the page. */
   externalError?: string | null;
+  /** A closed claim: the current cause and its history are shown, nothing can be chosen. */
+  readOnly?: boolean;
   onChanged: () => void;
 }
 
 /** Choose, change and review the priority cause. Typing it by hand is always possible. */
-export function PriorityCauseCard({ claimId, version, evidence, footer, externalError, onChanged }: CardProps) {
+export function PriorityCauseCard({ claimId, version, evidence, footer, externalError, readOnly = false, onChanged }: CardProps) {
   const { t } = useTranslation();
   const { accessToken } = useAuth();
-  const { current, history } = usePriorityCause(claimId, version);
+  const { current, history, loaded } = usePriorityCause(claimId, version);
   const [text, setText] = useState('');
+  const [prefilled, setPrefilled] = useState(false);
+  const touched = useRef(false);
+  const autoText = useRef('');
+  const autoCategory = useRef('');
   const [category, setCategory] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -99,7 +115,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
     let cancelled = false;
     qualityAnalysisService
       .getIshikawa(claimId, accessToken)
-      .then((d) => { if (!cancelled) setIshikawa(d.causes ?? []); })
+      .then((d) => { if (!cancelled) setIshikawa(flattenIshikawa(d)); })
       .catch(() => { if (!cancelled) setIshikawa([]); });
     return () => { cancelled = true; };
   }, [claimId, accessToken]);
@@ -133,9 +149,27 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
 
   const previous = history.filter((h) => !h.isCurrent);
 
+  // With no cause kept yet, the field starts with the top suggestion (the one marked "suggested", else the first of the list). It stays editable.
+  // The proposal follows the ranking while it is still the untouched proposal (the ranking can arrive after the list) and never replaces what the analyst typed.
+  const top = ishikawaSorted.find((c) => c.id === suggestedId) ?? ishikawaSorted[0];
+  useEffect(() => {
+    if (!loaded || current || !top || touched.current) return;      // typed (or cleared) by hand: leave it
+    if (text === top.causeDescription) return;
+    autoText.current = top.causeDescription;
+    setText(top.causeDescription);
+    setPrefilled(true);
+    if (!category || autoCategory.current === category) {
+      const next = (CATEGORIES as readonly string[]).includes(String(top.category)) ? String(top.category) : '';
+      autoCategory.current = next;
+      setCategory(next);
+    }
+  }, [loaded, current, top, text, category]);
+
   return (
-    <section className="pc-card" aria-labelledby="pc-title">
+    <section className="pc-card" id="priority-cause-card" aria-labelledby="pc-title">
       <style>{`
+        @keyframes pcFlash { 0% { box-shadow: 0 0 0 0 rgba(59,130,246,.55); } 100% { box-shadow: 0 0 0 14px rgba(59,130,246,0); } }
+        .pc-card.pc-flash { animation: pcFlash 1.2s ease-out 2; border-color: #3b82f6; }
         .pc-card { margin: 14px 0; background: #fff; border: 1px solid #c7d2fe; border-radius: 14px; padding: 14px 16px; }
         .pc-card h3 { margin: 0 0 4px; font-size: 15px; color: #000168; display: flex; gap: 8px; align-items: center; }
         .pc-hint { margin: 0 0 10px; font-size: 12.5px; color: #64748b; line-height: 1.45; }
@@ -182,7 +216,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         </ul>
       )}
 
-      {ishikawaSorted.length > 0 && (
+      {!readOnly && ishikawaSorted.length > 0 && (
         <div className="pc-ik">
           <div className="pc-meta">{ranked ? t('priorityCause.fromIshikawaRanked') : t('priorityCause.fromIshikawa')}</div>
           <ul>
@@ -219,11 +253,12 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         </div>
       )}
 
+      {!readOnly && (
       <div className="pc-row">
         <input
           value={text}
           maxLength={500}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => { touched.current = true; setText(e.target.value); setPrefilled(false); }}
           placeholder={t('priorityCause.placeholder')}
           aria-label={t('priorityCause.placeholder')}
         />
@@ -235,6 +270,8 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
           {current ? t('priorityCause.replace') : t('priorityCause.keep')}
         </button>
       </div>
+      )}
+      {!readOnly && prefilled && text.trim() && <div className="pc-meta" style={{ marginTop: 6 }}>{t('priorityCause.prefilled')}</div>}
       {(error || externalError) && <div className="pc-err" role="alert">{error || externalError}</div>}
 
       {footer && <div className="pc-footer">{footer}</div>}

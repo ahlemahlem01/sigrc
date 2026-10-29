@@ -515,6 +515,9 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<string>("CreatedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("DataJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
@@ -753,10 +756,16 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
+                    b.Property<string>("NewDescription")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("NewProgress")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("OldProgress")

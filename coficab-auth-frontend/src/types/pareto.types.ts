@@ -22,6 +22,9 @@ export interface ParetoRequestDto {
   clientId?: string;
   productionLine?: string;
   defectType?: string;
+  /** Manual analysis: keeps one shift / one severity level. */
+  shift?: string;
+  severity?: string;
   measure?: ParetoMeasure;
 }
 

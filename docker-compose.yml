@@ -66,6 +66,11 @@ services:
       EmailSettings__FromName: ${SMTP_FROM_NAME:-Coficab}
       # Reset-link lifetime (minutes) and rate limits (per client address); the defaults are 60, 10 per 15 min, 20 per 15 min, 60 per minute.
       Auth__PasswordResetLifetimeMinutes: ${PASSWORD_RESET_MINUTES:-60}
+      # Cloudflare Turnstile on the sign-in and forgot-password forms. Off while TURNSTILE_SECRET_KEY is empty. Keys: dash.cloudflare.com > Turnstile.
+      # TURNSTILE_FAIL_OPEN=true lets people in when Cloudflare cannot be reached (default: refused).
+      Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
+      Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
+      Turnstile__FailOpen: ${TURNSTILE_FAIL_OPEN:-false}
     volumes:
       # Token signing keys must survive a container re-creation, otherwise every session is invalidated.
       - authkeys:/root/.dotnet/corefx
@@ -97,6 +102,10 @@ services:
       ComputerVision__Mode: ${CV_MODE:-}
       ComputerVision__ServiceUrl: ${CV_SERVICE_URL:-http://cv-service:5000}
       Gemini__ApiKey: ${GEMINI_API_KEY:-}
+      # Google retires models from time to time: change GEMINI_MODEL in .env, no code change needed.
+      Gemini__Model: ${GEMINI_MODEL:-gemini-3.6-flash}
+      # Models tried in turn when the main one answers "quota reached" or "overloaded" (each model has its own free quota).
+      Gemini__FallbackModels: ${GEMINI_FALLBACK_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash,gemini-3.7-flash,gemini-3.8-flash}
       # The semantic search backfill is only useful with a Gemini key.
       Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}
     volumes:

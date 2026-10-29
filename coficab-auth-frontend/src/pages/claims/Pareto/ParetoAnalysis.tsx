@@ -4,7 +4,11 @@ import { Info, Sparkles } from 'lucide-react';
 import ParetoActions from '../../../pages/claims/Pareto/ParetoActions';
 import ParetoChart from '../../../pages/claims/Pareto/ParetoChart';
 import MiningInsightsPanel, { useMiningInsights } from './MiningInsightsPanel';
+import { useClaimClosed } from '../../../hooks/useClaimClosed';
+import { ClosedDossierBanner } from '../../../components/ClosedDossierBanner';
 import CausesPareto from './CausesPareto';
+import ManualParetoPanel from './ManualParetoPanel';
+import { activeFilters, EMPTY_MANUAL, ManualParetoConfig, manualRequest } from './manualPareto';
 import { LockedStep, useD4Order } from '../D4Order';
 import { PriorityCauseCard } from '../PriorityCause';
 import { priorityCauseService } from '../../../services/priorityCauseService';
@@ -35,7 +39,13 @@ export default function ParetoAnalysis() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [pcVersion, setPcVersion] = useState(0);
   const [pcError, setPcError] = useState<string | null>(null);
+  const closedClaim = useClaimClosed(claimId);
+  const [pickedText, setPickedText] = useState<string | null>(null);
   const [measure, setMeasure] = useState<ParetoMeasure>('count');
+  // 'guided' = the setup chosen from the claim (axis recommended by the mining); 'manual' = the person sets the axis, filters, period and measure
+  const [kind, setKind] = useState<'guided' | 'manual'>('guided');
+  const [manual, setManual] = useState<ManualParetoConfig>(EMPTY_MANUAL);
+  const manualReq = useMemo(() => manualRequest(manual), [manual]);
   // The whole history counts by default; the user can narrow the period by hand.
   const [period, setPeriod] = useState<'all' | '6' | '12' | '24'>('all');
   const dateFrom = useMemo(() => {
@@ -163,6 +173,31 @@ export default function ParetoAnalysis() {
         </div>
       )}
 
+      <div className="pareto-mode-toggle" role="group" aria-label={t('pareto.kind.label')} style={{ marginBottom: 12 }}>
+        <button type="button" className={`pareto-toggle-btn ${kind === 'guided' ? 'active' : ''}`} onClick={() => setKind('guided')} title={t('pareto.kind.guidedHint')}>
+          {t('pareto.kind.guided')}
+        </button>
+        <button type="button" className={`pareto-toggle-btn ${kind === 'manual' ? 'active' : ''}`} onClick={() => setKind('manual')} title={t('pareto.kind.manualHint')}>
+          {t('pareto.kind.manual')}
+        </button>
+      </div>
+
+      {kind === 'manual' && (
+        <ManualParetoPanel
+          config={manual}
+          onChange={setManual}
+          onPrefill={claim ? () => setManual({
+            ...manual,   // the period, the dates, the measure and the severity chosen so far are kept
+            dimension: manual.dimension,
+            defectType: claim.defectType || '',
+            productionLine: (claim as any).productionLine || '',
+            clientId: claim.clientId || '',
+            shift: (claim as any).shift || '',
+          }) : undefined}
+        />
+      )}
+
+      {kind === 'guided' && (<>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '0 0 10px', fontSize: 13, color: '#475569' }}>
         <label htmlFor="pareto-period">{t('pareto.period')}</label>
         <select id="pareto-period" className="pareto-select" value={period} onChange={(e) => setPeriod(e.target.value as typeof period)}>
@@ -202,19 +237,35 @@ export default function ParetoAnalysis() {
           {t('pareto.measureImpact')}
         </button>
       </div>
+      </>)}
 
-      <h2 style={{ margin: '14px 0 6px', fontSize: 16, color: '#000168' }}>{t('pareto.contextTitle')}</h2>
+      <h2 style={{ margin: '14px 0 6px', fontSize: 16, color: '#000168' }}>{kind === 'manual' ? t('pareto.manual.resultTitle') : t('pareto.contextTitle')}</h2>
 
-      <ParetoChart
-        measure={measure}
-        dimension={dimension}
-        defectType={activeDefectType}
-        productionLine={activeProductionLine}
-        dateFrom={dateFrom}
-        onDataLoaded={setParetoData}
-      />
+      {kind === 'guided' ? (
+        <ParetoChart
+          measure={measure}
+          dimension={dimension}
+          defectType={activeDefectType}
+          productionLine={activeProductionLine}
+          dateFrom={dateFrom}
+          onDataLoaded={setParetoData}
+        />
+      ) : (
+        <ParetoChart
+          measure={manualReq.measure}
+          dimension={manualReq.dimension}
+          defectType={manualReq.defectType}
+          productionLine={manualReq.productionLine}
+          clientId={manualReq.clientId}
+          shift={manualReq.shift}
+          severity={manualReq.severity}
+          dateFrom={manualReq.dateFrom}
+          dateTo={manualReq.dateTo}
+          onDataLoaded={setParetoData}
+        />
+      )}
 
-      {paretoData.length > 0 && (
+      {paretoData.length > 0 && kind === 'guided' && (
         <p className="pareto-context" style={{ margin: '6px 0 0' }}>
           {t('pareto.shown', {
             period: t(`pareto.period${period === 'all' ? 'All' : period}`),
@@ -223,20 +274,45 @@ export default function ParetoAnalysis() {
         </p>
       )}
 
+      {paretoData.length > 0 && kind === 'manual' && (
+        <p className="pareto-context" style={{ margin: '6px 0 0' }}>
+          {t('pareto.manual.summary', {
+            axis: t(`pareto.dim.${manual.dimension}`),
+            count: paretoData.reduce((sum, item) => sum + item.count, 0),
+            filters: activeFilters(manual).length === 0
+              ? t('pareto.manual.noFilters')
+              : activeFilters(manual).map((f) => `${t(`pareto.dim.${f.axis}`)} = ${f.axis === 'DefectType' ? defectLabel(f.value) || f.value : f.value}`).join(' · '),
+          })}
+        </p>
+      )}
+
       {claimId && <CausesPareto claimId={claimId} evidence={mining.data?.causeEvidence} loading={mining.loading} />}
 
-      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
+      {closedClaim && <ClosedDossierBanner />}
+
+      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={closedClaim} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPickedText(null); setPcVersion((v) => v + 1); }} />}
 
       {claim && claimId && (
         <MiningInsightsPanel
           data={mining.data}
           loading={mining.loading}
-          onPick={(cause) => {
+          chosenText={pickedText}
+          onPick={closedClaim ? undefined : (cause) => {
             if (!accessToken) return;
             setPcError(null);
             priorityCauseService
               .select(claimId, { text: cause.text, category: cause.category, source: 'mining' }, accessToken)
-              .then(() => setPcVersion((v) => v + 1))
+              .then(() => {
+                setPcVersion((v) => v + 1);
+                setPickedText(cause.text);
+                // the chosen cause is shown in the card at the top: bring it into view so the click visibly did something
+                const card = document.getElementById('priority-cause-card');
+                if (card) {
+                  card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  card.classList.add('pc-flash');
+                  window.setTimeout(() => card.classList.remove('pc-flash'), 2600);
+                }
+              })
               .catch((e: any) => setPcError(e?.response?.data?.message || t('priorityCause.failed')));
           }}
         />

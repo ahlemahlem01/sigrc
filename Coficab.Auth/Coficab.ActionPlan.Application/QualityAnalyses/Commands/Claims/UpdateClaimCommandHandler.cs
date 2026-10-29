@@ -79,6 +79,11 @@ public class UpdateClaimCommandHandler : IRequestHandler<UpdateClaimCommand, boo
             }
         }
 
+        // The PPM is computed from the pair, so the pair as it will be stored must make sense (a lone value is checked against the stored other one).
+        var produced = request.ProducedQuantity ?? claim.ProducedQuantity;
+        var defective = request.DefectiveQuantity ?? claim.DefectiveQuantity;
+        if ((request.ProducedQuantity.HasValue || request.DefectiveQuantity.HasValue) && produced.HasValue && defective.HasValue && defective > produced)
+            throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("DefectiveQuantity", "La quantité défectueuse ne peut pas dépasser la quantité produite.") });
         if (request.ProducedQuantity.HasValue) claim.ProducedQuantity = request.ProducedQuantity;
         if (request.DefectiveQuantity.HasValue) claim.DefectiveQuantity = request.DefectiveQuantity;
         claim.UpdatedAt = DateTime.UtcNow;

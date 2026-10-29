@@ -116,6 +116,10 @@ export const AdminValidationHub: React.FC = () => {
   const [capa, setCapa] = useState<PendingCapa[]>([]);
   const [rejected, setRejected] = useState<PendingCapa[]>([]);
   const [fiveWhyQueue, setFiveWhyQueue] = useState<FiveWhyQueueItem[]>([]);
+  // the 5 Why queue: most recent submissions first, searchable; a notification can point at one analysis (?claimId=) which is shown first
+  const [fwSearch, setFwSearch] = useState('');
+  const [fwSort, setFwSort] = useState<'newest' | 'oldest'>('newest');
+  const focusClaim = params.get('claimId');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -130,7 +134,7 @@ export const AdminValidationHub: React.FC = () => {
     setSelected(new Set());
   };
 
-  const loadDossiers = useCallback(async () => {
+  const loadDossiers = useCallback(async (quiet = false) => {
     if (!accessToken) return;
     let rows: Claim[] = [];
     try {
@@ -139,6 +143,8 @@ export const AdminValidationHub: React.FC = () => {
       rows = [];
     }
     if (!rows?.length) {
+      // the periodic reading only looks at what is pending: the full list is read on demand
+      if (quiet) return;
       const all = await qualityAnalysisService.getClaims(undefined, accessToken);
       rows = (all || []).filter(isPendingDossier);
     } else {
@@ -193,6 +199,18 @@ export const AdminValidationHub: React.FC = () => {
 
   useEffect(() => { void loadAll(); }, [loadAll]);
 
+  // new submissions show up without a manual refresh: the queues are read again every 30 s and when the tab comes back into view
+  useEffect(() => {
+    if (!accessToken) return;
+    const quiet = () => {
+      if (document.visibilityState === 'hidden') return;
+      void Promise.all([loadDossiers(true), loadCapa(), loadRejected(), loadFiveWhy()]).catch(() => undefined);
+    };
+    const timer = window.setInterval(quiet, 30000);
+    document.addEventListener('visibilitychange', quiet);
+    return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', quiet); };
+  }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy]);
+
   const counts = useMemo(
     () => ({
       dossiers: dossiers.length,
@@ -219,10 +237,15 @@ export const AdminValidationHub: React.FC = () => {
     });
   }, [dossiers, sort, search]);
 
-  const sortedFiveWhy = useMemo(
-    () => [...fiveWhyQueue].sort((a, b) => new Date(a.since).getTime() - new Date(b.since).getTime()),
-    [fiveWhyQueue]
-  );
+  const sortedFiveWhy = useMemo(() => {
+    const q = fwSearch.trim().toLowerCase();
+    const rows = fiveWhyQueue
+      .filter((i) => !q || [i.claimTitle, i.reference, i.clientId, i.defectType, i.assignedToName, i.rootCause]
+        .some((v) => String(v || '').toLowerCase().includes(q)))
+      .sort((a, b) => (new Date(a.since).getTime() - new Date(b.since).getTime()) * (fwSort === 'newest' ? -1 : 1));
+    if (!focusClaim) return rows;
+    return [...rows.filter((i) => i.claimId === focusClaim), ...rows.filter((i) => i.claimId !== focusClaim)];
+  }, [fiveWhyQueue, fwSearch, fwSort, focusClaim]);
 
   const visibleIds = useMemo(() => sortedDossiers.map((c) => c.id), [sortedDossiers]);
   const selectedVisible = visibleIds.filter((id) => selected.has(id));
@@ -423,6 +446,7 @@ export const AdminValidationHub: React.FC = () => {
         .avh-bulk .ok { background:#059669; color:#fff; }
         .avh-bulk .ko { background:#fff; color:#b91c1c; }
         .avh-bulk .clr { background:transparent; color:#fff; border:1px solid rgba(255,255,255,.4); }
+        .avh-card.focus { outline: 2px solid #3b82f6; background: #eff6ff; }
         .avh-card {
           background:#fff; border:1px solid var(--line); border-radius:14px; padding:14px 16px;
           display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap;
@@ -611,11 +635,29 @@ export const AdminValidationHub: React.FC = () => {
         ) : fiveWhyQueue.length === 0 ? (
           <div className="avh-empty">{t('validationHub.emptyFiveWhy')}</div>
         ) : (
+          <>
+          <div className="avh-tools">
+            <input
+              className="avh-search"
+              type="search"
+              value={fwSearch}
+              onChange={(e) => setFwSearch(e.target.value)}
+              placeholder={t('validationHub.searchPlaceholder')}
+              aria-label={t('validationHub.searchPlaceholder')}
+            />
+            <select className="avh-select" value={fwSort} onChange={(e) => setFwSort(e.target.value as 'newest' | 'oldest')} aria-label={t('validationHub.sortLabel')}>
+              <option value="newest">{t('validationHub.sortNewest')}</option>
+              <option value="oldest">{t('validationHub.sortOldest')}</option>
+            </select>
+          </div>
+          {sortedFiveWhy.length === 0 ? (
+            <div className="avh-empty">{t('validationHub.noMatch')}</div>
+          ) : (
           <div className="avh-list">
             {sortedFiveWhy.map((item) => {
               const days = waitDays(new Date(item.since).getTime());
               return (
-                <div key={item.analysisId} className="avh-card">
+                <div key={item.analysisId} className={`avh-card${item.claimId === focusClaim ? ' focus' : ''}`}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <h3 className="avh-title-sm">
                       {item.reference && <span className="avh-ref">{item.reference}</span>}
@@ -654,6 +696,8 @@ export const AdminValidationHub: React.FC = () => {
               );
             })}
           </div>
+          )}
+          </>
         )}
       </div>
 

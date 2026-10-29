@@ -16,6 +16,7 @@ namespace Coficab.ActionPlan.Core.DTOs.Claims
     public class FiveWhyStepDto
     {
         public int StepNumber { get; set; }
+        public string BranchType { get; set; } = "OCCURRENCE";
         public string Question { get; set; } = string.Empty;
         public string Answer { get; set; } = string.Empty;
     }

@@ -473,6 +473,12 @@
     "support": "Supporto"
   },
   "login": {
+    "turnstileHint": {"host": "Cloudflare rifiuta questo sito: aggiungi \"localhost\" (o il tuo dominio) ai nomi host del widget Turnstile.", "key": "La chiave del sito Turnstile non è valida: controlla TURNSTILE_SITE_KEY nel file .env.", "client": "Il controllo Cloudflare non è riuscito in questo browser. Ricarica la pagina, disattiva una VPN o un blocco dei contenuti e controlla l'orologio del computer."},
+    "turnstileCode": "codice {{code}}",
+    "showPassword": "Mostra la password",
+    "hidePassword": "Nascondi la password",
+    "errorCaptcha": "Il controllo di sicurezza non è riuscito o è scaduto. Riprova.",
+    "captchaUnavailable": "Impossibile caricare il controllo di sicurezza (Cloudflare). Controlla la connessione a Internet o contatta l'amministratore.",
     "title": "Accesso",
     "email": "Indirizzo email",
     "password": "Password",
@@ -729,6 +735,8 @@
       "subaction_validated": "Azione convalidata",
       "subaction_rejected": "Azione rifiutata",
       "subaction_warning": "Avviso su un'azione",
+      "subaction_deadline_extended": "Scadenza dell'azione prorogata",
+      "subaction_description": "Descrizione modificata",
       "subaction_proof": "Prova aggiunta"
     }
   },
@@ -2501,6 +2509,7 @@
     "estimateBasis_other": ", basato su {{count}} dossier simili ({{method}}).",
     "suggestedDeadline": "Scadenza suggerita:",
     "suggestedDeadlineRule": "(creazione + P80)",
+    "deadlineChip": "Scadenza",
     "currentDeadline": "attuale: {{date}}",
     "noDeadline": "nessuna scadenza impostata",
     "applying": "Applicazione…",
@@ -2579,7 +2588,17 @@
     "previous": "Precedente: {{tool}}",
     "next": "Successivo: {{tool}}"
   },
+  "extendDeadline": {"button": "Concedi più tempo", "title": "Concedi più tempo", "current": "Scadenza attuale: {{date}}", "newDate": "Nuova scadenza", "extra": "+{{count}} giorno/i rispetto alla scadenza attuale", "reason": "Motivo", "reasonHint": "almeno {{min}} caratteri", "trace": "La data precedente, la nuova data e il tuo motivo vengono registrati nella cronologia con il tuo nome. Nulla viene sovrascritto.", "cancel": "Annulla", "confirm": "Concedi", "saving": "Salvataggio…", "errors": {"generic": "Non è stato possibile salvare la proroga.", "reasonRequired": "Indica un motivo di almeno 10 caratteri.", "reasonTooLong": "Il motivo è troppo lungo (massimo 500 caratteri).", "notLate": "Solo un elemento in ritardo può ricevere più tempo.", "newDateInPast": "La nuova scadenza non può essere nel passato.", "notAfterCurrent": "La nuova scadenza deve essere successiva a quella attuale.", "tooFar": "La nuova scadenza non può superare i 180 giorni.", "notOpen": "Questo elemento è chiuso, archiviato o ancora in bozza.", "notFound": "Elemento non trovato o fuori dal tuo ambito.", "newDateRequired": "Scegli la nuova scadenza."}},
+  "camera": {
+    "hint": "Centra la parte danneggiata nel riquadro",
+    "zone": "Zona di ispezione",
+    "capture": "Scatta",
+    "close": "Chiudi",
+    "denied": "L'accesso alla fotocamera è stato negato. Consentilo nella barra degli indirizzi del browser, poi riprova.",
+    "unavailable": "Impossibile aprire una fotocamera su questo dispositivo."
+  },
   "createClaim": {
+    "quantitiesHint": "Facoltativo: inserisci le quantità prodotta e difettosa per ottenere il PPM (modificabile più tardi nella 5 Why).",
     "similarTitle": "Casi simili",
     "similarHint": "Clicca su un caso per riprendere il suo codice difetto.",
     "similarWeak": "Nessun caso passato è davvero vicino a questa foto: gli esempi sono indicativi.",
@@ -2594,6 +2613,15 @@
     "cvAnomaly": "Sulla foto è rilevato un difetto, ma il tipo non è riconosciuto: scegli il codice dall'elenco del modulo.",
     "cvLines": "Di solito riscontrato sulle linee: {{lines}}",
     "cvDemo": "Modalità dimostrativa: proposta di esempio, non un’analisi reale dell’immagine",
+    "aiTitle": "Seconda opinione",
+    "aiAnalysing": "Analisi della foto con IA…",
+    "aiUnavailable": "L'IA non ha potuto analizzare questa foto.",
+    "aiNoDefect": "Nessun difetto dell'elenco riconosciuto in questa foto.",
+    "aiConfidence_high": "Affidabilità: alta",
+    "aiConfidence_medium": "Affidabilità: media",
+    "aiConfidence_low": "Affidabilità: bassa",
+    "aiAgrees": "I due modelli concordano.",
+    "aiDiffers": "Diverso dal modello di immagini ({{code}}): controlla la foto.",
     "takePhoto": "Scatta una foto",
     "cvTitle": "Suggerimento dall’analisi dell’immagine",
     "cvConfidence": "Confidenza {{pct}} %",
@@ -2764,6 +2792,10 @@
     "frozen": "Bloccato"
   },
   "pareto": {
+    "kind": {"label": "Modalità di configurazione", "guided": "Configurazione guidata", "manual": "Analisi manuale", "guidedHint": "L'asse consigliato a partire da questo reclamo", "manualHint": "Scegli tu l'asse, i filtri e il periodo"},
+    "dim": {"DefectType": "Tipo di difetto", "ProductionLine": "Linea di produzione", "ClientId": "Cliente", "Shift": "Turno", "Severity": "Gravità"},
+    "sev": {"LOW": "Bassa", "MEDIUM": "Media", "HIGH": "Alta", "CRITICAL": "Critica"},
+    "manual": {"title": "Analisi manuale", "help": "Scegli cosa classifica il Pareto, poi restringilo come preferisci. La configurazione guidata resta disponibile.", "analyzeBy": "Classifica per", "filters": "Restringi a", "all": "Tutti", "periodTitle": "Periodo e misura", "periodCustom": "Date precise", "from": "Dal", "to": "Al", "prefill": "Riprendi il contesto di questo reclamo", "reset": "Reimposta tutto", "resultTitle": "Risultato dell'analisi manuale", "noFilters": "nessun filtro", "summary": "Classificato per {{axis}} · {{count}} reclami · {{filters}}."},
     "autoTop": "Usa automaticamente la causa in testa al Pareto",
     "goIshikawa": "Passa a Ishikawa →",
     "claimLoadFailed": "Impossibile caricare il reclamo.",
@@ -3008,6 +3040,7 @@
     "submitted": "Analisi completata e inviata per la convalida.",
     "revertedToDraft": "Analisi riportata in bozza.",
     "statusFailed": "Cambio di stato non riuscito.",
+    "quantitiesBothRequired": "Inserisci entrambe le quantità (prodotta e difettosa) per calcolare il PPM.",
     "invalidProduced": "Quantità prodotta non valida.",
     "invalidDefective": "Quantità difettosa non valida.",
     "quantitiesSaved": "Quantità salvate: il PPM è stato ricalcolato.",
@@ -3049,6 +3082,7 @@
     "rootCauseOccurrence": "Causa radice Occorrenza",
     "rootCauseDetection": "Causa radice Rilevamento",
     "aiSynthesis": "Sintesi IA",
+    "synthesizing": "Generazione…",
     "rootCauseOccurrencePlaceholder": "Causa radice: perché il difetto è comparso…",
     "rootCauseDetectionPlaceholder": "Causa radice: perché il controllo ha fallito…",
     "capaStep": "Passo 4 · CAPA",
@@ -3163,6 +3197,8 @@
     "roleMethods": "Metodi",
     "roleQuality": "Qualità",
     "teamPlaceholder": "Produzione: nome\nMetodi: nome",
+    "d2Quantities": "Quantificazione: {{produced}} prodotte · {{defective}} difettose · {{ppm}} PPM",
+    "d2QuantitiesMissing": "Quantificazione non inserita (prodotte / difettose: il PPM non è calcolabile)",
     "d2Hint": "Niente da inserire: è la scheda del reclamo.",
     "d3Hint": "Il contenimento si compila nel suo strumento, come Pareto o il 5 Why. I valori già salvati vengono ripresi.",
     "containmentPlan": "Piano di contenimento",
@@ -3322,6 +3358,8 @@
     "justNow": "proprio ora",
     "minutesAgo": "{{n}} min fa",
     "hoursAgo": "{{n}} h fa",
+    "deadlineExtended": {"title": "Scadenza prorogata", "message": "La scadenza di «{{title}}» è stata prorogata al {{newDate}} (+{{days}} g, scadenza precedente: {{oldDate}}). Motivo: {{reason}}"},
+    "kindDeadline": "Scadenza",
     "kindAssignment": "Assegnazione",
     "kindAlert": "Allerta qualità",
     "kindToValidate": "Da convalidare",
@@ -3334,6 +3372,8 @@
     "empty": "Nessuna notifica"
   },
   "recommend": {
+    "risk": {"low": "Rischio basso", "moderate": "Rischio moderato", "high": "Rischio alto"},
+    "action": {"standard": "Assegnazione standard: il miglior candidato dovrebbe rispettare i tempi.", "adjust": "Assegna, ma prevedi un margine (monitoraggio, carico ridotto) oppure scegli un candidato meno carico.", "alert": "Allerta preventiva: anche il miglior candidato rischia di superare la scadenza. Riassegna le risorse o rivedi subito la priorità."},
     "reason": "Competenza {{skill}}/5 · Carico {{load}}%",
     "reasonHistory": "{{rate}}% in orario su {{closed}} pratiche · {{open}} aperte",
     "indicative": "Indicativo",
@@ -3349,7 +3389,10 @@
   },
   "actionHistory": {
     "oldValue": "Valore precedente",
-    "kind": {"progress": "Avanzamento", "proof": "Prova", "warning": "Avviso"},
+    "descriptionBefore": "Prima",
+    "descriptionAfter": "Dopo",
+    "descriptionEmpty": "(vuoto)",
+    "kind": {"progress": "Avanzamento", "proof": "Prova", "warning": "Avviso", "description": "Descrizione", "deadline": "Scadenza prorogata"},
     "assignmentsHint": "Qui: a chi è stata data o tolta questa azione. Niente finché l'azione non cambia responsabile.",
     "assigned": "Assegnata",
     "unassigned": "Non più assegnata",
@@ -3406,7 +3449,7 @@
     "heroTitle2": "reinventati",
     "heroSubtitle1": "Pionieri della conduzione.",
     "heroText": "COFICAB progetta architetture di conduzione elettrica ad alta tecnologia, appositamente schermate per alimentare l’era dell’elettromobilità globale a emissioni zero.",
-    "heroCta": "SCOPRI LE NOSTRE SOLUZIONI",
+    "heroCta": "ACCEDI ALLE ANALISI QUALITÀ",
     "partners": "Scelti dai principali team di ingegneria automobilistica",
     "s1Kicker": "[ 01 // METALLURGIA & INNOVAZIONE ]",
     "s1Title1": "Plasmare la struttura",
@@ -3569,6 +3612,12 @@
     "deadline": "Scadenza",
     "progress": "Avanzamento",
     "editProgress": "Modifica l’avanzamento",
+    "editDescription": "Modifica la descrizione",
+    "descriptionPlaceholder": "Cosa va fatto esattamente, il criterio di successo e la prova",
+    "descriptionHint": "Il testo precedente resta nello storico di questa sotto-azione.",
+    "descriptionRequired": "La descrizione non può essere vuota.",
+    "descriptionUnchanged": "La descrizione non è cambiata.",
+    "descriptionFailed": "Impossibile salvare la descrizione.",
     "proofField": "Prova CAPA (consigliata al 100%)"
   },
   "planView": {
@@ -3799,6 +3848,22 @@
       "label": "Assegnare un piano d’azione",
       "description": "Designare il responsabile di un piano d’azione."
     },
+    "capa_extend_deadline": {
+      "label": "Prorogare una scadenza",
+      "description": "Dare più tempo a un reclamo, un piano o un'azione in ritardo, con un motivo."
+    },
+    "capa_reassign": {
+      "label": "Riassegnare un piano o un'azione",
+      "description": "Affidare un piano, o una sola delle sue azioni, a un'altra persona."
+    },
+    "analysis_validate_fivewhy": {
+      "label": "Convalidare un 5 Perché",
+      "description": "Approvare o rimandare un'analisi 5 Perché inviata."
+    },
+    "8d_validate": {
+      "label": "Convalidare un fascicolo 8D",
+      "description": "Convalidare e chiudere, o rimandare, un fascicolo 8D inviato."
+    },
     "capa_validate": {
       "label": "Convalidare un piano d’azione",
       "description": "Accettare o respingere un piano d’azione."
@@ -3814,6 +3879,10 @@
     "analysis_generate_ai": {
       "label": "Generare una sintesi IA",
       "description": "Produrre una sintesi redatta dall’assistente."
+    },
+    "assistant_unrestricted": {
+      "label": "Usare l'assistente senza restrizioni",
+      "description": "L'assistente risponde con i dati dell'intera organizzazione, come per un amministratore, e non solo con i dati personali della persona."
     },
     "8d_complete_steps": {
       "label": "Completare i passi 8D",
@@ -4025,6 +4094,8 @@
       "ishikawa_updated": "Diagramma Ishikawa aggiornato",
       "claim_assigned": "Reclamo assegnato",
       "claim_unassigned": "Assegnazione rimossa",
+      "claim_deadline_extended": "Scadenza prorogata",
+      "deadline_extended": "Scadenza prorogata",
       "claim_deadline_set": "Scadenza fissata",
       "claim_archived": "Reclamo archiviato",
       "claim_restored": "Reclamo ripristinato",
@@ -4263,6 +4334,8 @@
   },
   "plansAdmin": {
     "statusCreated": "In attesa di assegnazione",
+    "lateKpiTitle": "Piani in ritardo",
+    "lateKpiHint": "Piani aperti con la scadenza, o quella di un'azione non terminata, superata",
     "statusOngoing": "In corso",
     "statusClosed": "Convalidato",
     "statusArchived": "Archiviato",
@@ -4294,7 +4367,8 @@
       "rejected": "Nessun piano rinviato",
       "ongoing": "Nessun piano in corso",
       "created": "Nessun piano in attesa di assegnazione",
-      "all": "Nessun piano trovato"
+      "all": "Nessun piano trovato",
+      "late": "Nessun piano in ritardo"
     },
     "group": "Gruppo Coficab",
     "imported_one": "{{count}} piano importato",
@@ -4316,7 +4390,9 @@
       "created_one": "{{count}} piano in attesa",
       "created_other": "{{count}} piani in attesa",
       "all_one": "{{count}} piano trovato",
-      "all_other": "{{count}} piani trovati"
+      "all_other": "{{count}} piani trovati",
+      "late_one": "{{count}} piano in ritardo",
+      "late_other": "{{count}} piani in ritardo"
     },
     "forSearch": "per «{{search}}»",
     "editPlan": "Modifica il piano",
@@ -4720,6 +4796,20 @@
   },
   "permMatrix": {
     "loadFailed": "Impossibile caricare la matrice.",
+    "removeDirect": "Rimuovi l'assegnazione diretta (il diritto del ruolo resta)",
+    "fromRole": "Diritto dato dal ruolo della persona: non si toglie qui.",
+    "newRight": "Diritto creato di recente",
+    "helpDetails": {
+      "title": "Come funziona?",
+      "greyTitle": "Caselle grigie.",
+      "grey": "Il diritto viene dal ruolo della persona: qui non si toglie.",
+      "addTitle": "Concedere un diritto in più.",
+      "add": "Spunta la casella: viene salvato subito. Togli la spunta per rimuoverlo.",
+      "relogTitle": "Nuovo accesso.",
+      "relog": "La persona deve accedere di nuovo perché la modifica sia applicata.",
+      "newTitle": "Manca un diritto?",
+      "new": "Crealo nella pagina « Tutti i permessi » (solo superamministratore)."
+    },
     "updateFailed": "Aggiornamento non riuscito.",
     "users_one": "{{count}} utente",
     "users_other": "{{count}} utenti",
@@ -4808,6 +4898,28 @@
     "allows": "Cosa consente",
     "allowsPh": "Accettare o rifiutare un piano prima della chiusura",
     "internalRef": "Riferimento interno. Deve corrispondere a una funzionalità del progetto.",
+    "newBadge": "Nuovo",
+    "assignIt": "Assegna questo diritto →",
+    "help": {
+      "title": "Come funziona? Creare e assegnare un diritto",
+      "what": "Un diritto apre una funzione precisa dell'applicazione (prorogare una scadenza, convalidare un 8D, usare l'assistente senza restrizioni…). Si crea qui, poi si assegna a una persona nella pagina « Assegnazione ».",
+      "step1": "Clicca su « Nuovo permesso ».",
+      "step2": "Scegli un riferimento nell'elenco: propone solo le funzioni che l'applicazione sa applicare e il cui diritto non è ancora stato creato.",
+      "step3": "Titolo, spiegazione e categoria si compilano dal riferimento. Puoi modificarli, poi salvare.",
+      "step4": "Apri « Assegnazione », scegli la categoria e spunta la casella della persona.",
+      "delegateTitle": "Creare un diritto lo rende delegabile.",
+      "delegate": "Finché un diritto non è creato, solo gli amministratori possono fare l'azione. Una volta creato, compare nella matrice e si può dare a una persona precisa.",
+      "roleTitle": "Ruoli.",
+      "role": "Un amministratore o un superamministratore ha tutti i diritti tramite il ruolo. Un dipendente ha solo quelli del lavoro quotidiano: gli altri si concedono uno per uno.",
+      "limitTitle": "Perché non un codice libero?",
+      "limit": "Un diritto deve corrispondere a una funzione reale, altrimenti non farebbe nulla. Per un diritto del tutto nuovo, la funzione deve prima essere prevista nel codice.",
+      "relogTitle": "Nuovo accesso.",
+      "relog": "Un diritto concesso o tolto si applica quando la persona accede di nuovo, perché viaggia con la sua sessione.",
+      "deactivateTitle": "Disattivare.",
+      "deactivate": "Un diritto disattivato sparisce dalla matrice, ma nulla viene eliminato: si può riattivare."
+    },
+    "pickCode": "Scegli un riferimento disponibile…",
+    "noCodeLeft": "Ogni riferimento previsto dal progetto ha già un diritto.",
     "searchPh": "Cerca un permesso…",
     "filterAria": "Filtra per categoria",
     "allCategories": "Tutte le categorie",
@@ -5003,6 +5115,9 @@
     "pillFiveWhy": "5 Why · da convalidare",
     "rootCause": "Causa radice"
   },
+  "closedDossier": {
+    "banner": "Pratica chiusa: sola consultazione."
+  },
   "planDetailFront": {
     "statusAwaitingAssignment": "In attesa di assegnazione",
     "statusN": "Stato {{n}}",
@@ -5034,7 +5149,40 @@
     "noActionsArchived": "Nessuna azione registrata per questo piano archiviato.",
     "noActions": "Nessuna azione definita per questo piano.",
     "noDeadline": "Nessuna scadenza",
-    "assignmentHistory": "Cronologia delle assegnazioni"
+    "assignmentHistory": "Cronologia delle assegnazioni",
+    "readyTitle": "Piano terminato: in attesa della tua validazione",
+    "readyHint": "Tutte le sotto-azioni sono al 100% ({{proofs}} prova/e allegata/e). Controlla, poi convalida o rimanda il piano.",
+    "validatePlan": "Convalida il piano (D5)",
+    "returnPlan": "Rimanda il piano",
+    "validateAction": "Convalida",
+    "returnAction": "Rimanda",
+    "validatePlanTitle": "Convalidare questo piano CAPA (D5)?",
+    "validatePlanMessage": "Il piano sarà chiuso e il responsabile avvisato.",
+    "returnPlanTitle": "Rimanda il piano con un motivo",
+    "validateActionTitle": "Convalidare questa sotto-azione?",
+    "validateActionMessage": "Sarà bloccata e il responsabile avvisato.",
+    "returnActionTitle": "Rimanda «{{title}}» con un motivo",
+    "confirmValidate": "Convalida",
+    "confirmReturn": "Rimanda",
+    "decisionFailed": "Impossibile salvare la decisione.",
+    "planValidated": "Piano convalidato e chiuso.",
+    "planReturned": "Piano rimandato al responsabile con il motivo.",
+    "actionValidated": "Sotto-azione convalidata.",
+    "actionReturned": "Sotto-azione rimandata al responsabile con il motivo.",
+    "reassignPlan": "Riassegna il piano",
+    "reassignAction": "Riassegna",
+    "reassignPlanTitle": "Riassegna l'intero piano",
+    "reassignActionTitle": "Riassegna la sotto-azione",
+    "reassignPlanHint": "Il piano e tutte le sue sotto-azioni non ancora convalidate sono affidati a questa persona. Ogni modifica resta nello storico della sotto-azione (scheda Assegnazioni).",
+    "reassignActionHint": "Cambia responsabile solo questa sotto-azione. La modifica resta nel suo storico (scheda Assegnazioni).",
+    "reassignTo": "Nuovo responsabile",
+    "reassignPick": "Scegli una persona…",
+    "reassignNote": "Motivo (facoltativo)",
+    "reassignNotePlaceholder": "Es. assenza, carico di lavoro, competenze…",
+    "reassignConfirm": "Assegna",
+    "reassignedPlan": "Piano riassegnato a {{name}}.",
+    "reassignedAction": "Sotto-azione riassegnata a {{name}}.",
+    "reassignFailed": "Riassegnazione non riuscita."
   },
   "planActionsMgmt": {
     "createFailed": "Creazione non riuscita. Riprova.",
@@ -5392,6 +5540,7 @@
     }
   },
   "priorityCause": {
+    "prefilled": "Compilato con il suggerimento migliore qui sopra: modificalo se serve, poi clicca su \"Mantieni questa causa\".",
     "title": "Causa prioritaria da approfondire",
     "hint": "Indica qui la causa che approfondirai con i 5 Perché. Viene salvata nel dossier e richiamata nei passaggi successivi. Puoi scriverla tu o riprendere un suggerimento; una nuova scelta sostituisce la precedente, che resta nello storico.",
     "placeholder": "Es.: usura degli elettrodi di saldatura",
@@ -5400,6 +5549,7 @@
     "keep": "Mantieni questa causa",
     "replace": "Sostituisci la causa scelta",
     "keepThis": "Mantieni",
+    "kept": "Scelta",
     "by": "scelta da {{who}} il {{when}}",
     "history": "Scelte precedenti ({{count}})",
     "failed": "Impossibile salvare la causa.",

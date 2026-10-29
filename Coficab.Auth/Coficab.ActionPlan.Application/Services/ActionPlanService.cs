@@ -386,6 +386,58 @@ public class ActionPlanService : IActionPlanService
         });
     }
 
+    public async Task<Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionResult> ExtendDeadlineAsync(
+        Guid id, DateTime newDeadline, string reason, string byUserId, CancellationToken ct = default)
+    {
+        var plan = await _context.ActionPlans.FirstOrDefaultAsync(p => p.Id == id, ct);
+        if (plan is null) return new("notFound");
+        if (plan.Status is not (ActionPlanStatus.Created or ActionPlanStatus.Ongoing)) return new("notOpen");
+
+        var target = DateTime.SpecifyKind(newDeadline.Date, DateTimeKind.Utc);
+        var code = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.Check(plan.Deadline, target, DateTime.UtcNow, reason);
+        if (code is not null) return new(code);
+
+        var old = plan.Deadline!.Value;
+        plan.Deadline = target;
+        plan.UpdatedBy = byUserId;
+
+        // the new date and its history entry are saved together: no extension without its trace
+        _context.ActionPlanHistories.Add(new ActionPlanHistory
+        {
+            ActionPlanId = plan.Id,
+            ChangedBy = byUserId,
+            ActionType = "deadline_extended",
+            ChangesJson = System.Text.Json.JsonSerializer.Serialize(new[]
+            {
+                new { field = "Date limite", old = old.ToString("dd/MM/yyyy"), @new = target.ToString("dd/MM/yyyy") }
+            }),
+            Note = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.Describe(old, target, reason),
+        });
+
+        await _context.SaveChangesAsync(ct);
+
+        // everyone in charge of the plan is told (assignee and people it is assigned to), except the administrator who did it
+        try
+        {
+            var recipients = new List<string>();
+            if (!string.IsNullOrWhiteSpace(plan.AssignedToId)) recipients.Add(plan.AssignedToId);
+            recipients.AddRange(await _context.UserActionPlanAssignments.AsNoTracking()
+                .Where(a => a.ActionPlanId == plan.Id).Select(a => a.UserId).ToListAsync(ct));
+            var message = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationMessage(plan.Title, old, target, reason);
+            var data = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationData(plan.Title, old, target, reason);
+            foreach (var userId in recipients.Where(r => !string.IsNullOrWhiteSpace(r)).Select(r => r.Trim())
+                         .Distinct(StringComparer.OrdinalIgnoreCase)
+                         .Where(r => !string.Equals(r, byUserId, StringComparison.OrdinalIgnoreCase)))
+                await _notificationService.NotifyLocalizedAsync(userId, "plan_deadline_extended", "Échéance prolongée", message, data, plan.Id);
+        }
+        catch
+        {
+            // the extension is saved; a failed notification never undoes it
+        }
+
+        return new(null, old, target, Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.ExtraDays(old, target));
+    }
+
     public async Task<ActionPlanDto> UpdateAsync(Guid id, UpdateActionPlanDto dto, string updatedBy)
     {
         var plan = await _repo.GetWithActionsAsync(id)
@@ -1120,6 +1172,8 @@ public class ActionPlanService : IActionPlanService
             && note.StartsWith("Rejet", StringComparison.OrdinalIgnoreCase)) return "subaction_rejected";
         if (h.OldProgress == h.NewProgress && note.StartsWith("Avertissement", StringComparison.OrdinalIgnoreCase)) return "subaction_warning";
         if (h.OldProgress == h.NewProgress && note.StartsWith("Preuve", StringComparison.OrdinalIgnoreCase)) return "subaction_proof";
+        if (h.OldProgress == h.NewProgress && h.NewDescription != null) return "subaction_description";
+        if (h.OldProgress == h.NewProgress && note.StartsWith("Échéance prolongée", StringComparison.OrdinalIgnoreCase)) return "subaction_deadline_extended";
         if (h.NewProgress == ActionProgress.Hundred) return "subaction_completed";
         return "subaction_progress";
     }

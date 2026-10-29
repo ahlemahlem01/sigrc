@@ -421,6 +421,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Question).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Answer).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.BranchType).IsRequired().HasMaxLength(20).HasDefaultValue("OCCURRENCE");
         });
 
         modelBuilder.Entity<IshikawaCause>(entity =>

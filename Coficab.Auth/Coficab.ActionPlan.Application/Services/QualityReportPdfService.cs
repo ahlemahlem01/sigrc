@@ -182,9 +182,9 @@ public class QualityReportPdfService : IQualityReportPdfService
                                 header.Cell().Background(Colors.Blue.Lighten4).Padding(5).Text("Réponse").Bold();
                             });
 
-                            foreach (var step in fiveWhy.Steps.OrderBy(s => s.StepNumber))
+                            foreach (var step in fiveWhy.Steps.OrderBy(s => s.BranchType == "DETECTION" ? 1 : 0).ThenBy(s => s.StepNumber))
                             {
-                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text($"N°{step.StepNumber}");
+                                table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(step.BranchType == "DETECTION" ? $"Dét. N°{step.StepNumber}" : $"Occ. N°{step.StepNumber}");
                                 table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(step.Question);
                                 table.Cell().BorderBottom(1).BorderColor(Colors.Grey.Lighten2).Padding(5).Text(step.Answer);
                             }

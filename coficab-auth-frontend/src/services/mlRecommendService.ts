@@ -46,16 +46,23 @@ export async function fetchEmployeeMlStats(
   return byId;
 }
 
+export type MlRiskLevel = 'low' | 'moderate' | 'high';
+export type MlAction = 'standard' | 'adjust' | 'alert';
+
 export interface MlEmployeeRecommendation {
   employeeId: string;
   score: number;
   rank: number;
+  riskLevel?: MlRiskLevel;
 }
 
 export interface MlRecommendResponse {
   recommendations: MlEmployeeRecommendation[];
   model?: string | null;
   scoredCount: number;
+  /** Niveau de risque et action pour le meilleur candidat (au-dessus de 80 % faible, 50 à 80 % modéré, sous 50 % élevé). */
+  riskLevel?: MlRiskLevel | null;
+  action?: MlAction | null;
   /** Faux : le modèle n'a pas été validé statistiquement, la recommandation est indicative. */
   validated?: boolean | null;
   trainedOn?: string | null;

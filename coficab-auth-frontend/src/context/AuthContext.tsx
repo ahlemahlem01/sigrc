@@ -14,7 +14,7 @@ interface AuthContextType {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string | null) => Promise<void>;
   logout: () => void;
   hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
@@ -248,10 +248,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [accessToken, applyTokens]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken?: string | null) => {
     setIsLoading(true);
     try {
-      const data = await loginService(email, password);
+      const data = await loginService(email, password, captchaToken);
       applyTokens(data);
 
       // The password was accepted: a hiccup while loading the profile (API still waking up) must not look like a wrong password.

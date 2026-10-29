@@ -59,7 +59,7 @@ public class QualityAssistantService : IQualityAssistantService
             throw new ArgumentException("Le message est requis.", nameof(message));
 
         var apiKey = _configuration["Gemini:ApiKey"];
-        var model = _configuration["Gemini:Model"] ?? "gemini-2.0-flash";
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
         if (string.IsNullOrWhiteSpace(apiKey))
             throw new InvalidOperationException("La clé d'API Gemini n'est pas configurée.");
 
@@ -109,7 +109,9 @@ public class QualityAssistantService : IQualityAssistantService
             {
                 _logger.LogWarning("Gemini Quality Assistant HTTP {Status}: {Body}",
                     (int)response.StatusCode, Truncate(responseJson, 800));
-                throw new InvalidOperationException($"Erreur lors de la génération IA ({(int)response.StatusCode}).");
+                throw new InvalidOperationException(response.StatusCode is System.Net.HttpStatusCode.TooManyRequests or System.Net.HttpStatusCode.ServiceUnavailable
+                    ? "Le service IA est saturé ou son quota gratuit du jour est atteint. Réessayez dans quelques minutes."
+                    : $"Erreur lors de la génération IA ({(int)response.StatusCode}).");
             }
 
             using var doc = JsonDocument.Parse(responseJson);
@@ -792,29 +794,18 @@ public class QualityAssistantService : IQualityAssistantService
         return list;
     }
 
+    /// <summary>
+    /// The parts of the model turn, sent back as they came: Gemini 3 models require the "thoughtSignature" that travels with a
+    /// function call to be returned unchanged on the next request (rebuilding the parts dropped it and the call was refused with a 400).
+    /// </summary>
     private static List<object> ClonePartsForRequest(IEnumerable<JsonElement> parts)
     {
         var list = new List<object>();
         foreach (var p in parts)
         {
-            if (p.TryGetProperty("functionCall", out var fc))
-            {
-                list.Add(new
-                {
-                    functionCall = new
-                    {
-                        name = fc.GetProperty("name").GetString(),
-                        args = fc.TryGetProperty("args", out var a)
-                            ? JsonSerializer.Deserialize<Dictionary<string, object>>(a.GetRawText())
-                            : new Dictionary<string, object>()
-                    }
-                });
-            }
-            else if (p.TryGetProperty("text", out var text))
-            {
-                list.Add(new { text = text.GetString() ?? string.Empty });
-            }
-            // ignore thought / other parts
+            if (p.TryGetProperty("functionCall", out _) || p.TryGetProperty("text", out _))
+                list.Add(p.Clone());
+            // other kinds of part are ignored
         }
         return list;
     }

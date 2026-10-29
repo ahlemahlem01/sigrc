@@ -214,6 +214,113 @@ public class PlanActionController : ControllerBase
         return Ok(action);
     }
 
+    public sealed class ExtendActionDeadlineRequest
+    {
+        public DateTime? NewDeadline { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Administrators and super administrators: more time for a late sub-action that is not finished. A reason is required; the old
+    /// date, the new date and the reason are kept in the sub-action's history. A date is never moved backwards.
+    /// </summary>
+    [HttpPost("{id:guid}/deadline-extension")]
+    public async Task<IActionResult> ExtendDeadline(Guid id, [FromBody] ExtendActionDeadlineRequest request)
+    {
+        if (!Services.PermissionAccess.Has(User, Services.PermissionAccess.ExtendDeadline)) return Forbid();
+        var by = CurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
+        if (request?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
+
+        var existing = await _service.GetByIdAsync(id);
+        if (existing is null || !(await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin())).Contains(existing.ActionPlanId))
+            return NotFound(new { code = "notFound", message = "Sous-action non trouvée." });
+
+        var result = await _service.ExtendDeadlineAsync(id, request.NewDeadline.Value, request.Reason ?? string.Empty, by);
+        return result.Code switch
+        {
+            null => Ok(new { oldDeadline = result.OldDeadline, newDeadline = result.NewDeadline, extraDays = result.ExtraDays }),
+            "notFound" => NotFound(new { code = result.Code, message = "Sous-action non trouvée." }),
+            _ => BadRequest(new { code = result.Code, message = "Prolongation refusée : " + result.Code }),
+        };
+    }
+
+    public sealed class ReassignRequest
+    {
+        public string? UserId { get; set; }
+        public string? Note { get; set; }
+    }
+
+    /// <summary>Administrators: gives one sub-action to another person. Kept in the sub-action's assignment history.</summary>
+    [HttpPost("{id:guid}/reassign")]
+    public async Task<IActionResult> Reassign(Guid id, [FromBody] ReassignRequest request)
+    {
+        if (!IsQualityAdmin() && !Services.PermissionAccess.Has(User, Services.PermissionAccess.Reassign)) return Forbid();
+        var by = CurrentUserId();
+        if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+        var existing = await _service.GetByIdAsync(id);
+        if (existing is null || !(await _actionPlanService.GetVisibleIdsAsync(by, IsSuperAdmin())).Contains(existing.ActionPlanId))
+            return NotFound(new { error = "Sous-action non trouvée." });
+        if ((request.Note ?? string.Empty).Length > 300)
+            return BadRequest(new { error = "Le motif ne doit pas dépasser 300 caractères." });
+
+        try
+        {
+            await _service.ReassignAsync(id, request.UserId ?? string.Empty, by, request.Note);
+            return Ok(new { id, assignedToId = request.UserId?.Trim() });
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { error = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+    }
+
+    public sealed class UpdateDescriptionRequest
+    {
+        public string? Description { get; set; }
+    }
+
+    /// <summary>
+    /// Rewrites the description of a sub-action. The old and the new text are kept in the sub-action's history (and appear in the
+    /// plan's history); nothing is overwritten silently. A validated or cancelled sub-action stays as it is.
+    /// </summary>
+    [HttpPatch("{id:guid}/description")]
+    public async Task<IActionResult> UpdateDescription(Guid id, [FromBody] UpdateDescriptionRequest request, CancellationToken ct)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrEmpty(userId)) return Unauthorized(new { error = "Utilisateur non authentifié." });
+
+        var action = await _db.PlanActions.FirstOrDefaultAsync(a => a.Id == id, ct);
+        if (action == null) return NotFound(new { error = "Sous-action non trouvée." });
+        if (!await CanAccessPlanAsync(action.ActionPlanId, userId)) return Forbid();
+        if (action.Progress == ActionProgress.Validated || action.Progress == ActionProgress.Cancelled)
+            return BadRequest(new { error = "Cette sous-action est verrouillée." });
+
+        var text = (request.Description ?? string.Empty).Trim();
+        if (text.Length == 0) return BadRequest(new { error = "La description est obligatoire." });
+        if (text.Length > 4000) return BadRequest(new { error = "La description ne doit pas dépasser 4000 caractères." });
+
+        var previous = action.Description ?? string.Empty;
+        if (string.Equals(previous.Trim(), text, StringComparison.Ordinal))
+            return BadRequest(new { error = "La description n'a pas changé." });
+
+        action.Description = text;
+        action.UpdatedBy = userId;
+        action.UpdatedAt = DateTime.UtcNow;
+        _db.PlanActionHistories.Add(new Core.Entities.PlanActionHistory
+        {
+            PlanActionId = id, ChangedBy = userId, OldProgress = action.Progress, NewProgress = action.Progress,
+            Note = "Description modifiée", OldDescription = previous, NewDescription = text,
+            CreatedBy = userId, UpdatedAt = DateTime.UtcNow, UpdatedBy = userId,
+        });
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { id, description = text });
+    }
+
     [HttpPatch("{id}/progress")]
     public async Task<IActionResult> UpdateProgress(Guid id, [FromBody] UpdateProgressDto dto)
     {
@@ -417,7 +524,7 @@ public class PlanActionController : ControllerBase
         return Ok(history.Select(h => new
         {
             h.Id, h.PlanActionId, h.ChangedBy, ChangedByName = names.GetValueOrDefault(h.ChangedBy),
-            OldProgress = Percent(h.OldProgress), NewProgress = Percent(h.NewProgress), h.Note, h.CreatedAt,
+            OldProgress = Percent(h.OldProgress), NewProgress = Percent(h.NewProgress), h.Note, h.OldDescription, h.NewDescription, h.CreatedAt,
         }));
     }
 }

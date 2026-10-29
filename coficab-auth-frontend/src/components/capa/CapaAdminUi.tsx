@@ -72,6 +72,8 @@ export type CapaKpiItem = {
   value: string | number;
   hint?: string;
   active?: boolean;
+  /** danger: a figure that calls for action (late plans), shown in red. */
+  tone?: 'danger';
   onClick?: () => void;
 };
 
@@ -108,31 +110,37 @@ export function CapaKpiStrip({ items, variant = 'soft' }: KpiStripProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-      {items.map((s) => (
+    <div className={`grid grid-cols-2 ${items.length > 4 ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-3 mb-5`}>
+      {items.map((s) => {
+        const danger = s.tone === 'danger';
+        return (
         <button
           key={s.key}
           type="button"
           onClick={s.onClick}
           disabled={!s.onClick}
-          className={`rounded-2xl border bg-white px-4 py-3.5 text-left transition-all ${
+          aria-pressed={s.onClick ? !!s.active : undefined}
+          className={`rounded-2xl border px-4 py-3.5 text-left transition-all ${danger ? 'bg-rose-50' : 'bg-white'} ${
             s.onClick ? 'cursor-pointer hover:shadow-md' : 'cursor-default'
           } ${
             s.active
-              ? 'border-[#000168] ring-2 ring-[#000168]/20 shadow-sm'
-              : 'border-slate-200'
+              ? danger
+                ? 'border-rose-600 ring-2 ring-rose-500/25 shadow-sm'
+                : 'border-[#000168] ring-2 ring-[#000168]/20 shadow-sm'
+              : danger ? 'border-rose-200' : 'border-slate-200'
           }`}
         >
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+          <div className={`text-[11px] font-semibold uppercase tracking-wide ${danger ? 'text-rose-600' : 'text-slate-500'}`}>
             {s.label}
           </div>
-          <div className="text-2xl font-bold text-[#000168] tabular-nums mt-1">{s.value}</div>
+          <div className={`text-2xl font-bold tabular-nums mt-1 ${danger ? 'text-rose-700' : 'text-[#000168]'}`}>{s.value}</div>
           {s.hint ? <div className="text-[11px] text-slate-400 mt-1">{s.hint}</div> : null}
-          <div className="mt-2 h-1 rounded-full bg-slate-100 overflow-hidden">
-            <div className="h-full rounded-full bg-[#000168]/70" style={{ width: '100%' }} />
+          <div className={`mt-2 h-1 rounded-full overflow-hidden ${danger ? 'bg-rose-100' : 'bg-slate-100'}`}>
+            <div className={`h-full rounded-full ${danger ? 'bg-rose-500' : 'bg-[#000168]/70'}`} style={{ width: '100%' }} />
           </div>
         </button>
-      ))}
+        );
+      })}
     </div>
   );
 }

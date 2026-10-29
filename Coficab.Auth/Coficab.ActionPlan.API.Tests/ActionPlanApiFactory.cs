@@ -65,7 +65,7 @@ public sealed class ActionPlanApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<ISemanticSearchService>();
             services.AddSingleton(semantic.Object);
 
-            var notify = new Mock<INotificationService>();
+            var notify = Notifier;
             notify
                 .Setup(n => n.NotifyAsync(
                     It.IsAny<string>(),
@@ -109,6 +109,9 @@ public sealed class ActionPlanApiFactory : WebApplicationFactory<Program>
             services.AddSingleton(timeline.Object);
         });
     }
+
+    /// <summary>The notification service of the tests: what was asked to be sent can be checked with Verify.</summary>
+    public Mock<INotificationService> Notifier { get; } = new();
 
     public async Task SeedAsync(Func<ActionPlanDbContext, Task> seed)
     {

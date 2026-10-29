@@ -29,6 +29,7 @@ public class PasswordController : ControllerBase
     private readonly IConfiguration _config;
     private readonly IOptions<DataProtectionTokenProviderOptions> _tokenOptions;
     private readonly ILogger<PasswordController> _logger;
+    private readonly ITurnstileVerifier _turnstile;
 
     public PasswordController(
         UserManager<ApplicationUser> userManager,
@@ -37,7 +38,8 @@ public class PasswordController : ControllerBase
         IMemoryCache cache,
         IConfiguration config,
         IOptions<DataProtectionTokenProviderOptions> tokenOptions,
-        ILogger<PasswordController> logger)
+        ILogger<PasswordController> logger,
+        ITurnstileVerifier turnstile)
     {
         _userManager = userManager;
         _scopes = scopes;
@@ -46,6 +48,7 @@ public class PasswordController : ControllerBase
         _config = config;
         _tokenOptions = tokenOptions;
         _logger = logger;
+        _turnstile = turnstile;
     }
 
     // POST /api/password/forgot
@@ -56,6 +59,10 @@ public class PasswordController : ControllerBase
         var clock = Stopwatch.StartNew();
         try
         {
+            // Turnstile (when switched on) comes first: a missing or refused check says nothing about the account
+            if (_turnstile.Enabled && !await _turnstile.VerifyAsync(request.TurnstileToken, HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
+                return BadRequest(new { code = "captcha_failed" });
+
             var email = (request.Email ?? string.Empty).Trim();
             var user = email.Length == 0 ? null : await _userManager.FindByEmailAsync(email);
             if (user?.Email is not null && WithinMailQuota(user.Id))
@@ -93,7 +100,7 @@ public class PasswordController : ControllerBase
         {
             // Only the password rules are explained (the holder of a valid token may know them); everything else is just "invalid link".
             var rules = result.Errors.Where(e => e.Code.StartsWith("Password", StringComparison.Ordinal)).Select(e => e.Description).ToList();
-            return BadRequest(rules.Count > 0 ? new { code = WeakPassword, message = string.Join(" ", rules) } : new { code = InvalidLink, message = (string?)null });
+            return BadRequest(rules.Count > 0 ? new { code = WeakPassword, message = (string?)string.Join(" ", rules) } : new { code = InvalidLink, message = (string?)null });
         }
 
         // Resetting the password is also the way out of a lockout; the security stamp changed, so every older session
@@ -135,5 +142,5 @@ public class PasswordController : ControllerBase
     }
 }
 
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest(string Email, string? TurnstileToken = null);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);

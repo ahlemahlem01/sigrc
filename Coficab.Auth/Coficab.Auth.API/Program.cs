@@ -35,6 +35,8 @@ builder.Services.AddDbContext<AppDbContext>((services, options) =>
 });
 
 // ─── Services ────────────────────────────────────────────────
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ITurnstileVerifier, TurnstileVerifier>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AuditService>();
 
@@ -183,6 +185,10 @@ builder.Services.AddHostedService<SeedWorker>();
 
 // ─── Pipeline ────────────────────────────────────────────────
 var app = builder.Build();
+
+// the check is on with a secret alone, but the pages only show the widget with a site key: warn about the half-configured state
+if (!string.IsNullOrWhiteSpace(app.Configuration["Turnstile:SecretKey"]) && string.IsNullOrWhiteSpace(app.Configuration["Turnstile:SiteKey"]))
+    app.Logger.LogError("Turnstile:SecretKey is set but Turnstile:SiteKey is empty: the sign-in pages show no widget and every sign-in will be refused. Set both, or neither.");
 
 if (app.Environment.IsDevelopment())
 {

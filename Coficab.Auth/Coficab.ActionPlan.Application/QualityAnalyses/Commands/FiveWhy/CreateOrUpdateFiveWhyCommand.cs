@@ -14,6 +14,8 @@ public class CreateOrUpdateFiveWhyCommand : IRequest<Guid>
 
     public string ProblemStatement { get; set; } = string.Empty;
     public string RootCause { get; set; } = string.Empty;
+    public string? RootCauseOccurrence { get; set; }
+    public string? RootCauseDetection { get; set; }
 
     // Status passed from React frontend ("DRAFT" or "PENDING_VALIDATION")
     public string? StatusCode { get; set; } = "DRAFT";

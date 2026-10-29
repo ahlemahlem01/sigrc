@@ -12,6 +12,8 @@ export interface NotificationItem {
   actionPlanId?: string;
   claimId?: string;
   linkPath?: string;
+  /** Raw facts of the notification (see utils/notificationText): the text is written in the reader's language from them. */
+  dataJson?: string;
   isRead: boolean;
   createdAt: string;
 }
@@ -28,6 +30,7 @@ function normalizeNotification(raw: any): NotificationItem | null {
     actionPlanId: raw.actionPlanId ?? raw.ActionPlanId ?? undefined,
     claimId: raw.claimId ?? raw.ClaimId ?? undefined,
     linkPath: raw.linkPath ?? raw.LinkPath ?? undefined,
+    dataJson: raw.dataJson ?? raw.DataJson ?? undefined,
     isRead: Boolean(raw.isRead ?? raw.IsRead ?? false),
     createdAt: String(raw.createdAt ?? raw.CreatedAt ?? new Date().toISOString()),
   };

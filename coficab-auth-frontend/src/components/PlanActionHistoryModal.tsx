@@ -18,6 +18,8 @@ type ProgressItem = {
   oldProgress: number;
   newProgress: number;
   note?: string;
+  oldDescription?: string | null;
+  newDescription?: string | null;
   createdAt: string;
 };
 
@@ -32,6 +34,10 @@ type ProgressHistoryRaw = {
   NewProgress?: number;
   note?: string;
   Note?: string;
+  oldDescription?: string | null;
+  OldDescription?: string | null;
+  newDescription?: string | null;
+  NewDescription?: string | null;
   createdAt?: string;
   CreatedAt?: string;
 };
@@ -206,6 +212,8 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
           oldProgress: Number(h.oldProgress ?? h.OldProgress ?? 0),
           newProgress: Number(h.newProgress ?? h.NewProgress ?? 0),
           note: h.note ?? h.Note,
+          oldDescription: h.oldDescription ?? h.OldDescription ?? null,
+          newDescription: h.newDescription ?? h.NewDescription ?? null,
           createdAt: String(h.createdAt ?? h.CreatedAt ?? ''),
         }));
 
@@ -227,7 +235,7 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [token, planActionId, nameById]);
+  }, [token, planActionId, nameById, initialTab]);
 
   const title = useMemo(
     () => (actionTitle ? t('actionHistory.titleFor', { title: actionTitle }) : t('actionHistory.title')),
@@ -328,7 +336,8 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
               <ul className="pah-list">
                 {progress.map((h, i) => {
                   const changed = h.oldProgress !== h.newProgress;
-                  const kind = /^preuve/i.test(h.note ?? '') ? 'proof' : /^avertissement/i.test(h.note ?? '') ? 'warning' : 'progress';
+                  const isDescription = h.newDescription != null;
+                  const kind = isDescription ? 'description' : /^[ée]ch[ée]ance prolong/i.test(h.note ?? '') ? 'deadline' : /^preuve/i.test(h.note ?? '') ? 'proof' : /^avertissement/i.test(h.note ?? '') ? 'warning' : 'progress';
                   return (
                     <li key={h.id || `${h.createdAt}-${i}`} className="pah-item">
                       <div className="pah-item-top">
@@ -341,7 +350,14 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
                           <span className="pah-to">{h.newProgress}%</span>
                         </div>
                       )}
-                      {h.note && <div className={changed ? 'pah-note' : 'pah-change'}>{h.note}</div>}
+                      {isDescription ? (
+                        <div className="pah-desc">
+                          <div className="pah-desc-old"><span>{t('actionHistory.descriptionBefore')}</span>{h.oldDescription || t('actionHistory.descriptionEmpty')}</div>
+                          <div className="pah-desc-new"><span>{t('actionHistory.descriptionAfter')}</span>{h.newDescription}</div>
+                        </div>
+                      ) : (
+                        h.note && <div className={changed ? 'pah-note' : 'pah-change'}>{h.note}</div>
+                      )}
                       <div className="pah-meta">
                         {fmtDate(h.createdAt)} · {t('actionHistory.by', { name: resolveName(h.changedBy, null, names) })}
                       </div>
@@ -355,6 +371,11 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
       </div>
 
       <style>{`
+        .pah-desc { display: grid; gap: 6px; margin-top: 4px; font-size: 12.5px; line-height: 1.45; }
+        .pah-desc span { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; margin-bottom: 2px; }
+        .pah-desc-old { background: #f8fafc; border: 1px solid #e2e8f0; color: #64748b; border-radius: 8px; padding: 7px 9px; white-space: pre-wrap; }
+        .pah-desc-new { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; border-radius: 8px; padding: 7px 9px; white-space: pre-wrap; }
+        .pah-description { background: #eef2ff; color: #3730a3; }
         .pah-overlay {
           position: fixed; inset: 0; z-index: 80;
           background: rgba(15, 23, 42, 0.45);

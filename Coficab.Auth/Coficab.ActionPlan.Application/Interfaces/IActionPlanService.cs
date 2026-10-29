@@ -15,6 +15,8 @@ public interface IActionPlanService
     Task<ActionPlanDto?> GetByIdAsync(Guid id);
     Task<ActionPlanDto> CreateAsync(CreateActionPlanDto dto, string createdBy);
     Task<ActionPlanDto> UpdateAsync(Guid id, UpdateActionPlanDto dto, string updatedBy);
+    /// <summary>An administrator gives a late open plan more time. Needs a reason; the old date and the reason are kept in the plan history.</summary>
+    Task<Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionResult> ExtendDeadlineAsync(Guid id, DateTime newDeadline, string reason, string byUserId, CancellationToken ct = default);
     /// <summary>Sends a warning about a plan to one person (notification) and keeps it in the plan history.</summary>
     Task WarnAsync(Guid planId, string toUserId, string message, string sentBy);
     Task ArchiveAsync(Guid id, string archivedBy);

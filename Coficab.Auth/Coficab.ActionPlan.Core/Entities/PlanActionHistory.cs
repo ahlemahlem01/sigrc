@@ -9,4 +9,7 @@ public class PlanActionHistory : BaseEntity
     public ActionProgress OldProgress { get; set; }
     public ActionProgress NewProgress { get; set; }
     public string? Note { get; set; }
+    /// <summary>Set when the row records a rewrite of the description: the text before and after, kept for the history.</summary>
+    public string? OldDescription { get; set; }
+    public string? NewDescription { get; set; }
 }

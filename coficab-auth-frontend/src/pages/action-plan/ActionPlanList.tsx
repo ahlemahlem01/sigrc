@@ -282,6 +282,12 @@ const ActionPlanList = () => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStamp = today.getTime();
+  // the same rule as the "late" filter: an open plan whose deadline has passed
+  const lateCount = plans.filter((p) => {
+    if (p.status === 3 || p.status === 4) return false;
+    const due = dayStamp(p.deadline);
+    return due != null && due < todayStamp;
+  }).length;
   const filteredPlans = activeSource
     .filter((p) => filterStatus === 'all' || filterStatus === 4 || p.status === filterStatus)
     .filter((p) => filterDepartment === 'all' || p.departmentName === filterDepartment)
@@ -378,20 +384,35 @@ const ActionPlanList = () => {
 
       <CapaKpiStrip
         variant="soft"
-        items={Object.entries(ACTION_PLAN_STATUSES).map(([key, val]) => {
-          const statusNum = Number(key);
-          const count =
-            statusNum === 4
-              ? archivedPlans.length
-              : plans.filter((p) => p.status === statusNum).length;
-          return {
-            key,
-            label: t(val.label),
-            value: count,
-            active: filterStatus === statusNum,
-            onClick: () => applyStatusFilter(filterStatus === statusNum ? 'all' : statusNum),
-          };
-        })}
+        items={[
+          ...Object.entries(ACTION_PLAN_STATUSES).map(([key, val]) => {
+            const statusNum = Number(key);
+            const count =
+              statusNum === 4
+                ? archivedPlans.length
+                : plans.filter((p) => p.status === statusNum).length;
+            return {
+              key,
+              label: t(val.label),
+              value: count,
+              active: filterStatus === statusNum,
+              onClick: () => applyStatusFilter(filterStatus === statusNum ? 'all' : statusNum),
+            };
+          }),
+          {
+            key: 'late',
+            label: t('plansAdmin.lateKpiTitle'),
+            value: lateCount,
+            tone: 'danger' as const,
+            active: lateOnly,
+            onClick: () => {
+              // the archived list has no late plan: leave it when the card is switched on
+              if (!lateOnly && filterStatus === 4) applyStatusFilter('all');
+              setLateOnly(!lateOnly);
+              setPage(1);
+            },
+          },
+        ]}
       />
 
       <CapaPanel

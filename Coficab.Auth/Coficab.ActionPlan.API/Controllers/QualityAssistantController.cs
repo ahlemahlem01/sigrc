@@ -50,7 +50,9 @@ public class QualityAssistantController : ControllerBase
         if (request.Message.Length > 4000)
             return BadRequest(new { message = "Message trop long (max 4000 caractères)." });
 
-        var isAdmin = IsAdminOrSuperAdmin();
+        // an employee granted "assistant:unrestricted" in the permission matrix gets the answers of an administrator
+        var isAdmin = IsAdminOrSuperAdmin()
+            || User.FindAll("permission").Any(c => string.Equals(c.Value, "assistant:unrestricted", StringComparison.OrdinalIgnoreCase));
         var history = request.History?
             .Where(h => !string.IsNullOrWhiteSpace(h.Content))
             .Take(20)
@@ -79,6 +81,11 @@ public class QualityAssistantController : ControllerBase
         catch (InvalidOperationException ex)
         {
             return StatusCode(502, new { message = ex.Message });
+        }
+        catch (Exception ex) when (ex is TaskCanceledException or TimeoutException or HttpRequestException && !cancellationToken.IsCancellationRequested)
+        {
+            // the AI service did not answer in time: a clear message, not a server error
+            return StatusCode(503, new { message = "Le service IA ne répond pas pour le moment. Réessayez dans quelques minutes." });
         }
         catch (ArgumentException ex)
         {

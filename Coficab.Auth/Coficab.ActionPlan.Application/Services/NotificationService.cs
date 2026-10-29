@@ -22,10 +22,17 @@ public class NotificationService : INotificationService
         _userRepo = userRepo;
     }
 
-    public async Task NotifyAsync(string recipientId, string type, string title, string message, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+    public Task NotifyAsync(string recipientId, string type, string title, string message, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+        => NotifyCoreAsync(recipientId, type, title, message, null, actionPlanId, linkPath, claimId);
+
+    public Task NotifyLocalizedAsync(string recipientId, string type, string title, string message, string dataJson, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+        => NotifyCoreAsync(recipientId, type, title, message, dataJson, actionPlanId, linkPath, claimId);
+
+    private async Task NotifyCoreAsync(string recipientId, string type, string title, string message, string? dataJson, Guid? actionPlanId, string? linkPath, Guid? claimId)
     {
         var notification = new Notification
         {
+            DataJson = dataJson,
             RecipientId = recipientId,
             Type = type,
             Title = title,
@@ -47,6 +54,7 @@ public class NotificationService : INotificationService
             actionPlanId = notification.ActionPlanId,
             claimId = notification.ClaimId,
             linkPath = notification.LinkPath,
+            dataJson = notification.DataJson,
             isRead = notification.IsRead,
             createdAt = notification.CreatedAt
         });

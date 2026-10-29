@@ -120,7 +120,7 @@ public class EightDService : IEightDService
             $"Le dossier 8D « {claim.Title} » a été soumis pour validation finale.",
             actionPlanId: dto.CapaPlanId,
             claimId: claimId,
-            linkPath: "/pages/front/quality-analyses/admin?tab=dossier");
+            linkPath: $"/pages/front/quality-analyses/8d/{claimId}");
 
         var submitted = await MapAndPersistAsync(dossier, claim, ct);
         await RecordVersionAsync(dossier, submitted, EightDVersionEvents.Submitted, userId, null, ct);
@@ -653,6 +653,8 @@ public class EightDService : IEightDService
             DefectType = claim.DefectType,
             LotNumber = claim.LotNumber,
             Description = claim.Description,
+            ProducedQuantity = claim.ProducedQuantity,
+            DefectiveQuantity = claim.DefectiveQuantity,
             CurrentStep = current,
             StatusCode = dossier.StatusCode,
             ChampionId = dossier.ChampionId,

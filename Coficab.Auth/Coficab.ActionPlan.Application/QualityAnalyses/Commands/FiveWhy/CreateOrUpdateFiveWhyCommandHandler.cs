@@ -48,12 +48,15 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
                 ClaimId = request.ClaimId,
                 ProblemStatement = request.ProblemStatement,
                 RootCause = request.RootCause,
+                RootCauseOccurrence = request.RootCauseOccurrence,
+                RootCauseDetection = request.RootCauseDetection,
                 StatusCode = request.StatusCode ?? "DRAFT",
                 CreatedAt = DateTime.UtcNow,
                 CreatedBy = userIdString,
                 Steps = request.Steps.Select(s => new FiveWhyStep
                 {
                     StepNumber = s.StepNumber,
+                    BranchType = NormalizeBranch(s.BranchType),
                     Question = s.Question,
                     Answer = s.Answer
                 }).ToList()
@@ -67,6 +70,10 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
         // Update existing record
         existingAnalysis.ProblemStatement = request.ProblemStatement;
         existingAnalysis.RootCause = request.RootCause;
+        existingAnalysis.LastModifiedAt = DateTime.UtcNow;
+        existingAnalysis.LastModifiedBy = userIdString;
+        existingAnalysis.RootCauseOccurrence = request.RootCauseOccurrence;
+        existingAnalysis.RootCauseDetection = request.RootCauseDetection;
         var previousStatus = existingAnalysis.StatusCode;
         existingAnalysis.StatusCode = request.StatusCode ?? existingAnalysis.StatusCode;
 
@@ -74,6 +81,7 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
         existingAnalysis.Steps = request.Steps.Select(s => new FiveWhyStep
         {
             StepNumber = s.StepNumber,
+            BranchType = NormalizeBranch(s.BranchType),
             Question = s.Question,
             Answer = s.Answer
         }).ToList();
@@ -85,6 +93,9 @@ public class CreateOrUpdateFiveWhyCommandHandler : IRequestHandler<CreateOrUpdat
                 _context, request.ClaimId, "fivewhy_submitted", userIdString, null, cancellationToken);
         return existingAnalysis.Id;
     }
+
+    private static string NormalizeBranch(string? branch) =>
+        string.Equals(branch?.Trim(), "DETECTION", StringComparison.OrdinalIgnoreCase) ? "DETECTION" : "OCCURRENCE";
 
     private async Task SaveChangesSafelyAsync(CancellationToken cancellationToken)
     {

@@ -290,6 +290,7 @@
 .aph-badge.created,
 .aph-badge.restored,
 .aph-badge.marked_completed { background: #ecfdf5; color: #047857; }
+.aph-badge.deadline_extended { background: #fef2f2; color: #b91c1c; }
 .aph-badge.status_changed { background: #fff7ed; color: #c2410c; }
 .aph-badge.fields_updated,
 .aph-badge.progress_updated { background: #eff6ff; color: #1d4ed8; }

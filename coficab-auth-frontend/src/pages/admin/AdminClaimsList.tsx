@@ -15,6 +15,7 @@ import { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { severityKey, type SeverityKey } from '../../utils/overviewSeverity';
 import { useTranslation } from 'react-i18next';
+import { ExtendDeadline } from '../../components/ExtendDeadline';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
@@ -347,6 +348,9 @@ export default function AdminClaimsList() {
                     <td className="px-4 py-3.5"><span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold ${status.color}`}>{status.label}</span></td>
                     <td className="px-4 py-3.5 text-slate-600">
                   {claim.deadline ? formatDate(claim.deadline) : <span className="inline-block rounded-full bg-amber-50 text-amber-700 px-2 py-0.5 text-[11px] font-semibold">{t('adminDashboard.claims.noDeadline')}</span>}
+                  {claim.deadline && !showArchived && (
+                    <div className="mt-1"><ExtendDeadline kind="claim" id={String(claim.id)} deadline={claim.deadline} open={!['CLOTUREE', 'CLOSED', 'CLOTURE', 'DRAFT', 'BROUILLON'].includes(String(claim.statusCode || '').toUpperCase())} onDone={() => void load()} /></div>
+                  )}
                 </td>
                     <td className="px-4 py-3.5 text-right">
                       <div className="inline-flex gap-1.5">
