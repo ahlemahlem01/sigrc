@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { X, AlertCircle, Factory, Users, FileText, Loader2, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';

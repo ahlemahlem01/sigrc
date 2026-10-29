@@ -349,7 +349,7 @@ public class OrganizationStructureTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(1, health.GetProperty("waitingValidation").GetInt32());
 
         var actions = dto.GetProperty("actions").EnumerateArray().ToList();
-        Assert.Equal(["late", "to-validate", "validated"], actions.Select(a => a.GetProperty("title").GetString()).ToArray());
+        Assert.Equal(new string?[] { "late", "to-validate", "validated" }, actions.Select(a => a.GetProperty("title").GetString()).ToArray());
         Assert.Equal("waitingValidation", actions[1].GetProperty("state").GetString());
         Assert.Equal(100, actions[2].GetProperty("progress").GetInt32());
         Assert.Equal($"Ahlem {tag}", dto.GetProperty("history")[0].GetProperty("by").GetString());
