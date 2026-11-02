@@ -259,7 +259,7 @@ export default function OverviewPage() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('90');
   // the organizations followed are chosen once for the whole console (top bar)
-  const { param: scopeParam, selectedIds, toggle, clear } = useOrganizationScope();
+  const { param: scopeParam, clear } = useOrganizationScope();
   const [data, setData] = useState<OverviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

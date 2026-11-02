@@ -4,7 +4,6 @@ using System.Text.Json;
 using Coficab.ActionPlan.Application.ReferenceLists;
 using Coficab.ActionPlan.Core.Entities;
 using Coficab.ActionPlan.Core.Enums;
-using Coficab.ActionPlan.Core.Enums;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Coficab.ActionPlan.API.Tests;

@@ -227,7 +227,7 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [token, planActionId, nameById]);
+  }, [token, planActionId, nameById, initialTab]);
 
   const title = useMemo(
     () => (actionTitle ? t('actionHistory.titleFor', { title: actionTitle }) : t('actionHistory.title')),

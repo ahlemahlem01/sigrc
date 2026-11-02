@@ -338,10 +338,10 @@ public class ImportExistingValuesCommandHandler : IRequestHandler<ImportExisting
         var claims = _db.Claims.IgnoreQueryFilters().AsNoTracking();
         var used = request.ListKey switch
         {
-            ReferenceListKeys.Client => await claims.Select(c => c.ClientId).Distinct().ToListAsync(ct),
+            ReferenceListKeys.Client => await claims.Select(c => (string?)c.ClientId).Distinct().ToListAsync(ct),
             ReferenceListKeys.ProductionLine => await claims.Select(c => c.ProductionLine).Distinct().ToListAsync(ct),
             ReferenceListKeys.Shift => await claims.Select(c => c.Shift).Distinct().ToListAsync(ct),
-            ReferenceListKeys.DefectType => await claims.Select(c => c.DefectType).Distinct().ToListAsync(ct),
+            ReferenceListKeys.DefectType => await claims.Select(c => (string?)c.DefectType).Distinct().ToListAsync(ct),
             _ => throw new ValidationException("Cette liste ne peut pas être alimentée depuis les réclamations."),
         };
         var known = (await _db.ReferenceItems.Where(r => r.ListKey == request.ListKey)
