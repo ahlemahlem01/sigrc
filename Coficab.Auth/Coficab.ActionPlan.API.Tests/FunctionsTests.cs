@@ -117,4 +117,38 @@ public class FunctionsTests : IClassFixture<ActionPlanApiFactory>
         await admin.PutAsJsonAsync($"/api/functions/assignments/{holding}", new { status = "NotActive" });
         Assert.Equal(HttpStatusCode.Forbidden, (await attempt()).StatusCode);                       // not active: no more right
     }
+
+    [Fact]
+    public async Task AnAdministrator_IsOfferedOnlyThePeopleOfHisDepartment_TheSuperadminEveryone()
+    {
+        Guid deptA, deptB; var adminId = Guid.NewGuid().ToString(); var mateId = Guid.NewGuid().ToString(); var otherId = Guid.NewGuid().ToString();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
+            var org = new Organization { Name = "Org " + Guid.NewGuid().ToString("N")[..5] };
+            db.Organizations.Add(org);
+            var a = new Department { Name = "A " + Guid.NewGuid().ToString("N")[..5], Code = "A" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            var b = new Department { Name = "B " + Guid.NewGuid().ToString("N")[..5], Code = "B" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            db.Departments.AddRange(a, b);
+            db.UserProfiles.AddRange(
+                new UserProfile { Id = Guid.NewGuid(), UserId = adminId, Name = "Admin A", Email = "a@t.com", Role = "admin", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = mateId, Name = "Collegue A", Email = "m@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = otherId, Name = "Autre B", Email = "o@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = b.Id });
+            await db.SaveChangesAsync();
+            deptA = a.Id; deptB = b.Id;
+        }
+
+        var seen = await Json(await ClientAs("admin", adminId).GetAsync("/api/functions/people"));
+        var ids = seen.EnumerateArray().Select(x => x.GetProperty("id").GetString()).ToList();
+        Assert.Contains(adminId, ids);
+        Assert.Contains(mateId, ids);
+        Assert.DoesNotContain(otherId, ids);
+
+        var all = await Json(await ClientAs("superadmin", Guid.NewGuid().ToString()).GetAsync("/api/functions/people"));
+        var everyone = all.EnumerateArray().Select(x => x.GetProperty("id").GetString()).ToList();
+        Assert.Contains(otherId, everyone);
+        Assert.Contains(mateId, everyone);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/functions/people")).StatusCode);
+    }
 }

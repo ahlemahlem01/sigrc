@@ -359,7 +359,8 @@ function groupPermissions(rows: { name?: string; displayName?: string; appId?: s
 // ─── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { t } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+  const isSuperadmin = normalizeRoles(user as any).includes('superadmin');
   const [fullName,   setFullName]   = useState('');
   const [email,      setEmail]      = useState('');
   const [orgDept,    setOrgDept]    = useState<OrgDeptValue>({ organizationId: '', departmentId: '', departmentName: '' });
@@ -486,7 +487,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <select className="em-input" value={role} onChange={e => setRole(e.target.value)}>
                     <option value="user">{t('employeesAdmin.roleUser')}</option>
                     <option value="admin">Admin</option>
-                    <option value="superadmin">Superadmin</option>
+                    {isSuperadmin && <option value="superadmin">Superadmin</option>}
                   </select>
                 </div>
               </div>

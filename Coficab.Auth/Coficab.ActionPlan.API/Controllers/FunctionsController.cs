@@ -199,6 +199,22 @@ public class FunctionsController : ControllerBase
 
     // ── who holds which function ───────────────────────────────
 
+    /// <summary>People who can be given a function: the superadmin sees everyone, an administrator only his own department.</summary>
+    [HttpGet("people")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> People(CancellationToken ct)
+    {
+        var query = _db.UserProfiles.AsNoTracking().Where(p => p.UserId != "" && p.Status != "archived");
+        if (!User.IsInRole("superadmin"))
+        {
+            var me = CurrentUserId();
+            var deptId = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == me).Select(p => p.DepartmentId).FirstOrDefaultAsync(ct);
+            query = deptId == null ? query.Where(p => p.UserId == me) : query.Where(p => p.DepartmentId == deptId);
+        }
+        var rows = await query.OrderBy(p => p.Name).Select(p => new { id = p.UserId, name = p.Name }).ToListAsync(ct);
+        return Ok(rows);
+    }
+
     [HttpGet("assignments")]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Assignments([FromQuery] Guid? functionId, [FromQuery] string? userId, CancellationToken ct)

@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useAuth } from '../../context/AuthContext';
-import { adminEmployeeService } from '../../services/adminEmployeeService';
 
 type Fn = {
   id: string; code: string; description: string; hierarchicalLink: string | null; functionalLink: string | null;
@@ -50,13 +49,20 @@ export default function FunctionsPage() {
   const load = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const [f, d, p] = await Promise.all([
+      const [f, d, p, o] = await Promise.all([
         axios.get<Fn[]>(BASE, { headers, params: deptFilter ? { departmentId: deptFilter } : undefined }),
         axios.get(`${ACTION_PLAN_API_URL}/department`, { headers }),
         axios.get<Perm[]>(`${BASE}/permissions`, { headers }),
+        axios.get(`${ACTION_PLAN_API_URL}/organization`, { headers }).catch(() => ({ data: [] as any[] })),
       ]);
+      // the same department name can exist in several organizations: the organization is shown beside it
+      const orgs = new Map<string, string>(((o.data as any[]) ?? []).map((x) => [String(x.id ?? x.Id), String(x.name ?? x.Name)]));
       setFunctions(f.data);
-      setDepartments((d.data as any[]).map((x) => ({ id: x.id ?? x.Id, name: x.name ?? x.Name })));
+      setDepartments((d.data as any[]).map((x) => {
+        const name = x.name ?? x.Name;
+        const org = orgs.size > 1 ? orgs.get(String(x.organizationId ?? x.OrganizationId)) : undefined;
+        return { id: x.id ?? x.Id, name: org ? `${name} · ${org}` : name };
+      }));
       setPerms(p.data);
     } catch (e) { fail(e); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,8 +71,9 @@ export default function FunctionsPage() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => {
     if (!accessToken) return;
-    adminEmployeeService.getAllProfiles(accessToken)
-      .then((rows: any[]) => setPeople(rows.map((r) => ({ id: String(r.id ?? r.Id ?? r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? '') })).filter((r) => r.id && r.name).sort((a, b) => a.name.localeCompare(b.name))))
+    // an administrator is offered the people of his own department; the superadmin everyone
+    axios.get<{ id: string; name: string }[]>(`${BASE}/people`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => setPeople((r.data ?? []).filter((x) => x.id && x.name)))
       .catch(() => setPeople([]));
   }, [accessToken]);
 
