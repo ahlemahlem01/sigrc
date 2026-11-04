@@ -6,28 +6,27 @@ public class QrqcLogicTests
 {
     [Theory]
     [InlineData(5, "MEDIUM", 1)]
-    [InlineData(30, "MEDIUM", 2)]
-    [InlineData(119, "MEDIUM", 2)]
-    [InlineData(120, "MEDIUM", 3)]
-    [InlineData(240, "MEDIUM", 4)]
+    [InlineData(60, "MEDIUM", 2)]
+    [InlineData(239, "MEDIUM", 2)]
+    [InlineData(240, "MEDIUM", 3)]
     public void TheLongerAProblemStaysOpen_TheHigherTheLevel(int minutes, string severity, int level) =>
         Assert.Equal(level, QrqcEscalation.Level(minutes, severity));
 
     [Fact]
     public void ASevereProblemEscalatesSooner_AndALightOneLater()
     {
-        Assert.Equal(2, QrqcEscalation.Level(15, "CRITICAL"));   // 30 min × 0.5
-        Assert.Equal(1, QrqcEscalation.Level(15, "MEDIUM"));
-        Assert.Equal(1, QrqcEscalation.Level(45, "LOW"));        // 30 min × 2 = 60
-        Assert.Equal(2, QrqcEscalation.Level(60, "LOW"));
+        Assert.Equal(2, QrqcEscalation.Level(30, "CRITICAL"));   // 60 min × 0.5
+        Assert.Equal(1, QrqcEscalation.Level(30, "MEDIUM"));
+        Assert.Equal(1, QrqcEscalation.Level(100, "LOW"));       // 60 min × 2 = 120
+        Assert.Equal(2, QrqcEscalation.Level(120, "LOW"));
     }
 
     [Fact]
     public void TheDelaysCanBeSetByTheAdministrator() =>
-        Assert.Equal(4, QrqcEscalation.Level(60, "MEDIUM", new[] { 10, 20, 40 }));
+        Assert.Equal(3, QrqcEscalation.Level(60, "MEDIUM", new[] { 10, 20 }));
 
     [Fact]
-    public void ALineIsGreenWithNothingOpen_OrangeWithAProblem_RedFromLevelThree()
+    public void ALineIsGreenWithNothingOpen_OrangeWithAProblem_RedAtTheLastLevel()
     {
         Assert.Equal("green", QrqcEscalation.LineState(Array.Empty<int>()));
         Assert.Equal("orange", QrqcEscalation.LineState(new[] { 1, 2 }));

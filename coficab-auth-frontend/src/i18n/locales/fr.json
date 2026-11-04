@@ -187,11 +187,11 @@
     "kpi": {
       "open": "Problèmes ouverts",
       "newToday": "Nouveaux aujourd’hui",
-      "escalated": "Au niveau direction",
+      "escalated": "Au dernier niveau (superadmin)",
       "closure": "Clôturés sur 30 jours"
     },
     "problems": "Problèmes ouverts",
-    "levels": "Niveaux : 1 opérateur · 2 chef d’équipe · 3 qualité · 4 direction",
+    "levels": "Niveaux : 1 employé en charge · 2 administrateur · 3 superadmin",
     "none": "Aucun problème ouvert.",
     "lot": "lot",
     "lotOk": "Lot renseigné",
@@ -203,10 +203,9 @@
     "customerClaim": "Réclamation client",
     "levelShort": "Niveau {{n}}",
     "level": {
-      "1": "opérateur",
-      "2": "chef d’équipe",
-      "3": "qualité",
-      "4": "direction"
+      "1": "employé en charge",
+      "2": "administrateur",
+      "3": "superadmin"
     },
     "open": "Ouvrir",
     "pareto": "Pareto du jour",

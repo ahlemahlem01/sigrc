@@ -20,7 +20,7 @@ type Board = {
 
 const REFRESH_MS = 30_000;
 const LIGHT: Record<Line['state'], string> = { green: '#639922', orange: '#EF9F27', red: '#E24B4A' };
-const LEVEL_COLOR = ['#639922', '#EF9F27', '#D85A30', '#E24B4A'];
+const LEVEL_COLOR = ['#EF9F27', '#D85A30', '#E24B4A'];
 
 const duration = (minutes: number) => `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')}`;
 
@@ -171,11 +171,11 @@ export default function QrqcBoardPage() {
                           {!p.isInternal && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{t('qrqc.customerClaim')}</span>}
                         </div>
                         <div className="flex gap-1 mt-2 max-w-[220px]" aria-label={levelLabel(p.level)}>
-                          {[1, 2, 3, 4].map((n) => <span key={n} className="flex-1 h-1.5 rounded-sm" style={{ background: n <= p.level ? LEVEL_COLOR[p.level - 1] : '#e2e8f0' }} />)}
+                          {[1, 2, 3].map((n) => <span key={n} className="flex-1 h-1.5 rounded-sm" style={{ background: n <= p.level ? LEVEL_COLOR[p.level - 1] : '#e2e8f0' }} />)}
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-lg font-semibold tabular-nums" style={{ color: p.level >= 4 ? '#E24B4A' : undefined }}>{duration(p.minutesOpen)}</div>
+                        <div className="text-lg font-semibold tabular-nums" style={{ color: p.level >= 3 ? '#E24B4A' : undefined }}>{duration(p.minutesOpen)}</div>
                         <div className="text-[11px] text-slate-500">{t('qrqc.levelShort', { n: p.level })} · {levelLabel(p.level)}</div>
                         <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/admin/claims/list?q=${encodeURIComponent(p.reference || p.title)}`)}>{t('qrqc.open')}</button>
                       </div>

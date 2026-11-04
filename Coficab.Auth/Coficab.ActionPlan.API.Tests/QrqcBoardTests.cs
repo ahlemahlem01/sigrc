@@ -52,7 +52,7 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
     public async Task TheBoard_ShowsTheInternalProblemsByLine_WithTheirLevel()
     {
         var line = "TST-" + Guid.NewGuid().ToString("N")[..4];
-        var slow = await AddClaim(line, true, minutesAgo: 150);          // 120 min → level 3
+        var slow = await AddClaim(line, true, minutesAgo: 300);          // over 240 min → level 3
         var fresh = await AddClaim(line, true, minutesAgo: 5);
         var customer = await AddClaim(line, false, minutesAgo: 400);      // a customer claim: not on the workshop board
 

@@ -34,10 +34,10 @@ public class QrqcController : ControllerBase
         return string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase) ? query : query.Where(c => c.IsInternal);
     }
 
-    /// <summary>Delays of the escalation: the defaults, or the ones the administrator set (OverviewSettings qrqc.level2/3/4.minutes).</summary>
+    /// <summary>Delays of the escalation: the defaults, or the ones the administrator set (OverviewSettings qrqc.level2/3.minutes).</summary>
     private async Task<int[]> EscalationMinutesAsync(CancellationToken ct)
     {
-        var keys = new[] { "qrqc.level2.minutes", "qrqc.level3.minutes", "qrqc.level4.minutes" };
+        var keys = new[] { "qrqc.level2.minutes", "qrqc.level3.minutes" };
         var settings = await _db.OverviewSettings.AsNoTracking().Where(s => keys.Contains(s.Key)).ToDictionaryAsync(s => s.Key, s => s.Value, ct);
         return keys.Select((k, i) => settings.TryGetValue(k, out var v) && v > 0 ? (int)Math.Round(v) : QrqcEscalation.DefaultMinutes[i]).ToArray();
     }
@@ -128,7 +128,7 @@ public class QrqcController : ControllerBase
             kpis = new
             {
                 open = problems.Count,
-                escalated = problems.Count(p => p.level >= 4),
+                escalated = problems.Count(p => p.level >= 3),
                 newToday = problems.Count(p => p.detectedAt.Date == now.Date),
                 closureRate30d = recent.Count == 0 ? (int?)null : (int)Math.Round(100.0 * closed30 / recent.Count),
             },

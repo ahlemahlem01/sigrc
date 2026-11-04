@@ -14,12 +14,12 @@ jest.mock('react-i18next', () => ({
 const mockedGet = axios.get as jest.Mock;
 
 const board = (over: Record<string, unknown> = {}) => ({
-  generatedAt: '2026-11-04T08:41:00Z', scope: 'internal', escalationMinutes: [30, 120, 240],
+  generatedAt: '2026-11-04T08:41:00Z', scope: 'internal', escalationMinutes: [60, 240],
   kpis: { open: 2, escalated: 1, newToday: 1, closureRate30d: 68 },
   lines: [{ line: 'EXT-01', state: 'red', open: 2, escalated: 1 }, { line: 'WR-02', state: 'green', open: 0, escalated: 0 }],
   problems: [
-    { claimId: 'a', title: 'Coupure sur gaine', defectType: 'Coupure fil', severity: 'HIGH', line: 'EXT-01', lotNumber: 'L-1', statusCode: 'EN_ANALYSE', isInternal: true, detectedAt: '2026-11-04T06:00:00Z', minutesOpen: 102, level: 3, hasPhoto: true, hasLot: true, hasRootCause: false, hasCorrective: false },
-    { claimId: 'b', title: 'Marquage illisible', defectType: 'Marquage', severity: 'LOW', line: 'CTL-01', lotNumber: '', statusCode: 'OUVERTE', isInternal: true, detectedAt: '2026-11-04T04:00:00Z', minutesOpen: 250, level: 4, hasPhoto: false, hasLot: false, hasRootCause: false, hasCorrective: false },
+    { claimId: 'a', title: 'Coupure sur gaine', defectType: 'Coupure fil', severity: 'HIGH', line: 'EXT-01', lotNumber: 'L-1', statusCode: 'EN_ANALYSE', isInternal: true, detectedAt: '2026-11-04T06:00:00Z', minutesOpen: 102, level: 2, hasPhoto: true, hasLot: true, hasRootCause: false, hasCorrective: false },
+    { claimId: 'b', title: 'Marquage illisible', defectType: 'Marquage', severity: 'LOW', line: 'CTL-01', lotNumber: '', statusCode: 'OUVERTE', isInternal: true, detectedAt: '2026-11-04T04:00:00Z', minutesOpen: 250, level: 3, hasPhoto: false, hasLot: false, hasRootCause: false, hasCorrective: false },
   ],
   ...over,
 });

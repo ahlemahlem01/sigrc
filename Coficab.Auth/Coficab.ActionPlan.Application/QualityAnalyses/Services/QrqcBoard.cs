@@ -5,12 +5,12 @@ namespace Coficab.ActionPlan.Application.QualityAnalyses.Services;
 
 /// <summary>
 /// Escalation of a problem on the QRQC board: the longer it stays open, the higher the level that has to deal with it
-/// (1 operator, 2 team leader, 3 quality, 4 management). The delays are in minutes, shorter for the more severe problems.
+/// (1 the employee in charge, 2 the administrator, 3 the superadmin: the three roles of the application). The delays are in minutes, shorter for the more severe problems.
 /// </summary>
 public static class QrqcEscalation
 {
-    /// <summary>Minutes open before level 2, 3 and 4 (for a medium severity).</summary>
-    public static readonly int[] DefaultMinutes = { 30, 120, 240 };
+    /// <summary>Minutes open before level 2 and 3 (for a medium severity).</summary>
+    public static readonly int[] DefaultMinutes = { 60, 240 };
 
     public static double SeverityFactor(string? severity) => (severity ?? string.Empty).Trim().ToUpperInvariant() switch
     {
@@ -22,7 +22,7 @@ public static class QrqcEscalation
 
     public static int Level(double minutesOpen, string? severity, int[]? minutes = null)
     {
-        var steps = minutes is { Length: 3 } ? minutes : DefaultMinutes;
+        var steps = minutes is { Length: 2 } ? minutes : DefaultMinutes;
         var factor = SeverityFactor(severity);
         var level = 1;
         for (var i = 0; i < steps.Length; i++)
@@ -30,7 +30,7 @@ public static class QrqcEscalation
         return level;
     }
 
-    /// <summary>The state of a line on the board: green nothing open, orange something open, red something at level 3 or 4.</summary>
+    /// <summary>The state of a line on the board: green nothing open, orange something open, red something at the last level (3).</summary>
     public static string LineState(IEnumerable<int> levels)
     {
         var list = levels.ToList();

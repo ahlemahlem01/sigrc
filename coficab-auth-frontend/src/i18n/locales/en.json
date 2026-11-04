@@ -187,11 +187,11 @@
     "kpi": {
       "open": "Open problems",
       "newToday": "New today",
-      "escalated": "At management level",
+      "escalated": "At the last level (superadmin)",
       "closure": "Closed in 30 days"
     },
     "problems": "Open problems",
-    "levels": "Levels: 1 operator · 2 team leader · 3 quality · 4 management",
+    "levels": "Levels: 1 employee in charge · 2 administrator · 3 superadmin",
     "none": "No open problem.",
     "lot": "lot",
     "lotOk": "Lot filled in",
@@ -203,10 +203,9 @@
     "customerClaim": "Customer claim",
     "levelShort": "Level {{n}}",
     "level": {
-      "1": "operator",
-      "2": "team leader",
-      "3": "quality",
-      "4": "management"
+      "1": "employee in charge",
+      "2": "administrator",
+      "3": "superadmin"
     },
     "open": "Open",
     "pareto": "Pareto of the day",
