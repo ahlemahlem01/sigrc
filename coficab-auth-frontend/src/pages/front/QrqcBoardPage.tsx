@@ -177,7 +177,7 @@ export default function QrqcBoardPage() {
                       <div className="text-right">
                         <div className="text-lg font-semibold tabular-nums" style={{ color: p.level >= 4 ? '#E24B4A' : undefined }}>{duration(p.minutesOpen)}</div>
                         <div className="text-[11px] text-slate-500">{t('qrqc.levelShort', { n: p.level })} · {levelLabel(p.level)}</div>
-                        <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/pages/front/quality-analyses?claimId=${p.claimId}`)}>{t('qrqc.open')}</button>
+                        <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/pages/front/quality-analyses/parcours/${p.claimId}`)}>{t('qrqc.open')}</button>
                       </div>
                     </li>
                   ))}
