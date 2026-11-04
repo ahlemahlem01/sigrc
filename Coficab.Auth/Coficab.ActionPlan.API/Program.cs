@@ -213,6 +213,7 @@ app.UseMiddleware<Coficab.ActionPlan.API.Services.LatencyMiddleware>();
 app.UseCors("CoficabFrontend");
 
 app.UseAuthentication();
+app.UseMiddleware<Coficab.ActionPlan.API.Services.PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.ValidationExceptionMiddleware>();
 

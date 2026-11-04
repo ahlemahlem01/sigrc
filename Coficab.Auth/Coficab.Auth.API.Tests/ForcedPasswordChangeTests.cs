@@ -31,6 +31,11 @@ public class ForcedPasswordChangeTests : IClassFixture<AuthApiFactory>
 
         Assert.True((await AuthApiFactory.Json(await http.GetAsync("/api/me"))).GetProperty("mustChangePassword").GetBoolean());
 
+        // the token says "temporary password": the API serves nothing else than the person's own data and the change itself
+        var blocked = await http.GetAsync("/api/admin/users");
+        Assert.Equal(HttpStatusCode.Forbidden, blocked.StatusCode);
+        Assert.Equal("password_change_required", (await AuthApiFactory.Json(blocked)).GetProperty("code").GetString());
+
         var wrong = await http.PostAsJsonAsync("/api/password/change", new { currentPassword = "Not-the-password-1!", newPassword = NewPassword });
         Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
         var same = await http.PostAsJsonAsync("/api/password/change", new { currentPassword = AuthApiFactory.StrongPassword, newPassword = AuthApiFactory.StrongPassword });

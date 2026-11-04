@@ -37,9 +37,13 @@ public class QrqcController : ControllerBase
     private List<string>? _restrictTo;
 
     /// <summary>Sets the restriction of the request; false when the caller is neither an administrator nor a manager.</summary>
+    private bool _moduleOff;
+
+    private IActionResult Refused() => _moduleOff ? StatusCode(403, new { code = "module_disabled" }) : Forbid();
+
     private async Task<bool> PrepareAccessAsync(CancellationToken ct)
     {
-        if (!await Services.ModuleAccess.IsEnabledAsync(_db, Services.ModuleAccess.Qrqc, ct)) return false;
+        if (!await Services.ModuleAccess.IsEnabledAsync(_db, Services.ModuleAccess.Qrqc, ct)) { _moduleOff = true; return false; }
         if (IsAdmin()) { _restrictTo = null; return true; }
         var me = CurrentUserId();
         if (me.Length == 0) return false;
@@ -108,7 +112,7 @@ public class QrqcController : ControllerBase
     [HttpGet("board")]
     public async Task<IActionResult> Board([FromQuery] string? scope, CancellationToken ct)
     {
-        if (!await PrepareAccessAsync(ct)) return Forbid();
+        if (!await PrepareAccessAsync(ct)) return Refused();
         var now = DateTime.UtcNow;
         var minutes = await EscalationMinutesAsync(ct);
 

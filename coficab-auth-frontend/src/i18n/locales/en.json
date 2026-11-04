@@ -259,6 +259,7 @@
     "count_other": "{{count}} functions"
   },
   "changePassword": {
+    "done": "Password changed. Sign in again with your new password.",
     "title": "Choose your password",
     "forced": "Your password is temporary: choose your own to continue.",
     "help": "Change your password.",
@@ -292,6 +293,7 @@
     "failed": "Could not save"
   },
   "qrqc": {
+    "moduleOff": "The QRQC board is switched off in your contract. Contact your supplier to activate it.",
     "noAccess": "You do not have access to the QRQC board. It is reserved for administrators and hierarchical managers.",
     "managerScope": "You see the problems of the people you manage (read only).",
     "nav": "QRQC",

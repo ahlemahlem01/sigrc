@@ -386,7 +386,7 @@ export default function EmployeeAdminProfilePage() {
     adminEmployeeService.getAllProfiles(accessToken)
       .then((rows: any[]) => setManagerOptions(
         rows
-          .map((r) => ({ id: String(r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? ''), poste: String(r.poste ?? r.Poste ?? '') }))
+          .map((r) => ({ id: String(r.id ?? r.Id ?? r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? ''), poste: String(r.poste ?? r.Poste ?? '') }))
           .filter((r) => r.id && r.name && r.id.toLowerCase() !== id.toLowerCase())
           .sort((a, b) => a.name.localeCompare(b.name)),
       ))

@@ -142,6 +142,7 @@ export default function AdminClaimsList() {
       if (to != null && due != null && due > to) return false;
       if (!term) return true;
       return [
+        claim.reference,
         claim.title,
         claim.clientId,
         claim.defectType,

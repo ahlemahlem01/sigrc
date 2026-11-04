@@ -259,6 +259,7 @@
     "count_other": "{{count}} fonctions"
   },
   "changePassword": {
+    "done": "Mot de passe modifié. Reconnectez-vous avec votre nouveau mot de passe.",
     "title": "Choisissez votre mot de passe",
     "forced": "Votre mot de passe est temporaire : choisissez le vôtre pour continuer.",
     "help": "Changez votre mot de passe.",
@@ -292,6 +293,7 @@
     "failed": "Enregistrement impossible"
   },
   "qrqc": {
+    "moduleOff": "Le panneau QRQC est désactivé dans votre contrat. Contactez votre fournisseur pour l’activer.",
     "noAccess": "Vous n’avez pas accès au panneau QRQC. Il est réservé aux administrateurs et aux chefs hiérarchiques.",
     "managerScope": "Vous voyez les problèmes des personnes que vous encadrez (lecture seule).",
     "nav": "QRQC",

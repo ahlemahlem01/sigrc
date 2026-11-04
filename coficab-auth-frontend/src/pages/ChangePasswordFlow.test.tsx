@@ -6,11 +6,11 @@ import MustChangePasswordRedirect from '../components/MustChangePasswordRedirect
 import { FrontValidatorRoute } from './front/FrontValidatorRoute';
 
 jest.mock('axios');
-const mockUpdateUser = jest.fn();
+const mockLogout = jest.fn();
 let mockUser: Record<string, unknown> | null = { role: 'user', mustChangePassword: true };
 let mockPermissions: string[] = [];
 jest.mock('../context/AuthContext', () => ({
-  useAuth: () => ({ accessToken: 't', isAuthenticated: true, isLoading: false, user: mockUser, updateUser: mockUpdateUser, logout: jest.fn() }),
+  useAuth: () => ({ accessToken: 't', isAuthenticated: true, isLoading: false, user: mockUser, logout: mockLogout }),
 }));
 jest.mock('../config/apiEnv', () => ({ AUTH_API_URL: 'http://auth', ACTION_PLAN_API_URL: 'http://api' }));
 jest.mock('../hooks/useAccess', () => ({
@@ -24,7 +24,7 @@ jest.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k
 const Where = () => <div data-testid="where">{useLocation().pathname}</div>;
 const mockedPost = axios.post as jest.Mock;
 
-beforeEach(() => { mockedPost.mockReset(); mockUpdateUser.mockReset(); mockUser = { role: 'user', mustChangePassword: true }; mockPermissions = []; });
+beforeEach(() => { mockedPost.mockReset(); mockLogout.mockReset(); mockUser = { role: 'user', mustChangePassword: true }; mockPermissions = []; });
 
 describe('forced password change', () => {
   it('sends a person with a temporary password to the page where he chooses his own', async () => {
@@ -38,9 +38,9 @@ describe('forced password change', () => {
     expect(screen.getByTestId('where').textContent).toBe('/dashboard');
   });
 
-  it('refuses two different passwords, then saves and leaves the page', async () => {
+  it('refuses two different passwords, then saves and sends him to sign in again', async () => {
     mockedPost.mockResolvedValue({ data: {} });
-    render(<MemoryRouter initialEntries={['/change-password']}><Routes><Route path="/change-password" element={<ChangePasswordPage />} /><Route path="/dashboard" element={<Where />} /></Routes></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/change-password']}><Routes><Route path="/change-password" element={<ChangePasswordPage />} /><Route path="/login" element={<Where />} /></Routes></MemoryRouter>);
     const inputs = document.querySelectorAll('input[type="password"]');
     fireEvent.change(inputs[0], { target: { value: 'Temp@1234' } });
     fireEvent.change(inputs[1], { target: { value: 'Neuf@5678' } });
@@ -52,8 +52,9 @@ describe('forced password change', () => {
     fireEvent.change(inputs[2], { target: { value: 'Neuf@5678' } });
     fireEvent.click(screen.getByText('changePassword.submit'));
     await waitFor(() => expect(mockedPost).toHaveBeenCalledWith('http://auth/api/password/change', { currentPassword: 'Temp@1234', newPassword: 'Neuf@5678' }, expect.anything()));
-    await waitFor(() => expect(mockUpdateUser).toHaveBeenCalledWith({ mustChangePassword: false }));
-    expect((await screen.findByTestId('where')).textContent).toBe('/dashboard');
+    // the new password closes the older sessions: the person is signed out and goes to sign in again
+    await waitFor(() => expect(mockLogout).toHaveBeenCalled());
+    expect((await screen.findByTestId('where')).textContent).toBe('/login');
   });
 });
 

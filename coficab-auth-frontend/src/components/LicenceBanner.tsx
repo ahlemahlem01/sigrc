@@ -9,16 +9,20 @@ type LicenceState = { state: 'none' | 'ok' | 'expiring' | 'expired'; daysLeft: n
  * The message of the specification: an alert before the licence expires, and a message at the top of the pages and on the
  * login page once it is out. Silent when no licence is recorded or when it is valid for a long time.
  */
+export const LICENCE_CHANGED_EVENT = 'licence:changed';
+
 export default function LicenceBanner({ className = '' }: { className?: string }) {
   const { t, i18n } = useTranslation();
   const [licence, setLicence] = useState<LicenceState | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    axios.get(`${ACTION_PLAN_API_URL}/system/public`)
+    const load = () => axios.get(`${ACTION_PLAN_API_URL}/system/public`)
       .then((r) => { if (!cancelled) setLicence(r.data?.licence ?? null); })
       .catch(() => { if (!cancelled) setLicence(null); });
-    return () => { cancelled = true; };
+    void load();
+    window.addEventListener(LICENCE_CHANGED_EVENT, load);
+    return () => { cancelled = true; window.removeEventListener(LICENCE_CHANGED_EVENT, load); };
   }, []);
 
   if (!licence || (licence.state !== 'expiring' && licence.state !== 'expired')) return null;

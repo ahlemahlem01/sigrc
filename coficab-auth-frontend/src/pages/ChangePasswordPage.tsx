@@ -9,9 +9,11 @@ import { useAuth } from '../context/AuthContext';
  * The person signs in with a temporary password (account created, or password reinitialized by an administrator): he chooses
  * his own before going anywhere else (status "reinitialized" of the specification).
  */
+export const PASSWORD_CHANGED_FLAG = 'password_changed';
+
 export default function ChangePasswordPage() {
   const { t } = useTranslation();
-  const { accessToken, user, updateUser, logout } = useAuth();
+  const { accessToken, user, logout } = useAuth();
   const navigate = useNavigate();
   const [current, setCurrent] = useState('');
   const [next, setNext] = useState('');
@@ -28,8 +30,10 @@ export default function ChangePasswordPage() {
     setBusy(true);
     try {
       await axios.post(`${AUTH_API}/api/password/change`, { currentPassword: current, newPassword: next }, { headers: { Authorization: `Bearer ${accessToken}` } });
-      updateUser({ mustChangePassword: false });
-      navigate('/dashboard', { replace: true });
+      // the new password closes every older session: sign in again, with a token that no longer says "temporary password"
+      try { sessionStorage.setItem(PASSWORD_CHANGED_FLAG, '1'); } catch { /* only a message */ }
+      logout();
+      navigate('/login', { replace: true });
     } catch (err) {
       const data = axios.isAxiosError(err) ? (err.response?.data as any) : null;
       setError(data?.message || t('changePassword.failed'));

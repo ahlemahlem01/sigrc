@@ -185,6 +185,8 @@ public class AuthorizationController : ControllerBase
         identity.AddClaim(OpenIddictConstants.Claims.Name, user.FullName);
         identity.AddClaim("department", user.Department);
         identity.AddClaim("sst", StampFingerprint(await _userManager.GetSecurityStampAsync(user)));
+        // a temporary password: the APIs serve nothing but the change of password until it is done
+        if (user.MustChangePassword) identity.AddClaim("pwd_change", "1");
 
         var roles = await _userManager.GetRolesAsync(user);
         foreach (var role in roles)

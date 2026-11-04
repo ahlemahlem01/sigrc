@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { normalizeRoles } from '../../utils/roles';
 import { adminEmployeeService } from '../../services/adminEmployeeService';
 import { isPlatformAdmin } from '../../utils/roles';
 import { ACTION_PLAN_ORIGIN } from '../../config/apiEnv';
@@ -1399,10 +1400,12 @@ export default function EmployeeManagement() {
                   <i className="ti ti-upload" />
                 </CsvImportButton>
               )}
-              <button className="em-btn em-btn-primary" onClick={() => setShowCreate(true)}>
-                <i className="ti ti-user-plus" />
-                {t('employeesAdmin.newEmployee')}
-              </button>
+              {normalizeRoles(user as any).includes('superadmin') && (
+                <button className="em-btn em-btn-primary" onClick={() => setShowCreate(true)}>
+                  <i className="ti ti-user-plus" />
+                  {t('employeesAdmin.newEmployee')}
+                </button>
+              )}
             </div>
           )}
         </div>

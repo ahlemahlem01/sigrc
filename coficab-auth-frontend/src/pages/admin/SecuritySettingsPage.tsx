@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useAuth } from '../../context/AuthContext';
 import { normalizeRoles } from '../../utils/roles';
+import { LICENCE_CHANGED_EVENT } from '../../components/LicenceBanner';
 
 type Licence = { id: string; key: string; isGlobal: boolean; maxUsers: number; expiresAt: string; siteId: string | null; siteName: string | null };
 type ModuleRow = { code: string; name: string; isActive: boolean };
@@ -77,6 +78,7 @@ export default function SecuritySettingsPage() {
       else await axios.post(`${BASE}/licences`, body, { headers });
       setForm(null);
       await load();
+      window.dispatchEvent(new Event(LICENCE_CHANGED_EVENT));
     } catch (e) {
       const m = axios.isAxiosError(e) ? (e.response?.data as any)?.message : null;
       setLicMsg(m || t('security.saveFailed'));
@@ -104,6 +106,7 @@ export default function SecuritySettingsPage() {
   const archive = async (id: string) => {
     await axios.delete(`${BASE}/licences/${id}`, { headers });
     await load();
+    window.dispatchEvent(new Event(LICENCE_CHANGED_EVENT));
   };
 
   const day = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);

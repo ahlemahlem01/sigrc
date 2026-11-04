@@ -66,7 +66,7 @@ export default function FunctionsPage() {
   useEffect(() => {
     if (!accessToken) return;
     adminEmployeeService.getAllProfiles(accessToken)
-      .then((rows: any[]) => setPeople(rows.map((r) => ({ id: String(r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? '') })).filter((r) => r.id && r.name).sort((a, b) => a.name.localeCompare(b.name))))
+      .then((rows: any[]) => setPeople(rows.map((r) => ({ id: String(r.id ?? r.Id ?? r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? '') })).filter((r) => r.id && r.name).sort((a, b) => a.name.localeCompare(b.name))))
       .catch(() => setPeople([]));
   }, [accessToken]);
 

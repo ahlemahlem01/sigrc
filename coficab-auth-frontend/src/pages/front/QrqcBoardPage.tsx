@@ -38,7 +38,7 @@ export default function QrqcBoardPage() {
   const [offline, setOffline] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [isAdminView, setIsAdminView] = useState(true);
-  const [denied, setDenied] = useState(false);
+  const [denied, setDenied] = useState<null | 'noAccess' | 'moduleOff'>(null);
   const [lineFilter, setLineFilter] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -49,7 +49,7 @@ export default function QrqcBoardPage() {
       setBoard(res.data);
       setOffline(false);
     } catch (err) {
-      if (axios.isAxiosError(err) && err.response?.status === 403) { setDenied(true); return; }
+      if (axios.isAxiosError(err) && err.response?.status === 403) { setDenied((err.response.data as any)?.code === 'module_disabled' ? 'moduleOff' : 'noAccess'); return; }
       // the last data stay on screen: a dropped network must not blank the board during the meeting
       setOffline(true);
     }
@@ -129,7 +129,7 @@ export default function QrqcBoardPage() {
         </div>
       </div>
 
-      {denied && <p className="text-sm text-slate-600 py-6">{t('qrqc.noAccess')}</p>}
+      {denied && <p className="text-sm text-slate-600 py-6">{t(denied === 'moduleOff' ? 'qrqc.moduleOff' : 'qrqc.noAccess')}</p>}
       {!isAdminView && !denied && <p className="text-xs text-slate-500 mb-3">{t('qrqc.managerScope')}</p>}
 
       {board && (

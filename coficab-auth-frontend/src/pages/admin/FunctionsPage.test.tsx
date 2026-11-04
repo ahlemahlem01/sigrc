@@ -19,7 +19,7 @@ const mockedPost = axios.post as jest.Mock;
 const fn = { id: 'f1', code: 'RESP-QUAL', description: 'Responsable qualité', hierarchicalLink: 'DIR-QUAL', functionalLink: null, departmentId: 'd1', departmentName: 'Qualité', permissions: ['8d:validate'], hasJobDescription: false, jobDescriptionFileName: null, holders: 1 };
 
 beforeEach(() => {
-  mockGetAllProfiles.mockResolvedValue([{ userId: 'u1', name: 'Rania Bouazizi' }]);
+  mockGetAllProfiles.mockResolvedValue([{ id: 'u1', name: 'Rania Bouazizi' }]);
   mockedGet.mockReset();
   mockedPost.mockReset();
   mockedGet.mockImplementation((url: string) => {

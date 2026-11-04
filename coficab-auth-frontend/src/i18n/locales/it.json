@@ -259,6 +259,7 @@
     "count_other": "{{count}} funzioni"
   },
   "changePassword": {
+    "done": "Password modificata. Accedi di nuovo con la nuova password.",
     "title": "Scegli la tua password",
     "forced": "La tua password è temporanea: scegline una tua per continuare.",
     "help": "Cambia la tua password.",
@@ -292,6 +293,7 @@
     "failed": "Salvataggio impossibile"
   },
   "qrqc": {
+    "moduleOff": "Il pannello QRQC è disattivato nel vostro contratto. Contattate il fornitore per attivarlo.",
     "noAccess": "Non hai accesso al pannello QRQC. È riservato agli amministratori e ai responsabili gerarchici.",
     "managerScope": "Vedi i problemi delle persone che coordini (sola lettura).",
     "nav": "QRQC",

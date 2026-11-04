@@ -225,6 +225,7 @@ app.UseRateLimiter();
 app.UseCoficabRequestLogging();
 app.UseCors("CoficabFrontend");
 app.UseAuthentication();
+app.UseMiddleware<Coficab.Auth.API.Services.PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
 app.MapControllers().RequireCors("CoficabFrontend");
 
