@@ -30,4 +30,8 @@ public class CreateClaimCommand : IRequest<Guid>
     public string? CvPredictedDefectType { get; set; }
     /// <summary>Confidence of that proposal, between 0 and 1.</summary>
     public double? CvConfidence { get; set; }
+    /// <summary>A problem found in the workshop (QRQC board), not a customer claim.</summary>
+    public bool IsInternal { get; set; }
+    /// <summary>Production line where it happened (shown on the QRQC board).</summary>
+    public string? ProductionLine { get; set; }
 }

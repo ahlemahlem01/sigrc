@@ -27,6 +27,7 @@ import {
 } from '../../utils/eightDContainment';
 import { OriginHint } from './EightDOriginHint';
 import EightDHistory from './EightDHistory';
+import EightDReportEditor from './EightDReportEditor';
 import { AnalysisToolsNav } from './AnalysisToolsNav';
 import { PriorityCauseBanner } from './PriorityCause';
 import { D4ChainChecklist } from './D4Chain';
@@ -99,6 +100,7 @@ const EightDPage: React.FC = () => {
   const [containmentActions, setContainmentActions] = useState<ContainmentAction[]>(() => mergeContainmentActions());
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [editingReport, setEditingReport] = useState(false);
   const [effectivenessMethod, setEffectivenessMethod] = useState(() => i18n.t('eightD.defaultMethod'));
   const [lotsChecked, setLotsChecked] = useState('3');
   const [defectsFound, setDefectsFound] = useState('0');
@@ -879,7 +881,18 @@ const EightDPage: React.FC = () => {
                     )}
                     <button type="button" className="e8d-btn" disabled={pdfBusy} onClick={() => void handlePreviewPdf()}><Eye size={14} /> {t('eightD.preview')}</button>
                     <button type="button" className="e8d-btn" disabled={pdfBusy} onClick={() => void handlePdf()}><Download size={14} /> {t('eightD.download')}</button>
+                    {isAdmin && (
+                      <button type="button" className="e8d-btn" disabled={pdfBusy} onClick={() => setEditingReport(true)}>{t('eightDReport.edit')}</button>
+                    )}
                   </div>
+                  {editingReport && accessToken && (
+                    <EightDReportEditor
+                      claimId={claimId!}
+                      token={accessToken}
+                      onClose={() => setEditingReport(false)}
+                      onSaved={() => { void handlePreviewPdf(); }}
+                    />
+                  )}
                   {pdfUrl ? (
                     <iframe className="e8d-pdf-frame" title={t('eightD.previewTitle')} src={pdfUrl} />
                   ) : (

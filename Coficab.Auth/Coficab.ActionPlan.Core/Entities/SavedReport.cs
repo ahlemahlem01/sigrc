@@ -19,4 +19,12 @@ public class SavedReport
     public bool IsArchived { get; set; }
     public DateTime? ArchivedAt { get; set; }
     public string? ArchivedBy { get; set; }
+
+    /// <summary>1 when saved; +1 at each edit (the previous content is kept in SavedReportVersion).</summary>
+    public int Version { get; set; } = 1;
+    public DateTime? UpdatedAt { get; set; }
+    public string? UpdatedBy { get; set; }
+    public string? UpdatedByName { get; set; }
+    /// <summary>Why the current content was edited (kept with it in the history once it is replaced).</summary>
+    public string? UpdateNote { get; set; }
 }

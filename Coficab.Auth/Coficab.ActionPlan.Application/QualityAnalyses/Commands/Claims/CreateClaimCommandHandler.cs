@@ -123,6 +123,8 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
             CvPredictedDefectType = hasProposal ? resolver.Resolve(request.CvPredictedDefectType!.Trim()) : null,
             CvConfidence = hasProposal ? Math.Clamp(request.CvConfidence ?? 0, 0, 1) : null,
             CvCorrectionLogged = learningSignal,
+            IsInternal = request.IsInternal,
+            ProductionLine = string.IsNullOrWhiteSpace(request.ProductionLine) ? null : request.ProductionLine.Trim(),
         };
 
         var fiveWhy = new FiveWhyAnalysis

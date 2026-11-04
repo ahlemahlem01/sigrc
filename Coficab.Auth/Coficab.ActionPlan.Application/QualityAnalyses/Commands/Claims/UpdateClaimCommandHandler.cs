@@ -1,4 +1,4 @@
-﻿using Coficab.ActionPlan.Application.DomainEvents;
+using Coficab.ActionPlan.Application.DomainEvents;
 using Coficab.ActionPlan.Application.DomainEvents.Events;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.ReferenceLists;
@@ -55,6 +55,12 @@ public class UpdateClaimCommandHandler : IRequestHandler<UpdateClaimCommand, boo
 
         if (!string.IsNullOrWhiteSpace(request.StatusCode))
         {
+            if (CompletionTracking.IsClosedClaimStatus(request.StatusCode) && !CompletionTracking.IsClosedClaimStatus(previousStatus))
+            {
+                var missing = await Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.MissingAsync(_context, claim, cancellationToken);
+                if (missing.Count > 0)
+                    throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("StatusCode", Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.Message(missing)) });
+            }
             claim.StatusCode = request.StatusCode;
             CompletionTracking.ApplyClaimCompletion(claim, previousStatus);
             statusChanged = !string.Equals(previousStatus, claim.StatusCode, StringComparison.OrdinalIgnoreCase);

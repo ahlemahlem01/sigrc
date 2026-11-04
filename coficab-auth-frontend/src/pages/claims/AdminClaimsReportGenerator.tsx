@@ -9,6 +9,7 @@ import { resolveClaimStatus } from '../../utils/Claimutils';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
+import ReportResultView from '../../components/reports/ReportResultView';
 import SavedReportsBar from '../../components/SavedReportsBar';
 import ReportSchedulesBar from '../../components/ReportSchedulesBar';
 import { capaBtnSecondary } from '../../components/capa/CapaAdminUi';
@@ -74,7 +75,6 @@ export default function AdminClaimsReportGenerator() {
   const [error, setError] = useState<string | null>(null);
   const [draft, setDraft] = useState<Criteria>(defaultCriteria);
   const [report, setReport] = useState<Generated | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [savedKey, setSavedKey] = useState(0);
   const [deptByUser, setDeptByUser] = useState<Record<string, string>>({});
 
@@ -182,7 +182,6 @@ export default function AdminClaimsReportGenerator() {
     if (draft.from > draft.to) { setError(t('actionsReport.invalidRange')); return; }
     setError(null);
     setGenerating(true);
-    setExpanded(null);
     window.setTimeout(() => {
       const prev = previousPeriod(draft.from, draft.to);
       setReport({ ...build(draft), previous: build({ ...draft, from: prev.from, to: prev.to }).totals });
@@ -404,7 +403,7 @@ export default function AdminClaimsReportGenerator() {
           <button type="button" onClick={generate} disabled={generating || claims.length === 0} className="px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-50" style={{ background: COFICAB }}>
             {generating ? t('actionsReport.generating') : t('actionsReport.generate')}
           </button>
-          <button type="button" onClick={() => { setDraft(defaultCriteria()); setReport(null); setExpanded(null); setError(null); }} className="px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white hover:bg-slate-50">
+          <button type="button" onClick={() => { setDraft(defaultCriteria()); setReport(null); setError(null); }} className="px-3 py-2.5 text-sm rounded-lg border border-slate-200 bg-white hover:bg-slate-50">
             {t('common.reset')}
           </button>
           <span className="text-xs text-slate-400 ml-auto">{t('reportClaims.gen.sourceCount', { count: claims.length })}</span>
@@ -453,7 +452,6 @@ export default function AdminClaimsReportGenerator() {
             };
           }
           setReport(result);
-          setExpanded(null);
           setError(null);
         }}
       />
@@ -481,106 +479,44 @@ export default function AdminClaimsReportGenerator() {
       )}
 
       {report && !generating && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <div className="text-xs text-slate-500">
-              {t('actionsReport.generatedAt')}: <span className="font-semibold text-slate-700">{new Date(report.generatedAt).toLocaleString()}</span>
-              {' · '}{report.criteria.from} → {report.criteria.to}{' · '}{t(`reportClaims.gen.by.${report.criteria.groupBy}`)}
-            </div>
-            <button type="button" onClick={generate} className="text-xs font-semibold text-[#000168] hover:underline">{t('actionsReport.regenerate')}</button>
-          </div>
-
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-5 py-4 mb-5">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#000168] mb-1.5">{t('reportSummary.title')}</div>
-            <ul className="m-0 pl-4 space-y-1 text-sm text-slate-700">
-              {summaryLines.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-            {report.previous && <p className="text-[11px] text-slate-500 mt-2 mb-0">{t('reportSummary.comparedWith', { from: previousPeriod(report.criteria.from, report.criteria.to).from, to: previousPeriod(report.criteria.from, report.criteria.to).to })}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-5">
-            {[
-              { label: t('reportClaims.cardAll'), value: report.totals.total },
-              { label: t('actionsReport.kpiClosed'), value: report.totals.closed },
-              { label: t('actionsReport.kpiLate'), value: report.totals.late },
-              { label: t('actionsReport.kpiOpen'), value: report.totals.open },
-              { label: t('reportClaims.colRate'), value: `${report.totals.rate}%` },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl px-3 py-3 text-white" style={{ background: COFICAB }}>
-                <div className="text-2xl font-bold tabular-nums">{s.value}</div>
-                <div className="text-[10px] uppercase tracking-wide text-white/70 font-semibold mt-0.5">{s.label}</div>
+        <ReportResultView
+          generatedAt={report.generatedAt}
+          periodText={`${report.criteria.from} → ${report.criteria.to} · ${t(`reportClaims.gen.by.${report.criteria.groupBy}`)}`}
+          onRegenerate={generate}
+          totals={report.totals}
+          previous={report.previous}
+          previousText={report.previous ? t('reportSummary.comparedWith', { from: previousPeriod(report.criteria.from, report.criteria.to).from, to: previousPeriod(report.criteria.from, report.criteria.to).to }) : undefined}
+          summaryLines={summaryLines}
+          groups={report.groups}
+          itemLabel={t('reportClaims.colClaims')}
+          groupColLabel={t('actionsReport.colGroup')}
+          emptyText={t('reportClaims.empty')}
+          renderDetail={(key) => {
+            const g = report.groups.find((x) => x.key === key);
+            if (!g) return null;
+            return (
+              <div className="space-y-2">
+                {g.rows.slice(0, 100).map((r) => (
+                  <div key={r.claim.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{r.claim.title}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {r.claim.clientId}{' · '}{defectLabel(r.claim.defectType)}{' · '}{sevLabel(r.claim.severity)}{' · '}{fmtDate(r.claim.deadline)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.closed ? 'bg-emerald-50 text-emerald-700' : r.late ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>{rowState(r)}</span>
+                      <button type="button" className="text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/pages/front/quality-analyses?claimId=${r.claim.id}`)}>
+                        {t('qualityHistory.open')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                {g.rows.length > 100 && <p className="text-[11px] text-slate-500 m-0">{t('reportClaims.gen.firstOnly', { shown: 100, total: g.rows.length })}</p>}
               </div>
-            ))}
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100">
-              <h3 className="text-sm font-semibold text-slate-800 m-0">{t('actionsReport.resultTitle')} · {report.totals.groups} {t('actionsReport.kpiGroups').toLowerCase()}</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.colGroup')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('reportClaims.colClaims')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.kpiClosed')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.kpiLate')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('reportClaims.colRate')}</th>
-                    <th className="px-4 py-3 font-semibold text-right">{t('common.actions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.groups.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-12 text-center text-slate-400">{t('reportClaims.empty')}</td></tr>
-                  ) : report.groups.map((g) => (
-                    <React.Fragment key={g.key}>
-                      <tr className="border-t border-slate-100 hover:bg-slate-50/80">
-                        <td className="px-4 py-3 font-medium text-slate-900">{g.label}</td>
-                        <td className="px-4 py-3 tabular-nums">{g.total}</td>
-                        <td className="px-4 py-3 tabular-nums text-emerald-700">{g.closed}</td>
-                        <td className="px-4 py-3 tabular-nums text-rose-600">{g.late}</td>
-                        <td className="px-4 py-3 min-w-[120px]">
-                          <div className="text-xs text-slate-500 mb-1 tabular-nums">{g.rate}%</div>
-                          <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full" style={{ width: `${g.rate}%`, background: COFICAB }} /></div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button type="button" className="text-xs font-semibold text-[#000168] hover:underline" onClick={() => setExpanded(expanded === g.key ? null : g.key)}>
-                            {expanded === g.key ? t('actionsReport.hide') : t('actionsReport.details')}
-                          </button>
-                        </td>
-                      </tr>
-                      {expanded === g.key && (
-                        <tr className="bg-slate-50/60">
-                          <td colSpan={6} className="px-4 py-3">
-                            <div className="space-y-2">
-                              {g.rows.slice(0, 100).map((r) => (
-                                <div key={r.claim.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                                  <div className="min-w-0">
-                                    <div className="text-sm font-medium text-slate-900 truncate">{r.claim.title}</div>
-                                    <div className="text-[11px] text-slate-500 truncate">
-                                      {r.claim.clientId}{' · '}{defectLabel(r.claim.defectType)}{' · '}{sevLabel(r.claim.severity)}{' · '}{fmtDate(r.claim.deadline)}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center gap-3">
-                                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${r.closed ? 'bg-emerald-50 text-emerald-700' : r.late ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>{rowState(r)}</span>
-                                    <button type="button" className="text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/pages/front/quality-analyses?claimId=${r.claim.id}`)}>
-                                      {t('qualityHistory.open')}
-                                    </button>
-                                  </div>
-                                </div>
-                              ))}
-                              {g.rows.length > 100 && <p className="text-[11px] text-slate-500 m-0">{t('reportClaims.gen.firstOnly', { shown: 100, total: g.rows.length })}</p>}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+            );
+          }}
+        />
       )}
     </div>
   );

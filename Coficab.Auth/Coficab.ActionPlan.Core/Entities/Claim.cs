@@ -58,6 +58,8 @@ public class Claim
     // Traçabilité production — renseignée au démarrage de l'analyse (ou
     // plus tard, via édition), pas obligatoire à la création du claim.
     public string? ProductionLine { get; set; }
+    /// <summary>A problem found in the workshop (QRQC board) rather than reported by a customer. Its closure also needs a root cause and a corrective action.</summary>
+    public bool IsInternal { get; set; }
     public string? Shift { get; set; }
     public string? AnalysisNotes { get; set; }
     // 📌 Quantités pour le calcul du PPM (Parts Per Million) lié au défaut.

@@ -73,6 +73,8 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
   const [cvNote, setCvNote] = useState<{ kind: 'analysing' | 'none' | 'unavailable' | 'anomaly'; confidence?: number } | null>(null);
 
   // Optional at declaration: the two quantities the PPM of the defect is computed from (also editable later on the 5 Why page)
+  const [isInternal, setIsInternal] = useState(false);
+  const [productionLine, setProductionLine] = useState('');
   const [producedQty, setProducedQty] = useState('');
   const [defectiveQty, setDefectiveQty] = useState('');
   const quantitiesPpm = computePpm({
@@ -322,6 +324,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
     payload.append('SerialNumber', formData.serialNumber || '');
     payload.append('Description', formData.description || '');
     payload.append('StatusCode', statusCode);
+    if (isInternal) {
+      payload.append('IsInternal', 'true');
+      if (productionLine.trim()) payload.append('ProductionLine', productionLine.trim());
+    }
     if (producedQty.trim() !== '' && defectiveQty.trim() !== '' && quantitiesPpm.isComputable) {
       payload.append('ProducedQuantity', String(Number(producedQty)));
       payload.append('DefectiveQuantity', String(Number(defectiveQty)));
@@ -947,6 +953,38 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                 {/* STEP 1: GENERAL INFO */}
                 {currentStep === 1 && (
                   <>
+                  <div className="pfe-field">
+                    <label>{t('qrqc.origin')}</label>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="group" aria-label={t('qrqc.origin')}>
+                      {([false, true] as const).map((internal) => (
+                        <button
+                          key={String(internal)}
+                          type="button"
+                          aria-pressed={isInternal === internal}
+                          onClick={() => setIsInternal(internal)}
+                          style={{
+                            padding: '8px 14px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                            border: `1px solid ${isInternal === internal ? '#000168' : '#cbd5e1'}`,
+                            background: isInternal === internal ? '#eef0ff' : '#fff', color: isInternal === internal ? '#000168' : '#475569',
+                          }}
+                        >
+                          {internal ? t('qrqc.originInternal') : t('qrqc.originCustomer')}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="pfe-hint" style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
+                      {isInternal ? t('qrqc.internalHint') : t('qrqc.customerHint')}
+                    </p>
+                    {isInternal && (
+                      <div className="pfe-input-box" style={{ marginTop: 8 }}>
+                        <select value={productionLine} onChange={(e) => setProductionLine(e.target.value)} aria-label={t('qrqc.productionLine')}>
+                          <option value="">{t('qrqc.linePlaceholder')}</option>
+                          {referenceLists.productionLines.map((l) => <option key={l} value={l}>{l}</option>)}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="pfe-field">
                     <label>{t('createClaim.sourceProof')}</label>
                     

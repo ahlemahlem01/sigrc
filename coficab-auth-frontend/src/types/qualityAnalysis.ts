@@ -228,6 +228,7 @@ export interface QualityDashboardSummary {
 
 export interface ClaimsHistoryRow {
   id: string;
+  isInternal?: boolean;
   title: string;
   clientId: string;
   defectType: string;
@@ -313,6 +314,8 @@ export interface ClaimsHistoryPage {
 }
 
 export interface ClaimsHistoryQuery {
+  /** YES: internal (workshop) problems only, NO: customer claims only. */
+  internal?: string;
   page?: number;
   pageSize?: number;
   search?: string;

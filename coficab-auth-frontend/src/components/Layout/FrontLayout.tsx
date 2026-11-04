@@ -59,6 +59,7 @@ const FrontLayout = () => {
     { to: '/pages/front', label: t('employeeWorkspace.frontHome'), active: location.pathname === '/pages/front' },
     ...(isAdmin ? [
       { to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') },
+      { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
       { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
     ] : []),
     ...(isAuthenticated ? [

@@ -20,6 +20,8 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? Severity { get; set; }
     public string? LotNumber { get; set; }
     public string? ProductionLine { get; set; }
+    /// <summary>YES: only the internal (workshop) problems, NO: only the customer claims, empty: both.</summary>
+    public string? Internal { get; set; }
     public string? Shift { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? CreatedFrom { get; set; }
@@ -70,6 +72,7 @@ public class ClaimsHistoryRowDto
     public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
     public string? ProductionLine { get; set; }
+    public bool IsInternal { get; set; }
     public string? Shift { get; set; }
     public int? ProducedQuantity { get; set; }
     public int? DefectiveQuantity { get; set; }
@@ -221,6 +224,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         }
         if (!string.IsNullOrWhiteSpace(request.ProductionLine))
             claims = claims.Where(c => c.ProductionLine == request.ProductionLine);
+        if (string.Equals(request.Internal, "YES", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => c.IsInternal);
+        else if (string.Equals(request.Internal, "NO", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => !c.IsInternal);
         if (!string.IsNullOrWhiteSpace(request.Shift))
             claims = claims.Where(c => c.Shift == request.Shift);
         if (!string.IsNullOrWhiteSpace(request.CreatedBy))
@@ -382,6 +387,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 AssignedToId = c.AssignedToId,
                 AssignedToName = c.AssignedToName,
                 ProductionLine = c.ProductionLine,
+                IsInternal = c.IsInternal,
                 Shift = c.Shift,
                 ProducedQuantity = c.ProducedQuantity,
                 DefectiveQuantity = c.DefectiveQuantity,
