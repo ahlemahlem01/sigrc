@@ -1,3 +1,4 @@
+using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Licences;
 using Coficab.ActionPlan.Core.Entities;
 using Coficab.ActionPlan.Infrastructure.Data;
@@ -66,6 +67,88 @@ public class SystemController : ControllerBase
         }
         await _db.SaveChangesAsync(ct);
         return Ok(new { idleMinutes = request.IdleMinutes });
+    }
+
+    // ── modules ────────────────────────────────────────────────
+
+    /// <summary>The optional modules and whether the contract activates them (everyone reads it: the menus follow).</summary>
+    [HttpGet("modules")]
+    [Authorize]
+    public async Task<IActionResult> GetModules(CancellationToken ct)
+    {
+        await ModuleAccess.EnsureAsync(_db, ct);
+        var rows = await _db.Modules.AsNoTracking().ToListAsync(ct);
+        return Ok(ModuleAccess.Catalog.Select(c => new
+        {
+            code = c.Code,
+            name = c.Name,
+            isActive = rows.FirstOrDefault(r => string.Equals(r.Code, c.Code, StringComparison.OrdinalIgnoreCase))?.IsActive ?? true,
+        }));
+    }
+
+    public sealed class ModuleRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    [HttpPut("modules/{code}")]
+    [Authorize(Roles = "superadmin")]
+    public async Task<IActionResult> SetModule(string code, [FromBody] ModuleRequest request, CancellationToken ct)
+    {
+        if (!ModuleAccess.Catalog.Any(c => string.Equals(c.Code, code, StringComparison.OrdinalIgnoreCase))) return NotFound();
+        await ModuleAccess.EnsureAsync(_db, ct);
+        var row = await _db.Modules.FirstAsync(m => m.Code == code.ToLower(), ct);
+        row.IsActive = request.IsActive;
+        row.UpdatedAt = DateTime.UtcNow;
+        row.UpdatedBy = CurrentUserId();
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { code = row.Code, isActive = row.IsActive });
+    }
+
+    // ── notification digest ────────────────────────────────────
+
+    public sealed class DigestRequest
+    {
+        public int Mode { get; set; }
+        public int Hour { get; set; } = 8;
+        public int Day { get; set; } = 1;
+        public int DaysMask { get; set; }
+    }
+
+    [HttpGet("notifications")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> GetDigest(CancellationToken ct)
+    {
+        var rows = await _db.OverviewSettings.AsNoTracking().Where(s => s.Key.StartsWith("notif.digest.")).ToDictionaryAsync(s => s.Key, s => s.Value, ct);
+        var d = NotificationDigestHostedService.Read(rows);
+        return Ok(new { mode = (int)d.Mode, hour = d.Hour, day = d.Day, daysMask = d.DaysMask });
+    }
+
+    /// <summary>Sets when the digest goes out. Saving counts as a run, so nothing is sent at once for a slot that has already passed.</summary>
+    [HttpPut("notifications")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> SetDigest([FromBody] DigestRequest request, CancellationToken ct)
+    {
+        var schedule = new Coficab.ActionPlan.Application.Notifications.DigestSchedule((Coficab.ActionPlan.Application.Notifications.DigestMode)request.Mode, request.Hour, request.Day, request.DaysMask);
+        if (!schedule.IsValid(out var error)) return BadRequest(new { message = error });
+
+        var values = new Dictionary<string, double>
+        {
+            [NotificationDigestHostedService.ModeKey] = request.Mode,
+            [NotificationDigestHostedService.HourKey] = request.Hour,
+            [NotificationDigestHostedService.DayKey] = request.Day,
+            [NotificationDigestHostedService.MaskKey] = request.DaysMask,
+            [NotificationDigestHostedService.LastRunKey] = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds(),
+        };
+        var rows = await _db.OverviewSettings.Where(s => s.Key.StartsWith("notif.digest.")).ToListAsync(ct);
+        foreach (var (key, value) in values)
+        {
+            var row = rows.FirstOrDefault(r => r.Key == key);
+            if (row == null) _db.OverviewSettings.Add(new OverviewSetting { Key = key, Value = value, UpdatedBy = CurrentUserId() });
+            else { row.Value = value; row.UpdatedAt = DateTime.UtcNow; row.UpdatedBy = CurrentUserId(); }
+        }
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { mode = request.Mode, hour = request.Hour, day = request.Day, daysMask = request.DaysMask });
     }
 
     /// <summary>The licences with the number of users they allow and the number in use.</summary>

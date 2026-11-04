@@ -14,6 +14,7 @@ import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
 import LanguageFlags from '../LanguageFlags';
 import LicenceBanner from '../LicenceBanner';
+import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 
 // Target route for Quality Analyses
@@ -24,6 +25,9 @@ const FrontLayout = () => {
   const { isAuthenticated, user, logout, renewSession, accessToken } = useAuth();
   // a hierarchical manager (someone other employees name as their manager) also gets the QRQC board, for his people only
   const [isManager, setIsManager] = useState(false);
+  const functionPermissions = useFunctionPermissions();
+  const inactiveModules = useInactiveModules();
+  const isValidator = canValidate(functionPermissions);
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -73,12 +77,15 @@ const FrontLayout = () => {
   const mainLinks: Array<{ to: string; label: string; active: boolean }> = [
     { to: '/pages/front', label: t('employeeWorkspace.frontHome'), active: location.pathname === '/pages/front' },
     ...(isAdmin ? [
-      { to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') },
-      { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
+      ...(inactiveModules.includes('pilotage') ? [] : [{ to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') }]),
+      ...(inactiveModules.includes('qrqc') ? [] : [{ to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') }]),
       { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
     ] : []),
-    ...(!isAdmin && isManager ? [
+    ...(!isAdmin && isManager && !inactiveModules.includes('qrqc') ? [
       { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
+    ] : []),
+    ...(!isAdmin && isValidator ? [
+      { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
     ] : []),
     ...(isAuthenticated ? [
       {
@@ -661,7 +668,7 @@ const FrontLayout = () => {
           <span className="fl-footer-badge">Action Plan v1.0</span>
         </div>
       </footer>
-      <QualityAssistantWidget scope={isAdmin ? 'admin' : 'employee'} />
+      {!inactiveModules.includes('assistant') && <QualityAssistantWidget scope={isAdmin ? 'admin' : 'employee'} />}
     </div>
   );
 };

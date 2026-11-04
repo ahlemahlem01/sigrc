@@ -254,6 +254,7 @@ public class AuthorizationController : ControllerBase
             name = user.FullName,
             department = user.Department,
             organizationId = user.OrganizationId,
+            mustChangePassword = user.MustChangePassword,
             role = roles,
             permission = permissions
         });
@@ -281,6 +282,7 @@ public class AuthorizationController : ControllerBase
             email = user.Email,
             name = user.FullName,
             department = user.Department,
+            mustChangePassword = user.MustChangePassword,
             organizationId = user.OrganizationId,
             role = roles,
             permission = permissions

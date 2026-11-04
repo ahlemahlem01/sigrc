@@ -6,6 +6,8 @@ import { useAuth } from '../../context/AuthContext';
 import { normalizeRoles } from '../../utils/roles';
 
 type Licence = { id: string; key: string; isGlobal: boolean; maxUsers: number; expiresAt: string; siteId: string | null; siteName: string | null };
+type ModuleRow = { code: string; name: string; isActive: boolean };
+type Digest = { mode: number; hour: number; day: number; daysMask: number };
 type Overview = {
   status: { state: string; daysLeft: number | null; expiresAt: string | null };
   usersUsed: number; usersMax: number | null; items: Licence[];
@@ -32,16 +34,24 @@ export default function SecuritySettingsPage() {
   const [overview, setOverview] = useState<Overview | null>(null);
   const [form, setForm] = useState<{ id?: string; key: string; isGlobal: boolean; maxUsers: string; expiresAt: string } | null>(null);
   const [licMsg, setLicMsg] = useState<string | null>(null);
+  const [modules, setModules] = useState<ModuleRow[]>([]);
+  const [digest, setDigest] = useState<Digest>({ mode: 0, hour: 8, day: 1, daysMask: 62 });
+  const [digestMsg, setDigestMsg] = useState<{ text: string; error: boolean } | null>(null);
 
   const load = useCallback(async () => {
     if (!accessToken) return;
     try {
-      const [s, l] = await Promise.all([
-        axios.get(`${BASE}/session`, { headers: { Authorization: `Bearer ${accessToken}` } }),
-        axios.get<Overview>(`${BASE}/licences`, { headers: { Authorization: `Bearer ${accessToken}` } }),
+      const auth = { headers: { Authorization: `Bearer ${accessToken}` } };
+      const [s, l, m, d] = await Promise.all([
+        axios.get(`${BASE}/session`, auth),
+        axios.get<Overview>(`${BASE}/licences`, auth),
+        axios.get<ModuleRow[]>(`${BASE}/modules`, auth),
+        axios.get<Digest>(`${BASE}/notifications`, auth),
       ]);
       setIdle(String(s.data?.idleMinutes ?? 30));
       setOverview(l.data);
+      setModules(m.data);
+      setDigest(d.data);
     } catch { /* the page stays empty */ }
   }, [accessToken]);
 
@@ -73,6 +83,24 @@ export default function SecuritySettingsPage() {
     }
   };
 
+  const toggleModule = async (code: string, isActive: boolean) => {
+    try {
+      await axios.put(`${BASE}/modules/${code}`, { isActive }, { headers });
+      setModules((rows) => rows.map((m) => (m.code === code ? { ...m, isActive } : m)));
+    } catch { /* the switch stays where it was */ }
+  };
+
+  const saveDigest = async () => {
+    setDigestMsg(null);
+    try {
+      await axios.put(`${BASE}/notifications`, digest, { headers });
+      setDigestMsg({ text: t('security.saved'), error: false });
+    } catch (e) {
+      const m = axios.isAxiosError(e) ? (e.response?.data as any)?.message : null;
+      setDigestMsg({ text: m || t('security.saveFailed'), error: true });
+    }
+  };
+
   const archive = async (id: string) => {
     await axios.delete(`${BASE}/licences/${id}`, { headers });
     await load();
@@ -95,6 +123,50 @@ export default function SecuritySettingsPage() {
           <button type="button" style={btn} onClick={() => void saveIdle()}>{t('common.save')}</button>
           {idleMsg && <span style={{ fontSize: 13, color: idleMsg.error ? '#b91c1c' : '#047857' }}>{idleMsg.text}</span>}
         </div>
+      </section>
+
+      <section style={card}>
+        <h2 style={{ fontSize: 16, margin: '0 0 6px' }}>{t('security.notifTitle')}</h2>
+        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 12px' }}>{t('security.notifHelp')}</p>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <select aria-label={t('security.notifMode')} style={input} value={digest.mode} onChange={(e) => setDigest({ ...digest, mode: Number(e.target.value) })}>
+            {[0, 1, 2, 3].map((m) => <option key={m} value={m}>{t(`security.notifModes.${m}`)}</option>)}
+          </select>
+          {digest.mode !== 0 && (
+            <label style={{ fontSize: 13 }}>{t('security.notifHour')}{' '}
+              <input aria-label={t('security.notifHour')} style={{ ...input, width: 64 }} type="number" min={0} max={23} value={digest.hour} onChange={(e) => setDigest({ ...digest, hour: Number(e.target.value) })} /> h
+            </label>
+          )}
+          {digest.mode === 2 && (
+            <select aria-label={t('security.notifDay')} style={input} value={digest.day} onChange={(e) => setDigest({ ...digest, day: Number(e.target.value) })}>
+              {[1, 2, 3, 4, 5, 6, 0].map((d) => <option key={d} value={d}>{t(`security.days.${d}`)}</option>)}
+            </select>
+          )}
+          {digest.mode === 3 && (
+            <span style={{ display: 'inline-flex', gap: 8, flexWrap: 'wrap', fontSize: 13 }}>
+              {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+                <label key={d} style={{ display: 'inline-flex', gap: 4, alignItems: 'center' }}>
+                  <input type="checkbox" checked={(digest.daysMask & (1 << d)) !== 0} onChange={(e) => setDigest({ ...digest, daysMask: e.target.checked ? digest.daysMask | (1 << d) : digest.daysMask & ~(1 << d) })} />
+                  {t(`security.days.${d}`)}
+                </label>
+              ))}
+            </span>
+          )}
+          <button type="button" style={btn} onClick={() => void saveDigest()}>{t('common.save')}</button>
+          {digestMsg && <span style={{ fontSize: 13, color: digestMsg.error ? '#b91c1c' : '#047857' }}>{digestMsg.text}</span>}
+        </div>
+      </section>
+
+      <section style={card}>
+        <h2 style={{ fontSize: 16, margin: '0 0 6px' }}>{t('security.modulesTitle')}</h2>
+        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 12px' }}>{isSuper ? t('security.modulesHelpSuper') : t('security.modulesHelp')}</p>
+        {modules.map((m) => (
+          <label key={m.code} style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, padding: '4px 0' }}>
+            <input type="checkbox" checked={m.isActive} disabled={!isSuper} onChange={(e) => void toggleModule(m.code, e.target.checked)} />
+            {m.name}
+            <span style={{ fontSize: 12, color: m.isActive ? '#047857' : '#b91c1c' }}>{m.isActive ? t('security.moduleOn') : t('security.moduleOff')}</span>
+          </label>
+        ))}
       </section>
 
       <section style={card}>

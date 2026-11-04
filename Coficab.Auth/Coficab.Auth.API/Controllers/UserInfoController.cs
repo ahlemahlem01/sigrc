@@ -30,6 +30,7 @@ public class UserInfoController : ControllerBase
             email = user.Email,
             name = user.UserName,
             department = user.Department,
+            mustChangePassword = user.MustChangePassword,
             role = roles,
         });
     }

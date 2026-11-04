@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import LanguageSwitcher from '../LanguageSwitcher';
 import LicenceBanner from '../LicenceBanner';
+import { useInactiveModules } from '../../hooks/useAccess';
 import UserAvatar from '../UserAvatar';
 import { LogOut, LayoutDashboard, ChevronDown, Search, Calendar } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
@@ -216,6 +217,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const inactiveModules = useInactiveModules();
   const { param: scopeParam, ready: scopeReady } = useOrganizationScope();
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -794,7 +796,7 @@ export default function AdminLayout() {
           </main>
         </div>
       </div>
-      <QualityAssistantWidget scope="admin" />
+      {!inactiveModules.includes('assistant') && <QualityAssistantWidget scope="admin" />}
     </div>
   );
 }

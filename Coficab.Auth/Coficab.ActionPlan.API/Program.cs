@@ -67,6 +67,7 @@ builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.DatabaseMigrat
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.ProductionReferenceDataInitializer>();
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.EmployeeActivityHostedService>();
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.ReportScheduleHostedService>();
+builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.NotificationDigestHostedService>();
 // Anomaly detection is event-driven (ClaimCreated/ClaimClosed → MediatR handlers).
 // Keep DetectAndPersistAsync for manual reconciliation if needed.
 builder.Services.AddHostedService<Coficab.ActionPlan.API.Services.SemanticEmbeddingHostedService>();

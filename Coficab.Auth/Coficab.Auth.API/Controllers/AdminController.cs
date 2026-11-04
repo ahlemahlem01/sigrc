@@ -189,6 +189,7 @@ public class AdminController : ControllerBase
             user.LockoutEnd,
             user.AccessFailedCount,
             user.LastLoginAt,
+            user.MustChangePassword,
             IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
             Roles = rolesByUser.TryGetValue(user.Id, out var roles) ? roles : new List<string>(),
             Permissions = permissionsByUser.TryGetValue(user.Id, out var permissions) ? permissions : new List<string>(),
@@ -437,6 +438,7 @@ public class AdminController : ControllerBase
         };
 
         var temporaryPassword = GenerateSecurePassword();
+        user.MustChangePassword = true;   // the password sent by e-mail is a temporary one
         var result = await _userManager.CreateAsync(user, temporaryPassword);
         if (!result.Succeeded)
             return new UserCreateOutcome(result.Errors.First().Description, null, null, null, null);
@@ -682,6 +684,9 @@ public class AdminController : ControllerBase
 
         if (!result.Succeeded)
             return BadRequest(result.Errors.First().Description);
+
+        user.MustChangePassword = true;   // reinitialized: the person must choose a new password at the next sign-in
+        await _userManager.UpdateAsync(user);
 
         await _auditService.LogAsync(
             action: "RESET_PASSWORD",

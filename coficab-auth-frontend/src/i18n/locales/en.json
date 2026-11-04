@@ -163,6 +163,31 @@
     "expired": "The licence expired on {{date}}. Contact your supplier to renew it."
   },
   "security": {
+    "notifTitle": "Scheduled notifications",
+    "notifHelp": "Digest sent to each person: late actions and claims, actions to finish this week. Nothing is sent to someone with nothing waiting.",
+    "notifMode": "Frequency",
+    "notifHour": "Hour",
+    "notifDay": "Day",
+    "notifModes": {
+      "0": "Off",
+      "1": "Every day",
+      "2": "Every week",
+      "3": "Personalized days and hour"
+    },
+    "days": {
+      "0": "Sunday",
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday"
+    },
+    "modulesTitle": "Modules",
+    "modulesHelp": "The optional modules the contract activates. Only the superadmin (the supplier) switches them.",
+    "modulesHelpSuper": "Switch the optional modules on or off according to the customer’s contract. A module that is off disappears from the menus.",
+    "moduleOn": "on",
+    "moduleOff": "off",
     "title": "Security and licences",
     "subtitle": "Automatic logout and licences of the platform.",
     "idleTitle": "Automatic logout",
@@ -232,6 +257,39 @@
     "empty": "No function.",
     "count_one": "{{count}} function",
     "count_other": "{{count}} functions"
+  },
+  "changePassword": {
+    "title": "Choose your password",
+    "forced": "Your password is temporary: choose your own to continue.",
+    "help": "Change your password.",
+    "current": "Current password",
+    "new": "New password",
+    "confirm": "Confirm the new password",
+    "rules": "At least 8 characters, with letters, a digit and a special character.",
+    "mismatch": "The two passwords are not the same.",
+    "failed": "The password could not be changed.",
+    "submit": "Save my password",
+    "signOut": "Sign out"
+  },
+  "personalData": {
+    "title": "Personal data",
+    "help": "Visible to administrators only, never to colleagues.",
+    "dateOfBirth": "Date of birth",
+    "nationalities": "Nationalities (comma separated)",
+    "cin": "Identity card (CIN)",
+    "passport": "Passport",
+    "parents": "Parents",
+    "number": "Number",
+    "date": "Date",
+    "country": "Country",
+    "validFrom": "Valid from",
+    "validTill": "Valid till",
+    "fatherName": "Father’s first name",
+    "fatherLastName": "Father’s last name",
+    "motherName": "Mother’s first name",
+    "motherLastName": "Mother’s last name",
+    "saved": "Saved",
+    "failed": "Could not save"
   },
   "qrqc": {
     "noAccess": "You do not have access to the QRQC board. It is reserved for administrators and hierarchical managers.",
@@ -4700,6 +4758,16 @@
     "radarName": "Skills"
   },
   "employeeProfileAdmin": {
+    "accountStatus": "Account",
+    "accountStatuses": {
+      "active": "Active",
+      "notActive": "Not active",
+      "archived": "Archived",
+      "blocked": "Blocked",
+      "reinitialized": "Reinitialized"
+    },
+    "archive": "Archive",
+    "restore": "Restore",
     "manager": "Hierarchical manager",
     "managerNone": "None (the administrator takes over)",
     "managerHint": "Notified at level 2 of the QRQC board and sees the problems of the people managed. His role does not change.",

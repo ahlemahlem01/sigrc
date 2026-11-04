@@ -153,9 +153,13 @@ export const AdminValidationHub: React.FC = () => {
 
   const loadCapa = useCallback(async () => {
     if (!accessToken) return;
-    const res = await getPendingValidation(accessToken);
-    const list = (res.data?.data ?? res.data ?? []) as any[];
-    setCapa((Array.isArray(list) ? list : []).map(mapCapa));
+    try {
+      const res = await getPendingValidation(accessToken);
+      const list = (res.data?.data ?? res.data ?? []) as any[];
+      setCapa((Array.isArray(list) ? list : []).map(mapCapa));
+    } catch {
+      setCapa([]);   // the CAPA plans are validated by the administrators: someone who only holds a function does not see them
+    }
   }, [accessToken]);
 
   const loadRejected = useCallback(async () => {

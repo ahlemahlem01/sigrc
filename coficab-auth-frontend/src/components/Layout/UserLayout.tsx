@@ -7,6 +7,7 @@ import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
 import LicenceBanner from '../LicenceBanner';
+import { useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
 import { MOBILE_NAV_CSS } from './mobileNav';
@@ -117,6 +118,7 @@ function getPageMeta(
 export default function UserLayout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const inactiveModules = useInactiveModules();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -595,7 +597,7 @@ export default function UserLayout() {
           </main>
         </div>
       </div>
-      <QualityAssistantWidget scope="employee" />
+      {!inactiveModules.includes('assistant') && <QualityAssistantWidget scope="employee" />}
     </div>
   );
 }

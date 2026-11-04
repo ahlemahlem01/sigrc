@@ -71,6 +71,9 @@ import PilotagePage from './pages/front/PilotagePage';
 import QrqcBoardPage from './pages/front/QrqcBoardPage';
 import SecuritySettingsPage from './pages/admin/SecuritySettingsPage';
 import IdleLogout from './components/IdleLogout';
+import MustChangePasswordRedirect from './components/MustChangePasswordRedirect';
+import ChangePasswordPage from './pages/ChangePasswordPage';
+import { FrontValidatorRoute } from './pages/front/FrontValidatorRoute';
 import ReferenceLabelsLoader from './components/ReferenceLabelsLoader';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
@@ -156,12 +159,14 @@ const App = () => {
       <BrowserRouter>
         <ScrollToTop />
         <IdleLogout />
+        <MustChangePasswordRedirect />
         <ReferenceLabelsLoader />
         <Routes>
           {/* ── Public ── */}
           <Route path="/"                   element={<LandingPage />} />
           <Route path="/login"              element={<LoginPage />} />
           <Route path="/forgot-password"    element={<ForgotPasswordPage />} />
+          <Route path="/change-password"    element={<ChangePasswordPage />} />
           <Route path="/reset-password"     element={<ResetPasswordPage />} />
 
           {/* ── User routes ── */}
@@ -279,11 +284,15 @@ const App = () => {
               <Route path="/claims/confinement/:claimId"                  element={<ContainmentPage />} />
               <Route path="/claims/8d/:claimId"                           element={<EightDPage />} />
 
+              {/* The validation desk: administrators, and people whose function carries the right to validate */}
+              <Route element={<FrontValidatorRoute />}>
+                <Route path="/pages/front/validations"                   element={<AdminValidationHub />} />
+              </Route>
+
               {/* Admin-only front pages */}
               <Route element={<FrontAdminRoute />}>
                 <Route path="/pages/front/pilotage"                      element={<PilotagePage />} />
                 <Route path="/pages/front/qrqc"                         element={<QrqcBoardPage />} />
-                <Route path="/pages/front/validations"                   element={<AdminValidationHub />} />
                 <Route path="/pages/front/quality-analyses/managed"      element={<AdminManagedClaimsPage />} />
                 <Route path="/pages/front/action-plans"                   element={<FrontActionPlans />} />
                 <Route path="/pages/front/action-plans/pending-validation" element={<Navigate to="/pages/front/validations?tab=capa" replace />} />

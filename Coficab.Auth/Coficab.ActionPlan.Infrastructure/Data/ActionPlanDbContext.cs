@@ -253,6 +253,15 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.ManagerId).HasMaxLength(450);
             entity.Property(e => e.ManagerName).HasMaxLength(200);
             entity.Property(e => e.ManagerEmail).HasMaxLength(200);
+            entity.Property(e => e.Nationalities).HasMaxLength(300);
+            entity.Property(e => e.CinNumber).HasMaxLength(50);
+            entity.Property(e => e.CinCountry).HasMaxLength(100);
+            entity.Property(e => e.PassportNumber).HasMaxLength(50);
+            entity.Property(e => e.PassportCountry).HasMaxLength(100);
+            entity.Property(e => e.FatherName).HasMaxLength(120);
+            entity.Property(e => e.FatherLastName).HasMaxLength(120);
+            entity.Property(e => e.MotherName).HasMaxLength(120);
+            entity.Property(e => e.MotherLastName).HasMaxLength(120);
 
             entity.HasOne(e => e.Department)
                   .WithMany()

@@ -19,6 +19,8 @@ export interface UserDto {
   isLockedOut: boolean;
   lockoutEnd?: string | null;
   accessFailedCount?: number;
+  /** Temporary password not changed yet. */
+  mustChangePassword?: boolean;
   roles: string[];
   permissions: string[];
   /** Rights the role gives by itself: shown as granted in the matrix, not removable there. */

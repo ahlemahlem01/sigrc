@@ -39,6 +39,7 @@ public class QrqcController : ControllerBase
     /// <summary>Sets the restriction of the request; false when the caller is neither an administrator nor a manager.</summary>
     private async Task<bool> PrepareAccessAsync(CancellationToken ct)
     {
+        if (!await Services.ModuleAccess.IsEnabledAsync(_db, Services.ModuleAccess.Qrqc, ct)) return false;
         if (IsAdmin()) { _restrictTo = null; return true; }
         var me = CurrentUserId();
         if (me.Length == 0) return false;

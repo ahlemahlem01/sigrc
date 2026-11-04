@@ -163,6 +163,31 @@
     "expired": "La licenza è scaduta il {{date}}. Contatta il fornitore per rinnovarla."
   },
   "security": {
+    "notifTitle": "Notifiche programmate",
+    "notifHelp": "Riepilogo inviato a ogni persona: azioni e reclami in ritardo, azioni da concludere questa settimana. Nulla viene inviato a chi non ha nulla in sospeso.",
+    "notifMode": "Frequenza",
+    "notifHour": "Ora",
+    "notifDay": "Giorno",
+    "notifModes": {
+      "0": "Disattivate",
+      "1": "Ogni giorno",
+      "2": "Ogni settimana",
+      "3": "Giorni e ora personalizzati"
+    },
+    "days": {
+      "0": "Domenica",
+      "1": "Lunedì",
+      "2": "Martedì",
+      "3": "Mercoledì",
+      "4": "Giovedì",
+      "5": "Venerdì",
+      "6": "Sabato"
+    },
+    "modulesTitle": "Moduli",
+    "modulesHelp": "I moduli opzionali attivati dal contratto. Solo il superadmin (il fornitore) li attiva.",
+    "modulesHelpSuper": "Attiva o disattiva i moduli opzionali secondo il contratto del cliente. Un modulo disattivato sparisce dai menu.",
+    "moduleOn": "attivo",
+    "moduleOff": "disattivo",
     "title": "Sicurezza e licenze",
     "subtitle": "Disconnessione automatica e licenze della piattaforma.",
     "idleTitle": "Disconnessione automatica",
@@ -232,6 +257,39 @@
     "empty": "Nessuna funzione.",
     "count_one": "{{count}} funzione",
     "count_other": "{{count}} funzioni"
+  },
+  "changePassword": {
+    "title": "Scegli la tua password",
+    "forced": "La tua password è temporanea: scegline una tua per continuare.",
+    "help": "Cambia la tua password.",
+    "current": "Password attuale",
+    "new": "Nuova password",
+    "confirm": "Conferma la nuova password",
+    "rules": "Almeno 8 caratteri, con lettere, una cifra e un carattere speciale.",
+    "mismatch": "Le due password non coincidono.",
+    "failed": "Impossibile cambiare la password.",
+    "submit": "Salva la mia password",
+    "signOut": "Esci"
+  },
+  "personalData": {
+    "title": "Dati personali",
+    "help": "Visibili solo agli amministratori, mai ai colleghi.",
+    "dateOfBirth": "Data di nascita",
+    "nationalities": "Nazionalità (separate da virgole)",
+    "cin": "Carta d’identità (CIN)",
+    "passport": "Passaporto",
+    "parents": "Genitori",
+    "number": "Numero",
+    "date": "Data",
+    "country": "Paese",
+    "validFrom": "Valido dal",
+    "validTill": "Valido fino al",
+    "fatherName": "Nome del padre",
+    "fatherLastName": "Cognome del padre",
+    "motherName": "Nome della madre",
+    "motherLastName": "Cognome della madre",
+    "saved": "Salvato",
+    "failed": "Salvataggio impossibile"
   },
   "qrqc": {
     "noAccess": "Non hai accesso al pannello QRQC. È riservato agli amministratori e ai responsabili gerarchici.",
@@ -4700,6 +4758,16 @@
     "radarName": "Competenze"
   },
   "employeeProfileAdmin": {
+    "accountStatus": "Account",
+    "accountStatuses": {
+      "active": "Attivo",
+      "notActive": "Non attivo",
+      "archived": "Archiviato",
+      "blocked": "Bloccato",
+      "reinitialized": "Reinizializzato"
+    },
+    "archive": "Archivia",
+    "restore": "Ripristina",
     "manager": "Responsabile gerarchico",
     "managerNone": "Nessuno (subentra l’amministratore)",
     "managerHint": "Avvisato al livello 2 del pannello QRQC e vede i problemi dei suoi collaboratori. Il suo ruolo non cambia.",

@@ -136,6 +136,92 @@ public class AdminEmployeeController : ControllerBase
         return Ok(new { profile.UserId, profile.ManagerId, profile.ManagerName });
     }
 
+    public sealed class PersonalDataRequest
+    {
+        public DateTime? DateOfBirth { get; set; }
+        public List<string>? Nationalities { get; set; }
+        public string? CinNumber { get; set; }
+        public DateTime? CinDate { get; set; }
+        public string? CinCountry { get; set; }
+        public string? PassportNumber { get; set; }
+        public DateTime? PassportValidFrom { get; set; }
+        public DateTime? PassportValidTill { get; set; }
+        public string? PassportCountry { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherLastName { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherLastName { get; set; }
+    }
+
+    private static string? Clean(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+
+    /// <summary>Personal data of the specification (identity, passport, parents). Administrators only.</summary>
+    [HttpGet("profiles/{userId}/personal")]
+    public async Task<IActionResult> GetPersonal(string userId, CancellationToken ct)
+    {
+        var p = await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+        return Ok(new
+        {
+            p.DateOfBirth,
+            nationalities = (p.Nationalities ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            p.CinNumber, p.CinDate, p.CinCountry, p.PassportNumber, p.PassportValidFrom, p.PassportValidTill, p.PassportCountry,
+            p.FatherName, p.FatherLastName, p.MotherName, p.MotherLastName,
+        });
+    }
+
+    [HttpPut("profiles/{userId}/personal")]
+    public async Task<IActionResult> SetPersonal(string userId, [FromBody] PersonalDataRequest r, CancellationToken ct)
+    {
+        var p = await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+
+        var today = DateTime.UtcNow.Date;
+        if (r.DateOfBirth.HasValue && r.DateOfBirth.Value.Date >= today) return BadRequest(new { message = "La date de naissance doit être dans le passé." });
+        if (r.CinDate.HasValue && r.CinDate.Value.Date > today) return BadRequest(new { message = "La date de la CIN ne peut pas être dans le futur." });
+        if (r.PassportValidFrom.HasValue && r.PassportValidTill.HasValue && r.PassportValidTill < r.PassportValidFrom)
+            return BadRequest(new { message = "La fin de validité du passeport doit suivre son début." });
+
+        static DateTime? Utc(DateTime? d) => d.HasValue ? DateTime.SpecifyKind(d.Value.Date, DateTimeKind.Utc) : null;
+        p.DateOfBirth = Utc(r.DateOfBirth);
+        var nationalities = (r.Nationalities ?? new()).Select(n => n.Trim()).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        p.Nationalities = nationalities.Count == 0 ? null : string.Join(", ", nationalities);
+        p.CinNumber = Clean(r.CinNumber);
+        p.CinDate = Utc(r.CinDate);
+        p.CinCountry = Clean(r.CinCountry);
+        p.PassportNumber = Clean(r.PassportNumber);
+        p.PassportValidFrom = Utc(r.PassportValidFrom);
+        p.PassportValidTill = Utc(r.PassportValidTill);
+        p.PassportCountry = Clean(r.PassportCountry);
+        p.FatherName = Clean(r.FatherName);
+        p.FatherLastName = Clean(r.FatherLastName);
+        p.MotherName = Clean(r.MotherName);
+        p.MotherLastName = Clean(r.MotherLastName);
+        p.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    public sealed class ArchiveRequest
+    {
+        public bool Archived { get; set; }
+    }
+
+    /// <summary>
+    /// Status "archived" of the specification: the person left the company. The profile is kept (nothing is deleted) and the console also
+    /// locks the account. Restoring puts the HR status back to active.
+    /// </summary>
+    [HttpPut("profiles/{userId}/archive")]
+    public async Task<IActionResult> Archive(string userId, [FromBody] ArchiveRequest request, CancellationToken ct)
+    {
+        var p = await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+        p.Status = request.Archived ? "archived" : "active";
+        p.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { p.UserId, p.Status });
+    }
+
     [HttpPut("profiles/{userId}/department")]
     public async Task<IActionResult> MoveToDepartment(string userId, [FromBody] MoveDepartmentDto dto)
     {

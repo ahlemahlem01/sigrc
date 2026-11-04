@@ -24,6 +24,7 @@ import EmployeeDocumentsBadgesPanel from './EmployeeDocumentsBadgesPanel';
 import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../../i18n';
+import PersonalDataPanel from '../../../components/employees/PersonalDataPanel';
 
 type InitialEmployee = {
   id?: string;
@@ -63,6 +64,10 @@ type ProfileState = {
   telephone: string;
   managerName: string;
   managerId: string;
+  /** HR status of the profile ("archived" when the person left the company). */
+  hrStatus: string;
+  /** Temporary password not changed yet (status "reinitialized"). */
+  mustChangePassword: boolean;
   hireDate: string | null;
   profilePictureUrl: string | null;
   isLockedOut: boolean;
@@ -235,6 +240,8 @@ export default function EmployeeAdminProfilePage() {
           phoneFromId(id),
         managerName: pick(rawProfile?.managerName, initial?.managerName),
         managerId: pick(rawProfile?.managerId, initial?.managerId),
+        hrStatus: String(rawProfile?.status ?? rawProfile?.Status ?? '').toLowerCase(),
+        mustChangePassword: Boolean((auth as any)?.mustChangePassword),
         hireDate: rawProfile?.hireDate || initial?.hireDate || null,
         profilePictureUrl:
           pick(rawProfile?.profilePictureUrl, initial?.profilePictureUrl, auth?.email && null) ||
@@ -330,6 +337,33 @@ export default function EmployeeAdminProfilePage() {
     if (rem <= 3) return 'warn';
     return 'ok';
   }, [perf?.remainingCapacity]);
+
+  /** The status of the specification: blocked, archived, reinitialized, not active, otherwise active. */
+  const accountStatus = (p: ProfileState): 'blocked' | 'archived' | 'reinitialized' | 'notActive' | 'active' => {
+    if (p.isLockedOut) return 'blocked';
+    if (p.hrStatus === 'archived') return 'archived';
+    if (p.mustChangePassword) return 'reinitialized';
+    if (activityStatusClass(p.activityStatus) === 'inactive') return 'notActive';
+    return 'active';
+  };
+
+  /** Archiving keeps the profile and the history; the account is locked so the person cannot sign in. */
+  const onToggleArchive = async () => {
+    if (!accessToken || !profile) return;
+    const archive = profile.hrStatus !== 'archived';
+    setLocking(true);
+    try {
+      await adminEmployeeService.setArchived(accessToken, profile.id, archive);
+      if (archive && !profile.isLockedOut) await lockUser(accessToken, profile.id);
+      if (!archive && profile.isLockedOut) await unlockUser(accessToken, profile.id);
+      setProfile((prev) => (prev ? { ...prev, hrStatus: archive ? 'archived' : 'active', isLockedOut: archive } : prev));
+    } catch {
+      setSaveErr(true);
+      setSaveMsg(t('fiveWhy.saveFailed'));
+    } finally {
+      setLocking(false);
+    }
+  };
 
   const onToggleLock = async () => {
     if (!accessToken || !profile) return;
@@ -447,6 +481,11 @@ export default function EmployeeAdminProfilePage() {
         .eap-pill.act-active { background: ${COFICAB.okSoft}; color: ${COFICAB.ok}; }
         .eap-pill.act-low { background: ${COFICAB.warnSoft}; color: ${COFICAB.warn}; }
         .eap-pill.act-inactive { background: #f1f5f9; color: #64748b; }
+        .eap-pill.acct-active { background: ${COFICAB.okSoft}; color: ${COFICAB.ok}; }
+        .eap-pill.acct-blocked { background: #fef2f2; color: #b91c1c; }
+        .eap-pill.acct-archived { background: #f1f5f9; color: #475569; }
+        .eap-pill.acct-reinitialized { background: ${COFICAB.warnSoft}; color: ${COFICAB.warn}; }
+        .eap-pill.acct-notActive { background: #f1f5f9; color: #64748b; }
         .eap-pill.acct-ok { background: ${COFICAB.light}; color: ${COFICAB.navy}; }
         .eap-pill.acct-locked { background: ${COFICAB.dangerSoft}; color: ${COFICAB.danger}; }
         .eap-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -614,6 +653,10 @@ export default function EmployeeAdminProfilePage() {
                   <span className="eap-chip">{roleLabel(profile.role)}</span>
                   {profile.department ? <span className="eap-chip">{profile.department}</span> : null}
                   {profile.poste ? <span className="eap-chip">{profile.poste}</span> : null}
+                  <span className={`eap-pill acct-${accountStatus(profile)}`} data-testid="account-status">
+                    <span className="k">{t('employeeProfileAdmin.accountStatus')}</span>
+                    {t(`employeeProfileAdmin.accountStatuses.${accountStatus(profile)}`)}
+                  </span>
                   <span className={`eap-pill act-${activityStatusClass(profile.activityStatus)}`}>
                     <span className="k">{t('employeeProfileAdmin.activity')}</span>
                     {activityStatusLabel(profile.activityStatus)}
@@ -652,6 +695,10 @@ export default function EmployeeAdminProfilePage() {
                   : profile.isLockedOut
                     ? t('employeesAdmin.unlock')
                     : t('employeeProfileAdmin.lock')}
+              </button>
+              <button type="button" className="eap-btn" onClick={() => void onToggleArchive()} disabled={locking}>
+                <i className={`ti ${profile.hrStatus === 'archived' ? 'ti-archive-off' : 'ti-archive'}`} />{' '}
+                {profile.hrStatus === 'archived' ? t('employeeProfileAdmin.restore') : t('employeeProfileAdmin.archive')}
               </button>
               <button type="button" className="eap-btn" onClick={() => void load()} disabled={loading}>
                 <i className="ti ti-refresh" /> {t('qualityHistory.refresh')}
@@ -776,6 +823,8 @@ export default function EmployeeAdminProfilePage() {
                   </div>
                 </section>
               )}
+
+              <PersonalDataPanel userId={profile.id} />
 
               {!editOpen && saveMsg ? (
                 <p className={`eap-msg${saveErr ? ' err' : ''}`} style={{ marginTop: 8 }}>

@@ -2835,7 +2835,21 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<DateTime?>("ActivityStatusComputedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("CinCountry")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("CinDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CinNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
 
                     b.Property<Guid?>("DepartmentId")
@@ -2848,6 +2862,14 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
 
                     b.Property<string>("Equipe")
                         .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("FatherLastName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("FatherName")
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
@@ -2876,10 +2898,36 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("MotherLastName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("MotherName")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Nationalities")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("PassportCountry")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PassportNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("PassportValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PassportValidTill")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Phone")
                         .HasMaxLength(50)

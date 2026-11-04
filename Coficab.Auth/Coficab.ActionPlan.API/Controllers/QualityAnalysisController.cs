@@ -172,13 +172,17 @@ public class QualityAnalysisController : ControllerBase
 
         var isAdmin = IsQualityAdmin();
         if (archived && !isAdmin) return Forbid();
+        // someone whose function carries the right to validate sees the claims waiting for validation, like an administrator of his department
+        var validatorView = !isAdmin && string.Equals(status?.Trim(), "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)
+            && (await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateEightD, cancellationToken)
+                || await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy, cancellationToken));
         string? relatedToUserId = null;
         string? assignedToId = null;
         string? createdById = null;
         bool? effectiveHasAssignee = hasAssignee;
         var excludeSelfCreated = false;
 
-        if (!isAdmin)
+        if (!isAdmin && !validatorView)
         {
             // Employé : scopes stricts — créées / assignées (par admin) / les deux.
             var wantsCreated = !string.IsNullOrWhiteSpace(ResolveMe(createdBy, userId))
@@ -218,7 +222,7 @@ public class QualityAnalysisController : ControllerBase
         var result = await _mediator.Send(
             new GetClaimsPageQuery(
                 new GetClaimsQuery(status, assignedToId, createdById, effectiveHasAssignee, relatedToUserId, excludeSelfCreated,
-                    IsQualityAdmin() && !IsSuperAdmin() ? userId : null,
+                    (IsQualityAdmin() || validatorView) && !IsSuperAdmin() ? userId : null,
                     isAdmin ? ClaimOrganizations.Parse(organizationIds) : null,
                     archived),
                 page,

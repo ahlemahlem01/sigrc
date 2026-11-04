@@ -22,6 +22,22 @@ public class UserProfile
     public Department? Department { get; set; }
 
     // Manager relation
+    // ── Personal data of the specification (set by the administrator, never shown to colleagues) ──
+    public DateTime? DateOfBirth { get; set; }
+    /// <summary>Several nationalities are possible: names separated by commas.</summary>
+    public string? Nationalities { get; set; }
+    public string? CinNumber { get; set; }
+    public DateTime? CinDate { get; set; }
+    public string? CinCountry { get; set; }
+    public string? PassportNumber { get; set; }
+    public DateTime? PassportValidFrom { get; set; }
+    public DateTime? PassportValidTill { get; set; }
+    public string? PassportCountry { get; set; }
+    public string? FatherName { get; set; }
+    public string? FatherLastName { get; set; }
+    public string? MotherName { get; set; }
+    public string? MotherLastName { get; set; }
+
     public string? ManagerId { get; set; }
     public string? ManagerName { get; set; }
     public string? ManagerEmail { get; set; }
