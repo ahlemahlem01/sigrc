@@ -412,7 +412,7 @@ public class ActionPlanController : ControllerBase
     [HttpPost("{id:guid}/deadline-extension")]
     public async Task<IActionResult> ExtendDeadline(Guid id, [FromBody] ExtendPlanDeadlineDto dto, CancellationToken ct)
     {
-        if (!PermissionAccess.Has(User, PermissionAccess.ExtendDeadline)) return Forbid();
+        if (!await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ExtendDeadline)) return Forbid();
         var by = GetCurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
         if (dto?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
@@ -506,7 +506,7 @@ public class ActionPlanController : ControllerBase
     [HttpPost("{id:guid}/reassign")]
     public async Task<IActionResult> ReassignPlan(Guid id, [FromBody] ReassignPlanRequest request)
     {
-        if (!IsQualityAdmin() && !PermissionAccess.Has(User, PermissionAccess.Reassign)) return Forbid();
+        if (!IsQualityAdmin() && !await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.Reassign)) return Forbid();
         var by = GetCurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
 

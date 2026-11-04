@@ -194,6 +194,45 @@
       "expired": "Expired"
     }
   },
+  "functions": {
+    "title": "Functions",
+    "subtitle": "Each function belongs to a department, has a hierarchical and a functional link, a job description and possibly rights. A person can hold several functions: active, not active or by interim.",
+    "add": "Add a function",
+    "edit": "Edit the function",
+    "code": "Code (function ID)",
+    "description": "Description",
+    "department": "Department",
+    "allDepartments": "All departments",
+    "hierarchical": "Hierarchically linked to",
+    "functional": "Functionally linked to",
+    "none": "None",
+    "rights": "Rights",
+    "rightsHelp": "People holding this function (active or by interim) get these rights without being administrators.",
+    "jobDescription": "Job description",
+    "upload": "Add (PDF/Word)",
+    "replace": "Replace",
+    "download": "Download",
+    "holders": "Holders",
+    "manage": "manage",
+    "close": "close",
+    "archive": "Archive",
+    "noHolder": "Nobody holds this function.",
+    "person": "Person",
+    "choosePerson": "Choose a person",
+    "status": "Status",
+    "assign": "Assign",
+    "remove": "Remove",
+    "statuses": {
+      "Active": "Active",
+      "ByInterim": "By interim",
+      "NotActive": "Not active"
+    },
+    "saved": "Saved",
+    "failed": "Operation failed",
+    "empty": "No function.",
+    "count_one": "{{count}} function",
+    "count_other": "{{count}} functions"
+  },
   "qrqc": {
     "noAccess": "You do not have access to the QRQC board. It is reserved for administrators and hierarchical managers.",
     "managerScope": "You see the problems of the people you manage (read only).",
@@ -980,6 +1019,7 @@
     "saveError": "The comment could not be saved."
   },
   "adminNav": {
+    "functions": "Functions",
     "security": "Security and licences",
     "cvReview": "Photo validation",
     "thresholds": "Thresholds and targets",

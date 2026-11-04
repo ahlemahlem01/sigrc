@@ -93,6 +93,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.orgList', icon: 'ti-list', path: '/admin/organizations' },
       { label: 'adminNav.departments', icon: 'ti-building', path: '/admin/departments' },
+      { label: 'adminNav.functions', icon: 'ti-id-badge-2', path: '/admin/functions' },
       { label: 'adminNav.orgChart', icon: 'ti-hierarchy-2', path: '/admin/organizations/map' },
     ],
   },
@@ -186,6 +187,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/import-history':      { title: 'adminNav.importHistory', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/reference-lists':     { title: 'adminNav.referenceLists', crumb: 'adminNav.settings' },
     '/admin/claims/workflow':            { title: 'adminNav.workflowConfig', crumb: 'adminNav.settings' },
+    '/admin/functions':                  { title: 'adminNav.functions', crumb: 'adminNav.employees' },
     '/admin/employees':                  { title: 'adminNav.employeeList', crumb: 'adminNav.employees' },
     '/admin/employees/compare':          { title: 'adminNav.compare', crumb: 'adminNav.employees' },
     '/admin/employees/recognition':      { title: 'adminNav.recognition', crumb: 'adminNav.employees' },

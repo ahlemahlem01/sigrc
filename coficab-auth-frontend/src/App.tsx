@@ -15,6 +15,7 @@ import ActionPlanDetail from './pages/action-plan/ActionPlanDetail';
 import ActionPlanList from './pages/action-plan/ActionPlanList';
 import CreateActionPlan from './pages/action-plan/CreateActionPlan';
 import DepartmentsPage from './pages/admin/DepartmentsPage';
+import FunctionsPage from './pages/admin/FunctionsPage';
 import OrganizationList from './pages/admin/OrganizationList';
 
 import FrontLayout from './components/Layout/FrontLayout';
@@ -189,6 +190,7 @@ const App = () => {
               <Route path="/admin/profile"                      element={<EmployeeProfile />} />
               <Route path="/admin/organizations"                element={<OrganizationList />} />
               <Route path="/admin/departments"                  element={<DepartmentsPage />} />
+              <Route path="/admin/functions"                    element={<FunctionsPage />} />
               <Route path="/admin/departments/map"              element={<Navigate to="/admin/organizations/map" replace />} />
               <Route path="/admin/employees"                    element={<EmployeeManagement />} />
               <Route path="/admin/employees/compare"            element={<EmployeeComparatorPage />} />

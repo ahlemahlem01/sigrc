@@ -227,7 +227,7 @@ public class PlanActionController : ControllerBase
     [HttpPost("{id:guid}/deadline-extension")]
     public async Task<IActionResult> ExtendDeadline(Guid id, [FromBody] ExtendActionDeadlineRequest request)
     {
-        if (!Services.PermissionAccess.Has(User, Services.PermissionAccess.ExtendDeadline)) return Forbid();
+        if (!await Services.PermissionAccess.HasAsync(User, HttpContext.RequestServices, Services.PermissionAccess.ExtendDeadline)) return Forbid();
         var by = CurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { code = "unauthenticated", message = "Utilisateur non authentifié." });
         if (request?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
@@ -251,7 +251,7 @@ public class PlanActionController : ControllerBase
     [HttpPost("{id:guid}/reassign")]
     public async Task<IActionResult> Reassign(Guid id, [FromBody] ReassignRequest request)
     {
-        if (!IsQualityAdmin() && !Services.PermissionAccess.Has(User, Services.PermissionAccess.Reassign)) return Forbid();
+        if (!IsQualityAdmin() && !await Services.PermissionAccess.HasAsync(User, HttpContext.RequestServices, Services.PermissionAccess.Reassign)) return Forbid();
         var by = CurrentUserId();
         if (string.IsNullOrEmpty(by)) return Unauthorized(new { error = "Utilisateur non authentifié." });
         if (await _service.GetByIdAsync(id) is null) return NotFound(new { error = "Sous-action non trouvée." });

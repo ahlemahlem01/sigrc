@@ -655,7 +655,7 @@ public class QualityAnalysisController : ControllerBase
     [HttpPost("claims/{id:guid}/deadline-extension")]
     public async Task<IActionResult> ExtendClaimDeadline(Guid id, [FromBody] ExtendDeadlineRequest body, CancellationToken cancellationToken)
     {
-        if (!PermissionAccess.Has(User, PermissionAccess.ExtendDeadline)) return Forbid();
+        if (!await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ExtendDeadline)) return Forbid();
         var userId = CurrentUserId();
         if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Utilisateur non authentifié." });
         if (body?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
@@ -790,7 +790,7 @@ public class QualityAnalysisController : ControllerBase
     public async Task<IActionResult> ValidateFiveWhy([FromBody] ValidateFiveWhyCommand command, CancellationToken cancellationToken)
     {
         // anyone can send a 5 Why for validation; approving one needs the right (held by administrators)
-        if (command.IsApproved && !PermissionAccess.Has(User, PermissionAccess.ValidateFiveWhy)) return Forbid();
+        if (command.IsApproved && !await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy)) return Forbid();
         var userName = User.FindFirstValue(ClaimTypes.Name)
                     ?? User.FindFirstValue("preferred_username")
                     ?? "System";

@@ -194,6 +194,45 @@
       "expired": "Scaduta"
     }
   },
+  "functions": {
+    "title": "Funzioni",
+    "subtitle": "Ogni funzione appartiene a un reparto, ha un legame gerarchico e funzionale, una descrizione del ruolo ed eventualmente dei diritti. Una persona può avere più funzioni: attiva, non attiva o ad interim.",
+    "add": "Aggiungi una funzione",
+    "edit": "Modifica la funzione",
+    "code": "Codice (ID funzione)",
+    "description": "Descrizione",
+    "department": "Reparto",
+    "allDepartments": "Tutti i reparti",
+    "hierarchical": "Legata gerarchicamente a",
+    "functional": "Legata funzionalmente a",
+    "none": "Nessuna",
+    "rights": "Diritti",
+    "rightsHelp": "Chi ha questa funzione (attiva o ad interim) riceve questi diritti senza essere amministratore.",
+    "jobDescription": "Descrizione del ruolo",
+    "upload": "Aggiungi (PDF/Word)",
+    "replace": "Sostituisci",
+    "download": "Scarica",
+    "holders": "Titolari",
+    "manage": "gestisci",
+    "close": "chiudi",
+    "archive": "Archivia",
+    "noHolder": "Nessuno ha questa funzione.",
+    "person": "Persona",
+    "choosePerson": "Scegli una persona",
+    "status": "Stato",
+    "assign": "Assegna",
+    "remove": "Rimuovi",
+    "statuses": {
+      "Active": "Attiva",
+      "ByInterim": "Ad interim",
+      "NotActive": "Non attiva"
+    },
+    "saved": "Salvato",
+    "failed": "Operazione impossibile",
+    "empty": "Nessuna funzione.",
+    "count_one": "{{count}} funzione",
+    "count_other": "{{count}} funzioni"
+  },
   "qrqc": {
     "noAccess": "Non hai accesso al pannello QRQC. È riservato agli amministratori e ai responsabili gerarchici.",
     "managerScope": "Vedi i problemi delle persone che coordini (sola lettura).",
@@ -980,6 +1019,7 @@
     "saveError": "Impossibile salvare il commento."
   },
   "adminNav": {
+    "functions": "Funzioni",
     "security": "Sicurezza e licenze",
     "cvReview": "Validazione foto",
     "thresholds": "Soglie e obiettivi",

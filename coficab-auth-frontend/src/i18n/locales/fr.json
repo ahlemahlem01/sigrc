@@ -194,6 +194,45 @@
       "expired": "Expirée"
     }
   },
+  "functions": {
+    "title": "Fonctions",
+    "subtitle": "Chaque fonction appartient à un département, a un lien hiérarchique et fonctionnel, une description de poste et éventuellement des droits. Une personne peut avoir plusieurs fonctions : active, inactive ou par intérim.",
+    "add": "Ajouter une fonction",
+    "edit": "Modifier la fonction",
+    "code": "Code (ID fonction)",
+    "description": "Description",
+    "department": "Département",
+    "allDepartments": "Tous les départements",
+    "hierarchical": "Liée hiérarchiquement à",
+    "functional": "Liée fonctionnellement à",
+    "none": "Aucune",
+    "rights": "Droits",
+    "rightsHelp": "Les personnes qui ont cette fonction (active ou par intérim) reçoivent ces droits, sans être administrateurs.",
+    "jobDescription": "Description de poste",
+    "upload": "Ajouter (PDF/Word)",
+    "replace": "Remplacer",
+    "download": "Télécharger",
+    "holders": "Titulaires",
+    "manage": "gérer",
+    "close": "fermer",
+    "archive": "Archiver",
+    "noHolder": "Personne n’a cette fonction.",
+    "person": "Personne",
+    "choosePerson": "Choisir une personne",
+    "status": "Statut",
+    "assign": "Affecter",
+    "remove": "Retirer",
+    "statuses": {
+      "Active": "Active",
+      "ByInterim": "Par intérim",
+      "NotActive": "Inactive"
+    },
+    "saved": "Enregistré",
+    "failed": "Opération impossible",
+    "empty": "Aucune fonction.",
+    "count_one": "{{count}} fonction",
+    "count_other": "{{count}} fonctions"
+  },
   "qrqc": {
     "noAccess": "Vous n’avez pas accès au panneau QRQC. Il est réservé aux administrateurs et aux chefs hiérarchiques.",
     "managerScope": "Vous voyez les problèmes des personnes que vous encadrez (lecture seule).",
@@ -980,6 +1019,7 @@
     "saveError": "Le commentaire n'a pas pu être enregistré."
   },
   "adminNav": {
+    "functions": "Fonctions",
     "security": "Sécurité et licences",
     "cvReview": "Validation des photos",
     "thresholds": "Seuils et objectifs",
