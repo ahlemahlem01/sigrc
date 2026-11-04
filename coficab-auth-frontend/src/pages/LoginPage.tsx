@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isAdminUser, resolvePostLoginTarget } from '../utils/roles';
 import { useTranslation } from 'react-i18next';
+import LanguageFlags from '../components/LanguageFlags';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -732,6 +733,7 @@ const LoginPage = () => {
               <strong>Coficab Group</strong> — {t('login.footerSystem')}<br />
               © 2026 · {t('login.footerAccess')}
             </p>
+            <LanguageFlags />
           </div>
         </div>
       </div>

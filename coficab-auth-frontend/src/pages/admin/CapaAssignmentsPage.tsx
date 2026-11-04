@@ -12,7 +12,7 @@ import { loadCapaDataset, type PlanRow } from './capaAnalytics';
 
 const NAVY = '#000168';
 const BAD = '#dc2626';
-const TYPE_KEY: Record<string, string> = { preventif: 'PA', correctif: 'PAC', amelioration: 'PAP' };
+const TYPE_KEY: Record<string, string> = { amelioration: 'PA', correctif: 'PAC', preventif: 'PAP' };
 
 type Person = { id: string; name: string };
 type View = 'unassigned' | 'assigned';

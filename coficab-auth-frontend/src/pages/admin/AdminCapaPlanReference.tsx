@@ -18,7 +18,7 @@ const TYPE_BADGE: Record<UiType, { bg: string; color: string }> = {
 
 function fallbackCode(p: PlanRow): string {
   if (p.code) return p.code;
-  const prefix = p.type === 'preventif' ? 'PA' : p.type === 'correctif' ? 'PAC' : 'PAP';
+  const prefix = p.type === 'amelioration' ? 'PA' : p.type === 'correctif' ? 'PAC' : 'PAP';
   const year = p.createdAt ? new Date(p.createdAt).getFullYear() : new Date().getFullYear();
   return `${prefix}-${year}-${p.id.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
 }

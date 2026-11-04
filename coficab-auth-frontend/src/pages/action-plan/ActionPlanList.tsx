@@ -56,9 +56,9 @@ function statusCode(raw: unknown): number {
 function typeCode(raw: unknown): number {
   if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
   const s = String(raw ?? '').trim().toLowerCase();
-  if (s === '1' || s === 'pa' || s === 'preventif' || s === 'preventive') return 1;
+  if (s === '1' || s === 'pa' || s === 'amelioration' || s === 'improvement') return 1;
   if (s === '2' || s === 'pac' || s === 'correctif' || s === 'corrective') return 2;
-  if (s === '3' || s === 'pap' || s === 'amelioration' || s === 'improvement') return 3;
+  if (s === '3' || s === 'pap' || s === 'preventif' || s === 'preventive') return 3;
   return 0;
 }
 
@@ -88,9 +88,9 @@ interface Department {
 
 /** Values are i18n keys. */
 const ACTION_PLAN_TYPES: Record<number, string> = {
-  1: 'plansAdmin.typePreventive',
+  1: 'plansAdmin.typeImprovement',
   2: 'plansAdmin.typeCorrective',
-  3: 'plansAdmin.typeImprovement',
+  3: 'plansAdmin.typePreventive',
 };
 const getTypeLabel = (type: number) => (ACTION_PLAN_TYPES[type] ? i18n.t(ACTION_PLAN_TYPES[type]) : '—');
 
@@ -483,9 +483,9 @@ const ActionPlanList = () => {
               }}
             >
               <option value="all">{t('reportPlans.allTypes')}</option>
-              <option value="1">{t('plansAdmin.typePreventive')}</option>
+              <option value="1">{t('plansAdmin.typeImprovement')}</option>
               <option value="2">{t('plansAdmin.typeCorrective')}</option>
-              <option value="3">{t('plansAdmin.typeImprovement')}</option>
+              <option value="3">{t('plansAdmin.typePreventive')}</option>
             </select>
           </label>
           <label className="block">
@@ -738,9 +738,9 @@ const ActionPlanList = () => {
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: Number(e.target.value) })}
                   >
-                    <option value={1}>{t('plansAdmin.typePreventive')}</option>
+                    <option value={1}>{t('plansAdmin.typeImprovement')}</option>
                     <option value={2}>{t('plansAdmin.typeCorrective')}</option>
-                    <option value={3}>{t('plansAdmin.typeImprovement')}</option>
+                    <option value={3}>{t('plansAdmin.typePreventive')}</option>
                   </select>
                   <select
                     className={capaSelectCls}

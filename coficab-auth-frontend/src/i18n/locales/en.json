@@ -786,9 +786,9 @@
       "Archived": "Archived"
     },
     "type": {
-      "PA": "Preventive (PA)",
+      "PA": "Improvement (PA)",
       "PAC": "Corrective (PAC)",
-      "PAP": "Improvement (PAP)"
+      "PAP": "Preventive (PAP)"
     },
     "state": {
       "open": "In progress",
@@ -1756,9 +1756,9 @@
     "open": "Open",
     "naturesTitle": "Natures / types",
     "naturesDesc": "Fixed list of CAPA natures (PA / PAC / PAP).",
-    "naturePaHint": "Preventive action — keep the defect from occurring.",
+    "naturePaHint": "Improvement action — strengthen the process.",
     "naturePacHint": "Corrective action — address the root cause.",
-    "naturePapHint": "Improvement action — strengthen the process.",
+    "naturePapHint": "Preventive action — keep the defect from occurring.",
     "topResponsible": "Top owners",
     "topResponsibleDesc": "Current load of assigned actions.",
     "viewReport": "View report",

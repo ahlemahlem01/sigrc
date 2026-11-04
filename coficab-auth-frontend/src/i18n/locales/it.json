@@ -786,9 +786,9 @@
       "Archived": "Archiviato"
     },
     "type": {
-      "PA": "Preventivo (PA)",
+      "PA": "Miglioramento (PA)",
       "PAC": "Correttivo (PAC)",
-      "PAP": "Miglioramento (PAP)"
+      "PAP": "Preventivo (PAP)"
     },
     "state": {
       "open": "In corso",
@@ -1756,9 +1756,9 @@
     "open": "Apri",
     "naturesTitle": "Nature / tipi",
     "naturesDesc": "Elenco fisso delle nature CAPA (PA / PAC / PAP).",
-    "naturePaHint": "Azione preventiva — evitare che il difetto si presenti.",
+    "naturePaHint": "Azione di miglioramento — rafforzare il processo.",
     "naturePacHint": "Azione correttiva — trattare la causa radice.",
-    "naturePapHint": "Azione di miglioramento — rafforzare il processo.",
+    "naturePapHint": "Azione preventiva — evitare che il difetto si presenti.",
     "topResponsible": "Responsabili principali",
     "topResponsibleDesc": "Carico attuale di azioni assegnate.",
     "viewReport": "Vedi report",

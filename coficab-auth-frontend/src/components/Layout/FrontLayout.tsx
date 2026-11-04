@@ -12,6 +12,7 @@ import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
+import LanguageFlags from '../LanguageFlags';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 
 // Target route for Quality Analyses
@@ -654,6 +655,7 @@ const FrontLayout = () => {
         </div>
         <div className="fl-footer-bottom">
           <span className="fl-footer-copy">{t('frontNav.footerCopyright')}</span>
+          <LanguageFlags />
           <span className="fl-footer-badge">Action Plan v1.0</span>
         </div>
       </footer>

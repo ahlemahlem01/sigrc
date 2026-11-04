@@ -298,8 +298,8 @@ public class ActionPlanController : ControllerBase
         {
             case "1":
             case "pa":
-            case "preventif":
-            case "préventif":
+            case "amelioration":
+            case "amélioration":
                 type = ActionPlanType.PA;
                 return true;
             case "2":
@@ -309,8 +309,8 @@ public class ActionPlanController : ControllerBase
                 return true;
             case "3":
             case "pap":
-            case "amelioration":
-            case "amélioration":
+            case "preventif":
+            case "préventif":
                 type = ActionPlanType.PAP;
                 return true;
             default:

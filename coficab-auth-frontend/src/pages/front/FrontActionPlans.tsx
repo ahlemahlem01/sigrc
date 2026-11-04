@@ -69,7 +69,7 @@ const getPlanStatus = (plan: ActionPlan) => {
   return safeStatus(plan.status);
 };
 
-const typeToNumber: Record<ActionPlanType, number>   = { preventif: 1, correctif: 2, amelioration: 3 };
+const typeToNumber: Record<ActionPlanType, number>   = { amelioration: 1, correctif: 2, preventif: 3 };
 const priorityToNumber = (p: PlanActionPriority): number => ({ low: 1, medium: 2, high: 3 }[p] ?? 2);
 const statusToNumber   = (s: ActionPlanStatus): number  => ({ created: 1, ongoing: 2, closed: 3, archived: 4 }[s]);
 
@@ -88,12 +88,12 @@ function toUiStatus(raw: unknown): ActionPlanStatus {
 
 function toUiType(raw: unknown): ActionPlanType {
   if (typeof raw === 'number') {
-    return ({ 1: 'preventif', 2: 'correctif', 3: 'amelioration' } as const)[raw as 1|2|3] ?? 'preventif';
+    return ({ 1: 'amelioration', 2: 'correctif', 3: 'preventif' } as const)[raw as 1|2|3] ?? 'preventif';
   }
   const s = String(raw ?? '').trim().toLowerCase();
-  if (s === '1' || s === 'pa' || s === 'preventif' || s === 'preventive') return 'preventif';
+  if (s === '1' || s === 'pa' || s === 'amelioration' || s === 'improvement') return 'amelioration';
   if (s === '2' || s === 'pac' || s === 'correctif' || s === 'corrective') return 'correctif';
-  if (s === '3' || s === 'pap' || s === 'amelioration' || s === 'improvement') return 'amelioration';
+  if (s === '3' || s === 'pap' || s === 'preventif' || s === 'preventive') return 'preventif';
   return 'preventif';
 }
 

@@ -45,11 +45,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Password
     options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireNonAlphanumeric = true;   // the specification asks for letters, digits and special characters
 
     // Lockout — explicit so behaviour is clear and easy to tune
     options.Lockout.AllowedForNewUsers = true;
-    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.MaxFailedAccessAttempts = 3;   // the specification: blocked after 3 wrong attempts
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
 })
 .AddEntityFrameworkStores<AppDbContext>()
