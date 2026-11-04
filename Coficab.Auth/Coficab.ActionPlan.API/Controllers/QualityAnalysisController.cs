@@ -1066,6 +1066,115 @@ RÈGLES DE SORTIE STRICTES :
         return Ok(merged);
     }
 
+    /// <summary>
+    /// Coach 5 Why sur toute la chaîne d'une branche, en un seul appel IA (au lieu d'un appel par Pourquoi).
+    /// Les garde-fous locaux (erreur humaine = BLOCK) s'appliquent à chaque réponse ; sans IA, la réponse est immédiate.
+    /// </summary>
+    [HttpPost("5why/{claimId:guid}/validate-chain")]
+    public async Task<IActionResult> ValidateFiveWhyChain(
+        [FromRoute] Guid claimId,
+        [FromBody] ValidateFiveWhyChainRequestDto dto)
+    {
+        if (dto == null || dto.Steps == null || dto.Steps.Count == 0)
+            return BadRequest(new { message = "Corps de requête manquant." });
+
+        var ordered = dto.Steps.OrderBy(s => s.StepNumber).ToList();
+        var local = FiveWhyCoachRules.EvaluateChainLocally(dto).ToDictionary(x => x.StepNumber, x => x.Result);
+
+        Dictionary<int, ValidateFiveWhyStepResponseDto> ai = new();
+        if (!string.IsNullOrEmpty(_configuration["Gemini:ApiKey"]) && ordered.All(s => !string.IsNullOrWhiteSpace(s.Answer)))
+        {
+            try { ai = await AskCoachChainAsync(claimId, dto, ordered); }
+            catch { ai = new(); }   // silencieux : les règles locales suffisent
+        }
+
+        var steps = new List<ValidateFiveWhyChainStepDto>();
+        foreach (var step in ordered)
+        {
+            var request = FiveWhyCoachRules.StepRequest(dto, ordered, step);
+            var merged = ai.TryGetValue(step.StepNumber, out var a)
+                ? FiveWhyCoachRules.MergeWithLocal(request, a)
+                : local[step.StepNumber];
+
+            // une répétition d'un Pourquoi précédent reste signalée même si l'IA l'a acceptée
+            if (merged.Severity == "OK" && local[step.StepNumber].Severity != "OK") merged = local[step.StepNumber];
+
+            steps.Add(new ValidateFiveWhyChainStepDto
+            {
+                StepNumber = step.StepNumber,
+                IsAccepted = merged.IsAccepted,
+                Severity = merged.Severity,
+                Flags = merged.Flags,
+                CoachMessage = merged.CoachMessage,
+                SuggestedFollowUpQuestions = merged.SuggestedFollowUpQuestions,
+            });
+        }
+        return Ok(new ValidateFiveWhyChainResponseDto { Steps = steps });
+    }
+
+    /// <summary>A request of the 5 Why coach: marked so that it stays on Gemini when the other AI features run on Ollama (Llm:CoachProvider).</summary>
+    private static HttpRequestMessage CoachRequest(string url, string json) =>
+        new(HttpMethod.Post, url)
+        {
+            Headers = { { Coficab.ActionPlan.Application.Services.OllamaBridgeHandler.PurposeHeader, "coach" } },
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+
+    private async Task<Dictionary<int, ValidateFiveWhyStepResponseDto>> AskCoachChainAsync(
+        Guid claimId, ValidateFiveWhyChainRequestDto dto, List<FiveWhyStepDto> ordered)
+    {
+        var apiKey = _configuration["Gemini:ApiKey"];
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
+        var branchLabel = string.Equals(dto.Branch, "DETECTION", StringComparison.OrdinalIgnoreCase)
+            ? "DETECTION (pourquoi le contrôle n'a pas vu le défaut)"
+            : "OCCURRENCE (pourquoi le défaut est apparu)";
+        var chain = string.Join("\n", ordered.Select(s => $"Why {s.StepNumber} — Q: {s.Question} | R: {s.Answer}"));
+
+        var prompt = $@"Tu es un consultant Qualité Automobile Senior (IATF 16949 / 8D) chez Coficab.
+Tu challenges UNE chaîne complète de 5 Pourquoi, réponse par réponse, avant la génération de la cause racine.
+
+Réclamation: {claimId}
+Branche: {branchLabel}
+Problème: {dto.ProblemStatement}
+Chaîne:
+{chain}
+
+Pour CHAQUE Why, vérifie : (a) la réponse répond bien à la question posée, (b) elle découle logiquement du Why précédent, (c) elle est factuelle et précise.
+RÈGLES STRICTES :
+1. Une cause qui met en cause une personne (erreur humaine, faute, négligence, oubli, inattention, fatigue, « n'a pas vu / constaté / respecté ») SANS mécanisme système (process, standard, poka-yoke, MSA, alarme, formation, ergonomie) = BLOCK. Une personne peut être un fait, jamais la cause racine.
+2. Réponse circulaire, vague, répétée d'un Why précédent, ou sans lien logique avec le Why précédent = WARN (BLOCK si incohérente).
+3. Branche DETECTION : oriente vers standard de contrôle, moyen, fréquence, poka-yoke, alarme, MSA. Branche OCCURRENCE : oriente vers le mécanisme d'apparition (process/système).
+4. N'accepte (OK) que ce qui est factuel, cohérent avec le Why précédent et orienté système.
+
+Réponds UNIQUEMENT en JSON valide, sans markdown, avec exactement cette forme (un élément par Why) :
+{{""steps"":[{{""stepNumber"":1,""isAccepted"":true,""severity"":""OK"",""flags"":[],""coachMessage"":""message court en français"",""suggestedFollowUpQuestions"":[""question""]}}]}}
+severity : OK, WARN (le technicien peut forcer) ou BLOCK (à reprendre). flags possibles : HUMAN_ERROR, TOO_SHALLOW, CIRCULAR, INCOHERENT.";
+
+        var payload = new
+        {
+            contents = new[] { new { parts = new[] { new { text = prompt } } } },
+            generationConfig = new { temperature = 0.2, maxOutputTokens = 2048, responseMimeType = "application/json" }
+        };
+        var http = _httpClientFactory.CreateClient();
+        var response = await http.SendAsync(CoachRequest(
+            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}", JsonSerializer.Serialize(payload)));
+        if (!response.IsSuccessStatusCode) return new();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0
+            || !candidates[0].TryGetProperty("content", out var content) || !content.TryGetProperty("parts", out var parts)
+            || parts.GetArrayLength() == 0 || !parts[0].TryGetProperty("text", out var textElement))
+            return new();
+
+        var raw = (textElement.GetString() ?? string.Empty).Trim();
+        var start = raw.IndexOf('{');
+        var end = raw.LastIndexOf('}');
+        if (start < 0 || end <= start) return new();
+
+        var parsed = JsonSerializer.Deserialize<ValidateFiveWhyChainResponseDto>(raw[start..(end + 1)], new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return (parsed?.Steps ?? new()).GroupBy(s => s.StepNumber).ToDictionary(g => g.Key, g => (ValidateFiveWhyStepResponseDto)g.First());
+    }
+
     private async Task<ValidateFiveWhyStepResponseDto?> AskGeminiCoachAsync(
         Guid claimId,
         ValidateFiveWhyStepRequestDto dto,
@@ -1132,9 +1241,7 @@ severity OK = accepte.";
         var httpClient = _httpClientFactory.CreateClient();
         var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
-        var response = await httpClient.PostAsync(
-            endpoint,
-            new StringContent(JsonSerializer.Serialize(requestPayload), Encoding.UTF8, "application/json"));
+        var response = await httpClient.SendAsync(CoachRequest(endpoint, JsonSerializer.Serialize(requestPayload)));
 
         if (!response.IsSuccessStatusCode)
             return null;

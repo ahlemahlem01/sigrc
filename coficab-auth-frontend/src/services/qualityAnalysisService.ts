@@ -84,6 +84,16 @@ export interface ValidateFiveWhyStepResponseDto {
   suggestedFollowUpQuestions: string[];
 }
 
+export interface ValidateFiveWhyChainRequestDto {
+  branch: string;
+  problemStatement: string;
+  steps: Array<{ stepNumber: number; branchType?: string; question: string; answer: string }>;
+}
+
+export interface ValidateFiveWhyChainStepDto extends ValidateFiveWhyStepResponseDto {
+  stepNumber: number;
+}
+
 export interface SuggestedCapaActionDto {
   kind: 'CORRECTIVE' | 'PREVENTIVE' | string;
   branch: 'OCCURRENCE' | 'DETECTION' | string;
@@ -418,6 +428,20 @@ export const qualityAnalysisService = {
   ): Promise<ValidateFiveWhyStepResponseDto> => {
     const response = await api.post<ValidateFiveWhyStepResponseDto>(
       `/5why/${claimId}/validate-step`,
+      dto,
+      getAuthConfig(token)
+    );
+    return response.data;
+  },
+
+  /** Coach sur toute la chaîne d'une branche, en un seul appel. */
+  validateFiveWhyChain: async (
+    claimId: string,
+    dto: ValidateFiveWhyChainRequestDto,
+    token?: string
+  ): Promise<{ steps: ValidateFiveWhyChainStepDto[] }> => {
+    const response = await api.post<{ steps: ValidateFiveWhyChainStepDto[] }>(
+      `/5why/${claimId}/validate-chain`,
       dto,
       getAuthConfig(token)
     );

@@ -21,3 +21,22 @@ public class ValidateFiveWhyStepResponseDto
     public string CoachMessage { get; set; } = string.Empty;
     public List<string> SuggestedFollowUpQuestions { get; set; } = new();
 }
+
+/// <summary>The whole chain of one branch, challenged at once once every why is filled in.</summary>
+public class ValidateFiveWhyChainRequestDto
+{
+    /// <summary>OCCURRENCE | DETECTION</summary>
+    public string Branch { get; set; } = "OCCURRENCE";
+    public string ProblemStatement { get; set; } = string.Empty;
+    public List<FiveWhyStepDto> Steps { get; set; } = new();
+}
+
+public class ValidateFiveWhyChainStepDto : ValidateFiveWhyStepResponseDto
+{
+    public int StepNumber { get; set; }
+}
+
+public class ValidateFiveWhyChainResponseDto
+{
+    public List<ValidateFiveWhyChainStepDto> Steps { get; set; } = new();
+}

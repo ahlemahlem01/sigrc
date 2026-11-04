@@ -29,8 +29,22 @@ public static class FiveWhyCoachRules
         "le technicien n'a", "le technicien n a",
         "l'operateur n'a", "l operateur n'a", "l'opérateur n'a",
         "le controleur n'a", "l'inspecteur n'a",
-        "pas constate le probleme", "pas constate le défaut", "pas constate le defaut"
+        "pas constate le probleme", "pas constate le défaut", "pas constate le defaut",
+        // Autres façons de mettre une personne en cause
+        "distraction", "etourderie", "étourderie", "inadvertance", "maladresse", "mauvais geste",
+        "s'est trompe", "s'est trompé", "se serait trompe", "a fait une erreur", "a commis une erreur",
+        "erreur de saisie", "erreur de lecture", "erreur de reglage", "erreur de réglage", "erreur d'etiquetage", "erreur d'étiquetage",
+        "fatigue de l'operateur", "fatigue de l'opérateur", "stress de l'operateur", "stress de l'opérateur",
+        "non respect de la procedure", "non-respect de la procedure", "non respect de la procédure", "non-respect de la procédure",
+        "n'a pas respecte", "n'a pas respecté", "n'a pas suivi la procedure", "n'a pas suivi la procédure",
+        "n'a pas applique", "n'a pas appliqué", "a ignore la consigne", "a ignoré la consigne",
+        "responsabilite de l'operateur", "responsabilité de l'opérateur", "faute de l'equipe", "faute de l'équipe"
     };
+
+    // « le technicien … s'est trompé / était distrait / a mal réglé » : une personne et un reproche dans la même phrase.
+    private static readonly Regex PersonBlamedRegex = new(
+        @"\b(technicien|technicienne|operateur|operatrice|controleur|controleuse|inspecteur|agent|personne|equipe|employe|ouvrier|regleur|conducteur|collaborateur|magasinier|chef d equipe)\b.{0,70}\b(s est trompe|a mal|a commis|a omis|a neglige|a ignore|etait distrait|etait fatigue|a ete distrait|inattentif|distrait|fatigue|precipit|maladroit|incompetent|incompetence|ne connaissait pas|ne savait pas|mal lu|mal regle|mal positionne|mal installe|mal monte)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private static readonly Regex PersonMissedRegex = new(
         @"\b(technicien|operateur|opérateur|controleur|contrôleur|inspecteur|agent|personne|equipe|équipe)\b.{0,50}\b(pas\s+(constate|constaté|vu|detecte|détecté|remarque|remarqué|controle|contrôlé)|oublie|oublié|neglige|négligé)\b",
@@ -142,6 +156,46 @@ public static class FiveWhyCoachRules
     }
 
     /// <summary>
+    /// Évalue toute la chaîne d'une branche d'un coup (sans IA) : chaque réponse est jugée avec celles qui la précèdent, et une réponse
+    /// qui répète une réponse précédente est signalée comme circulaire.
+    /// </summary>
+    public static List<(int StepNumber, ValidateFiveWhyStepResponseDto Result)> EvaluateChainLocally(ValidateFiveWhyChainRequestDto chain)
+    {
+        var ordered = (chain.Steps ?? new List<FiveWhyStepDto>()).OrderBy(s => s.StepNumber).ToList();
+        var output = new List<(int, ValidateFiveWhyStepResponseDto)>();
+        foreach (var step in ordered)
+        {
+            var request = StepRequest(chain, ordered, step);
+            var result = EvaluateLocally(request);
+
+            var answer = Normalize(step.Answer ?? string.Empty);
+            var repeated = ordered.Any(p => p.StepNumber < step.StepNumber && answer.Length > 0 && Normalize(p.Answer ?? string.Empty) == answer);
+            if (repeated && result.Severity == "OK")
+            {
+                result = new ValidateFiveWhyStepResponseDto
+                {
+                    IsAccepted = false,
+                    Severity = "WARN",
+                    Flags = new List<string> { "CIRCULAR" },
+                    CoachMessage = "Cette réponse répète un Pourquoi précédent : la chaîne ne progresse pas. Cherchez le mécanisme qui explique le Pourquoi précédent.",
+                    SuggestedFollowUpQuestions = new List<string> { "Qu'est-ce qui, techniquement, a rendu possible la réponse du Pourquoi précédent ?" }
+                };
+            }
+            output.Add((step.StepNumber, result));
+        }
+        return output;
+    }
+
+    public static ValidateFiveWhyStepRequestDto StepRequest(ValidateFiveWhyChainRequestDto chain, IReadOnlyList<FiveWhyStepDto> ordered, FiveWhyStepDto step) => new()
+    {
+        StepNumber = step.StepNumber,
+        Branch = chain.Branch,
+        ProblemStatement = chain.ProblemStatement,
+        ProposedAnswer = step.Answer ?? string.Empty,
+        PreviousSteps = ordered.Where(p => p.StepNumber < step.StepNumber).ToList(),
+    };
+
+    /// <summary>
     /// Fusionne un avis Gemini avec le garde-fou local (le local peut forcer un BLOCK IATF).
     /// </summary>
     public static ValidateFiveWhyStepResponseDto MergeWithLocal(
@@ -188,6 +242,9 @@ public static class FiveWhyCoachRules
 
         // Variante normalisée sans accents déjà appliquée
         if (PersonMissedRegex.IsMatch(normalized) || MissedByPersonRegex.IsMatch(normalized))
+            return true;
+
+        if (PersonBlamedRegex.IsMatch(normalized.Replace('\'', ' ')))
             return true;
 
         return false;
