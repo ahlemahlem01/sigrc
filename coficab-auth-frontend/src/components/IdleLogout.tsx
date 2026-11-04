@@ -15,9 +15,14 @@ export default function IdleLogout() {
   const { accessToken, logout } = useAuth();
   const navigate = useNavigate();
   const timer = useRef<number | null>(null);
+  // The access token is renewed every few minutes. The countdown must survive a renewal: the effect depends on
+  // being signed in, not on the token value, and reads the current token from this ref.
+  const tokenRef = useRef(accessToken);
+  tokenRef.current = accessToken;
+  const signedIn = !!accessToken;
 
   useEffect(() => {
-    if (!accessToken) return;
+    if (!signedIn) return;
     let cancelled = false;
     let minutes = 0;
 
@@ -40,7 +45,7 @@ export default function IdleLogout() {
       arm();
     };
 
-    axios.get(`${ACTION_PLAN_API_URL}/system/session`, { headers: { Authorization: `Bearer ${accessToken}` } })
+    axios.get(`${ACTION_PLAN_API_URL}/system/session`, { headers: { Authorization: `Bearer ${tokenRef.current}` } })
       .then((r) => {
         if (cancelled) return;
         minutes = Number(r.data?.idleMinutes) || 0;
@@ -55,7 +60,7 @@ export default function IdleLogout() {
       EVENTS.forEach((e) => window.removeEventListener(e, onActivity));
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
+  }, [signedIn]);
 
   return null;
 }

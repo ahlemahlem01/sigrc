@@ -6,7 +6,8 @@ import IdleLogout, { IDLE_LOGOUT_FLAG } from './IdleLogout';
 
 jest.mock('axios');
 const mockLogout = jest.fn();
-jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ accessToken: 't', logout: mockLogout }) }));
+let mockToken = 't';
+jest.mock('../context/AuthContext', () => ({ useAuth: () => ({ accessToken: mockToken, logout: mockLogout }) }));
 jest.mock('../config/apiEnv', () => ({ ACTION_PLAN_API_URL: 'http://api' }));
 jest.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o ? `${k}:${Object.values(o).join(',')}` : k), i18n: { language: 'fr' } }),
@@ -50,6 +51,21 @@ describe('IdleLogout', () => {
     act(() => { jest.advanceTimersByTime(2 * 60_000); });
     expect(mockLogout).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem(IDLE_LOGOUT_FLAG)).toBe('1');
+  });
+
+  it('keeps counting when the access token is renewed during the idle time', async () => {
+    mockToken = 't';
+    mockedGet.mockResolvedValue({ data: { idleMinutes: 5 } });
+    const { rerender } = render(<MemoryRouter><IdleLogout /></MemoryRouter>);
+    await act(async () => { await Promise.resolve(); });
+
+    act(() => { jest.advanceTimersByTime(3 * 60_000); });
+    mockToken = 't2'; // silent renewal, nobody touched the page
+    rerender(<MemoryRouter><IdleLogout /></MemoryRouter>);
+    act(() => { jest.advanceTimersByTime(3 * 60_000); });
+    expect(mockLogout).toHaveBeenCalledTimes(1);
+    expect(mockedGet).toHaveBeenCalledTimes(1);
+    mockToken = 't';
   });
 
   it('does nothing when the delay is 0', async () => {
