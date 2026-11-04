@@ -57,6 +57,9 @@ public class UpdateClaimCommandHandler : IRequestHandler<UpdateClaimCommand, boo
         {
             if (CompletionTracking.IsClosedClaimStatus(request.StatusCode) && !CompletionTracking.IsClosedClaimStatus(previousStatus))
             {
+                var dossierOfClaim = await _context.EightDDossiers.AsNoTracking().FirstOrDefaultAsync(d => d.ClaimId == claim.Id && !d.IsArchived, cancellationToken);
+                if (Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.TookPart(claim, dossierOfClaim, request.UpdatedById.ToString()))
+                    throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("StatusCode", Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.Message) });
                 var missing = await Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.MissingAsync(_context, claim, cancellationToken);
                 if (missing.Count > 0)
                     throw new FluentValidation.ValidationException(new[] { new FluentValidation.Results.ValidationFailure("StatusCode", Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.Message(missing)) });

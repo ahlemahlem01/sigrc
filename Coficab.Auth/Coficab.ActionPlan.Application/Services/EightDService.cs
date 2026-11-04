@@ -140,6 +140,9 @@ public class EightDService : IEightDService
         if (!string.Equals(dossier.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase))
             throw new InvalidOperationException("Ce dossier n'est pas en attente de validation.");
 
+        if (Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.TookPart(claim, dossier, userId))
+            throw new InvalidOperationException(Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.Message);
+
         if (dto.IsApproved)
         {
             var missing = await Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.MissingAsync(_db, claim, ct);

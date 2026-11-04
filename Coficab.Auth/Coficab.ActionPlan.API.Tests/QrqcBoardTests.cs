@@ -49,7 +49,7 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
         return client;
     }
 
-    private async Task<Guid> AddAssignedClaim(string line, string assigneeId, string assigneeName)
+    private async Task<Guid> AddAssignedClaim(string line, string assigneeId, string assigneeName, string status = "ASSIGNED")
     {
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
@@ -57,7 +57,7 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
         db.Claims.Add(new Claim
         {
             Id = id, Title = $"Problème {line}", DefectType = "Coupure fil", ClientId = "ACME", Severity = "MEDIUM", LotNumber = "L-" + id.ToString()[..4],
-            Description = "x", StatusCode = "ASSIGNED", DetectionDate = DateTime.UtcNow.AddMinutes(-90), ProductionLine = line, IsInternal = true,
+            Description = "x", StatusCode = status, DetectionDate = DateTime.UtcNow.AddMinutes(-90), ProductionLine = line, IsInternal = true,
             AssignedToId = assigneeId, AssignedToName = assigneeName, Reference = "QM-" + id.ToString()[..5],
         });
         await db.SaveChangesAsync();
@@ -169,6 +169,21 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
 
         var allowed = await admin.PutAsJsonAsync($"/api/QualityAnalysis/claims/{id}", new { statusCode = "CLOTUREE" });
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+    }
+
+    [Fact]
+    public async Task NobodyClosesAClaimHeAnalysedHimself_AnotherAdministratorDoes()
+    {
+        var analyst = Guid.NewGuid().ToString();
+        var id = await AddAssignedClaim("TST-4EYES", analyst, "Admin Analyste", "PENDING_VALIDATION");
+
+        var self = await ClientAs("admin", analyst).PutAsJsonAsync($"/api/QualityAnalysis/claims/{id}", new { statusCode = "CLOTUREE" });
+        Assert.NotEqual(HttpStatusCode.OK, self.StatusCode);
+        Assert.Contains("analysé ou soumis", await self.Content.ReadAsStringAsync());
+
+        var other = await ClientAs("admin", Guid.NewGuid().ToString()).PutAsJsonAsync($"/api/QualityAnalysis/claims/{id}", new { statusCode = "CLOTUREE" });
+        Assert.NotEqual(HttpStatusCode.OK, other.StatusCode);                   // still blocked by the internal-problem gate (no root cause yet), not by the four eyes
+        Assert.DoesNotContain("analysé ou soumis", await other.Content.ReadAsStringAsync());
     }
 
     [Fact]
