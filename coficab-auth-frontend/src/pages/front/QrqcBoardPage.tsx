@@ -7,7 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { defectLabel } from '../../utils/defectLabel';
 
 type Problem = {
-  claimId: string; reference?: string | null; title: string; defectType: string; severity: string; line: string; lotNumber: string;
+  claimId: string; reference?: string | null; assignedToName?: string | null; managerName?: string | null; title: string; defectType: string; severity: string; line: string; lotNumber: string;
   statusCode: string; isInternal: boolean; detectedAt: string; minutesOpen: number; level: number;
   hasPhoto: boolean; hasLot: boolean; hasRootCause: boolean; hasCorrective: boolean;
 };
@@ -37,6 +37,8 @@ export default function QrqcBoardPage() {
   const [board, setBoard] = useState<Board | null>(null);
   const [offline, setOffline] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [isAdminView, setIsAdminView] = useState(true);
+  const [denied, setDenied] = useState(false);
   const [lineFilter, setLineFilter] = useState<string | null>(null);
   const timer = useRef<number | null>(null);
 
@@ -46,11 +48,19 @@ export default function QrqcBoardPage() {
       const res = await axios.get<Board>(`${ACTION_PLAN_API_URL}/qrqc/board`, { headers: { Authorization: `Bearer ${accessToken}` }, params: { scope } });
       setBoard(res.data);
       setOffline(false);
-    } catch {
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response?.status === 403) { setDenied(true); return; }
       // the last data stay on screen: a dropped network must not blank the board during the meeting
       setOffline(true);
     }
   }, [accessToken, scope]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    axios.get(`${ACTION_PLAN_API_URL}/qrqc/access`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => setIsAdminView(Boolean(r.data?.isAdmin)))
+      .catch(() => setIsAdminView(true));
+  }, [accessToken]);
 
   useEffect(() => {
     void load();
@@ -113,11 +123,14 @@ export default function QrqcBoardPage() {
             ))}
           </div>
           <button type="button" className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white" onClick={() => window.print()}>{t('qrqc.print')}</button>
-          <button type="button" className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white disabled:opacity-50" disabled={exporting} onClick={() => void exportSap()} title={t('qrqc.exportHint')}>
+          {isAdminView && <button type="button" className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-white disabled:opacity-50" disabled={exporting} onClick={() => void exportSap()} title={t('qrqc.exportHint')}>
             {t('qrqc.export')}
-          </button>
+          </button>}
         </div>
       </div>
+
+      {denied && <p className="text-sm text-slate-600 py-6">{t('qrqc.noAccess')}</p>}
+      {!isAdminView && !denied && <p className="text-xs text-slate-500 mb-3">{t('qrqc.managerScope')}</p>}
 
       {board && (
         <>
@@ -176,8 +189,8 @@ export default function QrqcBoardPage() {
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-semibold tabular-nums" style={{ color: p.level >= 3 ? '#E24B4A' : undefined }}>{duration(p.minutesOpen)}</div>
-                        <div className="text-[11px] text-slate-500">{t('qrqc.levelShort', { n: p.level })} · {levelLabel(p.level)}</div>
-                        <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/admin/claims/list?q=${encodeURIComponent(p.reference || p.title)}`)}>{t('qrqc.open')}</button>
+                        <div className="text-[11px] text-slate-500">{t('qrqc.levelShort', { n: p.level })} · {p.level === 2 && p.managerName ? p.managerName : levelLabel(p.level)}</div>
+                        {isAdminView && <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/admin/claims/list?q=${encodeURIComponent(p.reference || p.title)}`)}>{t('qrqc.open')}</button>}
                       </div>
                     </li>
                   ))}

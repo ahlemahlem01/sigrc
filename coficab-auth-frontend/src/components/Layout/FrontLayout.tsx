@@ -7,6 +7,8 @@ import {
   CalendarDays, CalendarClock, AppWindow, RefreshCw,
 } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import axios from 'axios';
+import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
@@ -17,7 +19,9 @@ const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
 
 const FrontLayout = () => {
   const { t } = useTranslation();
-  const { isAuthenticated, user, logout, renewSession } = useAuth();
+  const { isAuthenticated, user, logout, renewSession, accessToken } = useAuth();
+  // a hierarchical manager (someone other employees name as their manager) also gets the QRQC board, for his people only
+  const [isManager, setIsManager] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -31,6 +35,15 @@ const FrontLayout = () => {
       ? user.role.includes('admin') || user.role.includes('superadmin') || user.role.includes('ADMIN_QUALITY')
       : user.role === 'admin' || user.role === 'superadmin' || user.role === 'ADMIN_QUALITY'
   );
+
+  useEffect(() => {
+    if (!accessToken || isAdmin) return;
+    let cancelled = false;
+    axios.get(`${ACTION_PLAN_API_URL}/qrqc/access`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => { if (!cancelled) setIsManager(Boolean(r.data?.isManager)); })
+      .catch(() => { if (!cancelled) setIsManager(false); });
+    return () => { cancelled = true; };
+  }, [accessToken, isAdmin]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -61,6 +74,9 @@ const FrontLayout = () => {
       { to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') },
       { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
       { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
+    ] : []),
+    ...(!isAdmin && isManager ? [
+      { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
     ] : []),
     ...(isAuthenticated ? [
       {

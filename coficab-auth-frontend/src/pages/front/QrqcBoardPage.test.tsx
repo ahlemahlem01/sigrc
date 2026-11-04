@@ -24,11 +24,15 @@ const board = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** The board answers on /qrqc/board, the rights on /qrqc/access (here: an administrator). */
+const serve = (boardResult: () => Promise<unknown>) =>
+  mockedGet.mockImplementation((url: string) => (url.includes('/qrqc/access') ? Promise.resolve({ data: { isAdmin: true } }) : boardResult()));
+
 describe('QrqcBoardPage', () => {
   beforeEach(() => { mockedGet.mockReset(); });
 
   it('shows the lines, the problems with their time and level, and what each one still lacks', async () => {
-    mockedGet.mockResolvedValue({ data: board() });
+    serve(() => Promise.resolve({ data: board() }));
     render(<MemoryRouter><QrqcBoardPage /></MemoryRouter>);
 
     expect(await screen.findByText(/Coupure sur gaine/)).toBeTruthy();
@@ -41,7 +45,7 @@ describe('QrqcBoardPage', () => {
   });
 
   it('filters the problems on a line when its light is clicked', async () => {
-    mockedGet.mockResolvedValue({ data: board() });
+    serve(() => Promise.resolve({ data: board() }));
     render(<MemoryRouter><QrqcBoardPage /></MemoryRouter>);
     await screen.findByText(/Coupure sur gaine/);
 
@@ -50,12 +54,20 @@ describe('QrqcBoardPage', () => {
     expect(screen.getByText(/Coupure sur gaine/)).toBeTruthy();
   });
 
+  it('hides the export for a manager, who only reads his people', async () => {
+    mockedGet.mockImplementation((url: string) => (url.includes('/qrqc/access') ? Promise.resolve({ data: { isAdmin: false } }) : Promise.resolve({ data: board() })));
+    render(<MemoryRouter><QrqcBoardPage /></MemoryRouter>);
+    await screen.findByText(/Coupure sur gaine/);
+    await waitFor(() => expect(screen.queryByText('qrqc.export')).toBeNull());
+    expect(screen.getByText('qrqc.managerScope')).toBeTruthy();
+  });
+
   it('keeps the last data and says it is offline when the network drops', async () => {
-    mockedGet.mockResolvedValueOnce({ data: board() });
+    serve(() => Promise.resolve({ data: board() }));
     const { rerender } = render(<MemoryRouter><QrqcBoardPage /></MemoryRouter>);
     await screen.findByText(/Coupure sur gaine/);
 
-    mockedGet.mockRejectedValue(new Error('network'));
+    serve(() => Promise.reject(new Error('network')));
     fireEvent.click(screen.getByText('qrqc.scope.all'));          // triggers a new load, which fails
     rerender(<MemoryRouter><QrqcBoardPage /></MemoryRouter>);
 

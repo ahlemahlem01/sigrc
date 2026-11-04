@@ -42,6 +42,82 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
         return id;
     }
 
+    private HttpClient ClientAs(string role, string userId)
+    {
+        var client = ClientAs(role);
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, userId);
+        return client;
+    }
+
+    private async Task<Guid> AddAssignedClaim(string line, string assigneeId, string assigneeName)
+    {
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
+        var id = Guid.NewGuid();
+        db.Claims.Add(new Claim
+        {
+            Id = id, Title = $"Problème {line}", DefectType = "Coupure fil", ClientId = "ACME", Severity = "MEDIUM", LotNumber = "L-" + id.ToString()[..4],
+            Description = "x", StatusCode = "ASSIGNED", DetectionDate = DateTime.UtcNow.AddMinutes(-90), ProductionLine = line, IsInternal = true,
+            AssignedToId = assigneeId, AssignedToName = assigneeName, Reference = "QM-" + id.ToString()[..5],
+        });
+        await db.SaveChangesAsync();
+        return id;
+    }
+
+    private async Task<(string manager, string worker, string stranger)> AddPeople()
+    {
+        var manager = Guid.NewGuid().ToString(); var worker = Guid.NewGuid().ToString(); var stranger = Guid.NewGuid().ToString();
+        using var scope = _factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
+        db.UserProfiles.AddRange(
+            new UserProfile { Id = Guid.NewGuid(), UserId = manager, Name = "Chef Test", Email = "chef@t.com", Role = "user", Poste = "Chef d equipe", Equipe = "A" },
+            new UserProfile { Id = Guid.NewGuid(), UserId = worker, Name = "Operateur Test", Email = "op@t.com", Role = "user", Poste = "Operateur", Equipe = "A", ManagerId = manager, ManagerName = "Chef Test" },
+            new UserProfile { Id = Guid.NewGuid(), UserId = stranger, Name = "Autre Test", Email = "autre@t.com", Role = "user", Poste = "Operateur", Equipe = "B" });
+        await db.SaveChangesAsync();
+        return (manager, worker, stranger);
+    }
+
+    [Fact]
+    public async Task AManager_SeesOnlyTheProblemsOfThePeopleHeManages_AndCannotExport()
+    {
+        var (manager, worker, stranger) = await AddPeople();
+        var line = "MG-" + Guid.NewGuid().ToString("N")[..4];
+        var theirs = await AddAssignedClaim(line, worker, "Operateur Test");
+        var others = await AddAssignedClaim(line, stranger, "Autre Test");
+
+        var board = await Json(await ClientAs("user", manager).GetAsync("/api/qrqc/board"));
+        var problems = board.GetProperty("problems").EnumerateArray().ToList();
+        Assert.Contains(problems, p => p.GetProperty("claimId").GetGuid() == theirs);
+        Assert.DoesNotContain(problems, p => p.GetProperty("claimId").GetGuid() == others);
+        Assert.Equal("Chef Test", problems.First(p => p.GetProperty("claimId").GetGuid() == theirs).GetProperty("managerName").GetString());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user", manager).GetAsync("/api/qrqc/export")).StatusCode);
+        var access = await Json(await ClientAs("user", manager).GetAsync("/api/qrqc/access"));
+        Assert.True(access.GetProperty("canOpen").GetBoolean());
+        Assert.True(access.GetProperty("isManager").GetBoolean());
+    }
+
+    [Fact]
+    public async Task AnEmployeeWithoutAnyone_ToManage_CannotOpenTheBoard()
+    {
+        var (_, worker, _) = await AddPeople();
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user", worker).GetAsync("/api/qrqc/board")).StatusCode);
+        var access = await Json(await ClientAs("user", worker).GetAsync("/api/qrqc/access"));
+        Assert.False(access.GetProperty("canOpen").GetBoolean());
+    }
+
+    [Fact]
+    public async Task TheAdministrator_NamesTheManager_WhoIsRefusedWhenItIsTheSamePersonOrACycle()
+    {
+        var (manager, worker, _) = await AddPeople();
+        var admin = ClientAs("admin");
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{worker}/manager", new { managerUserId = worker })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{manager}/manager", new { managerUserId = worker })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{worker}/manager", new { managerUserId = (string?)null })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").PutAsJsonAsync($"/api/admin/employees/profiles/{worker}/manager", new { managerUserId = manager })).StatusCode);
+    }
+
     private static async Task<JsonElement> Json(HttpResponseMessage response)
     {
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

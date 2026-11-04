@@ -16,3 +16,12 @@ FROM (VALUES
 ) AS v(ref,title,defect,sev,lot,descr,st,mins,line,shift,pq,dq)
 WHERE NOT EXISTS (SELECT 1 FROM actionplan.Claims c WHERE c.Reference=v.ref);
 SELECT Reference,StatusCode,ProductionLine,IsInternal FROM actionplan.Claims WHERE IsInternal=1;
+
+-- Hierarchical manager: the team leader Mehdi Chaabane manages two extrusion operators, and the EXT-01 problem is assigned to one of them.
+-- He stays a simple employee (role user): the only extra right is reading the QRQC problems of the people he manages.
+UPDATE p SET ManagerId = m.UserId, ManagerName = m.Name, ManagerEmail = m.Email
+FROM actionplan.UserProfiles p JOIN actionplan.UserProfiles m ON m.Name = 'Mehdi Chaabane'
+WHERE p.Name IN ('Rania Bouazizi', 'Sami Hammami') AND p.ManagerId IS NULL;
+UPDATE c SET AssignedToId = p.UserId, AssignedToName = p.Name
+FROM actionplan.Claims c JOIN actionplan.UserProfiles p ON p.Name = 'Rania Bouazizi'
+WHERE c.Reference = 'INT-2026-001';

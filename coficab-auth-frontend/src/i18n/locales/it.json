@@ -158,6 +158,8 @@
     "attention": "Punti di attenzione"
   },
   "qrqc": {
+    "noAccess": "Non hai accesso al pannello QRQC. È riservato agli amministratori e ai responsabili gerarchici.",
+    "managerScope": "Vedi i problemi delle persone che coordini (sola lettura).",
     "nav": "QRQC",
     "origin": "Origine del problema",
     "originCustomer": "Reclamo cliente",
@@ -4620,6 +4622,9 @@
     "radarName": "Competenze"
   },
   "employeeProfileAdmin": {
+    "manager": "Responsabile gerarchico",
+    "managerNone": "Nessuno (subentra l’amministratore)",
+    "managerHint": "Avvisato al livello 2 del pannello QRQC e vede i problemi dei suoi collaboratori. Il suo ruolo non cambia.",
     "roleSuperadmin": "Super amministratore",
     "roleManager": "Manager",
     "roleUser": "Collaboratore",

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Core.DTOs.Employee;
@@ -108,6 +109,33 @@ public class AdminEmployeeController : ControllerBase
     }
 
     /// <summary>Org chart drag-and-drop: moves an employee to another department (profile only; the account is updated by the Auth API).</summary>
+    /// <summary>Names (or clears) the hierarchical manager of an employee. The manager keeps his own role: this adds no right except reading the QRQC problems of the people he manages.</summary>
+    [HttpPut("profiles/{userId}/manager")]
+    public async Task<IActionResult> SetManager(string userId, [FromBody] SetManagerRequest dto, CancellationToken ct)
+    {
+        var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (profile == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(dto.ManagerUserId))
+        {
+            profile.ManagerId = null; profile.ManagerName = null; profile.ManagerEmail = null;
+        }
+        else
+        {
+            var wanted = dto.ManagerUserId;
+            if (wanted.Equals(userId, StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Un employé ne peut pas être son propre chef hiérarchique.");
+            var manager = await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == wanted, ct);
+            if (manager == null) return BadRequest("Chef hiérarchique introuvable.");
+            if ((manager.ManagerId ?? string.Empty).Equals(userId, StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Ce chef hiérarchique dépend déjà de cet employé.");
+            profile.ManagerId = manager.UserId; profile.ManagerName = manager.Name; profile.ManagerEmail = manager.Email;
+        }
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { profile.UserId, profile.ManagerId, profile.ManagerName });
+    }
+
     [HttpPut("profiles/{userId}/department")]
     public async Task<IActionResult> MoveToDepartment(string userId, [FromBody] MoveDepartmentDto dto)
     {
@@ -366,4 +394,9 @@ public class NotifyPodiumRecipient
     public int Place { get; set; }
     public string FullName { get; set; } = string.Empty;
     public int Score { get; set; }
+}
+
+public class SetManagerRequest
+{
+    public string? ManagerUserId { get; set; }
 }

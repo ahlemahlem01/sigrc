@@ -158,6 +158,8 @@
     "attention": "Points of attention"
   },
   "qrqc": {
+    "noAccess": "You do not have access to the QRQC board. It is reserved for administrators and hierarchical managers.",
+    "managerScope": "You see the problems of the people you manage (read only).",
     "nav": "QRQC",
     "origin": "Origin of the problem",
     "originCustomer": "Customer claim",
@@ -4620,6 +4622,9 @@
     "radarName": "Skills"
   },
   "employeeProfileAdmin": {
+    "manager": "Hierarchical manager",
+    "managerNone": "None (the administrator takes over)",
+    "managerHint": "Notified at level 2 of the QRQC board and sees the problems of the people managed. His role does not change.",
     "roleSuperadmin": "Super administrator",
     "roleManager": "Manager",
     "roleUser": "Employee",

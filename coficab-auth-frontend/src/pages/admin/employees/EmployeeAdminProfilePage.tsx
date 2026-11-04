@@ -42,6 +42,7 @@ type InitialEmployee = {
   profilePictureUrl?: string | null;
   hireDate?: string | null;
   managerName?: string;
+  managerId?: string;
   isLockedOut?: boolean;
   activityStatus?: ActivityStatus | string | number;
   lastActivityAt?: string | null;
@@ -61,6 +62,7 @@ type ProfileState = {
   ligneProduction: string;
   telephone: string;
   managerName: string;
+  managerId: string;
   hireDate: string | null;
   profilePictureUrl: string | null;
   isLockedOut: boolean;
@@ -161,6 +163,9 @@ export default function EmployeeAdminProfilePage() {
   const [locking, setLocking] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [saveErr, setSaveErr] = useState(false);
+  // the hierarchical manager: chosen among the other employees, saved with the rest of the work information
+  const [managerSel, setManagerSel] = useState('');
+  const [managerOptions, setManagerOptions] = useState<Array<{ id: string; name: string; poste: string }>>([]);
   const [draft, setDraft] = useState({ poste: '', equipe: '', ligneProduction: '', telephone: '' });
 
   const reloadBadges = useCallback(async () => {
@@ -229,6 +234,7 @@ export default function EmployeeAdminProfilePage() {
           pick(rawProfile?.telephone, rawProfile?.phone, initial?.telephone, initial?.phone) ||
           phoneFromId(id),
         managerName: pick(rawProfile?.managerName, initial?.managerName),
+        managerId: pick(rawProfile?.managerId, initial?.managerId),
         hireDate: rawProfile?.hireDate || initial?.hireDate || null,
         profilePictureUrl:
           pick(rawProfile?.profilePictureUrl, initial?.profilePictureUrl, auth?.email && null) ||
@@ -340,6 +346,20 @@ export default function EmployeeAdminProfilePage() {
     }
   };
 
+  useEffect(() => {
+    if (!editOpen || !accessToken || !id) return;
+    setManagerSel(profile?.managerId ?? '');
+    adminEmployeeService.getAllProfiles(accessToken)
+      .then((rows: any[]) => setManagerOptions(
+        rows
+          .map((r) => ({ id: String(r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? ''), poste: String(r.poste ?? r.Poste ?? '') }))
+          .filter((r) => r.id && r.name && r.id.toLowerCase() !== id.toLowerCase())
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      ))
+      .catch(() => setManagerOptions([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen, accessToken, id]);
+
   const onSaveWork = async () => {
     if (!accessToken || !profile) return;
     if (!draft.poste.trim() || !draft.equipe.trim()) {
@@ -357,6 +377,10 @@ export default function EmployeeAdminProfilePage() {
         ligneProduction: draft.ligneProduction.trim() || null,
         telephone: draft.telephone.trim() || null,
       });
+      if ((profile.managerId ?? '') !== managerSel) {
+        await adminEmployeeService.setManager(accessToken, profile.id, managerSel || null);
+      }
+      const chosen = managerOptions.find((m) => m.id === managerSel);
       setProfile((prev) =>
         prev
           ? {
@@ -365,6 +389,8 @@ export default function EmployeeAdminProfilePage() {
               equipe: draft.equipe.trim(),
               ligneProduction: draft.ligneProduction.trim(),
               telephone: draft.telephone.trim(),
+              managerId: managerSel,
+              managerName: chosen?.name ?? '',
             }
           : prev,
       );
@@ -661,7 +687,7 @@ export default function EmployeeAdminProfilePage() {
                   <dd>{profile.ligneProduction || '—'}</dd>
                   <dt>{t('employeesAdmin.phone')}</dt>
                   <dd>{profile.telephone || '—'}</dd>
-                  <dt>{t('planView.owner')}</dt>
+                  <dt>{t('employeeProfileAdmin.manager')}</dt>
                   <dd>{profile.managerName || t('claimDetail.unassigned')}</dd>
                   <dt>{t('employeeProfileAdmin.hireDate')}</dt>
                   <dd>{fmtDate(profile.hireDate)}</dd>
@@ -706,6 +732,16 @@ export default function EmployeeAdminProfilePage() {
                         value={draft.telephone}
                         onChange={(e) => setDraft((d) => ({ ...d, telephone: e.target.value }))}
                       />
+                    </div>
+                    <div className="eap-field">
+                      <label htmlFor="eap-manager">{t('employeeProfileAdmin.manager')}</label>
+                      <select id="eap-manager" value={managerSel} onChange={(e) => setManagerSel(e.target.value)}>
+                        <option value="">{t('employeeProfileAdmin.managerNone')}</option>
+                        {managerOptions.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}{m.poste ? ` · ${m.poste}` : ''}</option>
+                        ))}
+                      </select>
+                      <small>{t('employeeProfileAdmin.managerHint')}</small>
                     </div>
                     <div className="eap-form-actions">
                       <button

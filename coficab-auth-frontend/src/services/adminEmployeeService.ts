@@ -82,6 +82,10 @@ export const adminEmployeeService = {
   moveToDepartment: (token: string, userId: string, departmentId: string) =>
     axios.put(`${API_URL}/profiles/${userId}/department`, { departmentId }, h(token)).then(r => r.data),
 
+  /** Names (or clears, with null) the hierarchical manager of an employee. */
+  setManager: (token: string, userId: string, managerUserId: string | null) =>
+    axios.put(`${API_URL}/profiles/${userId}/manager`, { managerUserId }, h(token)).then(r => r.data),
+
   updateProfile: (token: string, userId: string, data: any) =>
     axios.put(`${API_URL}/profiles/${userId}`, data, h(token)).then(r => r.data),
 

@@ -11,10 +11,11 @@ namespace Coficab.ActionPlan.API.Controllers;
 
 /// <summary>
 /// The QRQC board of the workshop: the problems that are open, by production line, with the time they have been open and the
-/// level that has to deal with them. It only reads the claims, their analyses and their action plans: nothing is stored twice.
+/// level that has to deal with them. An administrator sees every problem; a hierarchical manager (a user other profiles name as their manager)
+/// sees the problems assigned to the people he manages, read-only. It only reads the claims, their analyses and their action plans: nothing is stored twice.
 /// </summary>
 [ApiController]
-[Authorize(Policy = "AdminOnly")]
+[Authorize]
 [Route("api/qrqc")]
 public class QrqcController : ControllerBase
 {
@@ -28,9 +29,40 @@ public class QrqcController : ControllerBase
 
     private sealed record Row(Claim Claim, bool HasRootCause, string? RootCause, bool HasCorrective, string? CorrectiveTitles);
 
+    private string CurrentUserId() => User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? string.Empty;
+
+    private bool IsAdmin() => User.IsInRole("admin") || User.IsInRole("superadmin");
+
+    /// <summary>For a manager: the people he manages and himself. Null for an administrator (no restriction).</summary>
+    private List<string>? _restrictTo;
+
+    /// <summary>Sets the restriction of the request; false when the caller is neither an administrator nor a manager.</summary>
+    private async Task<bool> PrepareAccessAsync(CancellationToken ct)
+    {
+        if (IsAdmin()) { _restrictTo = null; return true; }
+        var me = CurrentUserId();
+        if (me.Length == 0) return false;
+        var reports = await _db.UserProfiles.AsNoTracking().Where(p => p.ManagerId == me).Select(p => p.UserId).ToListAsync(ct);
+        if (reports.Count == 0) return false;
+        reports.Add(me);
+        _restrictTo = reports;
+        return true;
+    }
+
+    /// <summary>Who can open the board and with which scope: tells the front end whether to show the entry.</summary>
+    [HttpGet("access")]
+    public async Task<IActionResult> Access(CancellationToken ct)
+    {
+        var admin = IsAdmin();
+        var me = CurrentUserId();
+        var reports = admin || me.Length == 0 ? 0 : await _db.UserProfiles.AsNoTracking().CountAsync(p => p.ManagerId == me, ct);
+        return Ok(new { isAdmin = admin, isManager = reports > 0, reports, canOpen = admin || reports > 0 });
+    }
+
     private IQueryable<Claim> Scope(string? scope)
     {
         var query = _db.Claims.AsNoTracking().Where(c => !c.IsArchived);
+        if (_restrictTo is { } ids) query = query.Where(c => c.AssignedToId != null && ids.Contains(c.AssignedToId));
         return string.Equals(scope, "all", StringComparison.OrdinalIgnoreCase) ? query : query.Where(c => c.IsInternal);
     }
 
@@ -75,10 +107,16 @@ public class QrqcController : ControllerBase
     [HttpGet("board")]
     public async Task<IActionResult> Board([FromQuery] string? scope, CancellationToken ct)
     {
+        if (!await PrepareAccessAsync(ct)) return Forbid();
         var now = DateTime.UtcNow;
         var minutes = await EscalationMinutesAsync(ct);
 
         var open = await LoadAsync(Scope(scope).Where(c => !ClosedOrDraft.Contains(c.StatusCode.ToUpper())), ct);
+
+        // level 2 is the hierarchical manager of the person in charge, when he is known (otherwise the administrator)
+        var assignedIds = open.Select(r => r.Claim.AssignedToId ?? string.Empty).Where(i => i.Length > 0).Distinct().ToList();
+        var managers = await _db.UserProfiles.AsNoTracking().Where(p => assignedIds.Contains(p.UserId)).Select(p => new { p.UserId, p.ManagerName }).ToListAsync(ct);
+        var managerOf = managers.Where(m => !string.IsNullOrWhiteSpace(m.ManagerName)).ToDictionary(m => m.UserId, m => m.ManagerName!);
         var problems = open.Select(r =>
         {
             var c = r.Claim;
@@ -92,6 +130,8 @@ public class QrqcController : ControllerBase
                 severity = c.Severity,
                 line = string.IsNullOrWhiteSpace(c.ProductionLine) ? NoLine : c.ProductionLine!.Trim(),
                 lotNumber = c.LotNumber,
+                assignedToName = c.AssignedToName,
+                managerName = c.AssignedToId != null && managerOf.TryGetValue(c.AssignedToId, out var mn) ? mn : null,
                 statusCode = c.StatusCode,
                 isInternal = c.IsInternal,
                 detectedAt = c.DetectionDate,
@@ -139,6 +179,7 @@ public class QrqcController : ControllerBase
 
     /// <summary>The problems as SAP QM quality notifications (semicolon CSV, technical field names) for an upload by the quality team.</summary>
     [HttpGet("export")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Export([FromQuery] string? scope, [FromQuery] bool includeClosed = false, CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
