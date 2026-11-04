@@ -165,7 +165,7 @@ export default function QrqcBoardPage() {
                           {p.title} <span className="text-[11px] font-normal text-slate-500">· {p.line} · {t('qrqc.lot')} {p.lotNumber || '—'} · {defectLabel(p.defectType)}</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 mt-1.5">
-                          {chip(p.hasPhoto && p.hasLot, t('qrqc.photoLotOk'), t('qrqc.photoLotMissing'))}
+                          {chip(p.hasLot, t('qrqc.lotOk'), t('qrqc.lotMissing'))}
                           {chip(p.hasRootCause, t('qrqc.rootCauseOk'), t('qrqc.rootCauseMissing'))}
                           {chip(p.hasCorrective, t('qrqc.correctiveOk'), t('qrqc.correctiveMissing'))}
                           {!p.isInternal && <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">{t('qrqc.customerClaim')}</span>}
@@ -177,7 +177,7 @@ export default function QrqcBoardPage() {
                       <div className="text-right">
                         <div className="text-lg font-semibold tabular-nums" style={{ color: p.level >= 4 ? '#E24B4A' : undefined }}>{duration(p.minutesOpen)}</div>
                         <div className="text-[11px] text-slate-500">{t('qrqc.levelShort', { n: p.level })} · {levelLabel(p.level)}</div>
-                        <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/pages/front/quality-analyses/parcours/${p.claimId}`)}>{t('qrqc.open')}</button>
+                        <button type="button" className="qrqc-noprint mt-1 text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/admin/claims/list?q=${encodeURIComponent(p.reference || p.title)}`)}>{t('qrqc.open')}</button>
                       </div>
                     </li>
                   ))}

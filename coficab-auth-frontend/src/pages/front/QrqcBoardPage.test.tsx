@@ -35,8 +35,8 @@ describe('QrqcBoardPage', () => {
     expect(screen.getByText('1 h 42')).toBeTruthy();
     expect(screen.getByText('4 h 10')).toBeTruthy();
     expect(screen.getAllByText('qrqc.rootCauseMissing').length).toBe(2);
-    expect(screen.getByText('qrqc.photoLotMissing')).toBeTruthy();
-    expect(screen.getByText('qrqc.photoLotOk')).toBeTruthy();
+    expect(screen.getByText('qrqc.lotMissing')).toBeTruthy();
+    expect(screen.getByText('qrqc.lotOk')).toBeTruthy();
     expect(screen.getByText('qrqc.online')).toBeTruthy();
   });
 
