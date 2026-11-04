@@ -34,6 +34,7 @@ export default function PermissionMatrixPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [busyKey, setBusyKey] = useState('');
+  const [saved, setSaved] = useState('');
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -135,6 +136,7 @@ export default function PermissionMatrixPage() {
     try {
       if (owned) await revokeStoredPermission(accessToken, user.id, permission.id);
       else await assignStoredPermission(accessToken, user.id, permission.id);
+      setSaved(t(owned ? 'permMatrix.savedRemoved' : 'permMatrix.savedGranted', { right: permissionTitle(permission.name, permission.displayName), user: user.fullName || user.email }));
     } catch (err: any) {
       setGrants((prev) => ({ ...prev, [user.id]: previous }));
       setError(err?.response?.data?.message || t('permMatrix.updateFailed'));
@@ -178,6 +180,7 @@ export default function PermissionMatrixPage() {
       </div>
 
       {error && <div className="mx-alert">{error}</div>}
+      {saved && !error && <div className="mx-saved" role="status">{saved}</div>}
       {loading ? <p className="mx-muted">{t('common.loading')}</p> : (
         <>
           <div className="mx-scroll">
@@ -250,6 +253,7 @@ const PAGE_CSS = `
   .mx-help li { margin-bottom: 4px; }
   .mx-dot { display: inline-block; width: 8px; height: 8px; margin-left: 7px; border-radius: 50%; background: #10b981; vertical-align: middle; }
   .mx-new { display: block; width: fit-content; margin: 4px auto 0; padding: 1px 8px; border-radius: 999px; background: #059669; color: #fff; font-size: 11px; font-weight: 700; }
+  .mx-saved { margin: 0 0 12px; padding: 9px 12px; border-radius: 8px; background: #ecfdf5; color: #047857; font-size: 13px; font-weight: 600; }
   .mx-muted { margin: 0 0 12px; color: #64748b; font-size: 13px; }
   .mx-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
   .mx-chip { border: 1px solid #e2e8f0; background: #fff; color: #334155; border-radius: 999px; padding: 5px 11px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }

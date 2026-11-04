@@ -150,7 +150,6 @@ const NAV: NavItem[] = [
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
     ],
   },
-  { id: 'support', label: 'adminNav.support', icon: 'ti-help-circle', path: '/admin/dashboard', solo: true },
 ];
 
 const getPageMeta = (pathname: string): { title: string; crumb: string } => {

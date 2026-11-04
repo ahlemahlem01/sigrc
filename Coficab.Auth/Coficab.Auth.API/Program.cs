@@ -101,6 +101,8 @@ builder.Services.AddOpenIddict()
 
         options.AllowPasswordFlow();
         options.AllowRefreshTokenFlow();
+        // the rights travel in the access token: a short life lets a change of rights reach the person within minutes
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Auth:AccessTokenMinutes") ?? 5));
         options.AllowAuthorizationCodeFlow();
         options.AllowClientCredentialsFlow();
         options.SetIntrospectionEndpointUris("/connect/introspect");

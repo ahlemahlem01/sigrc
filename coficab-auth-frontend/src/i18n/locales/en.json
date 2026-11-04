@@ -3078,6 +3078,14 @@
     "answerPlaceholder": "Factual answer (not “human error”)…",
     "coaching": "Coach…",
     "challenge": "Ask the coach",
+    "challengeChain": "Challenge the chain (coach)",
+    "challengeChainHint": "Fill in the 5 Whys, then run a single challenge for the whole chain.",
+    "challengeFirst": "Run the coach challenge of the {{branch}} branch before generating the root cause.",
+    "continueAllAnyway": "Continue despite the warnings",
+    "chainAccepted": "The 5 Whys chain ({{branch}}) is accepted by the coach. You can generate the root cause.",
+    "chainNeedsWork": "The coach asks you to rework some Whys of the {{branch}} branch: see its remarks below.",
+    "chainForced": "Chain ({{branch}}) accepted despite the warnings.",
+    "chainReady": "Chain validated: the root cause can be generated.",
     "activeBranch": "Active branch: {{branch}}",
     "rootCauseOccurrence": "Occurrence root cause",
     "rootCauseDetection": "Detection root cause",
@@ -3411,6 +3419,8 @@
   },
   "frontNav": {
     "sectionMenu": "Section menu",
+    "refreshRights": "Refresh my rights",
+    "refreshRightsHint": "Use it after an administrator changed your rights",
     "claimsDirectory": "Directory",
     "myClaims": "My claims",
     "validationFiles": "Files",
@@ -4797,6 +4807,8 @@
   "permMatrix": {
     "loadFailed": "Could not load the matrix.",
     "fromRole": "Right given by the person's role: it cannot be removed here.",
+    "savedGranted": "Saved: \"{{right}}\" granted to {{user}}. It applies within a few minutes, or at once with \"Refresh my rights\" in their menu.",
+    "savedRemoved": "Saved: \"{{right}}\" removed from {{user}}. The change applies within a few minutes, or at once with \"Refresh my rights\".",
     "newRight": "Recently created right",
     "helpDetails": {
       "title": "How does it work?",

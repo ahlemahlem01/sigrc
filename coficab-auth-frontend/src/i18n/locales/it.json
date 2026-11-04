@@ -3078,6 +3078,14 @@
     "answerPlaceholder": "Risposta basata sui fatti (non «errore umano»)…",
     "coaching": "Coach…",
     "challenge": "Verifica coach",
+    "challengeChain": "Verifica la catena (coach)",
+    "challengeChainHint": "Compila i 5 Perché, poi avvia un’unica verifica per tutta la catena.",
+    "challengeFirst": "Avvia prima la verifica del coach del ramo {{branch}} prima di generare la causa radice.",
+    "continueAllAnyway": "Continua nonostante gli avvisi",
+    "chainAccepted": "La catena dei 5 Perché ({{branch}}) è accettata dal coach. Puoi generare la causa radice.",
+    "chainNeedsWork": "Il coach chiede di rivedere alcuni Perché del ramo {{branch}}: vedi le sue note qui sotto.",
+    "chainForced": "Catena ({{branch}}) accettata nonostante gli avvisi.",
+    "chainReady": "Catena convalidata: la causa radice può essere generata.",
     "activeBranch": "Ramo attivo: {{branch}}",
     "rootCauseOccurrence": "Causa radice Occorrenza",
     "rootCauseDetection": "Causa radice Rilevamento",
@@ -3411,6 +3419,8 @@
   },
   "frontNav": {
     "sectionMenu": "Menu della sezione",
+    "refreshRights": "Aggiorna i miei diritti",
+    "refreshRightsHint": "Da usare dopo che un amministratore ha modificato i tuoi diritti",
     "claimsDirectory": "Elenco",
     "myClaims": "I miei reclami",
     "validationFiles": "Dossier",
@@ -4797,6 +4807,8 @@
   "permMatrix": {
     "loadFailed": "Impossibile caricare la matrice.",
     "fromRole": "Diritto dato dal ruolo della persona: non si toglie qui.",
+    "savedGranted": "Salvato: « {{right}} » concesso a {{user}}. Si applica entro pochi minuti, o subito con « Aggiorna i miei diritti » nel suo menu.",
+    "savedRemoved": "Salvato: « {{right}} » tolto a {{user}}. La modifica si applica entro pochi minuti, o subito con « Aggiorna i miei diritti ».",
     "newRight": "Diritto creato di recente",
     "helpDetails": {
       "title": "Come funziona?",

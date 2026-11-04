@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LogOut, LayoutDashboard, ShieldCheck, CheckCircle2, PlusCircle,
   Users, ClipboardList, History, FileText, AlertTriangle, BookOpen,
-  CalendarDays, CalendarClock, AppWindow,
+  CalendarDays, CalendarClock, AppWindow, RefreshCw,
 } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { NotificationBell } from '../NotificationBell';
@@ -17,7 +17,7 @@ const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
 
 const FrontLayout = () => {
   const { t } = useTranslation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, renewSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -515,6 +515,15 @@ const FrontLayout = () => {
                       <Link to="/" className="fl-drop-item" onClick={() => setUserMenuOpen(false)}>
                         <AppWindow size={14} /> {t('frontNav.appPortal')}
                       </Link>
+
+                      <button
+                        className="fl-drop-item"
+                        style={{ width: '100%', border: 'none', background: 'none', fontFamily: 'inherit' }}
+                        title={t('frontNav.refreshRightsHint')}
+                        onClick={() => { setUserMenuOpen(false); void renewSession().catch(() => undefined); }}
+                      >
+                        <RefreshCw size={14} /> {t('frontNav.refreshRights')}
+                      </button>
 
                       <div className="fl-drop-divider" />
                       <button className="fl-drop-item danger" style={{ width: '100%', border: 'none', background: 'none', fontFamily: 'inherit' }} onClick={() => { setUserMenuOpen(false); handleLogout(); }}>

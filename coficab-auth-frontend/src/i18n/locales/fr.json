@@ -3078,6 +3078,14 @@
     "answerPlaceholder": "Réponse factuelle (pas « erreur humaine »)…",
     "coaching": "Coach…",
     "challenge": "Challenge coach",
+    "challengeChain": "Challenger la chaîne (coach)",
+    "challengeChainHint": "Remplissez les 5 Pourquoi, puis lancez un seul challenge pour toute la chaîne.",
+    "challengeFirst": "Lancez d’abord le challenge coach de la branche {{branch}} avant de générer la cause racine.",
+    "continueAllAnyway": "Continuer malgré les avertissements",
+    "chainAccepted": "La chaîne des 5 Pourquoi ({{branch}}) est acceptée par le coach. Vous pouvez générer la cause racine.",
+    "chainNeedsWork": "Le coach demande de reprendre certains Pourquoi de la branche {{branch}} : voir ses remarques ci-dessous.",
+    "chainForced": "Chaîne ({{branch}}) acceptée malgré les avertissements.",
+    "chainReady": "Chaîne validée : la cause racine peut être générée.",
     "activeBranch": "Branche active : {{branch}}",
     "rootCauseOccurrence": "Cause racine Occurrence",
     "rootCauseDetection": "Cause racine Détection",
@@ -3411,6 +3419,8 @@
   },
   "frontNav": {
     "sectionMenu": "Menu de la section",
+    "refreshRights": "Actualiser mes droits",
+    "refreshRightsHint": "À utiliser après qu'un administrateur a modifié vos droits",
     "claimsDirectory": "Répertoire",
     "myClaims": "Mes réclamations",
     "validationFiles": "Dossiers",
@@ -4797,6 +4807,8 @@
   "permMatrix": {
     "loadFailed": "Impossible de charger la matrice.",
     "fromRole": "Droit donné par le rôle de la personne : il ne se retire pas ici.",
+    "savedGranted": "Enregistré : « {{right}} » accordé à {{user}}. Le droit s'applique dans quelques minutes, ou tout de suite via « Actualiser mes droits » dans son menu.",
+    "savedRemoved": "Enregistré : « {{right}} » retiré à {{user}}. Le changement s'applique dans quelques minutes, ou tout de suite via « Actualiser mes droits ».",
     "newRight": "Droit créé récemment",
     "helpDetails": {
       "title": "Comment ça marche ?",

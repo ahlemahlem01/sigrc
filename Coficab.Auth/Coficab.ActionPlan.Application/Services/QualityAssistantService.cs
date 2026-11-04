@@ -294,7 +294,7 @@ public class QualityAssistantService : IQualityAssistantService
                                 ["status"] = new
                                 {
                                     type = "STRING",
-                                    description = "Code statut (ex: OPEN, EN_COURS, CLOTUREE, DRAFT). Optionnel."
+                                    description = "Code statut exact (OUVERTE, ASSIGNED, EN_ANALYSE, PENDING_VALIDATION, VALIDATED, REJECTED, CLOTUREE, DRAFT), ou OPEN pour toutes les réclamations non clôturées. Optionnel."
                                 },
                                 ["periodDays"] = new
                                 {
@@ -415,7 +415,16 @@ public class QualityAssistantService : IQualityAssistantService
         if (!string.IsNullOrWhiteSpace(status))
         {
             var st = status.Trim().ToUpperInvariant();
-            query = query.Where(c => c.StatusCode.ToUpper() == st);
+            if (st is "OPEN" or "OUVERT" or "OUVERTES" or "EN_COURS" or "ACTIVE" or "NOT_CLOSED")
+            {
+                // "open" is not a stored code: it means every claim that is neither closed nor a draft
+                query = query.Where(c => c.StatusCode.ToUpper() != "CLOTUREE" && c.StatusCode.ToUpper() != "DRAFT");
+            }
+            else
+            {
+                if (st is "CLOSED" or "CLOTURE" or "CLOTUREES") st = "CLOTUREE";
+                query = query.Where(c => c.StatusCode.ToUpper() == st);
+            }
         }
 
         if (periodDays is > 0)
@@ -424,6 +433,7 @@ public class QualityAssistantService : IQualityAssistantService
             query = query.Where(c => c.CreatedAt >= since || c.DetectionDate >= since);
         }
 
+        var total = await query.CountAsync(ct);
         var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Take(40)
@@ -445,6 +455,7 @@ public class QualityAssistantService : IQualityAssistantService
         return new
         {
             scope = isAdmin ? "organization" : "employee",
+            total,                  // all the matching claims; "claims" lists the 40 most recent only
             count = items.Count,
             claims = items,
         };
