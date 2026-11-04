@@ -35,8 +35,17 @@ if (!builder.Environment.IsEnvironment("Testing"))
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddApplication();
 
+// Llm:Provider = "ollama" runs the AI on a local Ollama server (Gemini stays the fallback when a key is set); the screens
+// only check that "an AI key exists", so a placeholder stands in for it when Ollama is used alone.
+if (Coficab.ActionPlan.Application.Services.OllamaBridgeHandler.IsOllamaSelected(builder.Configuration)
+    && string.IsNullOrWhiteSpace(builder.Configuration["Gemini:ApiKey"]))
+    builder.Configuration["Gemini:ApiKey"] = Coficab.ActionPlan.Application.Services.OllamaBridgeHandler.PlaceholderKey;
+
+builder.Services.AddTransient<Coficab.ActionPlan.Application.Services.OllamaBridgeHandler>();
 builder.Services.AddTransient<Coficab.ActionPlan.Application.Services.GeminiModelFallbackHandler>();
-builder.Services.AddHttpClient().ConfigureHttpClientDefaults(b => b.AddHttpMessageHandler<Coficab.ActionPlan.Application.Services.GeminiModelFallbackHandler>());
+builder.Services.AddHttpClient().ConfigureHttpClientDefaults(b => b
+    .AddHttpMessageHandler<Coficab.ActionPlan.Application.Services.OllamaBridgeHandler>()
+    .AddHttpMessageHandler<Coficab.ActionPlan.Application.Services.GeminiModelFallbackHandler>());
 builder.Services.AddHttpClient("AuthApi")
     .ConfigurePrimaryHttpMessageHandler(() =>
     {

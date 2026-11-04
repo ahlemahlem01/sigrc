@@ -71,6 +71,9 @@ services:
       Turnstile__SiteKey: ${TURNSTILE_SITE_KEY:-}
       Turnstile__SecretKey: ${TURNSTILE_SECRET_KEY:-}
       Turnstile__FailOpen: ${TURNSTILE_FAIL_OPEN:-false}
+    # The Action Plan API shares this network namespace: this is how it reaches Ollama running on the host (Linux needs the explicit mapping).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       # Token signing keys must survive a container re-creation, otherwise every session is invalidated.
       - authkeys:/root/.dotnet/corefx
@@ -106,7 +109,17 @@ services:
       Gemini__Model: ${GEMINI_MODEL:-gemini-3.6-flash}
       # Models tried in turn when the main one answers "quota reached" or "overloaded" (each model has its own free quota).
       Gemini__FallbackModels: ${GEMINI_FALLBACK_MODELS:-gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash,gemini-3.7-flash,gemini-3.8-flash}
-      # The semantic search backfill is only useful with a Gemini key.
+      # AI provider: "gemini" (default) or "ollama" (local server on the host, see .env.example). With ollama, a Gemini key is optional and serves as the fallback.
+      Llm__Provider: ${LLM_PROVIDER:-gemini}
+      Ollama__BaseUrl: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      # Photos stay on Gemini when a key is set (a small local vision model is unreliable); "ollama" sends them to the local model too.
+      Llm__VisionProvider: ${LLM_VISION_PROVIDER:-gemini}
+      # The 5 Why coach stays on Gemini when a key is set (stricter than a small local model); "ollama" moves it to the local model.
+      Llm__CoachProvider: ${LLM_COACH_PROVIDER:-gemini}
+      Ollama__Model: ${OLLAMA_MODEL:-qwen2.5:3b}
+      Ollama__VisionModel: ${OLLAMA_VISION_MODEL:-qwen2.5vl:3b}
+      Ollama__EmbeddingModel: ${OLLAMA_EMBEDDING_MODEL:-nomic-embed-text}
+      # The semantic search backfill is only useful with an AI provider (Gemini key or Ollama).
       Semantic__BackfillEnabled: ${SEMANTIC_BACKFILL:-false}
     volumes:
       # Documents uploaded by the administrators (private folder): they must survive a rebuild of the container.
