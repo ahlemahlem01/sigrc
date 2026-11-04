@@ -68,6 +68,8 @@ import EmployeeDeclarationsPage from './pages/front/EmployeeDeclarationsPage';
 import EmployeeActivityPage from './pages/front/EmployeeActivityPage';
 import PilotagePage from './pages/front/PilotagePage';
 import QrqcBoardPage from './pages/front/QrqcBoardPage';
+import SecuritySettingsPage from './pages/admin/SecuritySettingsPage';
+import IdleLogout from './components/IdleLogout';
 import ReferenceLabelsLoader from './components/ReferenceLabelsLoader';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
@@ -152,6 +154,7 @@ const App = () => {
       <RealtimeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <IdleLogout />
         <ReferenceLabelsLoader />
         <Routes>
           {/* ── Public ── */}
@@ -209,6 +212,7 @@ const App = () => {
               <Route path="/admin/action-plans/archive"         element={<Navigate to="/admin/action-plans?status=4" replace />} />
               <Route path="/admin/preferences"              element={<PreferencesPage />} />
               <Route path="/admin/settings/thresholds"      element={<ThresholdsPage />} />
+              <Route path="/admin/settings/security"        element={<SecuritySettingsPage />} />
               <Route path="/admin/settings/cv-review"       element={<CvReviewPage />} />
               <Route path="/admin/action-plans/settings"        element={<AdminCapaSettings />} />
               <Route path="/admin/action-plans/reference"       element={<AdminCapaPlanReference />} />

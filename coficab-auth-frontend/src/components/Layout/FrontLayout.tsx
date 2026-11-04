@@ -13,6 +13,7 @@ import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
 import LanguageFlags from '../LanguageFlags';
+import LicenceBanner from '../LicenceBanner';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 
 // Target route for Quality Analyses
@@ -607,6 +608,7 @@ const FrontLayout = () => {
             )}
           </nav>
         )}
+        <LicenceBanner />
         <Outlet />
       </main>
 

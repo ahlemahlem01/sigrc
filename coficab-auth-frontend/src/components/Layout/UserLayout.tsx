@@ -6,6 +6,7 @@ import { AppWindow, LogOut, ChevronDown, Calendar, User } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
+import LicenceBanner from '../LicenceBanner';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
 import { MOBILE_NAV_CSS } from './mobileNav';
@@ -587,6 +588,7 @@ export default function UserLayout() {
 
           {/* PAGE CONTENT CONTAINER */}
           <main className="al-main">
+            <LicenceBanner />
             <div className="al-page">
               <Outlet />
             </div>

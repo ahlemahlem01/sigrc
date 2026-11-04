@@ -393,10 +393,31 @@ public class AdminController : ControllerBase
         return Ok(new { created = created.Count, users = created, errors });
     }
 
+    /// <summary>The licence limits the number of users (specification): an error text when the limit is reached. Fails open: no licence recorded, or no access to it, means no limit.</summary>
+    private async Task<string?> LicenceCapacityErrorAsync()
+    {
+        try
+        {
+            var max = await _db.Database.SqlQueryRaw<int>(
+                "SELECT TOP 1 MaxUsers AS Value FROM actionplan.Licences WHERE IsArchived = 0 ORDER BY IsGlobal DESC, ExpiresAt DESC").ToListAsync();
+            if (max.Count == 0) return null;
+            var used = await _db.Users.CountAsync();
+            return used >= max[0] ? $"La licence autorise {max[0]} utilisateurs au maximum : la limite est atteinte." : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task<UserCreateOutcome> TryCreateUserAsync(AdminCreateUserRequest request)
     {
         if (string.IsNullOrEmpty(CurrentUserId))
             return new UserCreateOutcome("Cannot resolve current user ID.", null, null, null, null);
+
+        var capacityError = await LicenceCapacityErrorAsync();
+        if (capacityError != null)
+            return new UserCreateOutcome(capacityError, null, null, null, null);
 
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.DepartmentId);
         if (scopingError != null)

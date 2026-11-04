@@ -157,6 +157,43 @@
     "inProgress": "In progress",
     "attention": "Points of attention"
   },
+  "licence": {
+    "expiring_one": "The licence expires in {{count}} day ({{date}}). Contact your supplier to renew it.",
+    "expiring_other": "The licence expires in {{count}} days ({{date}}). Contact your supplier to renew it.",
+    "expired": "The licence expired on {{date}}. Contact your supplier to renew it."
+  },
+  "security": {
+    "title": "Security and licences",
+    "subtitle": "Automatic logout and licences of the platform.",
+    "idleTitle": "Automatic logout",
+    "idleHelp": "An inactive user is logged out after this delay. 0 turns the automatic logout off (5 to 480 minutes).",
+    "minutes": "minutes",
+    "saved": "Saved",
+    "saveFailed": "Could not save",
+    "idleLoggedOut": "You were logged out because of inactivity.",
+    "licenceTitle": "Licences",
+    "licenceHelp": "Licences are recorded by the superadmin (the supplier). An alert is shown 30 days before the expiry.",
+    "licenceHelpSuper": "A licence is global or specific to a site. The number of users is limited: creating an account is refused beyond it. An alert is shown 30 days before the expiry.",
+    "addLicence": "Add a licence",
+    "status": "State",
+    "users": "Users",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "key": "Key",
+    "scope": "Scope",
+    "global": "Global",
+    "site": "Site",
+    "maxUsers": "Max. users",
+    "expires": "Expires on",
+    "archive": "Archive",
+    "noLicence": "No licence recorded: no limit is applied.",
+    "state": {
+      "none": "No licence",
+      "ok": "Valid",
+      "expiring": "Expiring soon",
+      "expired": "Expired"
+    }
+  },
   "qrqc": {
     "noAccess": "You do not have access to the QRQC board. It is reserved for administrators and hierarchical managers.",
     "managerScope": "You see the problems of the people you manage (read only).",
@@ -943,6 +980,7 @@
     "saveError": "The comment could not be saved."
   },
   "adminNav": {
+    "security": "Security and licences",
     "cvReview": "Photo validation",
     "thresholds": "Thresholds and targets",
     "analysesSummary": "Summary",

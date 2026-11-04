@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import LanguageSwitcher from '../LanguageSwitcher';
+import LicenceBanner from '../LicenceBanner';
 import UserAvatar from '../UserAvatar';
 import { LogOut, LayoutDashboard, ChevronDown, Search, Calendar } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
@@ -145,6 +146,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.preferences', icon: 'ti-adjustments', path: '/admin/preferences' },
       { label: 'adminNav.thresholds', icon: 'ti-gauge', path: '/admin/settings/thresholds' },
+      { label: 'adminNav.security', icon: 'ti-shield-lock', path: '/admin/settings/security' },
       { label: 'adminNav.cvReview', icon: 'ti-photo-check', path: '/admin/settings/cv-review' },
       { label: 'adminNav.referenceLists', icon: 'ti-list-details', path: '/admin/claims/reference-lists' },
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
@@ -169,6 +171,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/reference':           { title: 'adminNav.claimReference', crumb: 'adminNav.claimsQuality' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
     '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },
+    '/admin/settings/security':          { title: 'adminNav.security', crumb: 'adminNav.settings' },
     '/admin/settings/cv-review':         { title: 'adminNav.cvReview', crumb: 'adminNav.settings' },
     '/admin/action-plans/create':        { title: 'adminNav.newPlan', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assignments':   { title: 'adminNav.assignments', crumb: 'adminNav.actionPlans' },
@@ -782,6 +785,7 @@ export default function AdminLayout() {
             </div>
           </div>
           <main className="al-main">
+            <LicenceBanner />
             <div className="al-page">
               {scopeReady ? <Outlet key={scopeParam ?? 'all'} /> : null}
             </div>

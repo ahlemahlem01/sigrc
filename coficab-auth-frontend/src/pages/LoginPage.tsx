@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { isAdminUser, resolvePostLoginTarget } from '../utils/roles';
 import { useTranslation } from 'react-i18next';
 import LanguageFlags from '../components/LanguageFlags';
+import LicenceBanner from '../components/LicenceBanner';
+import { IDLE_LOGOUT_FLAG } from '../components/IdleLogout';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -21,6 +23,13 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [idleNotice] = useState(() => {
+    try {
+      const v = sessionStorage.getItem(IDLE_LOGOUT_FLAG) === '1';
+      sessionStorage.removeItem(IDLE_LOGOUT_FLAG);
+      return v;
+    } catch { return false; }
+  });
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -619,6 +628,8 @@ const LoginPage = () => {
         </div>
 
         <div className="lr-right">
+          <LicenceBanner />
+          {idleNotice && <p role="status" style={{ background: '#eff6ff', color: '#1e40af', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('security.idleLoggedOut')}</p>}
           <div className="lr-form-logo">
             <span className="lr-form-logo-name">COFICAB</span>
             <span className="lr-form-logo-sub">Group Portal</span>

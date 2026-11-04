@@ -157,6 +157,43 @@
     "inProgress": "In corso",
     "attention": "Punti di attenzione"
   },
+  "licence": {
+    "expiring_one": "La licenza scade tra {{count}} giorno ({{date}}). Contatta il fornitore per rinnovarla.",
+    "expiring_other": "La licenza scade tra {{count}} giorni ({{date}}). Contatta il fornitore per rinnovarla.",
+    "expired": "La licenza è scaduta il {{date}}. Contatta il fornitore per rinnovarla."
+  },
+  "security": {
+    "title": "Sicurezza e licenze",
+    "subtitle": "Disconnessione automatica e licenze della piattaforma.",
+    "idleTitle": "Disconnessione automatica",
+    "idleHelp": "Un utente inattivo viene disconnesso dopo questo tempo. 0 disattiva la disconnessione automatica (da 5 a 480 minuti).",
+    "minutes": "minuti",
+    "saved": "Salvato",
+    "saveFailed": "Salvataggio impossibile",
+    "idleLoggedOut": "Sei stato disconnesso per inattività.",
+    "licenceTitle": "Licenze",
+    "licenceHelp": "Le licenze sono registrate dal superadmin (il fornitore). Un avviso appare 30 giorni prima della scadenza.",
+    "licenceHelpSuper": "Una licenza è globale o specifica di un sito. Il numero di utenti è limitato: la creazione di un account è rifiutata oltre il limite. Un avviso appare 30 giorni prima della scadenza.",
+    "addLicence": "Aggiungi una licenza",
+    "status": "Stato",
+    "users": "Utenti",
+    "daysLeft_one": "{{count}} giorno rimasto",
+    "daysLeft_other": "{{count}} giorni rimasti",
+    "key": "Chiave",
+    "scope": "Ambito",
+    "global": "Globale",
+    "site": "Sito",
+    "maxUsers": "Utenti max.",
+    "expires": "Scade il",
+    "archive": "Archivia",
+    "noLicence": "Nessuna licenza registrata: nessun limite applicato.",
+    "state": {
+      "none": "Nessuna licenza",
+      "ok": "Valida",
+      "expiring": "In scadenza",
+      "expired": "Scaduta"
+    }
+  },
   "qrqc": {
     "noAccess": "Non hai accesso al pannello QRQC. È riservato agli amministratori e ai responsabili gerarchici.",
     "managerScope": "Vedi i problemi delle persone che coordini (sola lettura).",
@@ -943,6 +980,7 @@
     "saveError": "Impossibile salvare il commento."
   },
   "adminNav": {
+    "security": "Sicurezza e licenze",
     "cvReview": "Validazione foto",
     "thresholds": "Soglie e obiettivi",
     "analysesSummary": "Sintesi",

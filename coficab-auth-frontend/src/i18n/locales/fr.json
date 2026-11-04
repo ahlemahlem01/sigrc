@@ -157,6 +157,43 @@
     "inProgress": "En cours",
     "attention": "Points d’attention"
   },
+  "licence": {
+    "expiring_one": "La licence expire dans {{count}} jour ({{date}}). Contactez votre fournisseur pour la renouveler.",
+    "expiring_other": "La licence expire dans {{count}} jours ({{date}}). Contactez votre fournisseur pour la renouveler.",
+    "expired": "La licence a expiré le {{date}}. Contactez votre fournisseur pour la renouveler."
+  },
+  "security": {
+    "title": "Sécurité et licences",
+    "subtitle": "Déconnexion automatique et licences de la plateforme.",
+    "idleTitle": "Déconnexion automatique",
+    "idleHelp": "Un utilisateur inactif est déconnecté après ce délai. 0 désactive la déconnexion automatique (de 5 à 480 minutes).",
+    "minutes": "minutes",
+    "saved": "Enregistré",
+    "saveFailed": "Enregistrement impossible",
+    "idleLoggedOut": "Vous avez été déconnecté pour cause d’inactivité.",
+    "licenceTitle": "Licences",
+    "licenceHelp": "Les licences sont enregistrées par le superadmin (le fournisseur). Une alerte s’affiche 30 jours avant l’expiration.",
+    "licenceHelpSuper": "Une licence est globale ou propre à un site. Le nombre d’utilisateurs est limité : la création d’un compte est refusée au-delà. Une alerte s’affiche 30 jours avant l’expiration.",
+    "addLicence": "Ajouter une licence",
+    "status": "État",
+    "users": "Utilisateurs",
+    "daysLeft_one": "{{count}} jour restant",
+    "daysLeft_other": "{{count}} jours restants",
+    "key": "Clé",
+    "scope": "Portée",
+    "global": "Globale",
+    "site": "Site",
+    "maxUsers": "Utilisateurs max.",
+    "expires": "Expire le",
+    "archive": "Archiver",
+    "noLicence": "Aucune licence enregistrée : aucune limite n’est appliquée.",
+    "state": {
+      "none": "Aucune licence",
+      "ok": "Valide",
+      "expiring": "Expire bientôt",
+      "expired": "Expirée"
+    }
+  },
   "qrqc": {
     "noAccess": "Vous n’avez pas accès au panneau QRQC. Il est réservé aux administrateurs et aux chefs hiérarchiques.",
     "managerScope": "Vous voyez les problèmes des personnes que vous encadrez (lecture seule).",
@@ -943,6 +980,7 @@
     "saveError": "Le commentaire n'a pas pu être enregistré."
   },
   "adminNav": {
+    "security": "Sécurité et licences",
     "cvReview": "Validation des photos",
     "thresholds": "Seuils et objectifs",
     "analysesSummary": "Synthèse",
