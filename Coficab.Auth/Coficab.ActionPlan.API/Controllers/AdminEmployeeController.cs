@@ -53,7 +53,7 @@ public class AdminEmployeeController : ControllerBase
     private async Task<HashSet<string>?> DepartmentScopeAsync(CancellationToken ct = default)
     {
         if (User.IsInRole("superadmin")) return null;
-        var me = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? string.Empty;
+        var me = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
         var deptId = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == me).Select(p => p.DepartmentId).FirstOrDefaultAsync(ct);
         var ids = deptId == null
             ? new List<string>()
