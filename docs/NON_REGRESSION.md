@@ -310,3 +310,25 @@ Détail dans `docs/CAHIER_DES_CHARGES_PLANS_ACTION.md`.
 | **Défauts trouvés en route** | | (a) le modèle de la base d'authentification contient une table `ActionPlan` héritée : l'ajout de la colonne `Domain` sur l'entité partagée rendait le démarrage de l'API Auth impossible (« pending model changes », jamais prête) à la prochaine reconstruction ; migration `AddActionPlanDomain` ajoutée côté Auth. (b) **le serveur d'e-mail n'est pas configuré** dans ce déploiement : aucun e-mail (mot de passe oublié, verrouillage, bienvenue) ne partait. Variables `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM_NAME` ajoutées à `docker-compose.yml` |
 | Limites | flux « mot de passe » (ROPC) et jeton dans le stockage du navigateur : le code d'autorisation avec PKCE serait le bon choix (chantier plus gros) ; derrière le réseau Docker tous les visiteurs partagent une adresse, d'où des limites larges |
 
+
+## 22. Cloudflare Turnstile sur la connexion et le mot de passe oublié
+
+| Contrôle | Résultat |
+|---|---|
+| Principe | widget Cloudflare Turnstile sur la page de connexion et sur « mot de passe oublié », vérifié côté serveur (`siteverify`) avant tout examen du compte : un robot n'apprend rien et ne verrouille rien. S'ajoute au verrouillage (5 échecs) et aux limites de débit. **Désactivé tant que `TURNSTILE_SECRET_KEY` est vide** : rien ne change sans clés |
+| Activation | dans `.env` : `TURNSTILE_SITE_KEY` (publique) et `TURNSTILE_SECRET_KEY` (secrète), créées sur dash.cloudflare.com > Turnstile (domaines : localhost et votre domaine) ; `docker compose up -d auth-api`. La page apprend l'activation par `GET /api/public/turnstile` (jamais la clé secrète), sans reconstruire le frontend |
+| Cloudflare injoignable | par défaut la vérification **échoue** (un robot ne passe pas parce que le service est tombé) ; `TURNSTILE_FAIL_OPEN=true` laisse entrer quand Cloudflare ne répond pas (site sans Internet). La page affiche un message clair si le widget ne peut pas se charger |
+| Portée | connexion par mot de passe et demande de lien ; **pas** le rafraîchissement de session (il ne porte pas de mot de passe) ni la page de réinitialisation (déjà protégée par un jeton à usage unique). Une vérification refusée est tracée (`CAPTCHA_FAILED`) et ne compte pas comme tentative échouée |
+| Tests | 8 tests .NET (clé publique seule exposée, désactivé = comme avant, contenu de la requête à Cloudflare, jeton absent ou trop long, Cloudflare en panne avec ou sans FailOpen, connexion et mot de passe oublié refusés sans jeton, rafraîchissement sans jeton) + 3 tests Jest ; vérifié en direct avec les **clés de test publiques de Cloudflare** : sans jeton `captcha_failed`, avec le jeton factice la connexion arrive au contrôle du mot de passe, widget affiché et validé sur les deux pages. Remis en position désactivée ensuite |
+| Limites | je n'ai pas de vraies clés : à créer par vous ; le jeton Turnstile apparaît dans les journaux d'OpenIddict (usage unique, sans danger ; le mot de passe y est masqué) ; il faut Internet côté navigateur et serveur pour joindre Cloudflare |
+
+
+## 23. Analyse Pareto manuelle (en plus de la configuration guidée)
+
+| Point | Détail |
+|---|---|
+| Bascule | « Configuration guidée / Analyse manuelle » en haut de la page Pareto. La configuration guidée reste inchangée et reste le mode par défaut |
+| Choix manuels | axe (type de défaut, ligne, client, équipe, gravité), filtres sur les autres axes, période (historique, 6/12/24 mois, dates précises), mesure (fréquence / impact) |
+| Règles | le filtre de l'axe analysé est ignoré ; une période à l'envers est remise dans l'ordre ; le dernier jour compte en entier ; « Reprendre le contexte de cette réclamation » pré-remplit, « Tout réinitialiser » vide |
+| API | `ParetoRequestDto` gagne `Shift` et `Severity` (gravité insensible à la casse) ; les autres champs sont inchangés |
+| Tests | .NET `ManualAnalysis_ChoosesTheAxis_AndNarrowsByShiftSeverityClientLineAndDates` ; Jest `manualPareto.test.ts` (4) ; vérifié en direct : filtre équipe « Nuit » → « classé par type de défaut · 841 réclamations · Équipe = Nuit » |

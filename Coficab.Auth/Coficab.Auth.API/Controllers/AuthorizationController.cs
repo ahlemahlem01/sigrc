@@ -24,19 +24,22 @@ public class AuthorizationController : ControllerBase
     private readonly AppDbContext _db;
     private readonly EmailService _emailService;
     private readonly AuditService _auditService;
+    private readonly ITurnstileVerifier _turnstile;
 
     public AuthorizationController(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         AppDbContext db,
         EmailService emailService,
-        AuditService auditService)
+        AuditService auditService,
+        ITurnstileVerifier turnstile)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
         _emailService = emailService;
         _auditService = auditService;
+        _turnstile = turnstile;
     }
 
     /// <summary>A short, one-way fingerprint of the security stamp: it travels in the tokens so that a password reset or a lockout can cancel them, without exposing the stamp.</summary>
@@ -52,6 +55,16 @@ public class AuthorizationController : ControllerBase
 
         if (request.IsPasswordGrantType())
         {
+            // Cloudflare Turnstile (when switched on): checked before anything about the account is looked at or counted, so a bot
+            // neither learns nor locks anything. A refresh does not need it (it carries no password).
+            if (_turnstile.Enabled && !await _turnstile.VerifyAsync(request.GetParameter("cf-turnstile-response")?.ToString(), HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
+            {
+                await _auditService.LogAsync(action: "CAPTCHA_FAILED", targetEmail: request.Username ?? string.Empty, detail: "Vérification Turnstile refusée à la connexion.");
+                return Forbid(
+                    CreateErrorProperties("The verification failed. Please try again.", "captcha_failed"),
+                    OpenIddictServerAspNetCoreDefaults.AuthenticationScheme);
+            }
+
             var user = await _userManager.FindByEmailAsync(request.Username ?? "");
             if (user == null)
                 return Forbid(
@@ -172,6 +185,8 @@ public class AuthorizationController : ControllerBase
         identity.AddClaim(OpenIddictConstants.Claims.Name, user.FullName);
         identity.AddClaim("department", user.Department);
         identity.AddClaim("sst", StampFingerprint(await _userManager.GetSecurityStampAsync(user)));
+        // a temporary password: the APIs serve nothing but the change of password until it is done
+        if (user.MustChangePassword) identity.AddClaim("pwd_change", "1");
 
         var roles = await _userManager.GetRolesAsync(user);
         foreach (var role in roles)
@@ -183,7 +198,8 @@ public class AuthorizationController : ControllerBase
             .Select(up => up.Permission.Name)
             .ToListAsync();
 
-        foreach (var permission in permissions)
+        // the rights of the role, plus those granted one by one from the permission matrix
+        foreach (var permission in permissions.Concat(Coficab.Auth.API.Data.RolePermissionDefaults.For(roles)).Distinct(StringComparer.OrdinalIgnoreCase))
             identity.AddClaim("permission", permission);
 
         identity.SetDestinations(claim => claim.Type switch
@@ -240,6 +256,7 @@ public class AuthorizationController : ControllerBase
             name = user.FullName,
             department = user.Department,
             organizationId = user.OrganizationId,
+            mustChangePassword = user.MustChangePassword,
             role = roles,
             permission = permissions
         });
@@ -267,6 +284,7 @@ public class AuthorizationController : ControllerBase
             email = user.Email,
             name = user.FullName,
             department = user.Department,
+            mustChangePassword = user.MustChangePassword,
             organizationId = user.OrganizationId,
             role = roles,
             permission = permissions

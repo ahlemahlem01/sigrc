@@ -11,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from recommend_logic import build_feature_row, rank_recommendations  # noqa: E402
+from recommend_logic import action_for, build_feature_row, rank_recommendations, risk_level  # noqa: E402
 
 
 def test_build_row_employee_department_overrides_dossier():
@@ -113,3 +113,13 @@ def test_validation_gate_needs_both_a_good_auc_and_a_gain_from_employee_informat
     assert not is_validated(0.58, 0.50)       # too close to chance
     assert not is_validated(0.70, 0.70)       # employee features add nothing
     assert not is_validated(0.52, 0.53)
+
+
+@pytest.mark.parametrize(
+    "score, level, action",
+    [(0.95, "low", "standard"), (0.81, "low", "standard"), (0.80, "moderate", "adjust"), (0.65, "moderate", "adjust"),
+     (0.50, "moderate", "adjust"), (0.49, "high", "alert"), (0.05, "high", "alert")],
+)
+def test_risk_tiers(score, level, action):
+    assert risk_level(score) == level
+    assert action_for(level) == action

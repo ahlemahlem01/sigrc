@@ -4,7 +4,7 @@ import { getPlanTimeline, PlanTimelineEvent } from '../../services/actionPlanSer
 import { dateLocale } from '../../i18n';
 
 const TONE: Record<string, string> = {
-  subaction_proof: '#0f766e', subaction_completed: '#059669', subaction_validated: '#047857', subaction_rejected: '#b91c1c',
+  subaction_description: '#4338ca', subaction_deadline_extended: '#b45309', subaction_proof: '#0f766e', subaction_completed: '#059669', subaction_validated: '#047857', subaction_rejected: '#b91c1c',
   subaction_warning: '#b45309', rejected: '#b91c1c', warning_sent: '#b45309', created: '#000168',
 };
 

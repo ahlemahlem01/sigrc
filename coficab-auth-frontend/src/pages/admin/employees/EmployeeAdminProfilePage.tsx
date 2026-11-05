@@ -24,6 +24,7 @@ import EmployeeDocumentsBadgesPanel from './EmployeeDocumentsBadgesPanel';
 import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../../i18n';
+import PersonalDataPanel from '../../../components/employees/PersonalDataPanel';
 
 type InitialEmployee = {
   id?: string;
@@ -42,6 +43,7 @@ type InitialEmployee = {
   profilePictureUrl?: string | null;
   hireDate?: string | null;
   managerName?: string;
+  managerId?: string;
   isLockedOut?: boolean;
   activityStatus?: ActivityStatus | string | number;
   lastActivityAt?: string | null;
@@ -61,6 +63,11 @@ type ProfileState = {
   ligneProduction: string;
   telephone: string;
   managerName: string;
+  managerId: string;
+  /** HR status of the profile ("archived" when the person left the company). */
+  hrStatus: string;
+  /** Temporary password not changed yet (status "reinitialized"). */
+  mustChangePassword: boolean;
   hireDate: string | null;
   profilePictureUrl: string | null;
   isLockedOut: boolean;
@@ -161,6 +168,9 @@ export default function EmployeeAdminProfilePage() {
   const [locking, setLocking] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
   const [saveErr, setSaveErr] = useState(false);
+  // the hierarchical manager: chosen among the other employees, saved with the rest of the work information
+  const [managerSel, setManagerSel] = useState('');
+  const [managerOptions, setManagerOptions] = useState<Array<{ id: string; name: string; poste: string }>>([]);
   const [draft, setDraft] = useState({ poste: '', equipe: '', ligneProduction: '', telephone: '' });
 
   const reloadBadges = useCallback(async () => {
@@ -229,6 +239,9 @@ export default function EmployeeAdminProfilePage() {
           pick(rawProfile?.telephone, rawProfile?.phone, initial?.telephone, initial?.phone) ||
           phoneFromId(id),
         managerName: pick(rawProfile?.managerName, initial?.managerName),
+        managerId: pick(rawProfile?.managerId, initial?.managerId),
+        hrStatus: String(rawProfile?.status ?? rawProfile?.Status ?? '').toLowerCase(),
+        mustChangePassword: Boolean((auth as any)?.mustChangePassword),
         hireDate: rawProfile?.hireDate || initial?.hireDate || null,
         profilePictureUrl:
           pick(rawProfile?.profilePictureUrl, initial?.profilePictureUrl, auth?.email && null) ||
@@ -325,6 +338,33 @@ export default function EmployeeAdminProfilePage() {
     return 'ok';
   }, [perf?.remainingCapacity]);
 
+  /** The status of the specification: blocked, archived, reinitialized, not active, otherwise active. */
+  const accountStatus = (p: ProfileState): 'blocked' | 'archived' | 'reinitialized' | 'notActive' | 'active' => {
+    if (p.isLockedOut) return 'blocked';
+    if (p.hrStatus === 'archived') return 'archived';
+    if (p.mustChangePassword) return 'reinitialized';
+    if (activityStatusClass(p.activityStatus) === 'inactive') return 'notActive';
+    return 'active';
+  };
+
+  /** Archiving keeps the profile and the history; the account is locked so the person cannot sign in. */
+  const onToggleArchive = async () => {
+    if (!accessToken || !profile) return;
+    const archive = profile.hrStatus !== 'archived';
+    setLocking(true);
+    try {
+      await adminEmployeeService.setArchived(accessToken, profile.id, archive);
+      if (archive && !profile.isLockedOut) await lockUser(accessToken, profile.id);
+      if (!archive && profile.isLockedOut) await unlockUser(accessToken, profile.id);
+      setProfile((prev) => (prev ? { ...prev, hrStatus: archive ? 'archived' : 'active', isLockedOut: archive } : prev));
+    } catch {
+      setSaveErr(true);
+      setSaveMsg(t('fiveWhy.saveFailed'));
+    } finally {
+      setLocking(false);
+    }
+  };
+
   const onToggleLock = async () => {
     if (!accessToken || !profile) return;
     setLocking(true);
@@ -339,6 +379,20 @@ export default function EmployeeAdminProfilePage() {
       setLocking(false);
     }
   };
+
+  useEffect(() => {
+    if (!editOpen || !accessToken || !id) return;
+    setManagerSel(profile?.managerId ?? '');
+    adminEmployeeService.getAllProfiles(accessToken)
+      .then((rows: any[]) => setManagerOptions(
+        rows
+          .map((r) => ({ id: String(r.id ?? r.Id ?? r.userId ?? r.UserId ?? ''), name: String(r.name ?? r.Name ?? ''), poste: String(r.poste ?? r.Poste ?? '') }))
+          .filter((r) => r.id && r.name && r.id.toLowerCase() !== id.toLowerCase())
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      ))
+      .catch(() => setManagerOptions([]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editOpen, accessToken, id]);
 
   const onSaveWork = async () => {
     if (!accessToken || !profile) return;
@@ -357,6 +411,10 @@ export default function EmployeeAdminProfilePage() {
         ligneProduction: draft.ligneProduction.trim() || null,
         telephone: draft.telephone.trim() || null,
       });
+      if ((profile.managerId ?? '') !== managerSel) {
+        await adminEmployeeService.setManager(accessToken, profile.id, managerSel || null);
+      }
+      const chosen = managerOptions.find((m) => m.id === managerSel);
       setProfile((prev) =>
         prev
           ? {
@@ -365,6 +423,8 @@ export default function EmployeeAdminProfilePage() {
               equipe: draft.equipe.trim(),
               ligneProduction: draft.ligneProduction.trim(),
               telephone: draft.telephone.trim(),
+              managerId: managerSel,
+              managerName: chosen?.name ?? '',
             }
           : prev,
       );
@@ -421,6 +481,11 @@ export default function EmployeeAdminProfilePage() {
         .eap-pill.act-active { background: ${COFICAB.okSoft}; color: ${COFICAB.ok}; }
         .eap-pill.act-low { background: ${COFICAB.warnSoft}; color: ${COFICAB.warn}; }
         .eap-pill.act-inactive { background: #f1f5f9; color: #64748b; }
+        .eap-pill.acct-active { background: ${COFICAB.okSoft}; color: ${COFICAB.ok}; }
+        .eap-pill.acct-blocked { background: #fef2f2; color: #b91c1c; }
+        .eap-pill.acct-archived { background: #f1f5f9; color: #475569; }
+        .eap-pill.acct-reinitialized { background: ${COFICAB.warnSoft}; color: ${COFICAB.warn}; }
+        .eap-pill.acct-notActive { background: #f1f5f9; color: #64748b; }
         .eap-pill.acct-ok { background: ${COFICAB.light}; color: ${COFICAB.navy}; }
         .eap-pill.acct-locked { background: ${COFICAB.dangerSoft}; color: ${COFICAB.danger}; }
         .eap-actions { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -588,6 +653,10 @@ export default function EmployeeAdminProfilePage() {
                   <span className="eap-chip">{roleLabel(profile.role)}</span>
                   {profile.department ? <span className="eap-chip">{profile.department}</span> : null}
                   {profile.poste ? <span className="eap-chip">{profile.poste}</span> : null}
+                  <span className={`eap-pill acct-${accountStatus(profile)}`} data-testid="account-status">
+                    <span className="k">{t('employeeProfileAdmin.accountStatus')}</span>
+                    {t(`employeeProfileAdmin.accountStatuses.${accountStatus(profile)}`)}
+                  </span>
                   <span className={`eap-pill act-${activityStatusClass(profile.activityStatus)}`}>
                     <span className="k">{t('employeeProfileAdmin.activity')}</span>
                     {activityStatusLabel(profile.activityStatus)}
@@ -627,6 +696,10 @@ export default function EmployeeAdminProfilePage() {
                     ? t('employeesAdmin.unlock')
                     : t('employeeProfileAdmin.lock')}
               </button>
+              <button type="button" className="eap-btn" onClick={() => void onToggleArchive()} disabled={locking}>
+                <i className={`ti ${profile.hrStatus === 'archived' ? 'ti-archive-off' : 'ti-archive'}`} />{' '}
+                {profile.hrStatus === 'archived' ? t('employeeProfileAdmin.restore') : t('employeeProfileAdmin.archive')}
+              </button>
               <button type="button" className="eap-btn" onClick={() => void load()} disabled={loading}>
                 <i className="ti ti-refresh" /> {t('qualityHistory.refresh')}
               </button>
@@ -661,7 +734,7 @@ export default function EmployeeAdminProfilePage() {
                   <dd>{profile.ligneProduction || '—'}</dd>
                   <dt>{t('employeesAdmin.phone')}</dt>
                   <dd>{profile.telephone || '—'}</dd>
-                  <dt>{t('planView.owner')}</dt>
+                  <dt>{t('employeeProfileAdmin.manager')}</dt>
                   <dd>{profile.managerName || t('claimDetail.unassigned')}</dd>
                   <dt>{t('employeeProfileAdmin.hireDate')}</dt>
                   <dd>{fmtDate(profile.hireDate)}</dd>
@@ -707,6 +780,16 @@ export default function EmployeeAdminProfilePage() {
                         onChange={(e) => setDraft((d) => ({ ...d, telephone: e.target.value }))}
                       />
                     </div>
+                    <div className="eap-field">
+                      <label htmlFor="eap-manager">{t('employeeProfileAdmin.manager')}</label>
+                      <select id="eap-manager" value={managerSel} onChange={(e) => setManagerSel(e.target.value)}>
+                        <option value="">{t('employeeProfileAdmin.managerNone')}</option>
+                        {managerOptions.map((m) => (
+                          <option key={m.id} value={m.id}>{m.name}{m.poste ? ` · ${m.poste}` : ''}</option>
+                        ))}
+                      </select>
+                      <small>{t('employeeProfileAdmin.managerHint')}</small>
+                    </div>
                     <div className="eap-form-actions">
                       <button
                         type="button"
@@ -740,6 +823,8 @@ export default function EmployeeAdminProfilePage() {
                   </div>
                 </section>
               )}
+
+              <PersonalDataPanel userId={profile.id} />
 
               {!editOpen && saveMsg ? (
                 <p className={`eap-msg${saveErr ? ' err' : ''}`} style={{ marginTop: 8 }}>

@@ -62,12 +62,12 @@ export function unwrapList(payload: unknown): any[] {
 
 export function toUiType(raw: unknown): UiType {
   if (typeof raw === 'number') {
-    return ({ 1: 'preventif', 2: 'correctif', 3: 'amelioration' } as const)[raw as 1 | 2 | 3] ?? 'preventif';
+    return ({ 1: 'amelioration', 2: 'correctif', 3: 'preventif' } as const)[raw as 1 | 2 | 3] ?? 'preventif';
   }
   const s = String(raw ?? '').trim().toLowerCase();
-  if (s === '1' || s === 'pa' || s === 'preventif' || s === 'preventive') return 'preventif';
+  if (s === '1' || s === 'pa' || s === 'amelioration' || s === 'improvement') return 'amelioration';
   if (s === '2' || s === 'pac' || s === 'correctif' || s === 'corrective') return 'correctif';
-  if (s === '3' || s === 'pap' || s === 'amelioration' || s === 'improvement') return 'amelioration';
+  if (s === '3' || s === 'pap' || s === 'preventif' || s === 'preventive') return 'preventif';
   return 'preventif';
 }
 

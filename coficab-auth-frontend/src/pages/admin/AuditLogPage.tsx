@@ -143,6 +143,8 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   claim_assigned:      { label: 'audit.action.claim_assigned',          bg: '#f5f3ff', color: '#7c3aed', icon: 'ti-user-plus' },
   claim_unassigned:    { label: 'audit.action.claim_unassigned',        bg: '#fef2f2', color: '#b91c1c', icon: 'ti-user-minus' },
   claim_deadline_set:  { label: 'audit.action.claim_deadline_set',      bg: '#fff7ed', color: '#c2410c', icon: 'ti-calendar-event' },
+  claim_deadline_extended: { label: 'audit.action.claim_deadline_extended', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-calendar-plus' },
+  deadline_extended:   { label: 'audit.action.deadline_extended',       bg: '#fef2f2', color: '#b91c1c', icon: 'ti-calendar-plus' },
   claim_archived:      { label: 'audit.action.claim_archived',          bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
   claim_restored:      { label: 'audit.action.claim_restored',          bg: '#f0fdf4', color: '#15803d', icon: 'ti-restore' },
   claim_import_archived: { label: 'audit.action.claim_import_archived', bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
@@ -191,7 +193,7 @@ const MUTATION_ACTIONS = new Set([
   'claim_created', 'claim_updated', 'document_added', 'document_removed', 'document_uploaded',
   'ishikawa_cause_added', 'ishikawa_cause_archived', 'fivewhy_saved',
   'subaction_validated', 'subaction_rejected', 'subaction_warning', 'warning_sent', 'resubmitted',
-  'claim_deadline_set', 'claim_archived', 'claim_restored', 'claim_imported', 'claim_import_archived', 'ishikawa_updated', 'fivewhy_rejected', 'fivewhy_validated',
+  'claim_deadline_set', 'claim_deadline_extended', 'deadline_extended', 'claim_archived', 'claim_restored', 'claim_imported', 'claim_import_archived', 'ishikawa_updated', 'fivewhy_rejected', 'fivewhy_validated',
   'eightd_validated', 'eightd_rejected',
 ]);
 const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned', 'claim_assigned', 'claim_unassigned']);

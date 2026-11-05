@@ -18,6 +18,8 @@ interface ClaimContainmentSectionProps {
   accessToken: string | null;
   dossier: EightDDossier | null;
   analysisLocked: boolean;
+  /** The dossier is closed: the containment is shown as it was, nothing can be changed. */
+  closed?: boolean;
   onSaved?: (d: EightDDossier) => void;
 }
 
@@ -26,6 +28,7 @@ export const ClaimContainmentSection: React.FC<ClaimContainmentSectionProps> = (
   accessToken,
   dossier,
   analysisLocked,
+  closed = false,
   onSaved,
 }) => {
   const { t } = useTranslation();
@@ -45,7 +48,7 @@ export const ClaimContainmentSection: React.FC<ClaimContainmentSectionProps> = (
   const submitted = ['PENDING_VALIDATION', 'VALIDATED', 'CLOSED'].includes(
     String(dossier?.statusCode || '').toUpperCase()
   );
-  const frozen = analysisLocked || !d3?.unlocked;
+  const frozen = analysisLocked || closed || !d3?.unlocked;
   const locked = frozen || submitted;
   const originals = dossier?.fieldOriginals || {};
 
@@ -199,7 +202,9 @@ export const ClaimContainmentSection: React.FC<ClaimContainmentSectionProps> = (
       {frozen && (
         <div className="pfe-containment-lock">
           <Lock size={14} />
-          {analysisLocked
+          {closed
+            ? t('closedDossier.banner')
+            : analysisLocked
             ? t('containment.lockedStart')
             : d3?.hint || t('containment.lockedSteps')}
         </div>

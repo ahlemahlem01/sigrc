@@ -35,6 +35,8 @@ builder.Services.AddDbContext<AppDbContext>((services, options) =>
 });
 
 // ─── Services ────────────────────────────────────────────────
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<ITurnstileVerifier, TurnstileVerifier>();
 builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<AuditService>();
 
@@ -43,11 +45,11 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     // Password
     options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireNonAlphanumeric = true;   // the specification asks for letters, digits and special characters
 
     // Lockout — explicit so behaviour is clear and easy to tune
     options.Lockout.AllowedForNewUsers = true;
-    options.Lockout.MaxFailedAccessAttempts = 5;
+    options.Lockout.MaxFailedAccessAttempts = 3;   // the specification: blocked after 3 wrong attempts
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
 })
 .AddEntityFrameworkStores<AppDbContext>()
@@ -99,6 +101,8 @@ builder.Services.AddOpenIddict()
 
         options.AllowPasswordFlow();
         options.AllowRefreshTokenFlow();
+        // the rights travel in the access token: a short life lets a change of rights reach the person within minutes
+        options.SetAccessTokenLifetime(TimeSpan.FromMinutes(builder.Configuration.GetValue<int?>("Auth:AccessTokenMinutes") ?? 5));
         options.AllowAuthorizationCodeFlow();
         options.AllowClientCredentialsFlow();
         options.SetIntrospectionEndpointUris("/connect/introspect");
@@ -221,6 +225,7 @@ app.UseRateLimiter();
 app.UseCoficabRequestLogging();
 app.UseCors("CoficabFrontend");
 app.UseAuthentication();
+app.UseMiddleware<Coficab.Auth.API.Services.PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
 app.MapControllers().RequireCors("CoficabFrontend");
 

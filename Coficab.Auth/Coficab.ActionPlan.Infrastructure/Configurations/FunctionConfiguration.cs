@@ -13,6 +13,8 @@ public class FunctionConfiguration : IEntityTypeConfiguration<Function>
         builder.Property(f => f.FunctionCode).IsRequired().HasMaxLength(50);
         builder.Property(f => f.Description).IsRequired().HasMaxLength(500);
         builder.Property(f => f.JobDescriptionFilePath).HasMaxLength(500);
+        builder.Property(f => f.JobDescriptionFileName).HasMaxLength(260);
+        builder.Property(f => f.Permissions).HasMaxLength(1000);
 
         builder.HasMany(f => f.UserFunctions)
                .WithOne(uf => uf.Function)

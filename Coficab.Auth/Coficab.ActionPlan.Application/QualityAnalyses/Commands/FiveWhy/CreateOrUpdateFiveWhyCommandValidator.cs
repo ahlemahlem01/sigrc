@@ -20,13 +20,18 @@ public class CreateOrUpdateFiveWhyCommandValidator : AbstractValidator<CreateOrU
             .NotEmpty().WithMessage("L'identifiant utilisateur est requis pour l'audit.");
 
         RuleFor(x => x.Steps)
-            .Must(steps => steps == null || steps.Count <= 5)
-            .WithMessage("L'analyse 5 Why ne peut pas dépasser 5 étapes.");
+            .Must(steps => steps == null || steps.Count <= 10)
+            .WithMessage("L'analyse 5 Why ne peut pas dépasser 5 étapes par branche (Occurrence et Détection).")
+            .Must(steps => steps == null || steps.Select(s => ((s.BranchType ?? "OCCURRENCE").Trim().ToUpperInvariant(), s.StepNumber)).Distinct().Count() == steps.Count)
+            .WithMessage("Une étape ne peut figurer qu'une fois par branche.");
 
         RuleForEach(x => x.Steps).ChildRules(step =>
         {
             step.RuleFor(s => s.StepNumber)
                 .InclusiveBetween(1, 5).WithMessage("Le numéro d'étape doit être entre 1 et 5.");
+            step.RuleFor(s => s.BranchType)
+                .Must(b => b == null || b.Trim().ToUpperInvariant() is "OCCURRENCE" or "DETECTION")
+                .WithMessage("La branche doit être Occurrence ou Détection.");
             step.RuleFor(s => s.Question)
                 .MaximumLength(500).WithMessage("Une question ne doit pas dépasser 500 caractères.");
             step.RuleFor(s => s.Answer)

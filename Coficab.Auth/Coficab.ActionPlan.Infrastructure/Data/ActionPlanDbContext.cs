@@ -1,4 +1,4 @@
-﻿using Coficab.ActionPlan.Application.Interfaces;
+using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Core.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
@@ -32,6 +32,8 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<UserAlias> UserAliases => Set<UserAlias>();
     public DbSet<ClaimEvent> ClaimEvents => Set<ClaimEvent>();
     public DbSet<SavedReport> SavedReports => Set<SavedReport>();
+    public DbSet<SavedReportVersion> SavedReportVersions => Set<SavedReportVersion>();
+    public DbSet<EightDReportVersion> EightDReportVersions => Set<EightDReportVersion>();
     public DbSet<ReportSchedule> ReportSchedules => Set<ReportSchedule>();
     public DbSet<Badge> Badges => Set<Badge>();
     public DbSet<Document> Documents => Set<Document>();
@@ -186,6 +188,28 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.CreatedByName).HasMaxLength(300);
             entity.Property(e => e.ArchivedBy).HasMaxLength(450);
             entity.HasIndex(e => new { e.Kind, e.IsArchived, e.CreatedAt });
+            entity.Property(e => e.UpdatedBy).HasMaxLength(450);
+            entity.Property(e => e.UpdatedByName).HasMaxLength(300);
+            entity.Property(e => e.UpdateNote).HasMaxLength(1000);
+        });
+
+        // ─── SavedReportVersion / EightDReportVersion: what a report held before each edit (append-only) ───
+        modelBuilder.Entity<SavedReportVersion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Title).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.SavedBy).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.SavedByName).HasMaxLength(300);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.HasIndex(e => new { e.SavedReportId, e.VersionNumber }).IsUnique();
+        });
+        modelBuilder.Entity<EightDReportVersion>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.SavedBy).IsRequired().HasMaxLength(450);
+            entity.Property(e => e.SavedByName).HasMaxLength(300);
+            entity.Property(e => e.Note).HasMaxLength(1000);
+            entity.HasIndex(e => new { e.ClaimId, e.VersionNumber }).IsUnique();
         });
 
         // ─── ClaimEvent: append-only audit of claims ──────────────────────
@@ -229,6 +253,15 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.ManagerId).HasMaxLength(450);
             entity.Property(e => e.ManagerName).HasMaxLength(200);
             entity.Property(e => e.ManagerEmail).HasMaxLength(200);
+            entity.Property(e => e.Nationalities).HasMaxLength(300);
+            entity.Property(e => e.CinNumber).HasMaxLength(50);
+            entity.Property(e => e.CinCountry).HasMaxLength(100);
+            entity.Property(e => e.PassportNumber).HasMaxLength(50);
+            entity.Property(e => e.PassportCountry).HasMaxLength(100);
+            entity.Property(e => e.FatherName).HasMaxLength(120);
+            entity.Property(e => e.FatherLastName).HasMaxLength(120);
+            entity.Property(e => e.MotherName).HasMaxLength(120);
+            entity.Property(e => e.MotherLastName).HasMaxLength(120);
 
             entity.HasOne(e => e.Department)
                   .WithMany()
@@ -421,6 +454,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Question).IsRequired().HasMaxLength(500);
             entity.Property(e => e.Answer).IsRequired().HasMaxLength(1000);
+            entity.Property(e => e.BranchType).IsRequired().HasMaxLength(20).HasDefaultValue("OCCURRENCE");
         });
 
         modelBuilder.Entity<IshikawaCause>(entity =>

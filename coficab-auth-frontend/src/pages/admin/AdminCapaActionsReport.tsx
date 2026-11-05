@@ -8,6 +8,7 @@ import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { buildReportSummary, previousPeriod } from '../../utils/reportSummary';
 import { downloadXlsx, type XlsxCell } from '../../utils/xlsxExport';
+import ReportResultView from '../../components/reports/ReportResultView';
 import SavedReportsBar from '../../components/SavedReportsBar';
 import ReportSchedulesBar from '../../components/ReportSchedulesBar';
 import { CapaPageHeader, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
@@ -102,7 +103,6 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
 
   const [draft, setDraft] = useState<Criteria>(() => defaultCriteria());
   const [report, setReport] = useState<GeneratedReport | null>(null);
-  const [expanded, setExpanded] = useState<string | null>(null);
   const [savedKey, setSavedKey] = useState(0);
 
   const load = useCallback(async () => {
@@ -263,7 +263,6 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
     }
     setError(null);
     setGenerating(true);
-    setExpanded(null);
     // slight defer so UI shows generating state
     window.setTimeout(() => {
       const prev = previousPeriod(draft.from, draft.to);
@@ -275,7 +274,6 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
   const resetForm = () => {
     setDraft(defaultCriteria());
     setReport(null);
-    setExpanded(null);
     setError(null);
   };
 
@@ -651,7 +649,6 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
             };
           }
           setReport(result);
-          setExpanded(null);
           setError(null);
         }}
       />
@@ -679,144 +676,46 @@ export default function AdminCapaActionsReport({ embedded = false }: { embedded?
       )}
 
       {report && !generating && (
-        <>
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-            <div className="text-xs text-slate-500">
-              {t('actionsReport.generatedAt')}:{' '}
-              <span className="font-semibold text-slate-700">
-                {new Date(report.generatedAt).toLocaleString()}
-              </span>
-              {' · '}
-              {report.criteria.from} → {report.criteria.to}
-              {' · '}
-              {t(`actionsReport.by.${report.criteria.groupBy}`)}
-            </div>
-            <button
-              type="button"
-              onClick={generate}
-              className="text-xs font-semibold text-[#000168] hover:underline"
-            >
-              {t('actionsReport.regenerate')}
-            </button>
-          </div>
-
-          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 px-5 py-4 mb-5">
-            <div className="text-[11px] font-bold uppercase tracking-wide text-[#000168] mb-1.5">{t('reportSummary.title')}</div>
-            <ul className="m-0 pl-4 space-y-1 text-sm text-slate-700">
-              {summaryLines.map((line) => <li key={line}>{line}</li>)}
-            </ul>
-            {report.previous && <p className="text-[11px] text-slate-500 mt-2 mb-0">{t('reportSummary.comparedWith', { from: previousPeriod(report.criteria.from, report.criteria.to).from, to: previousPeriod(report.criteria.from, report.criteria.to).to })}</p>}
-          </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-2 mb-5">
-            {[
-              { label: t('actionsReport.kpiActions'), value: report.totals.total },
-              { label: t('actionsReport.kpiClosed'), value: report.totals.closed },
-              { label: t('actionsReport.kpiLate'), value: report.totals.late },
-              { label: t('actionsReport.kpiOpen'), value: report.totals.open },
-              { label: t('indicators.kpiRate'), value: `${report.totals.rate}%` },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl px-3 py-3 text-white" style={{ background: COFICAB }}>
-                <div className="text-2xl font-bold tabular-nums">{s.value}</div>
-                <div className="text-[10px] uppercase tracking-wide text-white/70 font-semibold mt-0.5">{s.label}</div>
+        <ReportResultView
+          generatedAt={report.generatedAt}
+          periodText={`${report.criteria.from} → ${report.criteria.to} · ${t(`actionsReport.by.${report.criteria.groupBy}`)}`}
+          onRegenerate={generate}
+          totals={report.totals}
+          previous={report.previous}
+          previousText={report.previous ? t('reportSummary.comparedWith', { from: previousPeriod(report.criteria.from, report.criteria.to).from, to: previousPeriod(report.criteria.from, report.criteria.to).to }) : undefined}
+          summaryLines={summaryLines}
+          groups={report.groups}
+          itemLabel={t('actionsReport.kpiActions')}
+          groupColLabel={t('actionsReport.colGroup')}
+          emptyText={t('actionsReport.empty')}
+          renderDetail={(key) => {
+            const g = report.groups.find((x) => x.key === key);
+            if (!g) return null;
+            return (
+              <div className="space-y-2">
+                {g.actions.map((a) => (
+                  <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium text-slate-900 truncate">{fixMojibake(a.title)}</div>
+                      <div className="text-[11px] text-slate-500 truncate">
+                        {fixMojibake(a.planTitle)}{a.planCode ? ` · ${a.planCode}` : ''}{' · '}{a.process}{' · '}{typeLabel(a.type)}{' · '}{formatDate(a.deadline)}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-[11px] tabular-nums text-slate-500">{a.progress}%</span>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${a.closed ? 'bg-emerald-50 text-emerald-700' : a.late ? 'bg-rose-50 text-rose-700' : 'bg-blue-50 text-blue-700'}`}>
+                        {statusLabel(a)}
+                      </span>
+                      <button type="button" className="text-xs font-semibold text-[#000168] hover:underline" onClick={() => navigate(`/admin/action-plans/${a.planId}`)}>
+                        {t('dashboard.openPlan')}
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-slate-800">
-                {t('actionsReport.resultTitle')} · {report.totals.groups} {t('actionsReport.kpiGroups').toLowerCase()}
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-500">
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.colGroup')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.kpiActions')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.kpiClosed')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('actionsReport.kpiLate')}</th>
-                    <th className="px-4 py-3 font-semibold">{t('indicators.kpiRate')}</th>
-                    <th className="px-4 py-3 font-semibold text-right">{t('dashboard.colActions')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {report.groups.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-4 py-12 text-center text-slate-400">{t('actionsReport.empty')}</td>
-                    </tr>
-                  ) : (
-                    report.groups.map((g) => (
-                      <React.Fragment key={g.key}>
-                        <tr className="border-t border-slate-100 hover:bg-slate-50/80">
-                          <td className="px-4 py-3 font-medium text-slate-900">{g.label}</td>
-                          <td className="px-4 py-3 tabular-nums">{g.total}</td>
-                          <td className="px-4 py-3 tabular-nums text-emerald-700">{g.closed}</td>
-                          <td className="px-4 py-3 tabular-nums text-rose-600">{g.late}</td>
-                          <td className="px-4 py-3 min-w-[120px]">
-                            <div className="text-xs text-slate-500 mb-1 tabular-nums">{g.rate}%</div>
-                            <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${g.rate}%`, background: COFICAB }} />
-                            </div>
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              type="button"
-                              className="text-xs font-semibold text-[#000168] hover:underline"
-                              onClick={() => setExpanded(expanded === g.key ? null : g.key)}
-                            >
-                              {expanded === g.key ? t('actionsReport.hide') : t('actionsReport.details')}
-                            </button>
-                          </td>
-                        </tr>
-                        {expanded === g.key && (
-                          <tr className="bg-slate-50/60">
-                            <td colSpan={6} className="px-4 py-3">
-                              <div className="space-y-2">
-                                {g.actions.map((a) => (
-                                  <div key={a.id} className="flex flex-wrap items-center justify-between gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2">
-                                    <div className="min-w-0">
-                                      <div className="text-sm font-medium text-slate-900 truncate">{fixMojibake(a.title)}</div>
-                                      <div className="text-[11px] text-slate-500 truncate">
-                                        {fixMojibake(a.planTitle)}
-                                        {a.planCode ? ` · ${a.planCode}` : ''}
-                                        {' · '}{a.process}
-                                        {' · '}{typeLabel(a.type)}
-                                        {' · '}{formatDate(a.deadline)}
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-[11px] tabular-nums text-slate-500">{a.progress}%</span>
-                                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                                        a.closed ? 'bg-emerald-50 text-emerald-700'
-                                          : a.late ? 'bg-rose-50 text-rose-700'
-                                            : 'bg-blue-50 text-blue-700'
-                                      }`}>
-                                        {statusLabel(a)}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        className="text-xs font-semibold text-[#000168] hover:underline"
-                                        onClick={() => navigate(`/admin/action-plans/${a.planId}`)}
-                                      >
-                                        {t('dashboard.openPlan')}
-                                      </button>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        )}
-                      </React.Fragment>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </>
+            );
+          }}
+        />
       )}
     </div>
   );

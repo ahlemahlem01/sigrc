@@ -1,3 +1,5 @@
+import TurnstileWidget from '../components/TurnstileWidget';
+import { useTurnstile } from '../hooks/useTurnstile';
 import { useEffect, useState } from 'react';
 import { forgotPassword } from '../services/authService';
 import { useTranslation } from 'react-i18next';
@@ -14,14 +16,18 @@ export default function ForgotPasswordPage() {
     setTimeout(() => setMounted(true), 80);
   }, []);
 
+  const turnstile = useTurnstile();
+
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
     try {
-      await forgotPassword(email);
+      await forgotPassword(email, turnstile.token);
       setSent(true);
-    } catch {
-      setError(t('deptForm.genericError'));
+    } catch (e) {
+      const code = (e as { response?: { data?: { code?: string } } })?.response?.data?.code;
+      setError(code === 'captcha_failed' ? t('login.errorCaptcha') : t('deptForm.genericError'));
+      turnstile.renew();                       // a Turnstile token works once
     } finally {
       setLoading(false);
     }
@@ -387,11 +393,18 @@ export default function ForgotPasswordPage() {
                 value={email}
                 onChange={e => setEmail(e.target.value)}
               />
+              {turnstile.enabled && turnstile.siteKey && !turnstile.unavailable && (
+                <TurnstileWidget siteKey={turnstile.siteKey} onToken={turnstile.setToken} resetKey={turnstile.resetKey} onUnavailable={() => turnstile.setUnavailable(true)} onError={turnstile.setErrorCode} />
+              )}
+              {turnstile.unavailable && <div className="fp-error">{t('login.captchaUnavailable')}</div>}
+            {turnstile.hintKey && (
+              <div className="fp-error" role="alert">{t(`login.turnstileHint.${turnstile.hintKey}`)} <small>({t('login.turnstileCode', { code: turnstile.errorCode })})</small></div>
+            )}
               {error && <div className="fp-error">{error}</div>}
               <button
                 className="fp-btn"
                 onClick={handleSubmit}
-                disabled={loading || !email}
+                disabled={loading || !email || !turnstile.ready}
               >
                 {loading ? t('fiveWhy.sending') : t('forgotPassword.sendLink')}
               </button>

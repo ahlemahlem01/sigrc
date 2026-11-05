@@ -15,6 +15,7 @@ import ActionPlanDetail from './pages/action-plan/ActionPlanDetail';
 import ActionPlanList from './pages/action-plan/ActionPlanList';
 import CreateActionPlan from './pages/action-plan/CreateActionPlan';
 import DepartmentsPage from './pages/admin/DepartmentsPage';
+import FunctionsPage from './pages/admin/FunctionsPage';
 import OrganizationList from './pages/admin/OrganizationList';
 
 import FrontLayout from './components/Layout/FrontLayout';
@@ -67,6 +68,12 @@ import FrontWorkspaceHome from './pages/front/FrontWorkspaceHome';
 import EmployeeDeclarationsPage from './pages/front/EmployeeDeclarationsPage';
 import EmployeeActivityPage from './pages/front/EmployeeActivityPage';
 import PilotagePage from './pages/front/PilotagePage';
+import QrqcBoardPage from './pages/front/QrqcBoardPage';
+import SecuritySettingsPage from './pages/admin/SecuritySettingsPage';
+import IdleLogout from './components/IdleLogout';
+import MustChangePasswordRedirect from './components/MustChangePasswordRedirect';
+import ChangePasswordPage from './pages/ChangePasswordPage';
+import { FrontValidatorRoute } from './pages/front/FrontValidatorRoute';
 import ReferenceLabelsLoader from './components/ReferenceLabelsLoader';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
@@ -151,12 +158,15 @@ const App = () => {
       <RealtimeProvider>
       <BrowserRouter>
         <ScrollToTop />
+        <IdleLogout />
+        <MustChangePasswordRedirect />
         <ReferenceLabelsLoader />
         <Routes>
           {/* ── Public ── */}
           <Route path="/"                   element={<LandingPage />} />
           <Route path="/login"              element={<LoginPage />} />
           <Route path="/forgot-password"    element={<ForgotPasswordPage />} />
+          <Route path="/change-password"    element={<ChangePasswordPage />} />
           <Route path="/reset-password"     element={<ResetPasswordPage />} />
 
           {/* ── User routes ── */}
@@ -185,6 +195,7 @@ const App = () => {
               <Route path="/admin/profile"                      element={<EmployeeProfile />} />
               <Route path="/admin/organizations"                element={<OrganizationList />} />
               <Route path="/admin/departments"                  element={<DepartmentsPage />} />
+              <Route path="/admin/functions"                    element={<FunctionsPage />} />
               <Route path="/admin/departments/map"              element={<Navigate to="/admin/organizations/map" replace />} />
               <Route path="/admin/employees"                    element={<EmployeeManagement />} />
               <Route path="/admin/employees/compare"            element={<EmployeeComparatorPage />} />
@@ -208,6 +219,7 @@ const App = () => {
               <Route path="/admin/action-plans/archive"         element={<Navigate to="/admin/action-plans?status=4" replace />} />
               <Route path="/admin/preferences"              element={<PreferencesPage />} />
               <Route path="/admin/settings/thresholds"      element={<ThresholdsPage />} />
+              <Route path="/admin/settings/security"        element={<SecuritySettingsPage />} />
               <Route path="/admin/settings/cv-review"       element={<CvReviewPage />} />
               <Route path="/admin/action-plans/settings"        element={<AdminCapaSettings />} />
               <Route path="/admin/action-plans/reference"       element={<AdminCapaPlanReference />} />
@@ -272,10 +284,15 @@ const App = () => {
               <Route path="/claims/confinement/:claimId"                  element={<ContainmentPage />} />
               <Route path="/claims/8d/:claimId"                           element={<EightDPage />} />
 
+              {/* The validation desk: administrators, and people whose function carries the right to validate */}
+              <Route element={<FrontValidatorRoute />}>
+                <Route path="/pages/front/validations"                   element={<AdminValidationHub />} />
+              </Route>
+
               {/* Admin-only front pages */}
               <Route element={<FrontAdminRoute />}>
                 <Route path="/pages/front/pilotage"                      element={<PilotagePage />} />
-                <Route path="/pages/front/validations"                   element={<AdminValidationHub />} />
+                <Route path="/pages/front/qrqc"                         element={<QrqcBoardPage />} />
                 <Route path="/pages/front/quality-analyses/managed"      element={<AdminManagedClaimsPage />} />
                 <Route path="/pages/front/action-plans"                   element={<FrontActionPlans />} />
                 <Route path="/pages/front/action-plans/pending-validation" element={<Navigate to="/pages/front/validations?tab=capa" replace />} />

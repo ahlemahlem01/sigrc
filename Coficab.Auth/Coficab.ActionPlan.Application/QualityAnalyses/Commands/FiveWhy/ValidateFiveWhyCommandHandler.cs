@@ -40,6 +40,7 @@ public class ValidateFiveWhyCommandHandler : IRequestHandler<ValidateFiveWhyComm
             analysis.StatusCode = "DRAFT";
         }
 
+        analysis.LastModifiedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
         await Coficab.ActionPlan.Application.QualityAnalyses.ClaimAudit.RecordAsync(
             _context, analysis.ClaimId, request.IsApproved ? "fivewhy_validated" : "fivewhy_rejected", request.ValidatedBy, null, cancellationToken);

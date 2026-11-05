@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { normalizeRoles } from '../../utils/roles';
 import { adminEmployeeService } from '../../services/adminEmployeeService';
 import { isPlatformAdmin } from '../../utils/roles';
 import { ACTION_PLAN_ORIGIN } from '../../config/apiEnv';
@@ -358,7 +359,8 @@ function groupPermissions(rows: { name?: string; displayName?: string; appId?: s
 // ─── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { t } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
+  const isSuperadmin = normalizeRoles(user as any).includes('superadmin');
   const [fullName,   setFullName]   = useState('');
   const [email,      setEmail]      = useState('');
   const [orgDept,    setOrgDept]    = useState<OrgDeptValue>({ organizationId: '', departmentId: '', departmentName: '' });
@@ -366,6 +368,10 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [equipe,     setEquipe]     = useState('');
   const [ligneProduction, setLigneProduction] = useState('');
   const [telephone,  setTelephone]  = useState('');
+  const [firstName,  setFirstName]  = useState('');
+  const [lastName,   setLastName]   = useState('');
+  const [site,       setSite]       = useState('');
+  const [extraEmails, setExtraEmails] = useState('');
   const [role,       setRole]       = useState('user');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<CatalogGroup[]>([]);
@@ -396,12 +402,17 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!fullName.trim() || !email.trim()) { setError(t('employeesAdmin.nameEmailRequired')); return; }
     if (!poste.trim()) { setError(t('employeesAdmin.posteRequired')); return; }
     if (!equipe.trim()) { setError(t('employeesAdmin.teamRequired')); return; }
-    if (!orgDept.organizationId || !orgDept.departmentId) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
+    if (isSuperadmin && (!orgDept.organizationId || !orgDept.departmentId)) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
+    const others = extraEmails.split(',').map((x) => x.trim()).filter(Boolean);
+    if (others.some((x) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))) { setError(t('employeesAdmin.extraEmailInvalid')); return; }
     setLoading(true); setError('');
     try {
       await createUser(accessToken!, {
-        fullName, email, department: orgDept.departmentName, departmentId: orgDept.departmentId,
-        organizationId: orgDept.organizationId, role, permissions: selectedPermissions,
+        fullName, email, role, permissions: isSuperadmin ? selectedPermissions : [],
+        // an administrator creates accounts in his own department: the server fills the department in
+        ...(isSuperadmin
+          ? { department: orgDept.departmentName, departmentId: orgDept.departmentId, organizationId: orgDept.organizationId }
+          : { department: String((user as any)?.department ?? '') }),
       });
       const users = await getUsers(accessToken!);
       const created = users.find((u) => u.email?.toLowerCase() === email.trim().toLowerCase());
@@ -416,6 +427,11 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
           telephone: telephone.trim() || null,
           status: 'active',
         });
+        if (firstName.trim() || lastName.trim() || site.trim() || others.length > 0) {
+          await adminEmployeeService.setPersonal(accessToken!, created.id, {
+            firstName: firstName.trim() || null, lastName: lastName.trim() || null, site: site.trim() || null, additionalEmails: others,
+          });
+        }
       }
       setSuccess(true);
       setTimeout(() => { onCreated(); onClose(); }, 1200);
@@ -459,11 +475,35 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <label className="em-label">{t('employeesAdmin.email')} <span className="em-req">*</span></label>
                   <input className="em-input" type="email" placeholder="email@coficab.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
-                <OrganizationDepartmentFields
-                  value={orgDept}
-                  onChange={setOrgDept}
-                  classes={{ field: 'em-field', label: 'em-label', input: 'em-input' }}
-                />
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.firstName')}</label>
+                  <input className="em-input" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.lastName')}</label>
+                  <input className="em-input" value={lastName} onChange={e => setLastName(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.site')}</label>
+                  <input className="em-input" value={site} onChange={e => setSite(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.additionalEmails')}</label>
+                  <input className="em-input" placeholder="autre@exemple.com, ..." value={extraEmails} onChange={e => setExtraEmails(e.target.value)} />
+                </div>
+                {isSuperadmin ? (
+                  <OrganizationDepartmentFields
+                    value={orgDept}
+                    onChange={setOrgDept}
+                    classes={{ field: 'em-field', label: 'em-label', input: 'em-input' }}
+                  />
+                ) : (
+                  <div className="em-field">
+                    <label className="em-label">{t('planDetail.department')}</label>
+                    <input className="em-input" value={String((user as any)?.department ?? '')} readOnly />
+                    <small>{t('employeesAdmin.ownDepartmentOnly')}</small>
+                  </div>
+                )}
                 <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.poste')} <span className="em-req">*</span></label>
                   <input className="em-input" placeholder={t('employeesAdmin.postePh')} value={poste} onChange={e => setPoste(e.target.value)} />
@@ -480,14 +520,14 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <label className="em-label">{t('employeesAdmin.phone')}</label>
                   <input className="em-input" placeholder="+216 70 123 456" value={telephone} onChange={e => setTelephone(e.target.value)} />
                 </div>
-                <div className="em-field">
+                {isSuperadmin && <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.role')} <span className="em-req">*</span></label>
                   <select className="em-input" value={role} onChange={e => setRole(e.target.value)}>
                     <option value="user">{t('employeesAdmin.roleUser')}</option>
                     <option value="admin">Admin</option>
                     <option value="superadmin">Superadmin</option>
                   </select>
-                </div>
+                </div>}
               </div>
 
               <div className="em-info-banner">
@@ -495,7 +535,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 {t('employeesAdmin.tempPassword')}
               </div>
 
-              <div className="em-field" style={{ marginTop: 16 }}>
+              {isSuperadmin && <div className="em-field" style={{ marginTop: 16 }}>
                 <label className="em-label">{t('employeesAdmin.permissions')}</label>
                 {role === 'user' && (
                   <div className="em-perm-hint">
@@ -539,7 +579,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                     </div>
                   ))}
                 </div>
-              </div>
+              </div>}
             </>
           )}
         </div>

@@ -160,6 +160,92 @@ public class PlanActionService : IPlanActionService
         await CheckAndCloseActionPlanAsync(action.ActionPlanId, updatedBy);
     }
 
+    public async Task<Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionResult> ExtendDeadlineAsync(
+        Guid id, DateTime newDeadline, string reason, string byUserId)
+    {
+        var action = await _repo.GetByIdAsync(id);
+        if (action is null) return new("notFound");
+        if (action.Progress is ActionProgress.Hundred or ActionProgress.Validated or ActionProgress.Cancelled) return new("notOpen");
+
+        var target = DateTime.SpecifyKind(newDeadline.Date, DateTimeKind.Utc);
+        var code = Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.Check(action.Deadline, target, DateTime.UtcNow, reason);
+        if (code is not null) return new(code);
+
+        var old = action.Deadline!.Value;
+        action.Deadline = target;
+        action.UpdatedBy = byUserId;
+        action.UpdatedAt = DateTime.UtcNow;
+        await _repo.UpdateAsync(action);
+
+        // the old date, the new one and the reason stay in the sub-action's history (progress is untouched)
+        await _repo.AddHistoryAsync(new PlanActionHistory
+        {
+            Id = Guid.NewGuid(),
+            PlanActionId = id,
+            ChangedBy = byUserId,
+            OldProgress = action.Progress,
+            NewProgress = action.Progress,
+            Note = "Échéance prolongée : " + Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.Describe(old, target, reason),
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = byUserId,
+            UpdatedAt = DateTime.UtcNow,
+            UpdatedBy = byUserId,
+        });
+
+        // the person in charge is told; the extension is saved, so a failed notification never undoes it
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(action.AssignedToId) && !string.Equals(action.AssignedToId, byUserId, StringComparison.OrdinalIgnoreCase))
+                await _notificationService.NotifyLocalizedAsync(
+                    action.AssignedToId, "action_deadline_extended", "Échéance prolongée",
+                    Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationMessage(action.Title, old, target, reason),
+                    Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.NotificationData(action.Title, old, target, reason),
+                    action.ActionPlanId);
+        }
+        catch
+        {
+            // best effort
+        }
+
+        return new(null, old, target, Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionRules.ExtraDays(old, target));
+    }
+
+    public async Task ReassignAsync(Guid id, string newUserId, string changedBy, string? note, bool notify = true)
+    {
+        var action = await _repo.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"PlanAction {id} not found");
+
+        if (action.Progress == ActionProgress.Validated || action.Progress == ActionProgress.Cancelled)
+            throw new InvalidOperationException("Cette sous-action est verrouillée.");
+
+        var target = (newUserId ?? string.Empty).Trim();
+        if (target.Length == 0)
+            throw new InvalidOperationException("Choisissez la personne à qui assigner.");
+        if (!await _userRepo.ExistsAsync(target))
+            throw new KeyNotFoundException("Utilisateur non trouvé.");
+
+        var previous = action.AssignedToId;
+        if (string.Equals(previous, target, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Cette sous-action est déjà assignée à cette personne.");
+
+        action.AssignedToId = target;
+        action.UpdatedBy = changedBy;
+        action.UpdatedAt = DateTime.UtcNow;
+        await _repo.UpdateAsync(action);
+
+        var type = string.IsNullOrWhiteSpace(previous) ? "assigned" : "reassigned";
+        await _repo.AddAssignmentHistoryAsync(BuildAssignmentHistory(
+            action.Id, changedBy, type, previous, target,
+            string.IsNullOrWhiteSpace(note) ? "Réassignation par un administrateur" : note.Trim()));
+
+        if (!notify) return;
+        await _notificationService.NotifyAsync(target, "action_assigned", "Sous-action assignée",
+            $"La sous-action « {action.Title} » vous a été assignée.", action.ActionPlanId);
+        if (!string.IsNullOrWhiteSpace(previous) && !string.Equals(previous, changedBy, StringComparison.OrdinalIgnoreCase))
+            await _notificationService.NotifyAsync(previous, "action_unassigned", "Sous-action réassignée",
+                $"La sous-action « {action.Title} » a été confiée à une autre personne.", action.ActionPlanId);
+    }
+
     public async Task ValidateAsync(Guid id, string validatedBy, string? note)
     {
         var action = await _repo.GetByIdAsync(id)

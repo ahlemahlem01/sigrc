@@ -84,6 +84,16 @@ export interface ValidateFiveWhyStepResponseDto {
   suggestedFollowUpQuestions: string[];
 }
 
+export interface ValidateFiveWhyChainRequestDto {
+  branch: string;
+  problemStatement: string;
+  steps: Array<{ stepNumber: number; branchType?: string; question: string; answer: string }>;
+}
+
+export interface ValidateFiveWhyChainStepDto extends ValidateFiveWhyStepResponseDto {
+  stepNumber: number;
+}
+
 export interface SuggestedCapaActionDto {
   kind: 'CORRECTIVE' | 'PREVENTIVE' | string;
   branch: 'OCCURRENCE' | 'DETECTION' | string;
@@ -279,6 +289,29 @@ export const qualityAnalysisService = {
     return response.data;
   },
 
+  /** Second opinion on the photo from Gemini (vision), asked at the same time as the image model. */
+  suggestDefectWithGemini: async (image: File, language: string, token?: string) => {
+    const form = new FormData();
+    form.append('image', image);
+    form.append('language', language);
+    const response = await api.post<{ available: boolean; reason?: string; defectType?: string | null; confidence?: number; description?: string }>(
+      '/claims/ai-vision-suggestion',
+      form,
+      getAuthConfig(token, { 'Content-Type': 'multipart/form-data' })
+    );
+    return response.data;
+  },
+
+  /** Administrators: more time for a late claim. A reason is required; the old date and the reason are kept in the audit trail. */
+  extendClaimDeadline: async (id: string, newDeadline: string, reason: string, token?: string) => {
+    const response = await api.post<{ oldDeadline: string; newDeadline: string; extraDays: number }>(
+      `/claims/${id}/deadline-extension`,
+      { newDeadline, reason },
+      getAuthConfig(token)
+    );
+    return response.data;
+  },
+
   importClaimsCsv: async (file: File, token?: string) => {
     const form = new FormData();
     form.append('file', file);
@@ -401,6 +434,20 @@ export const qualityAnalysisService = {
     return response.data;
   },
 
+  /** Coach sur toute la chaîne d'une branche, en un seul appel. */
+  validateFiveWhyChain: async (
+    claimId: string,
+    dto: ValidateFiveWhyChainRequestDto,
+    token?: string
+  ): Promise<{ steps: ValidateFiveWhyChainStepDto[] }> => {
+    const response = await api.post<{ steps: ValidateFiveWhyChainStepDto[] }>(
+      `/5why/${claimId}/validate-chain`,
+      dto,
+      getAuthConfig(token)
+    );
+    return response.data;
+  },
+
   /** Suggestions IA (6M) depuis le 5 Why — utilisé par IshikawaPage. */
   getIshikawaSuggestionsFromFiveWhy: async (claimId: string, token?: string): Promise<FiveWhySuggestion[]> => {
     const response = await api.get<FiveWhySuggestion[]>(`/5why/${claimId}/suggestions`, getAuthConfig(token));
@@ -509,6 +556,8 @@ export interface EightDDossier {
   defectType: string;
   lotNumber: string;
   description: string;
+  producedQuantity?: number | null;
+  defectiveQuantity?: number | null;
   currentStep: number;
   statusCode: string;
   championId?: string;

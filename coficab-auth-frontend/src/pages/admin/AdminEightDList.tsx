@@ -66,13 +66,15 @@ export default function AdminEightDList() {
       if (!cancel) setServerStats(first.stats ?? null);
       const items = [...(first.items || [])];
       const total = first.total || items.length;
-      for (let next = 2; items.length < total && next <= 5; next += 1) {
-        const pageData = await qualityAnalysisService.getClaimsHistory(
-          { page: next, pageSize: 100, hasEightD: 'YES', sort: 'updatedAt', dir: 'desc' },
+      // the following pages are asked together, without the figures already received with the first one
+      const lastPage = Math.min(Math.ceil(total / 100), 10);
+      const others = await Promise.all(
+        Array.from({ length: Math.max(0, lastPage - 1) }, (_, i) => qualityAnalysisService.getClaimsHistory(
+          { page: i + 2, pageSize: 100, hasEightD: 'YES', sort: 'updatedAt', dir: 'desc', includeSummary: false },
           accessToken,
-        );
-        items.push(...(pageData.items || []));
-      }
+        )),
+      );
+      others.forEach((pageData) => items.push(...(pageData.items || [])));
       return items;
     };
     load()
@@ -83,7 +85,7 @@ export default function AdminEightDList() {
   }, [accessToken]);
 
   const departments = useMemo(
-    () => Array.from(new Set(rows.map((row) => (row.productionLine || '').trim()).filter(Boolean))).sort(),
+    () => Array.from(new Set(rows.map((row) => (row.departmentName || '').trim()).filter(Boolean))).sort(),
     [rows],
   );
   const statuses = useMemo(
@@ -108,7 +110,7 @@ export default function AdminEightDList() {
     const from = dayStamp(filterFrom);
     const to = dayStamp(filterTo);
     return rows.filter((row) => {
-      if (filterDept !== 'all' && (row.productionLine || '') !== filterDept) return false;
+      if (filterDept !== 'all' && (row.departmentName || '') !== filterDept) return false;
       if (filterStep !== 'all' && String(row.eightDStep || '') !== filterStep) return false;
       if (filterStatus !== 'all' && (row.eightDStatus || '') !== filterStatus) return false;
       const stamp = dayStamp(row.updatedAt || row.createdAt);
@@ -116,7 +118,7 @@ export default function AdminEightDList() {
       if (from != null && stamp != null && stamp < from) return false;
       if (to != null && stamp != null && stamp > to) return false;
       if (!term) return true;
-      return [row.title, row.productionLine, champion(row), row.defectType, row.clientId]
+      return [row.title, row.departmentName, row.productionLine, champion(row), row.defectType, row.clientId]
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
   }, [rows, search, filterDept, filterStep, filterStatus, filterFrom, filterTo]);
@@ -247,7 +249,7 @@ export default function AdminEightDList() {
               ) : pageRows.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/80">
                   <td className="px-4 py-3.5 font-medium text-[#000168]">{row.title || t('closedArchive.untitled')}</td>
-                  <td className="px-4 py-3.5 text-slate-700">{row.productionLine || '—'}</td>
+                  <td className="px-4 py-3.5 text-slate-700">{row.departmentName || '—'}</td>
                   <td className="px-4 py-3.5 text-slate-700">{champion(row)}</td>
                   <td className="px-4 py-3.5 text-slate-700">{row.eightDStep ? `D${row.eightDStep}` : '—'}</td>
                   <td className="px-4 py-3.5"><span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">{getEightDStatusMeta(row.eightDStatus, null).label}</span></td>

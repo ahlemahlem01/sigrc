@@ -20,6 +20,8 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? Severity { get; set; }
     public string? LotNumber { get; set; }
     public string? ProductionLine { get; set; }
+    /// <summary>YES: only the internal (workshop) problems, NO: only the customer claims, empty: both.</summary>
+    public string? Internal { get; set; }
     public string? Shift { get; set; }
     public string? CreatedBy { get; set; }
     public DateTime? CreatedFrom { get; set; }
@@ -37,6 +39,8 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? Sort { get; set; } = "updatedAt";
     public string? Dir { get; set; } = "desc";
     public bool IncludeDrafts { get; set; }
+    /// <summary>False for the following pages of a bulk load: the figures and filter lists are only needed once, with the first page.</summary>
+    public bool IncludeSummary { get; set; } = true;
     /// <summary>open (claims not closed yet) | closed | empty (all).</summary>
     public string? Scope { get; set; }
     /// <summary>What needs attention: noFiveWhy | eightD | noCapa | capaLate. Counts of the four are always returned in the stats.</summary>
@@ -70,6 +74,9 @@ public class ClaimsHistoryRowDto
     public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
     public string? ProductionLine { get; set; }
+    /// <summary>Department of the person in charge (or, failing that, of the person who raised the claim).</summary>
+    public string? DepartmentName { get; set; }
+    public bool IsInternal { get; set; }
     public string? Shift { get; set; }
     public int? ProducedQuantity { get; set; }
     public int? DefectiveQuantity { get; set; }
@@ -221,6 +228,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         }
         if (!string.IsNullOrWhiteSpace(request.ProductionLine))
             claims = claims.Where(c => c.ProductionLine == request.ProductionLine);
+        if (string.Equals(request.Internal, "YES", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => c.IsInternal);
+        else if (string.Equals(request.Internal, "NO", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => !c.IsInternal);
         if (!string.IsNullOrWhiteSpace(request.Shift))
             claims = claims.Where(c => c.Shift == request.Shift);
         if (!string.IsNullOrWhiteSpace(request.CreatedBy))
@@ -382,6 +391,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 AssignedToId = c.AssignedToId,
                 AssignedToName = c.AssignedToName,
                 ProductionLine = c.ProductionLine,
+                IsInternal = c.IsInternal,
                 Shift = c.Shift,
                 ProducedQuantity = c.ProducedQuantity,
                 DefectiveQuantity = c.DefectiveQuantity,
@@ -499,6 +509,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         }
 
         var stats = new ClaimsHistoryStatsDto { Total = total };
+        var facets = new ClaimsHistoryFacetsDto();
+        if (request.IncludeSummary)
+        {
+        stats = new ClaimsHistoryStatsDto { Total = total };
         stats.NoFiveWhy = await unfocused.CountAsync(c => !fiveWhy.Any(f => f.ClaimId == c.Id), cancellationToken);
         stats.EightDToHandle = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
                     && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED"
@@ -535,7 +549,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 d => filteredIds.Contains(d.ClaimId) && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED"), cancellationToken);
         }
 
-        var facets = new ClaimsHistoryFacetsDto
+        facets = new ClaimsHistoryFacetsDto
         {
             Clients = await facetSource.Where(c => c.ClientId != "").Select(c => c.ClientId).Distinct().OrderBy(x => x).Take(300).ToListAsync(cancellationToken),
             DefectTypes = await facetSource.Where(c => c.DefectType != "").Select(c => c.DefectType).Distinct().OrderBy(x => x).Take(200).ToListAsync(cancellationToken),
@@ -544,6 +558,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             Shifts = await facetSource.Where(c => c.Shift != null && c.Shift != "").Select(c => c.Shift!).Distinct().OrderBy(x => x).Take(50).ToListAsync(cancellationToken),
             CreatedBy = await facetSource.Where(c => c.CreatedBy != null && c.CreatedBy != "").Select(c => c.CreatedBy!).Distinct().OrderBy(x => x).Take(200).ToListAsync(cancellationToken),
         };
+        }
 
         var profiles = await _context.UserProfiles.AsNoTracking().Include(p => p.Department).ToListAsync(cancellationToken);
         var departments = await _context.Departments.AsNoTracking().ToListAsync(cancellationToken);
@@ -552,6 +567,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         {
             row.CreatedBy = ClaimVisibility.PersonName(profiles, row.CreatedById, row.CreatedBy, aliases);
             row.ProductionLine = ClaimVisibility.PlaceName(departments, row.ProductionLine);
+            row.DepartmentName = DepartmentOf(profiles, row.AssignedToId) ?? DepartmentOf(profiles, row.CreatedById);
         }
         facets.ProductionLines = facets.ProductionLines
             .Select(line => ClaimVisibility.PlaceName(departments, line) ?? line)
@@ -573,6 +589,13 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             Facets = facets,
             Stats = stats,
         };
+    }
+
+    private static string? DepartmentOf(IEnumerable<Coficab.ActionPlan.Core.Entities.UserProfile> profiles, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        var department = profiles.FirstOrDefault(p => string.Equals(p.UserId, userId, StringComparison.OrdinalIgnoreCase))?.Department;
+        return department == null ? null : ClaimVisibility.DepartmentLabel(department);
     }
 
     private static string? Clip(string? value, int max)

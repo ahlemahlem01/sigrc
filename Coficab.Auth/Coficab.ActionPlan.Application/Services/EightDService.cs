@@ -10,6 +10,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Coficab.ActionPlan.Application.Services;
 
+public sealed record EightDReportDto(QualityReportModel Model, int Version, bool Edited, DateTime? SavedAt, string? SavedByName, string? Note);
+
+public sealed record EightDReportVersionDto(int VersionNumber, DateTime SavedAt, string? SavedByName, string? Note);
+
 public class EightDService : IEightDService
 {
     private readonly IApplicationDbContext _db;
@@ -114,13 +118,15 @@ public class EightDService : IEightDService
         await GenerateAndStorePdfAsync(dossier, claimId, ct);
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.NotifyAdminsAsync(
+        await _notifications.NotifyValidatorsAsync(
             "eight_d_pending_validation",
             "Dossier 8D à valider",
             $"Le dossier 8D « {claim.Title} » a été soumis pour validation finale.",
+            permission: "8d:validate",
             actionPlanId: dto.CapaPlanId,
             claimId: claimId,
-            linkPath: "/pages/front/quality-analyses/admin?tab=dossier");
+            linkPath: $"/pages/front/quality-analyses/8d/{claimId}",
+            excludeUserId: userId);
 
         var submitted = await MapAndPersistAsync(dossier, claim, ct);
         await RecordVersionAsync(dossier, submitted, EightDVersionEvents.Submitted, userId, null, ct);
@@ -134,7 +140,18 @@ public class EightDService : IEightDService
         var claim = await _db.Claims.FirstAsync(c => c.Id == claimId, ct);
 
         if (!string.Equals(dossier.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Ce dossier n'est pas en attente de validation.");
+            throw new InvalidOperationException(await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(
+                _db, claimId, "Ce dossier", "Ce dossier n'est pas en attente de validation.", dossier.ValidatedById, dossier.ValidatedAt, ct));
+
+        if (Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.TookPart(claim, dossier, userId))
+            throw new InvalidOperationException(Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.Message);
+
+        if (dto.IsApproved)
+        {
+            var missing = await Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.MissingAsync(_db, claim, ct);
+            if (missing.Count > 0)
+                throw new InvalidOperationException(Coficab.ActionPlan.Application.QualityAnalyses.Services.QrqcClosureGate.Message(missing));
+        }
 
         await EnsureBaselineAsync(dossier, current, ct);
 
@@ -266,9 +283,78 @@ public class EightDService : IEightDService
 
     private async Task GenerateAndStorePdfAsync(EightDDossier dossier, Guid claimId, CancellationToken ct)
     {
-        var pdf = await _pdfService.GenerateQualityReportPdfAsync(claimId, ct);
+        // an edited report stays what the PDF is made from; the data of the claim are used only while it was never edited
+        var edited = await LatestReportVersionAsync(claimId, ct);
+        var pdf = edited != null
+            ? _pdfService.RenderPdf(ReadModel(edited.ModelJson))
+            : await _pdfService.GenerateQualityReportPdfAsync(claimId, ct);
         dossier.CustomerPdfData = pdf;
         dossier.CustomerPdfGeneratedAt = DateTime.UtcNow;
+    }
+
+    private static readonly System.Text.Json.JsonSerializerOptions ReportJson = new(System.Text.Json.JsonSerializerDefaults.Web);
+    private const int MaxReportJsonChars = 1_000_000;
+
+    private static QualityReportModel ReadModel(string json) =>
+        System.Text.Json.JsonSerializer.Deserialize<QualityReportModel>(json, ReportJson) ?? new QualityReportModel();
+
+    private Task<EightDReportVersion?> LatestReportVersionAsync(Guid claimId, CancellationToken ct) =>
+        _db.EightDReportVersions.AsNoTracking().Where(v => v.ClaimId == claimId).OrderByDescending(v => v.VersionNumber).FirstOrDefaultAsync(ct);
+
+    private static EightDReportDto ToDto(EightDReportVersion v) =>
+        new(ReadModel(v.ModelJson), v.VersionNumber, true, v.SavedAt, v.SavedByName, v.Note);
+
+    public async Task<EightDReportDto> GetReportAsync(Guid claimId, CancellationToken ct = default)
+    {
+        if (!await _db.Claims.AsNoTracking().AnyAsync(c => c.Id == claimId, ct))
+            throw new KeyNotFoundException("Réclamation introuvable.");
+        var latest = await LatestReportVersionAsync(claimId, ct);
+        return latest != null
+            ? ToDto(latest)
+            : new EightDReportDto(await _pdfService.BuildReportModelAsync(claimId, ct), 0, false, null, null, null);
+    }
+
+    public async Task<QualityReportModel> GetFreshReportAsync(Guid claimId, CancellationToken ct = default)
+    {
+        if (!await _db.Claims.AsNoTracking().AnyAsync(c => c.Id == claimId, ct))
+            throw new KeyNotFoundException("Réclamation introuvable.");
+        return await _pdfService.BuildReportModelAsync(claimId, ct);
+    }
+
+    public async Task<EightDReportDto> SaveReportAsync(Guid claimId, QualityReportModel model, string? note, string userId, CancellationToken ct = default)
+    {
+        if (model == null) throw new InvalidOperationException("Le rapport est vide.");
+        var json = System.Text.Json.JsonSerializer.Serialize(model, ReportJson);
+        if (json.Length > MaxReportJsonChars)
+            throw new InvalidOperationException("Le rapport est trop volumineux pour être enregistré.");
+
+        await GetOrCreateAsync(claimId, userId, ct);   // the dossier carries the PDF, and the claim must exist
+        var dossier = await _db.EightDDossiers.FirstAsync(d => d.ClaimId == claimId, ct);
+
+        var last = await _db.EightDReportVersions.Where(v => v.ClaimId == claimId).MaxAsync(v => (int?)v.VersionNumber, ct) ?? 0;
+        var name = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == userId).Select(p => p.Name).FirstOrDefaultAsync(ct);
+        var trimmed = string.IsNullOrWhiteSpace(note) ? null : note.Trim();
+        var version = new EightDReportVersion
+        {
+            ClaimId = claimId, VersionNumber = last + 1, ModelJson = json, SavedBy = userId, SavedByName = name,
+            Note = trimmed is { Length: > 1000 } ? trimmed[..1000] : trimmed,
+        };
+        _db.EightDReportVersions.Add(version);
+
+        dossier.CustomerPdfData = _pdfService.RenderPdf(model);
+        dossier.CustomerPdfGeneratedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return ToDto(version);
+    }
+
+    public async Task<IReadOnlyList<EightDReportVersionDto>> GetReportVersionsAsync(Guid claimId, CancellationToken ct = default) =>
+        await _db.EightDReportVersions.AsNoTracking().Where(v => v.ClaimId == claimId).OrderByDescending(v => v.VersionNumber)
+            .Select(v => new EightDReportVersionDto(v.VersionNumber, v.SavedAt, v.SavedByName, v.Note)).ToListAsync(ct);
+
+    public async Task<EightDReportDto?> GetReportVersionAsync(Guid claimId, int version, CancellationToken ct = default)
+    {
+        var v = await _db.EightDReportVersions.AsNoTracking().FirstOrDefaultAsync(x => x.ClaimId == claimId && x.VersionNumber == version, ct);
+        return v == null ? null : ToDto(v);
     }
 
     private static void ApplySave(EightDDossier dossier, SaveEightDDossierDto dto, EightDDossierDto gates, string userId)
@@ -653,6 +739,8 @@ public class EightDService : IEightDService
             DefectType = claim.DefectType,
             LotNumber = claim.LotNumber,
             Description = claim.Description,
+            ProducedQuantity = claim.ProducedQuantity,
+            DefectiveQuantity = claim.DefectiveQuantity,
             CurrentStep = current,
             StatusCode = dossier.StatusCode,
             ChampionId = dossier.ChampionId,

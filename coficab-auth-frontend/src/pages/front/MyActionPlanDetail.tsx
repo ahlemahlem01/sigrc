@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   RefreshCw,
   Paperclip,
+  FileText,
   X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +28,7 @@ import {
   uploadPlanActionDocument,
 } from '../../services/actionPlanService';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
+import { updatePlanActionDescription } from '../../services/actionPlanService';
 import axios from 'axios';
 import './MyActionPlanDetail.styles.css';
 import WorkflowStages from '../../components/capa/WorkflowStages';
@@ -197,8 +199,13 @@ export default function MyActionPlanDetail() {
   const [directProgress, setDirectProgress] = useState(0);
   const [savingDirect, setSavingDirect] = useState(false);
   const [historyActionId, setHistoryActionId] = useState<string | null>(null);
+  // rewriting the description of a sub-action (the old text stays in its history)
+  const [descActionId, setDescActionId] = useState<string | null>(null);
+  const [descDraft, setDescDraft] = useState('');
+  const [descSaving, setDescSaving] = useState(false);
+  const [descError, setDescError] = useState<string | null>(null);
   // changes whenever the actions are reloaded: proofs and the plan history reload with them
-  const historyTick = useMemo(() => actions.map((a) => `${a.id}:${a.progress}:${a.documentCount ?? 0}`).join('|'), [actions]);
+  const historyTick = useMemo(() => actions.map((a) => `${a.id}:${a.progress}:${a.documentCount ?? 0}:${(a.description ?? '').length}`).join('|'), [actions]);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [rejection, setRejection] = useState<{ comment: string; at?: string } | null>(null);
   const [resubmitting, setResubmitting] = useState(false);
@@ -393,6 +400,43 @@ export default function MyActionPlanDetail() {
       }
     } finally {
       setSavingDirect(false);
+    }
+  };
+
+  const openDescription = (action: PlanAction) => {
+    setDescActionId(action.id);
+    setDescDraft(action.description ?? '');
+    setDescError(null);
+  };
+
+  const closeDescription = () => {
+    if (descSaving) return;
+    setDescActionId(null);
+    setDescError(null);
+  };
+
+  const saveDescription = async () => {
+    if (!accessToken || !descActionId) return;
+    const current = actions.find((a) => a.id === descActionId);
+    const text = descDraft.trim();
+    if (!text) {
+      setDescError(t('planDetail.descriptionRequired'));
+      return;
+    }
+    if (text === (current?.description ?? '').trim()) {
+      setDescError(t('planDetail.descriptionUnchanged'));
+      return;
+    }
+    setDescSaving(true);
+    setDescError(null);
+    try {
+      await updatePlanActionDescription(accessToken, descActionId, text);
+      setActions((prev) => prev.map((a) => (a.id === descActionId ? { ...a, description: text } : a)));
+      setDescActionId(null);
+    } catch (e: any) {
+      setDescError(e?.response?.data?.error || e?.response?.data?.message || t('planDetail.descriptionFailed'));
+    } finally {
+      setDescSaving(false);
     }
   };
 
@@ -780,6 +824,13 @@ export default function MyActionPlanDetail() {
                             >
                               <Pencil size={13} /> {t('common.edit')}
                             </button>
+                            <button
+                              type="button"
+                              className="mpd-btn-sec"
+                              onClick={() => openDescription(action)}
+                            >
+                              <FileText size={13} /> {t('planDetail.editDescription')}
+                            </button>
                             {!isDone && (
                               <button
                                 type="button"
@@ -914,6 +965,48 @@ export default function MyActionPlanDetail() {
                 onClick={() => void saveProgress(editingAction.id)}
               >
                 {savingId === editingAction.id ? t('common.saving') : t('fiveWhy.confirm')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {descActionId && (
+        <div
+          className="mpd-slider-overlay"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeDescription();
+          }}
+        >
+          <div className="mpd-slider-modal" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+            <div className="mpd-slider-header">
+              <span>{t('planDetail.editDescription')}</span>
+              <button type="button" className="mpd-icon-x" onClick={closeDescription} aria-label={t('fiveWhy.close')}>
+                <X size={16} />
+              </button>
+            </div>
+            <div className="mpd-slider-title">{actions.find((a) => a.id === descActionId)?.title}</div>
+            <textarea
+              className="mpd-desc-input"
+              rows={8}
+              maxLength={4000}
+              value={descDraft}
+              onChange={(e) => setDescDraft(e.target.value)}
+              placeholder={t('planDetail.descriptionPlaceholder')}
+              autoFocus
+            />
+            <p className="mpd-desc-hint">{t('planDetail.descriptionHint')}</p>
+            {descError && (
+              <div className="mpd-slider-error">
+                <AlertTriangle size={14} /> {descError}
+              </div>
+            )}
+            <div className="mpd-edit-actions">
+              <button type="button" className="mpd-btn-sec" onClick={closeDescription}>
+                {t('common.cancel')}
+              </button>
+              <button type="button" className="mpd-btn-primary" disabled={descSaving} onClick={() => void saveDescription()}>
+                {descSaving ? t('common.saving') : t('fiveWhy.confirm')}
               </button>
             </div>
           </div>

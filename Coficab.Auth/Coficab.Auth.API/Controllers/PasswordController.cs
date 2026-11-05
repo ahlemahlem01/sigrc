@@ -29,6 +29,7 @@ public class PasswordController : ControllerBase
     private readonly IConfiguration _config;
     private readonly IOptions<DataProtectionTokenProviderOptions> _tokenOptions;
     private readonly ILogger<PasswordController> _logger;
+    private readonly ITurnstileVerifier _turnstile;
 
     public PasswordController(
         UserManager<ApplicationUser> userManager,
@@ -37,7 +38,8 @@ public class PasswordController : ControllerBase
         IMemoryCache cache,
         IConfiguration config,
         IOptions<DataProtectionTokenProviderOptions> tokenOptions,
-        ILogger<PasswordController> logger)
+        ILogger<PasswordController> logger,
+        ITurnstileVerifier turnstile)
     {
         _userManager = userManager;
         _scopes = scopes;
@@ -46,6 +48,7 @@ public class PasswordController : ControllerBase
         _config = config;
         _tokenOptions = tokenOptions;
         _logger = logger;
+        _turnstile = turnstile;
     }
 
     // POST /api/password/forgot
@@ -56,6 +59,10 @@ public class PasswordController : ControllerBase
         var clock = Stopwatch.StartNew();
         try
         {
+            // Turnstile (when switched on) comes first: a missing or refused check says nothing about the account
+            if (_turnstile.Enabled && !await _turnstile.VerifyAsync(request.TurnstileToken, HttpContext.Connection.RemoteIpAddress?.ToString(), HttpContext.RequestAborted))
+                return BadRequest(new { code = "captcha_failed" });
+
             var email = (request.Email ?? string.Empty).Trim();
             var user = email.Length == 0 ? null : await _userManager.FindByEmailAsync(email);
             if (user?.Email is not null && WithinMailQuota(user.Id))
@@ -80,6 +87,37 @@ public class PasswordController : ControllerBase
     }
 
     // POST /api/password/reset
+    /// <summary>
+    /// The signed-in person changes his own password (and leaves the "reinitialized" status). The other sessions are closed by the
+    /// new security stamp.
+    /// </summary>
+    [HttpPost("change")]
+    [Microsoft.AspNetCore.Authorization.Authorize(AuthenticationSchemes = OpenIddict.Validation.AspNetCore.OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        // the token carries the id in the standard "sub" claim
+        var subject = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var user = string.IsNullOrEmpty(subject) ? null : await _userManager.FindByIdAsync(subject);
+        if (user is null) return Unauthorized();
+        if (string.IsNullOrEmpty(request.CurrentPassword) || string.IsNullOrEmpty(request.NewPassword))
+            return BadRequest(new { code = WeakPassword, message = (string?)"Renseignez l'ancien et le nouveau mot de passe." });
+        if (request.CurrentPassword == request.NewPassword)
+            return BadRequest(new { code = WeakPassword, message = (string?)"Le nouveau mot de passe doit être différent de l'ancien." });
+
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var message = string.Join(" ", result.Errors.Select(e => e.Description));
+            return BadRequest(new { code = result.Errors.Any(e => e.Code == "PasswordMismatch") ? "wrong_password" : WeakPassword, message = (string?)message });
+        }
+
+        user.MustChangePassword = false;
+        await _userManager.UpdateAsync(user);
+        await _audit.LogAsync("PASSWORD_CHANGED", user.Email!, actorId: user.Id, actorEmail: user.Email!, detail: "Mot de passe modifié par l'utilisateur.");
+        QueueMail(mail => mail.SendPasswordChangedEmailAsync(user.Email!, user.FullName), user.Email!);
+        return Ok();
+    }
+
     [HttpPost("reset")]
     [EnableRateLimiting("reset")]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
@@ -100,6 +138,7 @@ public class PasswordController : ControllerBase
         // (refresh tokens included) is refused from now on.
         await _userManager.ResetAccessFailedCountAsync(user);
         await _userManager.SetLockoutEndDateAsync(user, null);
+        if (user.MustChangePassword) { user.MustChangePassword = false; await _userManager.UpdateAsync(user); }
         await _audit.LogAsync("PASSWORD_RESET", user.Email!, actorId: user.Id, actorEmail: user.Email!, detail: "Mot de passe réinitialisé par lien ; sessions précédentes fermées.");
         QueueMail(mail => mail.SendPasswordChangedEmailAsync(user.Email!, user.FullName), user.Email!);
         return Ok();
@@ -135,5 +174,6 @@ public class PasswordController : ControllerBase
     }
 }
 
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest(string Email, string? TurnstileToken = null);
 public record ResetPasswordRequest(string Email, string Token, string NewPassword);
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

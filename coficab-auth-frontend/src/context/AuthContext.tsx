@@ -14,12 +14,14 @@ interface AuthContextType {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string | null) => Promise<void>;
   logout: () => void;
   hasRole: (role: string) => boolean;
   hasPermission: (permission: string) => boolean;
   updateUser: (updatedFields: Partial<UserInfo> & Record<string, any>) => void;
   refreshUserProfile: () => Promise<void>;
+  /** Gets a new access token now, so that rights granted or removed meanwhile apply at once. */
+  renewSession: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -131,6 +133,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     expiresAtRef.current = Date.now() + (Number(data.expires_in) || 3600) * 1000;
     saveAccessToken(data.access_token, expiresAtRef.current);
   }, []);
+
+  const renewSession = useCallback(async () => {
+    const stored = localStorage.getItem('refresh_token');
+    if (!stored) return;
+    clearAccessToken();
+    const data = await withRefreshLock(async () => {
+      const latest = localStorage.getItem('refresh_token') ?? stored;
+      const result = await refreshTokenService(latest);
+      localStorage.setItem('refresh_token', result.refresh_token);
+      return result;
+    });
+    applyTokens(data);
+    setUser(await fetchFullUserProfile(data.access_token));
+  }, [applyTokens]);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,10 +264,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   }, [accessToken, applyTokens]);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken?: string | null) => {
     setIsLoading(true);
     try {
-      const data = await loginService(email, password);
+      const data = await loginService(email, password, captchaToken);
       applyTokens(data);
 
       // The password was accepted: a hiccup while loading the profile (API still waking up) must not look like a wrong password.
@@ -329,6 +345,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasPermission,
         updateUser,
         refreshUserProfile,
+        renewSession,
       }}
     >
       {children}

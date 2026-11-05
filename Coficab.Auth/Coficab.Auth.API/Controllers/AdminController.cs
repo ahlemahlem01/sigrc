@@ -92,13 +92,13 @@ public class AdminController : ControllerBase
     {
         if (departmentId == null) return;
         await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.UserProfiles SET DepartmentId = {departmentId}, UpdatedAt = SYSUTCDATETIME() WHERE UserId = {user.Id}");
-        if (role is "admin" or "superadmin")
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                INSERT INTO actionplan.UserProfiles (Id, UserId, Name, Email, Role, Poste, Equipe, DepartmentId, HireDate, Status, ActivityStatus, CreatedAt)
-                SELECT NEWID(), {user.Id}, {user.FullName}, {user.Email}, {role}, 'Administrateur', {user.Department}, {departmentId}, SYSUTCDATETIME(), 'active', 0, SYSUTCDATETIME()
-                WHERE NOT EXISTS (SELECT 1 FROM actionplan.UserProfiles WHERE UserId = {user.Id})");
-        }
+        // every account gets its profile now, in the department: without it the department scoping would not see the person
+        // until someone fills the profile in (the employee form then completes poste and team)
+        var poste = role is "admin" or "superadmin" ? "Administrateur" : "Employé";
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO actionplan.UserProfiles (Id, UserId, Name, Email, Role, Poste, Equipe, DepartmentId, HireDate, Status, ActivityStatus, CreatedAt)
+            SELECT NEWID(), {user.Id}, {user.FullName}, {user.Email}, {role}, {poste}, {user.Department}, {departmentId}, SYSUTCDATETIME(), 'active', 0, SYSUTCDATETIME()
+            WHERE NOT EXISTS (SELECT 1 FROM actionplan.UserProfiles WHERE UserId = {user.Id})");
     }
 
     /// <summary>
@@ -148,7 +148,13 @@ public class AdminController : ControllerBase
         {
             var callerOrgId = await GetCallerOrgIdAsync();
             if (callerOrgId == null) return Forbid();
-            query = query.Where(u => u.OrganizationId == callerOrgId);
+            // an administrator sees the people of his own department only (a department belongs to one organization, and some
+            // older accounts have no organization recorded: the department is what counts)
+            var caller = await _userManager.FindByIdAsync(CurrentUserId);
+            var callerDeptId = caller?.DepartmentId;
+            query = callerDeptId == null
+                ? query.Where(u => u.Id == CurrentUserId)
+                : query.Where(u => u.DepartmentId == callerDeptId);
         }
         else if (ParseOrganizations(organizationIds) is { } followed)
         {
@@ -189,9 +195,12 @@ public class AdminController : ControllerBase
             user.LockoutEnd,
             user.AccessFailedCount,
             user.LastLoginAt,
+            user.MustChangePassword,
             IsLockedOut = user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow,
             Roles = rolesByUser.TryGetValue(user.Id, out var roles) ? roles : new List<string>(),
             Permissions = permissionsByUser.TryGetValue(user.Id, out var permissions) ? permissions : new List<string>(),
+            // what the role gives by itself: shown as granted in the matrix, and not removable there
+            InheritedPermissions = Coficab.Auth.API.Data.RolePermissionDefaults.For(rolesByUser.TryGetValue(user.Id, out var roleNames) ? roleNames : new List<string>()),
             CreatedAt = (DateTimeOffset?)null,
         }).ToList();
 
@@ -298,8 +307,6 @@ public class AdminController : ControllerBase
     // ─── POST /api/admin/users ────────────────────────────────
 
     [HttpPost("users")]
-    [Authorize(Roles = "superadmin",
-        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest request)
     {
         if (string.IsNullOrEmpty(CurrentUserId))
@@ -391,10 +398,44 @@ public class AdminController : ControllerBase
         return Ok(new { created = created.Count, users = created, errors });
     }
 
+    /// <summary>The licence limits the number of users (specification): an error text when the limit is reached. Fails open: no licence recorded, or no access to it, means no limit.</summary>
+    private async Task<string?> LicenceCapacityErrorAsync()
+    {
+        try
+        {
+            var max = await _db.Database.SqlQueryRaw<int>(
+                "SELECT TOP 1 MaxUsers AS Value FROM actionplan.Licences WHERE IsArchived = 0 ORDER BY IsGlobal DESC, ExpiresAt DESC").ToListAsync();
+            if (max.Count == 0) return null;
+            var used = await _db.Users.CountAsync();
+            return used >= max[0] ? $"La licence autorise {max[0]} utilisateurs au maximum : la limite est atteinte." : null;
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     private async Task<UserCreateOutcome> TryCreateUserAsync(AdminCreateUserRequest request)
     {
         if (string.IsNullOrEmpty(CurrentUserId))
             return new UserCreateOutcome("Cannot resolve current user ID.", null, null, null, null);
+
+        var capacityError = await LicenceCapacityErrorAsync();
+        if (capacityError != null)
+            return new UserCreateOutcome(capacityError, null, null, null, null);
+
+        // an administrator creates simple user accounts, in his own department only
+        if (!CallerIsSuperadmin)
+        {
+            var caller = await _userManager.FindByIdAsync(CurrentUserId);
+            var scopeError = AdminAccountScope.Check(request.Role, request.OrganizationId, request.DepartmentId, caller?.OrganizationId, caller?.DepartmentId);
+            if (scopeError != null)
+                return new UserCreateOutcome(scopeError, null, null, null, null);
+            request.Role = "user";
+            request.OrganizationId = caller!.OrganizationId;
+            request.DepartmentId = caller.DepartmentId;
+            request.Permissions = [];
+        }
 
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.DepartmentId);
         if (scopingError != null)
@@ -414,6 +455,7 @@ public class AdminController : ControllerBase
         };
 
         var temporaryPassword = GenerateSecurePassword();
+        user.MustChangePassword = true;   // the password sent by e-mail is a temporary one
         var result = await _userManager.CreateAsync(user, temporaryPassword);
         if (!result.Succeeded)
             return new UserCreateOutcome(result.Errors.First().Description, null, null, null, null);
@@ -659,6 +701,9 @@ public class AdminController : ControllerBase
 
         if (!result.Succeeded)
             return BadRequest(result.Errors.First().Description);
+
+        user.MustChangePassword = true;   // reinitialized: the person must choose a new password at the next sign-in
+        await _userManager.UpdateAsync(user);
 
         await _auditService.LogAsync(
             action: "RESET_PASSWORD",

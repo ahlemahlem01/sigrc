@@ -12,6 +12,8 @@ import {
   fetchEmployeeMlStats,
   MlEmployeeStats,
   type MlEmployeeCandidate,
+  type MlAction,
+  type MlRiskLevel,
 } from '../services/mlRecommendService';
 import {
   dedupeByEmployeeId,
@@ -67,7 +69,13 @@ type BannerRec = {
   rank: number;
   skill: number;
   workload: number;
+  riskLevel: MlRiskLevel;
 };
+
+// Same thresholds as the ML service (above 80 %: low, 50 to 80 %: moderate, below 50 %: high), used when it does not send them.
+function riskFromPct(pct: number): MlRiskLevel {
+  return pct > 80 ? 'low' : pct >= 50 ? 'moderate' : 'high';
+}
 
 function buildReason(skill: number, workload: number): string {
   const loadPct = Math.round(Math.min(1, Math.max(0, workload)) * 100);
@@ -118,6 +126,7 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
   const [perfReady, setPerfReady] = useState(false);
   const [validated, setValidated] = useState<boolean | null>(null);
   const [trainedOn, setTrainedOn] = useState<string | null>(null);
+  const [action, setAction] = useState<MlAction | null>(null);
 
   const defect = String(defectType ?? '').trim();
   const sev = normalizeSeverityForMl(severity);
@@ -286,6 +295,7 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
         if (controller.signal.aborted) return;
         setValidated(res.validated ?? null);
         setTrainedOn(res.trainedOn ?? null);
+        setAction(res.action ?? null);
 
         const seenRec = new Set<string>();
         const mapped: BannerRec[] = [];
@@ -304,10 +314,12 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
             defect,
             source
           );
+          const scorePct = Math.round(Math.min(1, Math.max(0, r.score)) * 100);
           mapped.push({
             employeeId: String(r.employeeId),
             name: source?.name || String(r.employeeId),
-            scorePct: Math.round(Math.min(1, Math.max(0, r.score)) * 100),
+            scorePct,
+            riskLevel: r.riskLevel ?? riskFromPct(scorePct),
             reason: statsById[id]
               ? t('recommend.reasonHistory', {
                   rate: Math.round(statsById[id].onTimeRate * 100),
@@ -429,6 +441,16 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
       {assignDisabled && assignDisabledHint ? (
         <p className="erb-hint">{assignDisabledHint}</p>
       ) : null}
+      {(() => {
+        const lead = recs[0];
+        const level = lead.riskLevel;
+        const act: MlAction = action ?? (level === 'low' ? 'standard' : level === 'moderate' ? 'adjust' : 'alert');
+        return (
+          <div className={`erb-action erb-action--${level}`} role={act === 'alert' ? 'alert' : 'status'}>
+            <strong>{t(`recommend.risk.${level}`)}</strong> {t(`recommend.action.${act}`)}
+          </div>
+        );
+      })()}
       <ul className="erb-list">
         {recs.map((r) => (
           <li key={r.employeeId} className="erb-item erb-item--enter">
@@ -439,6 +461,7 @@ export const EmployeeRecommendationBanner: React.FC<EmployeeRecommendationBanner
               <div className="erb-name-row">
                 <span className="erb-name">{r.name}</span>
                 <span className="erb-score">{r.scorePct}%</span>
+                <span className={`erb-risk erb-risk--${r.riskLevel}`}>{t(`recommend.risk.${r.riskLevel}`)}</span>
               </div>
               <div className="erb-reason">{r.reason}</div>
             </div>

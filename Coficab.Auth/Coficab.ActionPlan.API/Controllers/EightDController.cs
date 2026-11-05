@@ -100,9 +100,9 @@ public class EightDController : ControllerBase
     }
 
     [HttpPost("{claimId:guid}/validate")]
-    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Validate(Guid claimId, [FromBody] ValidateEightDDossierDto dto, CancellationToken ct)
     {
+        if (!await Services.PermissionAccess.HasAsync(User, HttpContext.RequestServices, Services.PermissionAccess.ValidateEightD)) return Forbid();
         try
         {
             var blocked = await WorkflowBlockAsync(claimId, dto.IsApproved ? "CLOTUREE" : "EN_ANALYSE", ct);
@@ -135,8 +135,50 @@ public class EightDController : ControllerBase
         if (!IsQualityAdmin() && !await UserCanAccessClaimAsync(claimId, userId, ct))
             return Forbid();
 
+        if (await Services.ClosedDossier.IsClosedAsync(_db, claimId, ct))
+            return Conflict(Services.ClosedDossier.Refusal);
+
         var bytes = await _service.RegenerateCustomerPdfAsync(claimId, userId, ct);
         return File(bytes, "application/pdf", $"8D_Client_{claimId.ToString()[..8]}.pdf");
+    }
+
+    // ─── Customer report: every text and figure can be edited (quality administrators), each edit is a new version ───
+
+    public sealed record SaveReportRequest(Coficab.ActionPlan.Application.Services.QualityReportModel Model, string? Note);
+
+    [HttpGet("{claimId:guid}/report")]
+    public async Task<IActionResult> GetReport(Guid claimId, CancellationToken ct)
+    {
+        try { return Ok(await _service.GetReportAsync(claimId, ct)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
+    /// <summary>The report rebuilt from the current data of the claim, to start an edit again from them (nothing is saved).</summary>
+    [HttpGet("{claimId:guid}/report/fresh")]
+    public async Task<IActionResult> GetFreshReport(Guid claimId, CancellationToken ct)
+    {
+        try { return Ok(await _service.GetFreshReportAsync(claimId, ct)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+    }
+
+    [HttpPut("{claimId:guid}/report")]
+    public async Task<IActionResult> SaveReport(Guid claimId, [FromBody] SaveReportRequest request, CancellationToken ct)
+    {
+        if (!IsQualityAdmin()) return Forbid();
+        try { return Ok(await _service.SaveReportAsync(claimId, request.Model, request.Note, CurrentUserId(), ct)); }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (InvalidOperationException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpGet("{claimId:guid}/report/versions")]
+    public async Task<IActionResult> GetReportVersions(Guid claimId, CancellationToken ct) =>
+        Ok(await _service.GetReportVersionsAsync(claimId, ct));
+
+    [HttpGet("{claimId:guid}/report/versions/{version:int}")]
+    public async Task<IActionResult> GetReportVersion(Guid claimId, int version, CancellationToken ct)
+    {
+        var v = await _service.GetReportVersionAsync(claimId, version, ct);
+        return v == null ? NotFound() : Ok(v);
     }
 
     [HttpGet("{claimId:guid}/versions")]

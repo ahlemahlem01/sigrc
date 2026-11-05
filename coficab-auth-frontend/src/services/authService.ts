@@ -46,12 +46,14 @@ export const getUserInfo = async (accessToken: string): Promise<UserInfo> => {
 // Login
 export const login = async (
   email: string,
-  password: string
+  password: string,
+  captchaToken?: string | null
 ): Promise<TokenResponse> => {
   const params = new URLSearchParams();
   params.append('grant_type', 'password');
   params.append('username', email);
   params.append('password', password);
+  if (captchaToken) params.append('cf-turnstile-response', captchaToken);      // Cloudflare Turnstile (when the server asks for it)
   params.append('client_id', CLIENT_ID);
   params.append('scope', 'openid offline_access action-plan-api');
   //params.append('scope', 'openid offline_access action-plan-api roles');
@@ -85,8 +87,8 @@ export const refreshToken = async (
   return response.data;
 };
 
-export const forgotPassword = async (email: string): Promise<void> => {
-  await axios.post(`${AUTH_API}/api/password/forgot`, { email });
+export const forgotPassword = async (email: string, turnstileToken?: string | null): Promise<void> => {
+  await axios.post(`${AUTH_API}/api/password/forgot`, { email, turnstileToken: turnstileToken || undefined });
 };
 
 export const resetPassword = async (

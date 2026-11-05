@@ -425,7 +425,13 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
+                    b.Property<string>("JobDescriptionFileName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("JobDescriptionFilePath")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Permissions")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -513,6 +519,9 @@ namespace Coficab.Auth.API.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DataJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsArchived")
@@ -753,10 +762,16 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<bool>("IsArchived")
                         .HasColumnType("bit");
 
+                    b.Property<string>("NewDescription")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("NewProgress")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldDescription")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("OldProgress")
@@ -990,6 +1005,9 @@ namespace Coficab.Auth.API.Migrations
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("bit");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)

@@ -20,6 +20,9 @@ import { PriorityCauseBanner } from './PriorityCause';
 import { D4ChainChecklist } from './D4Chain';
 import { LockedStep, useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
+import { useClaimClosed } from '../../hooks/useClaimClosed';
+import { ClosedDossierBanner } from '../../components/ClosedDossierBanner';
+import { isAdminUser } from '../../utils/roles';
 import i18n from '../../i18n';
 
 interface FiveWhyPageProps {
@@ -79,6 +82,8 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
   const order = useD4Order(claimId);
 
   const isAdmin = (user as any)?.role === 'ADMIN' || (user as any)?.role === 'Admin';
+  // an administrator opens the plan in the management section; the employee opens it in his own action plans
+  const capaPlanPath = (id: string) => (isAdminUser(user as any) ? `/pages/front/action-plans/${id}` : `/pages/front/my-action-plans/${id}`);
 
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   const [activeBranch, setActiveBranch] = useState<FiveWhyBranch>('OCCURRENCE');
@@ -98,7 +103,10 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [generatingSynthesis, setGeneratingSynthesis] = useState<boolean>(false);
-  const [validatingStepKey, setValidatingStepKey] = useState<string | null>(null);
+  const [synthesisBranch, setSynthesisBranch] = useState<FiveWhyBranch | null>(null);
+  // the outcome of the AI synthesis is shown under the root cause it concerns, not at the top of the page
+  const [synthesisNote, setSynthesisNote] = useState<Partial<Record<FiveWhyBranch, { ok: boolean; text: string }>>>({});
+  const [validatingBranch, setValidatingBranch] = useState<FiveWhyBranch | null>(null);
   const [coachFeedback, setCoachFeedback] = useState<CoachFeedbackMap>({});
   const [acceptedSteps, setAcceptedSteps] = useState<AcceptedMap>({});
 
@@ -111,6 +119,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
   const [creatingCapa, setCreatingCapa] = useState(false);
 
   const [claim, setClaim] = useState<Claim | null>(null);
+  const closedClaim = useClaimClosed(claimId);
   const [isEditingQuantities, setIsEditingQuantities] = useState<boolean>(false);
   const [producedQtyInput, setProducedQtyInput] = useState<string>('');
   const [defectiveQtyInput, setDefectiveQtyInput] = useState<string>('');
@@ -415,10 +424,23 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     setCoachFeedback((prev) => ({ ...prev, [key]: undefined }));
   };
 
+  // The whys are filled in order, without the coach in between: the whole chain is challenged once, when it is complete.
   const isStepUnlocked = (branch: FiveWhyBranch, stepNumber: number): boolean => {
     if (stepNumber <= 1) return true;
-    return !!acceptedSteps[stepKey(branch, stepNumber - 1)];
+    const previous = steps.find((s) => (s.branchType || 'OCCURRENCE') === branch && s.stepNumber === stepNumber - 1);
+    return !!previous?.answer?.trim();
   };
+
+  const branchOf = (branch: FiveWhyBranch) =>
+    steps.filter((s) => (s.branchType || 'OCCURRENCE') === branch).sort((a, b) => a.stepNumber - b.stepNumber);
+
+  const isChainComplete = (branch: FiveWhyBranch) => {
+    const list = branchOf(branch);
+    return list.length > 0 && list.every((s) => !!s.answer?.trim());
+  };
+
+  const isChainAccepted = (branch: FiveWhyBranch) =>
+    isChainComplete(branch) && branchOf(branch).every((s) => !!acceptedSteps[stepKey(branch, s.stepNumber)]);
 
   const validateStep1 = (): boolean => {
     if (!problemStatement.trim()) {
@@ -491,7 +513,8 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     }
   };
 
-  const handleCoachValidate = async (branch: FiveWhyBranch, stepNumber: number) => {
+  // One challenge for the whole chain of a branch, once all its whys are filled: every step is checked against the ones before it.
+  const handleCoachValidateChain = async (branch: FiveWhyBranch) => {
     setError(null);
     setSuccessMsg(null);
 
@@ -499,47 +522,44 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
       setError(t('fiveWhy.missingClaimId'));
       return;
     }
-
-    const step = steps.find((s) => (s.branchType || 'OCCURRENCE') === branch && s.stepNumber === stepNumber);
-    if (!step?.answer?.trim()) {
-      setError(t('fiveWhy.answerFirst'));
+    if (!isChainComplete(branch)) {
+      setError(t('fiveWhy.answerAllFirst', { branch: branchLabel(branch) }));
       return;
     }
 
-    if (!isStepUnlocked(branch, stepNumber)) {
-      setError(t('fiveWhy.previousFirst'));
-      return;
-    }
-
-    const key = stepKey(branch, stepNumber);
-    setValidatingStepKey(key);
-
+    const list = branchOf(branch);
+    setValidatingBranch(branch);
     try {
-      const previousSteps = steps
-        .filter((s) => (s.branchType || 'OCCURRENCE') === branch && s.stepNumber < stepNumber)
-        .sort((a, b) => a.stepNumber - b.stepNumber);
-
-      const result = await qualityAnalysisService.validateFiveWhyStep(
+      const { steps: results } = await qualityAnalysisService.validateFiveWhyChain(
         claimId,
         {
-          stepNumber,
           branch,
           problemStatement,
-          proposedAnswer: step.answer,
-          previousSteps,
+          steps: list.map((step) => ({
+            stepNumber: step.stepNumber,
+            branchType: branch,
+            question: step.question,
+            answer: step.answer,
+          })),
         },
         accessToken || undefined
       );
 
-      setCoachFeedback((prev) => ({ ...prev, [key]: result }));
+      const feedback: CoachFeedbackMap = {};
+      const accepted: AcceptedMap = {};
+      results.forEach((result) => {
+        const key = stepKey(branch, result.stepNumber);
+        feedback[key] = result;
+        accepted[key] = result.severity === 'OK' || !!result.isAccepted;
+      });
+      setCoachFeedback((prev) => ({ ...prev, ...feedback }));
+      setAcceptedSteps((prev) => ({ ...prev, ...accepted }));
 
-      if (result.severity === 'OK' || result.isAccepted) {
-        setAcceptedSteps((prev) => ({ ...prev, [key]: true }));
-        setSuccessMsg(t('fiveWhy.coachAccepted', { n: stepNumber, branch: branchLabel(branch) }));
-      } else if (result.severity === 'BLOCK') {
-        setAcceptedSteps((prev) => ({ ...prev, [key]: false }));
+      if (list.every((step) => accepted[stepKey(branch, step.stepNumber)])) {
+        setSuccessMsg(t('fiveWhy.chainAccepted', { branch: branchLabel(branch) }));
+      } else {
+        setError(t('fiveWhy.chainNeedsWork', { branch: branchLabel(branch) }));
       }
-      // WARN : pas accepté tant que l'utilisateur n'a pas forcé
     } catch (err: any) {
       if (err?.response?.status === 401) {
         setError(t('fiveWhy.sessionExpiredCoach'));
@@ -547,8 +567,20 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
         setError(err?.response?.data?.message || err?.message || t('fiveWhy.coachFailed'));
       }
     } finally {
-      setValidatingStepKey(null);
+      setValidatingBranch(null);
     }
+  };
+
+  // Warnings (not blocks) of a whole branch can be accepted in one click.
+  const handleForceContinueChain = (branch: FiveWhyBranch) => {
+    const list = branchOf(branch);
+    if (list.some((s) => coachFeedback[stepKey(branch, s.stepNumber)]?.severity === 'BLOCK')) return;
+    setAcceptedSteps((prev) => {
+      const next = { ...prev };
+      list.forEach((s) => { next[stepKey(branch, s.stepNumber)] = true; });
+      return next;
+    });
+    setSuccessMsg(t('fiveWhy.chainForced', { branch: branchLabel(branch) }));
   };
 
   const handleForceContinue = (branch: FiveWhyBranch, stepNumber: number) => {
@@ -562,9 +594,11 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
   const handleGenerateSynthesis = async (branch: FiveWhyBranch) => {
     setError(null);
     setSuccessMsg(null);
+    setSynthesisNote((prev) => ({ ...prev, [branch]: undefined }));
+    const note = (ok: boolean, text: string) => setSynthesisNote((prev) => ({ ...prev, [branch]: { ok, text } }));
 
     if (!claimId) {
-      setError(t('fiveWhy.missingClaimId'));
+      note(false, t('fiveWhy.missingClaimId'));
       return;
     }
 
@@ -573,10 +607,16 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
       .sort((a, b) => a.stepNumber - b.stepNumber);
 
     if (targetSteps.some((s) => !s.answer?.trim())) {
-      setError(t('fiveWhy.answerAllFirst', { branch: branchLabel(branch) }));
+      note(false, t('fiveWhy.answerAllFirst', { branch: branchLabel(branch) }));
       return;
     }
 
+    if (!isChainAccepted(branch)) {
+      note(false, t('fiveWhy.challengeFirst', { branch: branchLabel(branch) }));
+      return;
+    }
+
+    setSynthesisBranch(branch);
     setGeneratingSynthesis(true);
     try {
       const payload: GenerateSynthesisRequestDto = {
@@ -602,11 +642,12 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
       if (branch === 'OCCURRENCE') setRootCauseOccurrence(data.rootCauseSynthesis);
       else setRootCauseDetection(data.rootCauseSynthesis);
 
-      setSuccessMsg(t('fiveWhy.synthesisDone', { branch: branchLabel(branch) }));
+      note(true, t('fiveWhy.synthesisDone', { branch: branchLabel(branch) }));
     } catch (err: any) {
-      setError(err?.response?.data?.message || err?.message || t('fiveWhy.synthesisFailed'));
+      note(false, err?.response?.data?.message || err?.message || t('fiveWhy.synthesisFailed'));
     } finally {
       setGeneratingSynthesis(false);
+      setSynthesisBranch(null);
     }
   };
 
@@ -701,6 +742,16 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     }
     if (defectiveValue !== null && (Number.isNaN(defectiveValue) || defectiveValue < 0)) {
       setPpmError(t('fiveWhy.invalidDefective'));
+      return;
+    }
+    // The PPM needs both quantities, and an empty field cannot clear a stored value: ask for both, coherent.
+    if (producedValue === null || defectiveValue === null) {
+      setPpmError(t('fiveWhy.quantitiesBothRequired'));
+      return;
+    }
+    const check = computePpm({ producedQuantity: producedValue, defectiveQuantity: defectiveValue });
+    if (!check.isComputable) {
+      setPpmError(check.reason || t('fiveWhy.ppmNotComputable'));
       return;
     }
 
@@ -908,7 +959,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
             </h2>
           </div>
           <p style={{ margin: '3px 0 0 12px', color: '#64748B', fontSize: '13px' }}>
-            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'monospace', color: COFICAB_NAVY, fontWeight: '600' }}>{claimId}</span>
+            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'monospace', color: COFICAB_NAVY, fontWeight: '600' }}>{claim?.title || claimId}</span>
           </p>
         </div>
 
@@ -971,6 +1022,22 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
         {branchTab('OCCURRENCE', t('fiveWhy.branchOccurrence'), t('fiveWhy.branchOccurrenceHint'))}
         {branchTab('DETECTION', t('fiveWhy.branchDetection'), t('fiveWhy.branchDetectionHint'))}
       </div>
+
+      {closedClaim && <ClosedDossierBanner />}
+
+      {/* a closed claim: every field and action below is disabled, the plan stays reachable through a link */}
+      <fieldset disabled={closedClaim} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+      {currentStep === 1 && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', margin: '0 0 12px', padding: '8px 14px', borderRadius: 8, background: '#FFF', border: `1px solid ${COFICAB_CARD_BORDER}`, borderLeft: `4px solid ${COFICAB_NAVY}` }}>
+          <span style={{ fontWeight: 700, color: COFICAB_NAVY, fontSize: 12, textTransform: 'uppercase' }}>{t('fiveWhy.ppmTitle')}</span>
+          {ppmResult.isComputable
+            ? <strong style={{ color: COFICAB_NAVY }}>{formatPpm(ppmResult.value as number)} <span style={{ fontSize: 11, color: '#64748B' }}>PPM</span></strong>
+            : <span style={{ fontSize: 12, color: '#92400E', fontStyle: 'italic' }}>{ppmResult.reason || t('fiveWhy.ppmNotComputable')}</span>}
+          <button type="button" className="btn btn-secondary" style={{ marginLeft: 'auto' }} onClick={() => { setCurrentStep(2); setIsEditingQuantities(true); }}>
+            {t('fiveWhy.enterQuantities')}
+          </button>
+        </div>
+      )}
 
       {currentStep === 1 && (
         <form onSubmit={handleValidateQuestions} style={{ background: '#FFF', padding: '20px', borderRadius: '8px', border: `1px solid ${COFICAB_CARD_BORDER}` }}>
@@ -1105,7 +1172,6 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                 const key = stepKey(activeBranch, step.stepNumber);
                 const accepted = !!acceptedSteps[key];
                 const isHovered = activeHoverIdx === idx;
-                const validating = validatingStepKey === key;
 
                 return (
                   <div
@@ -1150,14 +1216,6 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                             border: '1px solid #CBD5E1', borderRadius: '4px', fontSize: '13px', fontFamily: 'inherit',
                           }}
                         />
-                        <button
-                          type="button"
-                          className="btn btn-primary"
-                          disabled={!unlocked || validating || !step.answer?.trim()}
-                          onClick={() => void handleCoachValidate(activeBranch, step.stepNumber)}
-                        >
-                          {validating ? t('fiveWhy.coaching') : t('fiveWhy.challenge')}
-                        </button>
                       </div>
 
                       {renderCoachPanel(activeBranch, step.stepNumber)}
@@ -1165,6 +1223,29 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                   </div>
                 );
               })}
+
+              <div style={{ background: '#FFF', padding: '12px 14px', borderRadius: 6, border: `1px solid ${COFICAB_CARD_BORDER}` }}>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={validatingBranch !== null || !isChainComplete(activeBranch)}
+                    onClick={() => void handleCoachValidateChain(activeBranch)}
+                  >
+                    {validatingBranch === activeBranch ? t('fiveWhy.coaching') : t('fiveWhy.challengeChain')}
+                  </button>
+                  {!isChainAccepted(activeBranch)
+                    && branchSteps.some((s) => coachFeedback[stepKey(activeBranch, s.stepNumber)]?.severity === 'WARN')
+                    && !branchSteps.some((s) => coachFeedback[stepKey(activeBranch, s.stepNumber)]?.severity === 'BLOCK') && (
+                    <button type="button" className="btn btn-secondary" onClick={() => handleForceContinueChain(activeBranch)}>
+                      {t('fiveWhy.continueAllAnyway')}
+                    </button>
+                  )}
+                  <span style={{ fontSize: 12, color: isChainAccepted(activeBranch) ? '#059669' : '#64748B' }}>
+                    {isChainAccepted(activeBranch) ? t('fiveWhy.chainReady') : t('fiveWhy.challengeChainHint')}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1232,10 +1313,11 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                     type="button"
                     className="btn btn-secondary"
                     onClick={() => void handleGenerateSynthesis(branch)}
-                    disabled={generatingSynthesis || saving}
+                    disabled={generatingSynthesis || saving || !isChainAccepted(branch)}
+                    title={isChainAccepted(branch) ? undefined : t('fiveWhy.challengeFirst', { branch: branchLabel(branch) })}
                     style={{ color: COFICAB_ACCENT, borderColor: COFICAB_ACCENT, fontSize: 12 }}
                   >
-                    {generatingSynthesis ? '...' : t('fiveWhy.aiSynthesis')}
+                    {generatingSynthesis && synthesisBranch === branch ? t('fiveWhy.synthesizing') : t('fiveWhy.aiSynthesis')}
                   </button>
                 </div>
                 <textarea
@@ -1251,6 +1333,11 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                     background: COFICAB_LIGHT_BG, fontSize: 13, boxSizing: 'border-box', fontFamily: 'inherit',
                   }}
                 />
+                {synthesisNote[branch] && (
+                  <div role={synthesisNote[branch]!.ok ? 'status' : 'alert'} style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color: synthesisNote[branch]!.ok ? '#15803d' : '#b91c1c' }}>
+                    {synthesisNote[branch]!.text}
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -1271,14 +1358,14 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {existingCapaId ? (
-                  <button
-                    type="button"
+                  <a
+                    href={capaPlanPath(existingCapaId)}
                     className="btn btn-secondary"
-                    onClick={() => navigate(`/pages/front/action-plans/${existingCapaId}`)}
-                    style={{ color: '#059669', borderColor: '#059669' }}
+                    onClick={(e) => { e.preventDefault(); navigate(capaPlanPath(existingCapaId)); }}
+                    style={{ color: '#059669', borderColor: '#059669', textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
                   >
                     {t('fiveWhy.viewCapa')}
-                  </button>
+                  </a>
                 ) : (
                   <>
                     <button
@@ -1408,6 +1495,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
           </div>
         </div>
       )}
+      </fieldset>
     </div>
   );
 };

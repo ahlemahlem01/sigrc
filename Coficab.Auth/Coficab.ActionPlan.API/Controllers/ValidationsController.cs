@@ -1,7 +1,9 @@
 using System.Security.Claims;
+using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Application.QualityAnalyses;
 using Coficab.ActionPlan.Application.QualityAnalyses.Commands.Claims;
+using Coficab.ActionPlan.Application.QualityAnalyses.Queries.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,11 +14,12 @@ namespace Coficab.ActionPlan.API.Controllers;
 /// <summary>
 /// The validation desk of the administrators: the 5 Why waiting for a decision in one request (it used to be one request per
 /// claim), and the decision on several files at once, with the reason of a return kept in the claim's history and sent to
-/// the people concerned.
+/// the people concerned. Open to the administrators and to the people whose function carries the right to validate; apart from the
+/// superadmin, each one only sees the files of his own perimeter (his department).
 /// </summary>
 [ApiController]
 [Route("api/validations")]
-[Authorize(Roles = "admin,superadmin")]
+[Authorize]
 public class ValidationsController : ControllerBase
 {
     private const int MaxBatch = 200;
@@ -32,14 +35,26 @@ public class ValidationsController : ControllerBase
         _notifications = notifications;
     }
 
+    private Task<bool> CanAsync(string permission, CancellationToken ct) => PermissionAccess.HasAsync(User, HttpContext.RequestServices, permission, ct);
+
+    /// <summary>The claims the caller may decide on: all for the superadmin, else his perimeter.</summary>
+    private async Task<IQueryable<Coficab.ActionPlan.Core.Entities.Claim>> VisibleClaimsAsync(CancellationToken ct)
+    {
+        var query = _db.Claims.AsNoTracking();
+        if (User.IsInRole("superadmin") || string.IsNullOrWhiteSpace(UserId)) return query;
+        return await ClaimVisibility.ApplyAsync(_db, query, UserId, ct);
+    }
+
     private string? UserId => User.FindFirst("sub")?.Value ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
     /// <summary>The 5 Why submitted and not decided yet, oldest first.</summary>
     [HttpGet("five-why")]
     public async Task<IActionResult> FiveWhyQueue(CancellationToken ct)
     {
+        if (!await CanAsync(PermissionAccess.ValidateFiveWhy, ct)) return Forbid();
+        var visible = await VisibleClaimsAsync(ct);
         var rows = await (from a in _db.FiveWhyAnalyses.AsNoTracking()
-                          join c in _db.Claims.AsNoTracking() on a.ClaimId equals c.Id
+                          join c in visible on a.ClaimId equals c.Id
                           where !a.IsArchived && !c.IsArchived
                                 && (a.StatusCode == "PENDING_VALIDATION" || a.StatusCode == "PENDING")
                           orderby a.LastModifiedAt ?? a.CreatedAt
@@ -74,6 +89,7 @@ public class ValidationsController : ControllerBase
     public async Task<IActionResult> DecideDossiers([FromBody] DecideDossiersRequest request, CancellationToken ct)
     {
         if (!Guid.TryParse(UserId, out var actor)) return Unauthorized();
+        if (!await CanAsync(PermissionAccess.ValidateEightD, ct)) return Forbid();
         var ids = request.ClaimIds.Distinct().Take(MaxBatch + 1).ToList();
         if (ids.Count == 0) return BadRequest(new { message = "Aucun dossier sélectionné." });
         if (ids.Count > MaxBatch) return BadRequest(new { message = $"{MaxBatch} dossiers au maximum à la fois." });
@@ -81,7 +97,7 @@ public class ValidationsController : ControllerBase
         if (!request.Approve && string.IsNullOrWhiteSpace(comment))
             return BadRequest(new { message = "Le motif du renvoi est obligatoire." });
 
-        var claims = await _db.Claims.AsNoTracking().Where(c => ids.Contains(c.Id))
+        var claims = await (await VisibleClaimsAsync(ct)).Where(c => ids.Contains(c.Id))
             .Select(c => new { c.Id, c.Title, c.StatusCode, c.AssignedToId, c.CreatedById, c.IsArchived })
             .ToListAsync(ct);
         var byId = claims.ToDictionary(c => c.Id);
@@ -96,7 +112,7 @@ public class ValidationsController : ControllerBase
             }
             if (!string.Equals(claim.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase))
             {
-                results.Add(new { id, ok = false, error = "Ce dossier n'est plus en attente de validation." });
+                results.Add(new { id, ok = false, error = await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(_db, id, "Ce dossier", "Ce dossier n'est plus en attente de validation.", null, null, ct) });
                 continue;
             }
             try
@@ -153,9 +169,10 @@ public class ValidationsController : ControllerBase
     [HttpPost("five-why/returned")]
     public async Task<IActionResult> FiveWhyReturned([FromBody] FiveWhyReturnRequest request, CancellationToken ct)
     {
+        if (!await CanAsync(PermissionAccess.ValidateFiveWhy, ct)) return Forbid();
         var comment = request.Comment?.Trim();
         if (string.IsNullOrWhiteSpace(comment)) return BadRequest(new { message = "Le motif du renvoi est obligatoire." });
-        var claim = await _db.Claims.AsNoTracking().Where(c => c.Id == request.ClaimId)
+        var claim = await (await VisibleClaimsAsync(ct)).Where(c => c.Id == request.ClaimId)
             .Select(c => new { c.Id, c.Title, c.AssignedToId, c.CreatedById }).FirstOrDefaultAsync(ct);
         if (claim == null) return NotFound(new { message = "Dossier introuvable." });
 

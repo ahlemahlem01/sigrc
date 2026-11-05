@@ -21,6 +21,7 @@ import './CreateActionPlan.css';
 import { useTranslation } from 'react-i18next';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { DEFAULT_DOMAIN, domainLabel } from '../../utils/planDomain';
+import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 
 interface DepartmentDto {
   id: string;
@@ -73,6 +74,9 @@ export default function CreateActionPlan() {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [type, setType] = useState(1);
+  const [claimQuery, setClaimQuery] = useState('');
+  const [claimResults, setClaimResults] = useState<Array<{ id: string; title: string; isInternal: boolean; lotNumber?: string; productionLine?: string | null }>>([]);
+  const [linkedClaim, setLinkedClaim] = useState<{ id: string; title: string; isInternal: boolean } | null>(null);
   const [domain, setDomain] = useState(DEFAULT_DOMAIN);
   const { domains } = useReferenceLists();
   const [departmentId, setDepartmentId] = useState('');
@@ -166,6 +170,28 @@ export default function CreateActionPlan() {
     setActions((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
   };
 
+  // search among the open claims while the person types (a short list, never the whole base)
+  useEffect(() => {
+    const text = claimQuery.trim();
+    if (!accessToken || text.length < 2) { setClaimResults([]); return undefined; }
+    const id = window.setTimeout(async () => {
+      try {
+        const page = await qualityAnalysisService.getClaimsHistory({ search: text, page: 1, pageSize: 6, scope: 'open' } as any, accessToken);
+        setClaimResults((page.items ?? []).map((c: any) => ({ id: c.id, title: c.title, isInternal: !!c.isInternal, lotNumber: c.lotNumber, productionLine: c.productionLine })));
+      } catch {
+        setClaimResults([]);
+      }
+    }, 300);
+    return () => window.clearTimeout(id);
+  }, [claimQuery, accessToken]);
+
+  const pickClaim = (c: { id: string; title: string; isInternal: boolean }) => {
+    setLinkedClaim(c);
+    setClaimQuery('');
+    setClaimResults([]);
+    if (c.isInternal) setType(2);   // an internal problem is closed with a corrective plan (PAC)
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!accessToken) return;
@@ -178,6 +204,7 @@ export default function CreateActionPlan() {
         type,
         domain,
         departmentId,
+        claimId: linkedClaim?.id,
       });
 
       const newPlanId = planResponse.data.id;
@@ -211,6 +238,37 @@ export default function CreateActionPlan() {
       <form onSubmit={handleSubmit} className="capa-create-form">
         <div className="capa-create-grid">
           <div className="capa-create-main">
+            <CapaPanel className="mb-4">
+              <h2 className="capa-create-sec-title">{t('qrqc.linkedClaim')}</h2>
+              <p style={{ margin: '0 0 8px', fontSize: 12, color: '#64748b' }}>{t('qrqc.linkedClaimHint')}</p>
+              {linkedClaim ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <strong style={{ fontSize: 13 }}>{linkedClaim.title}</strong>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: linkedClaim.isInternal ? '#fff7e6' : '#f1f5f9', color: linkedClaim.isInternal ? '#92400e' : '#475569' }}>
+                    {linkedClaim.isInternal ? t('qrqc.internalBadge') : t('qrqc.customerClaim')}
+                  </span>
+                  <button type="button" className={capaBtnSecondary} onClick={() => setLinkedClaim(null)}>{t('qrqc.unlinkClaim')}</button>
+                  {linkedClaim.isInternal && type !== 2 && (
+                    <span style={{ fontSize: 12, color: '#92400e' }}>{t('qrqc.planNeedsCorrective')}</span>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <input className={capaInputCls} value={claimQuery} onChange={(e) => setClaimQuery(e.target.value)} placeholder={t('qrqc.searchClaim')} />
+                  {claimResults.length > 0 && (
+                    <ul style={{ listStyle: 'none', margin: '6px 0 0', padding: 0, border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                      {claimResults.map((c) => (
+                        <li key={c.id}>
+                          <button type="button" onClick={() => pickClaim(c)} style={{ width: '100%', textAlign: 'left', padding: '8px 10px', background: 'none', border: 0, borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 13 }}>
+                            {c.title} <span style={{ color: '#64748b', fontSize: 11 }}>· {c.productionLine || '—'} · {c.lotNumber || '—'}{c.isInternal ? ` · ${t('qrqc.internalBadge')}` : ''}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </>
+              )}
+            </CapaPanel>
             <CapaPanel className="mb-4">
               <h2 className="capa-create-sec-title">
                 <span className="capa-create-sec-num">1</span> {t('createPlan.section1')}

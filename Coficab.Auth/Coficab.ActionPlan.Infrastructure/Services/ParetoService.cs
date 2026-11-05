@@ -232,6 +232,13 @@ public class ParetoService : IParetoService
             query = query.Where(c => c.ClientId == request.ClientId);
         if (!string.IsNullOrEmpty(request.ProductionLine))
             query = query.Where(c => c.ProductionLine == request.ProductionLine);
+        if (!string.IsNullOrEmpty(request.Shift))
+            query = query.Where(c => c.Shift == request.Shift);
+        if (!string.IsNullOrEmpty(request.Severity))
+        {
+            var level = request.Severity.Trim().ToUpperInvariant();
+            query = query.Where(c => c.Severity.ToUpper() == level);
+        }
         if (!string.IsNullOrEmpty(request.DefectType))
             query = defectTypeVariants is { Count: > 0 }
                 ? query.Where(c => defectTypeVariants.Contains(c.DefectType))

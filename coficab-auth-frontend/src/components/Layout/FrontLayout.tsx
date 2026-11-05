@@ -4,12 +4,17 @@ import { useAuth } from '../../context/AuthContext';
 import {
   LogOut, LayoutDashboard, ShieldCheck, CheckCircle2, PlusCircle,
   Users, ClipboardList, History, FileText, AlertTriangle, BookOpen,
-  CalendarDays, CalendarClock, AppWindow,
+  CalendarDays, CalendarClock, AppWindow, RefreshCw,
 } from 'lucide-react';
 import { useState, useEffect, useRef, type ReactNode } from 'react';
+import axios from 'axios';
+import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { NotificationBell } from '../NotificationBell';
 import UserAvatar from '../UserAvatar';
 import LanguageSwitcher from '../LanguageSwitcher';
+import LanguageFlags from '../LanguageFlags';
+import LicenceBanner from '../LicenceBanner';
+import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 
 // Target route for Quality Analyses
@@ -17,7 +22,12 @@ const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
 
 const FrontLayout = () => {
   const { t } = useTranslation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user, logout, renewSession, accessToken } = useAuth();
+  // a hierarchical manager (someone other employees name as their manager) also gets the QRQC board, for his people only
+  const [isManager, setIsManager] = useState(false);
+  const functionPermissions = useFunctionPermissions();
+  const inactiveModules = useInactiveModules();
+  const isValidator = canValidate(functionPermissions);
   const navigate = useNavigate();
   const location = useLocation();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -31,6 +41,15 @@ const FrontLayout = () => {
       ? user.role.includes('admin') || user.role.includes('superadmin') || user.role.includes('ADMIN_QUALITY')
       : user.role === 'admin' || user.role === 'superadmin' || user.role === 'ADMIN_QUALITY'
   );
+
+  useEffect(() => {
+    if (!accessToken || isAdmin) return;
+    let cancelled = false;
+    axios.get(`${ACTION_PLAN_API_URL}/qrqc/access`, { headers: { Authorization: `Bearer ${accessToken}` } })
+      .then((r) => { if (!cancelled) setIsManager(Boolean(r.data?.isManager)); })
+      .catch(() => { if (!cancelled) setIsManager(false); });
+    return () => { cancelled = true; };
+  }, [accessToken, isAdmin]);
 
   const handleLogout = () => { logout(); navigate('/'); };
 
@@ -58,7 +77,14 @@ const FrontLayout = () => {
   const mainLinks: Array<{ to: string; label: string; active: boolean }> = [
     { to: '/pages/front', label: t('employeeWorkspace.frontHome'), active: location.pathname === '/pages/front' },
     ...(isAdmin ? [
-      { to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') },
+      ...(inactiveModules.includes('pilotage') ? [] : [{ to: '/pages/front/pilotage', label: t('pilotage.nav'), active: isActive('/pages/front/pilotage') }]),
+      ...(inactiveModules.includes('qrqc') ? [] : [{ to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') }]),
+      { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
+    ] : []),
+    ...(!isAdmin && isManager && !inactiveModules.includes('qrqc') ? [
+      { to: '/pages/front/qrqc', label: t('qrqc.nav'), active: isActive('/pages/front/qrqc') },
+    ] : []),
+    ...(!isAdmin && isValidator ? [
       { to: '/pages/front/validations', label: t('employeeWorkspace.frontValidationsLabel'), active: isActive('/pages/front/validations') },
     ] : []),
     ...(isAuthenticated ? [
@@ -516,6 +542,15 @@ const FrontLayout = () => {
                         <AppWindow size={14} /> {t('frontNav.appPortal')}
                       </Link>
 
+                      <button
+                        className="fl-drop-item"
+                        style={{ width: '100%', border: 'none', background: 'none', fontFamily: 'inherit' }}
+                        title={t('frontNav.refreshRightsHint')}
+                        onClick={() => { setUserMenuOpen(false); void renewSession().catch(() => undefined); }}
+                      >
+                        <RefreshCw size={14} /> {t('frontNav.refreshRights')}
+                      </button>
+
                       <div className="fl-drop-divider" />
                       <button className="fl-drop-item danger" style={{ width: '100%', border: 'none', background: 'none', fontFamily: 'inherit' }} onClick={() => { setUserMenuOpen(false); handleLogout(); }}>
                         <LogOut size={14} /> {t('employeeWorkspace.frontLogout')}
@@ -580,6 +615,7 @@ const FrontLayout = () => {
             )}
           </nav>
         )}
+        <LicenceBanner />
         <Outlet />
       </main>
 
@@ -628,10 +664,11 @@ const FrontLayout = () => {
         </div>
         <div className="fl-footer-bottom">
           <span className="fl-footer-copy">{t('frontNav.footerCopyright')}</span>
+          <LanguageFlags />
           <span className="fl-footer-badge">Action Plan v1.0</span>
         </div>
       </footer>
-      <QualityAssistantWidget scope={isAdmin ? 'admin' : 'employee'} />
+      {!inactiveModules.includes('assistant') && <QualityAssistantWidget scope={isAdmin ? 'admin' : 'employee'} />}
     </div>
   );
 };

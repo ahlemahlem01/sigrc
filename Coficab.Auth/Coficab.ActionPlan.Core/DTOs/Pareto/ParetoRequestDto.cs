@@ -8,6 +8,10 @@ public class ParetoRequestDto
     public string? ClientId { get; set; }
     public string? ProductionLine { get; set; }
     public string? DefectType { get; set; }
+    /// <summary>Manual analysis: keeps one shift (team).</summary>
+    public string? Shift { get; set; }
+    /// <summary>Manual analysis: keeps one severity level (LOW, MEDIUM, HIGH, CRITICAL).</summary>
+    public string? Severity { get; set; }
     /// <summary>"count" (default) ranks by number of dossiers, "impact" by defective quantity × severity.</summary>
     public string? Measure { get; set; }
 }

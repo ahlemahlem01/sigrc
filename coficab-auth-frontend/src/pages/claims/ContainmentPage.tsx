@@ -8,6 +8,7 @@ import { AnalysisToolsNav } from './AnalysisToolsNav';
 // @ts-ignore
 import './ClaimsListPage.styles.css';
 import { useTranslation } from 'react-i18next';
+import { ClosedDossierBanner } from '../../components/ClosedDossierBanner';
 import i18n from '../../i18n';
 
 const NAVY = '#000168';
@@ -38,6 +39,7 @@ const ContainmentPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
 
   const analysisLocked = String(dossier?.claimStatus || '').toUpperCase() === 'OUVERTE';
+  const closedDossier = ['VALIDATED', 'CLOSED'].includes(String(dossier?.statusCode || '').toUpperCase());
   const d3 = dossier?.steps?.find((s) => s.step === 3);
   const canContinueToD4 = !!d3?.complete;
 
@@ -70,6 +72,7 @@ const ContainmentPage: React.FC = () => {
           </div>
         </header>
         {error && <div className="pfe-containment-alert err">{error}</div>}
+        {closedDossier && <ClosedDossierBanner />}
 
         {claimId && (
           <ClaimContainmentSection
@@ -77,6 +80,7 @@ const ContainmentPage: React.FC = () => {
             accessToken={accessToken}
             dossier={dossier}
             analysisLocked={analysisLocked}
+            closed={closedDossier}
             onSaved={setDossier}
           />
         )}

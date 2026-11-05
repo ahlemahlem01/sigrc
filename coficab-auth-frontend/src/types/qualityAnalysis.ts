@@ -228,6 +228,7 @@ export interface QualityDashboardSummary {
 
 export interface ClaimsHistoryRow {
   id: string;
+  isInternal?: boolean;
   title: string;
   clientId: string;
   defectType: string;
@@ -246,6 +247,8 @@ export interface ClaimsHistoryRow {
   assignedToId?: string | null;
   assignedToName?: string | null;
   productionLine?: string | null;
+  /** Department of the person in charge (or of the person who raised the claim). */
+  departmentName?: string | null;
   shift?: string | null;
   producedQuantity?: number | null;
   defectiveQuantity?: number | null;
@@ -313,8 +316,12 @@ export interface ClaimsHistoryPage {
 }
 
 export interface ClaimsHistoryQuery {
+  /** YES: internal (workshop) problems only, NO: customer claims only. */
+  internal?: string;
   page?: number;
   pageSize?: number;
+  /** false: skip the figures and filter lists (following pages of a bulk load). */
+  includeSummary?: boolean;
   search?: string;
   claimStatus?: string;
   fiveWhyStatus?: string;

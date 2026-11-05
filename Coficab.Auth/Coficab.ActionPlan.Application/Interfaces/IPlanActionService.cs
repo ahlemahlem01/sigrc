@@ -20,6 +20,10 @@ public interface IPlanActionService
     Task ValidateAsync(Guid id, string validatedBy, string? note);
     /// <summary>An administrator sends a finished (100 %) sub-action back to its assignee, with the reason.</summary>
     Task RejectAsync(Guid id, string rejectedBy, string reason);
+    /// <summary>An administrator gives a sub-action to another person; the change is kept in the sub-action's assignment history.</summary>
+    Task ReassignAsync(Guid id, string newUserId, string changedBy, string? note, bool notify = true);
+    /// <summary>An administrator gives a late, unfinished sub-action more time; the old date, the new one and the reason are kept in its history.</summary>
+    Task<Coficab.ActionPlan.Application.Dashboard.DeadlineExtensionResult> ExtendDeadlineAsync(Guid id, DateTime newDeadline, string reason, string byUserId);
     /// <summary>An administrator warns the person in charge of a sub-action.</summary>
     Task WarnAsync(Guid id, string warnedBy, string message);
 

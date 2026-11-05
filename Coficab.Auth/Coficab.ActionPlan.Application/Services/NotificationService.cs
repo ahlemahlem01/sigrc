@@ -22,10 +22,17 @@ public class NotificationService : INotificationService
         _userRepo = userRepo;
     }
 
-    public async Task NotifyAsync(string recipientId, string type, string title, string message, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+    public Task NotifyAsync(string recipientId, string type, string title, string message, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+        => NotifyCoreAsync(recipientId, type, title, message, null, actionPlanId, linkPath, claimId);
+
+    public Task NotifyLocalizedAsync(string recipientId, string type, string title, string message, string dataJson, Guid? actionPlanId = null, string? linkPath = null, Guid? claimId = null)
+        => NotifyCoreAsync(recipientId, type, title, message, dataJson, actionPlanId, linkPath, claimId);
+
+    private async Task NotifyCoreAsync(string recipientId, string type, string title, string message, string? dataJson, Guid? actionPlanId, string? linkPath, Guid? claimId)
     {
         var notification = new Notification
         {
+            DataJson = dataJson,
             RecipientId = recipientId,
             Type = type,
             Title = title,
@@ -47,6 +54,7 @@ public class NotificationService : INotificationService
             actionPlanId = notification.ActionPlanId,
             claimId = notification.ClaimId,
             linkPath = notification.LinkPath,
+            dataJson = notification.DataJson,
             isRead = notification.IsRead,
             createdAt = notification.CreatedAt
         });
@@ -75,6 +83,72 @@ public class NotificationService : INotificationService
 
             await NotifyAsync(adminId, type, title, message, actionPlanId, linkPath, claimId);
         }
+    }
+
+    public async Task NotifyValidatorsAsync(
+        string type,
+        string title,
+        string message,
+        string? permission,
+        Guid? departmentId = null,
+        Guid? actionPlanId = null,
+        Guid? claimId = null,
+        string? linkPath = null,
+        string? excludeUserId = null)
+    {
+        var department = departmentId ?? (claimId.HasValue ? await ClaimDepartmentAsync(claimId.Value) : null);
+        var recipients = await ValidatorIdsAsync(department, permission);
+
+        foreach (var id in recipients)
+        {
+            if (!string.IsNullOrWhiteSpace(excludeUserId) && string.Equals(id, excludeUserId, StringComparison.OrdinalIgnoreCase))
+                continue;
+            await NotifyAsync(id, type, title, message, actionPlanId, linkPath, claimId);
+        }
+    }
+
+    /// <summary>Department of a claim: the one of the person in charge, or failing that of the person who raised it.</summary>
+    private async Task<Guid?> ClaimDepartmentAsync(Guid claimId)
+    {
+        var claim = await _context.Claims.AsNoTracking().Where(c => c.Id == claimId)
+            .Select(c => new { c.AssignedToId, c.CreatedById }).FirstOrDefaultAsync();
+        if (claim == null) return null;
+        foreach (var userId in new[] { claim.AssignedToId, claim.CreatedById })
+        {
+            if (string.IsNullOrWhiteSpace(userId)) continue;
+            var dept = await _context.UserProfiles.AsNoTracking().Where(p => p.UserId == userId).Select(p => p.DepartmentId).FirstOrDefaultAsync();
+            if (dept != null) return dept;
+        }
+        return null;
+    }
+
+    private async Task<List<string>> ValidatorIdsAsync(Guid? department, string? permission)
+    {
+        var superadmins = await _userRepo.GetUserIdsByRoleAsync("superadmin");
+        var admins = (await _userRepo.GetUserIdsByRoleAsync("admin")).Concat(await _userRepo.GetUserIdsByRoleAsync("ADMIN_QUALITY")).ToList();
+
+        var ids = new List<string>(superadmins);
+        if (department == null)
+        {
+            ids.AddRange(admins);   // department unknown: nobody must be left without the request
+            return ids.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
+
+        var sameDepartment = await _context.UserProfiles.AsNoTracking()
+            .Where(p => p.DepartmentId == department && p.UserId != "").Select(p => p.UserId).ToListAsync();
+        var inDepartment = new HashSet<string>(sameDepartment, StringComparer.OrdinalIgnoreCase);
+        ids.AddRange(admins.Where(inDepartment.Contains));
+
+        if (!string.IsNullOrWhiteSpace(permission))
+        {
+            var holders = await _context.UserFunctions.AsNoTracking()
+                .Where(uf => uf.Status != Core.Enums.FunctionStatus.NotActive && uf.Function.DepartmentId == department && uf.Function.Permissions != null)
+                .Select(uf => new { uf.UserId, uf.Function.Permissions }).ToListAsync();
+            ids.AddRange(holders
+                .Where(h => h.Permissions!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Contains(permission, StringComparer.OrdinalIgnoreCase))
+                .Select(h => h.UserId));
+        }
+        return ids.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     public async Task<IEnumerable<Notification>> GetForUserAsync(string userId)

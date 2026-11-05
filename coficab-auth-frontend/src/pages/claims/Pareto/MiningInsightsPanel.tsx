@@ -35,17 +35,28 @@ export function useMiningInsights(context: MiningContext | null) {
 interface Props {
   data: MiningInsights | null;
   loading: boolean;
+  /** Cause just kept as the priority cause: its button turns into a confirmation. */
+  chosenText?: string | null;
   /** Shortcut: keep a suggested root cause as the priority cause (typing one by hand stays possible). */
   onPick?: (cause: { text: string; category: string }) => void;
 }
 
 /** Decision aids mined from the closed-dossier history. They never replace manual entry. */
-export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
+export default function MiningInsightsPanel({ data, loading, chosenText, onPick }: Props) {
   const { t } = useTranslation();
 
   const cat = (c: string) => t(`ishikawa.cat.${c}`, { defaultValue: c });
   const attr = (key: string, value: string) =>
     t(`mining.attr.${key}`, { value: key === 'severity' ? t(`mining.sev.${value}`, { defaultValue: value }) : value });
+
+  const keepButton = (cause: { text: string; category?: string | null }) =>
+    chosenText && chosenText === cause.text ? (
+      <span className="mi-kept">✓ {t('priorityCause.kept')}</span>
+    ) : (
+      <button type="button" className="mi-pick" onClick={() => onPick?.({ text: cause.text, category: cause.category ?? '' })}>
+        {t('priorityCause.keepThis')}
+      </button>
+    );
 
   const meta = data?.meta;
   const insufficient = !!meta && !meta.rulesSufficient;
@@ -70,6 +81,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
         .mi-bars { display: flex; align-items: flex-end; gap: 3px; height: 44px; margin: 6px 0 8px; }
         .mi-bars span { flex: 1; background: #94a3b8; border-radius: 2px 2px 0 0; min-width: 4px; }
         .mi-pick { margin-left: 4px; border: 1px solid #000168; background: #fff; color: #000168; border-radius: 8px; padding: 2px 8px; font-size: 12px; font-weight: 650; cursor: pointer; font-family: inherit; }
+        .mi-kept { margin-left: 6px; font-size: 12px; font-weight: 700; color: #15803d; }
         .mi-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
         .mi-table th { text-align: left; color: #64748b; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; }
         .mi-table td { padding: 5px 8px; border-bottom: 1px solid #f1f5f9; }
@@ -104,14 +116,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                       · {cat(c.category)} · {t('mining.dossiersCount', { count: c.dossiers })}
                       {c.rootDossiers ? ` · ${t('mining.asRoot', { count: c.rootDossiers })}` : ''}
                     </span>
-                    {onPick && (
-                      <>
-                        {' '}
-                        <button type="button" className="mi-pick" onClick={() => onPick({ text: c.text, category: c.category })}>
-                          {t('priorityCause.keepThis')}
-                        </button>
-                      </>
-                    )}
+                    {onPick && <> {keepButton(c)}</>}
                   </li>
                 ))}
               </ul>
@@ -128,11 +133,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                     {data.similar.causes.map((c) => (
                       <li key={c.category + c.text}>
                         <strong>{c.text}</strong> <span className="mi-muted">· {cat(c.category)} · {t('mining.dossiersCount', { count: c.dossiers })}</span>
-                        {onPick && (
-                          <button type="button" className="mi-pick" onClick={() => onPick({ text: c.text, category: c.category })}>
-                            {t('priorityCause.keepThis')}
-                          </button>
-                        )}
+                        {onPick && keepButton(c)}
                       </li>
                     ))}
                   </ul>
@@ -151,11 +152,7 @@ export default function MiningInsightsPanel({ data, loading, onPick }: Props) {
                           {c.rootCauses.map((rc) => (
                             <span key={rc.text} style={{ marginLeft: 6 }}>
                               {rc.text} ({cat(rc.category ?? '')})
-                              {onPick && (
-                                <button type="button" className="mi-pick" onClick={() => onPick({ text: rc.text, category: rc.category })}>
-                                  {t('priorityCause.keepThis')}
-                                </button>
-                              )}
+                              {onPick && keepButton(rc)}
                             </span>
                           ))}
                         </div>

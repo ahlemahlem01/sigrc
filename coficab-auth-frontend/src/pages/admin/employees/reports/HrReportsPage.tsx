@@ -15,6 +15,7 @@ import {
 import { activityStatusLabel, normalizeActivityStatus } from '../../../../utils/activityStatus';
 import { buildTeamSummary } from '../../../../utils/teamSummary';
 import { downloadCapaReportPdf, type CapaPdfExportOpts } from '../../../../utils/capaPdfExport';
+import SavedReportsBar from '../../../../components/SavedReportsBar';
 import { inferWorkFieldsFromDepartment } from '../../../../utils/employeeWorkFields';
 import type { Department } from '../../../../types/department';
 import AiSummarySection from './AiSummarySection';
@@ -532,6 +533,32 @@ export default function HrReportsPage() {
           onDownload={() => onDownload(reportRows, summary)}
         />
       )}
+
+      {/* the report kept on the server: editable (texts and figures), every edit is a version, never deleted */}
+      <SavedReportsBar
+        kind="team"
+        hasReport={reportRows.length > 0}
+        defaultTitle={`${t('hrReports.title')} ${params.periodStart || '…'} → ${params.periodEnd || '…'}`}
+        snapshot={() => (reportRows.length === 0 ? null : {
+          criteria: { periodStart: params.periodStart, periodEnd: params.periodEnd, department: params.department },
+          result: { summary, rows: reportRows, generatedAt, automaticSummary },
+          itemCount: reportRows.length,
+        })}
+        onOpen={(criteria, result) => {
+          setSummary(String(result?.summary ?? ''));
+          setGeneratedAt(result?.generatedAt ?? null);
+          setReportRows(Array.isArray(result?.rows) ? result.rows : []);
+          setAutomaticSummary(!!result?.automaticSummary);
+          setParams((prev) => ({
+            ...prev,
+            periodStart: criteria?.periodStart || prev.periodStart,
+            periodEnd: criteria?.periodEnd || prev.periodEnd,
+            department: criteria?.department || 'all',
+          }));
+          setError('');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }}
+      />
 
       {generating ? <ReportResultSkeleton /> : null}
 

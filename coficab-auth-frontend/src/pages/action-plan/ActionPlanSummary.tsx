@@ -68,11 +68,11 @@ const PRIORITY_MAP: Record<number, { label: string; color: string; bg: string }>
   3: { label: 'planView.priorityLow', color: '#16a34a', bg: '#f0fdf4' },
 };
 
-// 1 PA (preventive), 2 PAC (corrective), 3 PAP (improvement): the numbering of the server
+// 1 PA (improvement), 2 PAC (corrective), 3 PAP (preventive): the numbering of the server, as in the specification
 const TYPE_MAP: Record<number, string> = {
-  1: 'planView.typePreventive',
+  1: 'planView.typeImprovement',
   2: 'planView.typeCorrective',
-  3: 'planView.typeImprovement',
+  3: 'planView.typePreventive',
 };
 
 const WORKFLOW_STEPS = [

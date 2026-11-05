@@ -42,6 +42,7 @@ public class QualityAnalysisController : ControllerBase
     private readonly ISemanticSearchService _semanticSearch;
     private readonly Coficab.ActionPlan.API.Services.D4ChainService _d4Chain;
     private readonly IClaimWorkflow _workflow;
+    private readonly IGeminiService _gemini;
 
     public QualityAnalysisController(
         IMediator mediator,
@@ -53,8 +54,10 @@ public class QualityAnalysisController : ControllerBase
         INotificationService notificationService,
         ISemanticSearchService semanticSearch,
         Coficab.ActionPlan.API.Services.D4ChainService d4Chain,
-        IClaimWorkflow workflow)
+        IClaimWorkflow workflow,
+        IGeminiService gemini)
     {
+        _gemini = gemini;
         _workflow = workflow;
         _mediator = mediator;
         _pdfService = pdfService;
@@ -169,13 +172,17 @@ public class QualityAnalysisController : ControllerBase
 
         var isAdmin = IsQualityAdmin();
         if (archived && !isAdmin) return Forbid();
+        // someone whose function carries the right to validate sees the claims waiting for validation, like an administrator of his department
+        var validatorView = !isAdmin && string.Equals(status?.Trim(), "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)
+            && (await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateEightD, cancellationToken)
+                || await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy, cancellationToken));
         string? relatedToUserId = null;
         string? assignedToId = null;
         string? createdById = null;
         bool? effectiveHasAssignee = hasAssignee;
         var excludeSelfCreated = false;
 
-        if (!isAdmin)
+        if (!isAdmin && !validatorView)
         {
             // Employé : scopes stricts — créées / assignées (par admin) / les deux.
             var wantsCreated = !string.IsNullOrWhiteSpace(ResolveMe(createdBy, userId))
@@ -215,7 +222,7 @@ public class QualityAnalysisController : ControllerBase
         var result = await _mediator.Send(
             new GetClaimsPageQuery(
                 new GetClaimsQuery(status, assignedToId, createdById, effectiveHasAssignee, relatedToUserId, excludeSelfCreated,
-                    IsQualityAdmin() && !IsSuperAdmin() ? userId : null,
+                    (IsQualityAdmin() || validatorView) && !IsSuperAdmin() ? userId : null,
                     isAdmin ? ClaimOrganizations.Parse(organizationIds) : null,
                     archived),
                 page,
@@ -387,6 +394,40 @@ public class QualityAnalysisController : ControllerBase
                             threshold = Coficab.ActionPlan.Application.QualityAnalyses.Services.CvFeedback.ConfidenceThreshold });
         }
         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            return Ok(new { available = false, reason = "unavailable" });
+        }
+    }
+
+    /// <summary>
+    /// Second opinion on the same photo, from Gemini (vision), asked at the same time as the image model: the form shows both and the
+    /// operator decides. The code is always one of the administrator's list; indicative only.
+    /// </summary>
+    [HttpPost("claims/ai-vision-suggestion")]
+    [Consumes("multipart/form-data")]
+    public async Task<IActionResult> SuggestDefectWithGemini(IFormFile image, [FromForm] string? language, CancellationToken cancellationToken)
+    {
+        if (image is not { Length: > 0 }) return Ok(new { available = false, reason = "noImage" });
+        if (string.IsNullOrWhiteSpace(_configuration["Gemini:ApiKey"])) return Ok(new { available = false, reason = "notConfigured" });
+        var mime = (image.ContentType ?? string.Empty).ToLowerInvariant();
+        if (mime is not ("image/jpeg" or "image/png" or "image/webp")) return Ok(new { available = false, reason = "unsupported" });
+
+        var defectTypes = await _db.ReferenceItems.AsNoTracking()
+            .Where(r => r.ListKey == Coficab.ActionPlan.Core.Entities.ReferenceListKeys.DefectType && r.IsActive && r.MergedInto == null)
+            .OrderBy(r => r.SortOrder).ThenBy(r => r.Value)
+            .Select(r => r.Value).ToListAsync(cancellationToken);
+
+        try
+        {
+            using var ms = new MemoryStream();
+            await image.CopyToAsync(ms, cancellationToken);
+            var prompt = Coficab.ActionPlan.Application.QualityAnalyses.Services.GeminiVisionDefect.BuildPrompt(defectTypes, (language ?? "fr").Trim().ToLowerInvariant());
+            var json = await _gemini.GenerateJsonFromImageAsync(ms.ToArray(), mime, prompt, cancellationToken);
+            var result = Coficab.ActionPlan.Application.QualityAnalyses.Services.GeminiVisionDefect.Parse(json, defectTypes);
+            if (result is null) return Ok(new { available = false, reason = "unavailable" });
+            return Ok(new { available = true, defectType = result.DefectType, confidence = result.Confidence, description = result.Description });
+        }
+        catch (InvalidOperationException)
         {
             return Ok(new { available = false, reason = "unavailable" });
         }
@@ -605,6 +646,39 @@ public class QualityAnalysisController : ControllerBase
         });
     }
 
+    public sealed class ExtendDeadlineRequest
+    {
+        public DateTime? NewDeadline { get; set; }
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Administrators and super administrators give a late claim more time. A reason is required; the old date, the new date
+    /// and the reason are written to the audit trail in the same save. Never moves a date backwards.
+    /// </summary>
+    [HttpPost("claims/{id:guid}/deadline-extension")]
+    public async Task<IActionResult> ExtendClaimDeadline(Guid id, [FromBody] ExtendDeadlineRequest body, CancellationToken cancellationToken)
+    {
+        if (!await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ExtendDeadline)) return Forbid();
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Utilisateur non authentifié." });
+        if (body?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
+
+        if (!IsSuperAdmin())
+        {
+            var visible = await ClaimVisibility.ApplyAsync(_db, _db.Claims.AsNoTracking().Where(c => c.Id == id), userId, cancellationToken);
+            if (!await visible.AnyAsync(cancellationToken)) return NotFound(new { code = "notFound", message = "Réclamation introuvable." });
+        }
+
+        var result = await _mediator.Send(new ExtendClaimDeadlineCommand(id, body.NewDeadline.Value, body.Reason ?? string.Empty, userId), cancellationToken);
+        return result.Code switch
+        {
+            null => Ok(new { oldDeadline = result.OldDeadline, newDeadline = result.NewDeadline, extraDays = result.ExtraDays }),
+            "notFound" => NotFound(new { code = result.Code, message = "Réclamation introuvable." }),
+            _ => BadRequest(new { code = result.Code, message = "Prolongation refusée : " + result.Code }),
+        };
+    }
+
     public sealed class AssignClaimRequest
     {
         public string? AssignedToId { get; set; }
@@ -662,6 +736,9 @@ public class QualityAnalysisController : ControllerBase
     [HttpPost("5why")]
     public async Task<IActionResult> SaveFiveWhy([FromBody] CreateOrUpdateFiveWhyCommand command, CancellationToken cancellationToken)
     {
+        if (await ClosedDossier.IsClosedAsync(_db, command.ClaimId, cancellationToken))
+            return Conflict(ClosedDossier.Refusal);
+
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (Guid.TryParse(userIdString, out var userId)) command.UserId = userId;
 
@@ -716,6 +793,8 @@ public class QualityAnalysisController : ControllerBase
     [HttpPost("5why/validate")]
     public async Task<IActionResult> ValidateFiveWhy([FromBody] ValidateFiveWhyCommand command, CancellationToken cancellationToken)
     {
+        // anyone can send a 5 Why for validation; approving one needs the right (held by administrators)
+        if (command.IsApproved && !await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy)) return Forbid();
         var userName = User.FindFirstValue(ClaimTypes.Name)
                     ?? User.FindFirstValue("preferred_username")
                     ?? "System";
@@ -739,11 +818,80 @@ public class QualityAnalysisController : ControllerBase
             }
         }
 
+        // two administrators can open the same request: the first to approve wins, the second is told who did
+        if (command.IsApproved)
+        {
+            var existing = await _db.FiveWhyAnalyses.AsNoTracking()
+                .Where(a => a.Id == command.AnalysisId || a.ClaimId == command.ClaimId)
+                .Select(a => new { a.ClaimId, a.StatusCode }).FirstOrDefaultAsync(cancellationToken);
+            if (existing != null && string.Equals(existing.StatusCode, "VALIDATED", StringComparison.OrdinalIgnoreCase))
+                return Conflict(new
+                {
+                    message = await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(
+                        _db, existing.ClaimId, "Cette analyse 5 Why", "Cette analyse 5 Why est déjà validée.", null, null, cancellationToken)
+                });
+        }
+
         command.ValidatedBy = userName;
         var success = await _mediator.Send(command, cancellationToken);
         if (!success) return NotFound(new { message = "Analyse 5 Why introuvable." });
 
+        await NotifyFiveWhyDecisionAsync(command, cancellationToken);
+
         return Ok(new { success, message = "Statut 5-Why mis à jour." });
+    }
+
+    /// <summary>
+    /// The administrators are told when a 5 Why is sent for validation; the person in charge is told when it is approved (a
+    /// return is notified by the validation desk, with its reason). A failed notification never undoes the decision.
+    /// </summary>
+    private async Task NotifyFiveWhyDecisionAsync(ValidateFiveWhyCommand command, CancellationToken ct)
+    {
+        try
+        {
+            var claimId = command.ClaimId;
+            if (claimId == Guid.Empty)
+                claimId = await _db.FiveWhyAnalyses.Where(a => a.Id == command.AnalysisId).Select(a => a.ClaimId).FirstOrDefaultAsync(ct);
+            if (claimId == Guid.Empty) return;
+
+            var claim = await _db.Claims.AsNoTracking().Where(c => c.Id == claimId)
+                .Select(c => new { c.Title, c.AssignedToId, c.CreatedById }).FirstOrDefaultAsync(ct);
+            if (claim == null) return;
+
+            var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+            var submitted = !command.IsApproved
+                            && string.Equals(command.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase);
+
+            if (submitted)
+            {
+                await _notificationService.NotifyValidatorsAsync(
+                    "five_why_pending_validation",
+                    "5 Why à valider",
+                    $"L'analyse 5 Why de « {claim.Title} » a été soumise pour validation.",
+                    permission: "analysis:validate_fivewhy",
+                    claimId: claimId,
+                    linkPath: $"/pages/front/validations?tab=fivewhy&claimId={claimId}",
+                    excludeUserId: actor);
+            }
+            else if (command.IsApproved)
+            {
+                var recipients = new[] { claim.AssignedToId, claim.CreatedById }
+                    .Where(r => !string.IsNullOrWhiteSpace(r) && !string.Equals(r, actor, StringComparison.OrdinalIgnoreCase))
+                    .Select(r => r!).Distinct(StringComparer.OrdinalIgnoreCase);
+                foreach (var recipient in recipients)
+                    await _notificationService.NotifyAsync(
+                        recipient,
+                        "five_why_validated",
+                        "5 Why validé",
+                        $"Votre analyse 5 Why de « {claim.Title} » a été validée.",
+                        linkPath: $"/pages/front/quality-analyses/5why/{claimId}",
+                        claimId: claimId);
+            }
+        }
+        catch
+        {
+            // best effort
+        }
     }
 
     /// <summary>
@@ -818,24 +966,40 @@ RÈGLES DE SORTIE STRICTES :
         var httpClient = _httpClientFactory.CreateClient();
         var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
-        HttpResponseMessage response;
-        try
+        // The AI service is sometimes briefly overloaded (503) or rate-limited (429): try again a few times before giving up.
+        HttpResponseMessage? response = null;
+        var body = JsonSerializer.Serialize(requestPayload);
+        for (var attempt = 1; attempt <= 3; attempt++)
         {
-            response = await httpClient.PostAsync(
-                endpoint,
-                new StringContent(JsonSerializer.Serialize(requestPayload), Encoding.UTF8, "application/json")
-            );
-        }
-        catch (HttpRequestException ex)
-        {
-            // Network-level failure reaching Gemini (DNS, timeout, connectivity...)
-            return StatusCode(502, new { message = $"Impossible de contacter le service IA : {ex.Message}" });
+            try
+            {
+                response = await httpClient.PostAsync(endpoint, new StringContent(body, Encoding.UTF8, "application/json"));
+            }
+            catch (HttpRequestException ex)
+            {
+                // Network-level failure reaching the AI service (DNS, timeout, connectivity...)
+                if (attempt == 3)
+                    return StatusCode(502, new { message = $"Impossible de contacter le service IA : {ex.Message}" });
+                await Task.Delay(1500 * attempt);
+                continue;
+            }
+
+            var status = (int)response.StatusCode;
+            var transient = status is 429 or 500 or 502 or 503 or 504;
+            if (response.IsSuccessStatusCode || !transient || attempt == 3) break;
+            await Task.Delay(1500 * attempt);
         }
 
-        if (!response.IsSuccessStatusCode)
+        if (response == null || !response.IsSuccessStatusCode)
         {
-            var errorDetails = await response.Content.ReadAsStringAsync();
-            return StatusCode((int)response.StatusCode, new { message = $"Erreur lors de la génération IA: {errorDetails}" });
+            var status = response == null ? 502 : (int)response.StatusCode;
+            var overloaded = status is 429 or 500 or 502 or 503 or 504;
+            return StatusCode(overloaded ? 503 : status, new
+            {
+                message = overloaded
+                    ? "Le service IA est momentanément surchargé. Réessayez dans quelques secondes."
+                    : "La génération IA a échoué. Réessayez, ou rédigez la cause racine à la main."
+            });
         }
 
         var responseJson = await response.Content.ReadAsStringAsync();
@@ -900,7 +1064,7 @@ RÈGLES DE SORTIE STRICTES :
             return Ok(FiveWhyCoachRules.EvaluateLocally(dto));
 
         var apiKey = _configuration["Gemini:ApiKey"];
-        var model = _configuration["Gemini:Model"] ?? "gemini-2.0-flash";
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
 
         ValidateFiveWhyStepResponseDto? aiResult = null;
 
@@ -919,6 +1083,115 @@ RÈGLES DE SORTIE STRICTES :
 
         var merged = FiveWhyCoachRules.MergeWithLocal(dto, aiResult);
         return Ok(merged);
+    }
+
+    /// <summary>
+    /// Coach 5 Why sur toute la chaîne d'une branche, en un seul appel IA (au lieu d'un appel par Pourquoi).
+    /// Les garde-fous locaux (erreur humaine = BLOCK) s'appliquent à chaque réponse ; sans IA, la réponse est immédiate.
+    /// </summary>
+    [HttpPost("5why/{claimId:guid}/validate-chain")]
+    public async Task<IActionResult> ValidateFiveWhyChain(
+        [FromRoute] Guid claimId,
+        [FromBody] ValidateFiveWhyChainRequestDto dto)
+    {
+        if (dto == null || dto.Steps == null || dto.Steps.Count == 0)
+            return BadRequest(new { message = "Corps de requête manquant." });
+
+        var ordered = dto.Steps.OrderBy(s => s.StepNumber).ToList();
+        var local = FiveWhyCoachRules.EvaluateChainLocally(dto).ToDictionary(x => x.StepNumber, x => x.Result);
+
+        Dictionary<int, ValidateFiveWhyStepResponseDto> ai = new();
+        if (!string.IsNullOrEmpty(_configuration["Gemini:ApiKey"]) && ordered.All(s => !string.IsNullOrWhiteSpace(s.Answer)))
+        {
+            try { ai = await AskCoachChainAsync(claimId, dto, ordered); }
+            catch { ai = new(); }   // silencieux : les règles locales suffisent
+        }
+
+        var steps = new List<ValidateFiveWhyChainStepDto>();
+        foreach (var step in ordered)
+        {
+            var request = FiveWhyCoachRules.StepRequest(dto, ordered, step);
+            var merged = ai.TryGetValue(step.StepNumber, out var a)
+                ? FiveWhyCoachRules.MergeWithLocal(request, a)
+                : local[step.StepNumber];
+
+            // une répétition d'un Pourquoi précédent reste signalée même si l'IA l'a acceptée
+            if (merged.Severity == "OK" && local[step.StepNumber].Severity != "OK") merged = local[step.StepNumber];
+
+            steps.Add(new ValidateFiveWhyChainStepDto
+            {
+                StepNumber = step.StepNumber,
+                IsAccepted = merged.IsAccepted,
+                Severity = merged.Severity,
+                Flags = merged.Flags,
+                CoachMessage = merged.CoachMessage,
+                SuggestedFollowUpQuestions = merged.SuggestedFollowUpQuestions,
+            });
+        }
+        return Ok(new ValidateFiveWhyChainResponseDto { Steps = steps });
+    }
+
+    /// <summary>A request of the 5 Why coach: marked so that it stays on Gemini when the other AI features run on Ollama (Llm:CoachProvider).</summary>
+    private static HttpRequestMessage CoachRequest(string url, string json) =>
+        new(HttpMethod.Post, url)
+        {
+            Headers = { { Coficab.ActionPlan.Application.Services.OllamaBridgeHandler.PurposeHeader, "coach" } },
+            Content = new StringContent(json, Encoding.UTF8, "application/json"),
+        };
+
+    private async Task<Dictionary<int, ValidateFiveWhyStepResponseDto>> AskCoachChainAsync(
+        Guid claimId, ValidateFiveWhyChainRequestDto dto, List<FiveWhyStepDto> ordered)
+    {
+        var apiKey = _configuration["Gemini:ApiKey"];
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
+        var branchLabel = string.Equals(dto.Branch, "DETECTION", StringComparison.OrdinalIgnoreCase)
+            ? "DETECTION (pourquoi le contrôle n'a pas vu le défaut)"
+            : "OCCURRENCE (pourquoi le défaut est apparu)";
+        var chain = string.Join("\n", ordered.Select(s => $"Why {s.StepNumber} — Q: {s.Question} | R: {s.Answer}"));
+
+        var prompt = $@"Tu es un consultant Qualité Automobile Senior (IATF 16949 / 8D) chez Coficab.
+Tu challenges UNE chaîne complète de 5 Pourquoi, réponse par réponse, avant la génération de la cause racine.
+
+Réclamation: {claimId}
+Branche: {branchLabel}
+Problème: {dto.ProblemStatement}
+Chaîne:
+{chain}
+
+Pour CHAQUE Why, vérifie : (a) la réponse répond bien à la question posée, (b) elle découle logiquement du Why précédent, (c) elle est factuelle et précise.
+RÈGLES STRICTES :
+1. Une cause qui met en cause une personne (erreur humaine, faute, négligence, oubli, inattention, fatigue, « n'a pas vu / constaté / respecté ») SANS mécanisme système (process, standard, poka-yoke, MSA, alarme, formation, ergonomie) = BLOCK. Une personne peut être un fait, jamais la cause racine.
+2. Réponse circulaire, vague, répétée d'un Why précédent, ou sans lien logique avec le Why précédent = WARN (BLOCK si incohérente).
+3. Branche DETECTION : oriente vers standard de contrôle, moyen, fréquence, poka-yoke, alarme, MSA. Branche OCCURRENCE : oriente vers le mécanisme d'apparition (process/système).
+4. N'accepte (OK) que ce qui est factuel, cohérent avec le Why précédent et orienté système.
+
+Réponds UNIQUEMENT en JSON valide, sans markdown, avec exactement cette forme (un élément par Why) :
+{{""steps"":[{{""stepNumber"":1,""isAccepted"":true,""severity"":""OK"",""flags"":[],""coachMessage"":""message court en français"",""suggestedFollowUpQuestions"":[""question""]}}]}}
+severity : OK, WARN (le technicien peut forcer) ou BLOCK (à reprendre). flags possibles : HUMAN_ERROR, TOO_SHALLOW, CIRCULAR, INCOHERENT.";
+
+        var payload = new
+        {
+            contents = new[] { new { parts = new[] { new { text = prompt } } } },
+            generationConfig = new { temperature = 0.2, maxOutputTokens = 2048, responseMimeType = "application/json" }
+        };
+        var http = _httpClientFactory.CreateClient();
+        var response = await http.SendAsync(CoachRequest(
+            $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}", JsonSerializer.Serialize(payload)));
+        if (!response.IsSuccessStatusCode) return new();
+
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0
+            || !candidates[0].TryGetProperty("content", out var content) || !content.TryGetProperty("parts", out var parts)
+            || parts.GetArrayLength() == 0 || !parts[0].TryGetProperty("text", out var textElement))
+            return new();
+
+        var raw = (textElement.GetString() ?? string.Empty).Trim();
+        var start = raw.IndexOf('{');
+        var end = raw.LastIndexOf('}');
+        if (start < 0 || end <= start) return new();
+
+        var parsed = JsonSerializer.Deserialize<ValidateFiveWhyChainResponseDto>(raw[start..(end + 1)], new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        return (parsed?.Steps ?? new()).GroupBy(s => s.StepNumber).ToDictionary(g => g.Key, g => (ValidateFiveWhyStepResponseDto)g.First());
     }
 
     private async Task<ValidateFiveWhyStepResponseDto?> AskGeminiCoachAsync(
@@ -987,9 +1260,7 @@ severity OK = accepte.";
         var httpClient = _httpClientFactory.CreateClient();
         var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
-        var response = await httpClient.PostAsync(
-            endpoint,
-            new StringContent(JsonSerializer.Serialize(requestPayload), Encoding.UTF8, "application/json"));
+        var response = await httpClient.SendAsync(CoachRequest(endpoint, JsonSerializer.Serialize(requestPayload)));
 
         if (!response.IsSuccessStatusCode)
             return null;
@@ -1144,6 +1415,8 @@ severity OK = accepte.";
         var claim = await _db.Claims.AsNoTracking().FirstOrDefaultAsync(c => c.Id == claimId);
         if (claim == null)
             return NotFound(new { message = "Réclamation introuvable." });
+        if (Coficab.ActionPlan.Core.Common.CompletionTracking.IsClosedClaimStatus(claim.StatusCode))
+            return Conflict(ClosedDossier.Refusal);
 
         if (dto.Actions == null || dto.Actions.Count == 0)
             return BadRequest(new { message = "Au moins une action CAPA est requise." });
@@ -1293,7 +1566,7 @@ severity OK = accepte.";
         SuggestCapaRequestDto request)
     {
         var apiKey = _configuration["Gemini:ApiKey"];
-        var model = _configuration["Gemini:Model"] ?? "gemini-2.0-flash";
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
         if (string.IsNullOrEmpty(apiKey)) return null;
 
         try
@@ -1431,6 +1704,12 @@ Réponds UNIQUEMENT en JSON valide (sans markdown) :
             .Concat(User.FindAll(ClaimTypes.Role))
             .Any(c => string.Equals(c.Value, "superadmin", StringComparison.OrdinalIgnoreCase));
     }
+
+    /// <summary>Admin or superadmin (not the narrower quality-admin role).</summary>
+    private bool IsPlatformAdmin() =>
+        User.FindAll("role").Concat(User.FindAll(ClaimTypes.Role))
+            .Any(c => string.Equals(c.Value?.Trim(), "admin", StringComparison.OrdinalIgnoreCase)
+                   || string.Equals(c.Value?.Trim(), "superadmin", StringComparison.OrdinalIgnoreCase));
 
     private bool IsQualityAdmin()
     {

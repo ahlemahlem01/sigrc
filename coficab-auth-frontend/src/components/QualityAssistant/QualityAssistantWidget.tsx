@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send, X, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useAuth } from '../../context/AuthContext';
 import {
   sendQualityAssistantMessage,
   type QualityAssistantHistoryItem,
@@ -21,6 +22,7 @@ type UiMessage = {
 
 export default function QualityAssistantWidget({ scope }: QualityAssistantWidgetProps) {
   const { t, i18n } = useTranslation();
+  const { accessToken } = useAuth();
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -75,7 +77,7 @@ export default function QualityAssistantWidget({ scope }: QualityAssistantWidget
     const lang = (i18n.language || 'fr').slice(0, 2).toLowerCase();
 
     try {
-      const res = await sendQualityAssistantMessage(text, history, lang);
+      const res = await sendQualityAssistantMessage(text, history, lang, accessToken);
       setMessages((prev) => [
         ...prev,
         {
@@ -101,7 +103,7 @@ export default function QualityAssistantWidget({ scope }: QualityAssistantWidget
     } finally {
       setSending(false);
     }
-  }, [input, sending, messages, i18n.language, t]);
+  }, [input, sending, messages, i18n.language, t, accessToken]);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

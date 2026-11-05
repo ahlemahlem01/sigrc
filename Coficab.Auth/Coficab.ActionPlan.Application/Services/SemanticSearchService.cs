@@ -427,7 +427,9 @@ public class SemanticSearchService : ISemanticSearchService
         var existing = await _db.SemanticEmbeddings
             .FirstOrDefaultAsync(e => e.EntityType == entityType && e.EntityId == entityId, cancellationToken);
 
-        if (existing != null && string.Equals(existing.ContentHash, hash, StringComparison.OrdinalIgnoreCase))
+        var model = OllamaBridgeHandler.EmbeddingModel(_configuration);
+        if (existing != null && string.Equals(existing.ContentHash, hash, StringComparison.OrdinalIgnoreCase)
+            && string.Equals(existing.Model, model, StringComparison.OrdinalIgnoreCase))
             return true;
 
         float[] vector;
@@ -441,7 +443,6 @@ public class SemanticSearchService : ISemanticSearchService
             return false;
         }
 
-            var model = _configuration["Gemini:EmbeddingModel"] ?? "gemini-embedding-001";
         var json = JsonSerializer.Serialize(vector, JsonOpts);
         var now = DateTime.UtcNow;
 

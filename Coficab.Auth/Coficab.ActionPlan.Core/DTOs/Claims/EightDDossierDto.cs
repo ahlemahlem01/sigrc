@@ -32,6 +32,10 @@ public class EightDDossierDto
     public string LotNumber { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
 
+    /// <summary>D2 quantification: what the PPM of the defect is computed from (the PPM itself is never stored).</summary>
+    public int? ProducedQuantity { get; set; }
+    public int? DefectiveQuantity { get; set; }
+
     public int CurrentStep { get; set; }
     public string StatusCode { get; set; } = "IN_PROGRESS";
 

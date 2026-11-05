@@ -82,6 +82,18 @@ export const adminEmployeeService = {
   moveToDepartment: (token: string, userId: string, departmentId: string) =>
     axios.put(`${API_URL}/profiles/${userId}/department`, { departmentId }, h(token)).then(r => r.data),
 
+  /** Archives (the person left the company) or restores a profile; nothing is deleted. */
+  setArchived: (token: string, userId: string, archived: boolean) =>
+    axios.put(`${API_URL}/profiles/${userId}/archive`, { archived }, h(token)).then(r => r.data),
+
+  /** Names (or clears, with null) the hierarchical manager of an employee. */
+  setManager: (token: string, userId: string, managerUserId: string | null) =>
+    axios.put(`${API_URL}/profiles/${userId}/manager`, { managerUserId }, h(token)).then(r => r.data),
+
+  /** Personal data of the specification (first/last name, site, other e-mails, identity...). Administrators only. */
+  setPersonal: (token: string, userId: string, data: any) =>
+    axios.put(`${API_URL}/profiles/${userId}/personal`, data, h(token)).then(r => r.data),
+
   updateProfile: (token: string, userId: string, data: any) =>
     axios.put(`${API_URL}/profiles/${userId}`, data, h(token)).then(r => r.data),
 

@@ -10,9 +10,9 @@ const COFICAB = '#000168';
 type NatureRef = { code: string; labelKey: string; hintKey: string; color: string };
 
 const NATURES: NatureRef[] = [
-  { code: 'PA', labelKey: 'dashboard.naturePreventive', hintKey: 'capaSettings.naturePaHint', color: '#047857' },
+  { code: 'PA', labelKey: 'dashboard.natureImprovement', hintKey: 'capaSettings.naturePaHint', color: '#047857' },
   { code: 'PAC', labelKey: 'dashboard.natureCorrective', hintKey: 'capaSettings.naturePacHint', color: '#be123c' },
-  { code: 'PAP', labelKey: 'dashboard.natureImprovement', hintKey: 'capaSettings.naturePapHint', color: '#6d28d9' },
+  { code: 'PAP', labelKey: 'dashboard.naturePreventive', hintKey: 'capaSettings.naturePapHint', color: '#6d28d9' },
 ];
 
 export default function AdminCapaSettings() {

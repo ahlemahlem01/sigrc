@@ -43,6 +43,50 @@ public class ParetoServiceTests
         Assert.Equal(7, Assert.Single(items).Count);
     }
 
+    private static void AddClaim(ActionPlanDbContext db, string defect, string? line, string client, string? shift, string severity, DateTime when)
+    {
+        db.Claims.Add(new Claim
+        {
+            Id = Guid.NewGuid(), Title = defect, DefectType = defect, ProductionLine = line, ClientId = client, Shift = shift, Severity = severity,
+            LotNumber = "L", Description = "d", StatusCode = "CLOTUREE", DetectionDate = when,
+        });
+    }
+
+    [Fact]
+    public async Task ManualAnalysis_ChoosesTheAxis_AndNarrowsByShiftSeverityClientLineAndDates()
+    {
+        using var db = NewDb();
+        var jan = new DateTime(2025, 1, 10, 0, 0, 0, DateTimeKind.Utc);
+        var jul = new DateTime(2025, 7, 10, 0, 0, 0, DateTimeKind.Utc);
+        for (var i = 0; i < 5; i++) AddClaim(db, "Soudure", "WR-04", "A", "Matin", "HIGH", jan);
+        for (var i = 0; i < 3; i++) AddClaim(db, "Soudure", "WR-05", "B", "Soir", "LOW", jul);
+        for (var i = 0; i < 2; i++) AddClaim(db, "Sertissage", "WR-04", "A", "Soir", "high", jul);      // the case of the severity does not matter
+        db.SaveChanges();
+        var service = new ParetoService(db);
+
+        // by shift, every claim
+        var byShift = await service.GetParetoAsync(new ParetoRequestDto { Dimension = ParetoDimension.Shift });
+        Assert.Equal(new[] { ("Matin", 5), ("Soir", 5) }.OrderBy(x => x.Item1), byShift.Select(i => (i.Category, i.Count)).OrderBy(x => x.Category));
+
+        // by line, only the evening shift
+        var evening = await service.GetParetoAsync(new ParetoRequestDto { Dimension = ParetoDimension.ProductionLine, Shift = "Soir" });
+        Assert.Equal(5, evening.Sum(i => i.Count));
+        Assert.Contains(evening, i => i.Category == "WR-05" && i.Count == 3);
+
+        // by defect type, only the high severity claims
+        var high = await service.GetParetoAsync(new ParetoRequestDto { Dimension = ParetoDimension.DefectType, Severity = "High" });
+        Assert.Equal(7, high.Sum(i => i.Count));
+        Assert.DoesNotContain(high, i => i.Category == "Soudure" && i.Count == 8);
+
+        // by client, one period and one line
+        var window = await service.GetParetoAsync(new ParetoRequestDto
+        {
+            Dimension = ParetoDimension.ClientId, ProductionLine = "WR-04", DateFrom = new DateTime(2025, 6, 1, 0, 0, 0, DateTimeKind.Utc), DateTo = new DateTime(2025, 8, 1, 0, 0, 0, DateTimeKind.Utc),
+        });
+        var only = Assert.Single(window);
+        Assert.Equal(("A", 2), (only.Category, only.Count));
+    }
+
     [Fact]
     public async Task Employees_GetAggregatesOnly_SmallGroupsAreMerged()
     {

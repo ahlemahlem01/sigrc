@@ -1,3 +1,4 @@
+import { ExtendDeadline } from '../../components/ExtendDeadline';
 import { parseProgress, parseProgressRaw, toUiStatus } from '../admin/capaAnalytics';
 import { useEffect, useState } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
@@ -11,6 +12,12 @@ import {
   uploadPlanActionDocument,
   getUsersForAssignment,
   warnActionPlan,
+  closeActionPlan,
+  rejectActionPlan,
+  validatePlanAction,
+  rejectPlanAction,
+  reassignActionPlan,
+  reassignPlanAction,
 } from '../../services/actionPlanService';
 import {
   ArrowLeft, Calendar, Building2, Tag, User,
@@ -18,6 +25,7 @@ import {
 } from 'lucide-react';
 import { computeIatfSla, slaToneStyles } from '../../utils/iatfSla';
 import PlanComments from '../../components/capa/PlanComments';
+import DecisionDialog from '../../components/DecisionDialog';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
@@ -180,6 +188,68 @@ export default function FrontActionPlanDetail() {
   const [warnText, setWarnText] = useState('');
   const [warnBusy, setWarnBusy] = useState(false);
   const [warnNotice, setWarnNotice] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // administrators: validate / return the plan or a sub-action, and give them to someone else
+  const [notice, setNotice] = useState<{ ok: boolean; text: string } | null>(null);
+  const [decision, setDecision] = useState<{ kind: 'plan' | 'action'; approve: boolean; id?: string; title?: string } | null>(null);
+  const [decisionBusy, setDecisionBusy] = useState(false);
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [reassign, setReassign] = useState<{ kind: 'plan' } | { kind: 'action'; id: string; title: string } | null>(null);
+  const [reassignTo, setReassignTo] = useState('');
+  const [reassignNote, setReassignNote] = useState('');
+  const [reassignBusy, setReassignBusy] = useState(false);
+  const [reassignError, setReassignError] = useState<string | null>(null);
+
+  const openReassign = (target: { kind: 'plan' } | { kind: 'action'; id: string; title: string }) => {
+    setReassign(target);
+    setReassignTo('');
+    setReassignNote('');
+    setReassignError(null);
+  };
+
+  const submitReassign = async () => {
+    if (!accessToken || !id || !reassign || !reassignTo) return;
+    setReassignBusy(true);
+    setReassignError(null);
+    try {
+      if (reassign.kind === 'plan') await reassignActionPlan(accessToken, id, reassignTo, reassignNote.trim() || undefined);
+      else await reassignPlanAction(accessToken, reassign.id, reassignTo, reassignNote.trim() || undefined);
+      const name = nameById[reassignTo] || '';
+      setNotice({ ok: true, text: t(reassign.kind === 'plan' ? 'planDetailFront.reassignedPlan' : 'planDetailFront.reassignedAction', { name }) });
+      setReassign(null);
+      await loadData();
+    } catch (e: any) {
+      setReassignError(e?.response?.data?.error || e?.response?.data?.message || t('planDetailFront.reassignFailed'));
+    } finally {
+      setReassignBusy(false);
+    }
+  };
+
+  const confirmDecision = async (reason: string) => {
+    if (!accessToken || !id || !decision) return;
+    setDecisionBusy(true);
+    setDecisionError(null);
+    try {
+      if (decision.kind === 'plan') {
+        if (decision.approve) await closeActionPlan(accessToken, id);
+        else await rejectActionPlan(accessToken, id, reason.trim());
+      } else if (decision.approve) {
+        await validatePlanAction(accessToken, decision.id!);
+      } else {
+        await rejectPlanAction(accessToken, decision.id!, reason.trim());
+      }
+      const key = decision.kind === 'plan'
+        ? (decision.approve ? 'planValidated' : 'planReturned')
+        : (decision.approve ? 'actionValidated' : 'actionReturned');
+      setNotice({ ok: true, text: t(`planDetailFront.${key}`) });
+      setDecision(null);
+      await loadData();
+    } catch (e: any) {
+      setDecisionError(e?.response?.data?.error || e?.response?.data?.message || t('planDetailFront.decisionFailed'));
+    } finally {
+      setDecisionBusy(false);
+    }
+  };
 
   const openWarn = () => {
     setWarnTo(String((plan as any)?.assignedToId ?? (plan as any)?.AssignedToId ?? ''));
@@ -349,6 +419,9 @@ export default function FrontActionPlanDetail() {
   const typeColor   = TYPE_COLORS[plan.type]     ?? TYPE_COLORS[0];
   const isArchived  = plan.status === 4;
   const isClosed    = plan.status === 3;
+  // every sub-action is finished (or already validated) and the plan is still open: the administrator can decide
+  const readyForValidation = isAdmin && !isArchived && !isClosed && plan.status === 2 && actions.length > 0
+    && actions.every((a) => a.progressRaw === 101 || (a.progress ?? 0) >= 100 || a.status === 3);
   const sla = computeIatfSla(plan.createdAt, { progress: displayProgress, status: isClosed ? 'closed' : undefined });
   const slaStyle = slaToneStyles(sla.tone);
   const proofTotal = (plan.proofCount ?? 0) || actions.reduce((s, a) => s + (a.documentCount ?? 0), 0);
@@ -560,7 +633,7 @@ export default function FrontActionPlanDetail() {
           </div>
         )}
 
-        {isClosed && (
+        {isClosed && !isAdmin && (
           <div className="cofi-apd-closed-banner">
             ⏳ {t('planDetailFront.closedBanner')}
           </div>
@@ -569,6 +642,35 @@ export default function FrontActionPlanDetail() {
         {plan.lastRejectComment && !isClosed && (
           <div className="cofi-apd-archived-banner" style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#b45309' }}>
             {t('planDetailFront.returned')} : {plan.lastRejectComment}
+          </div>
+        )}
+
+        {notice && (
+          <div role={notice.ok ? 'status' : 'alert'} style={{ margin: '0 0 12px', padding: '10px 14px', borderRadius: 10, fontSize: 13, fontWeight: 600, border: `1px solid ${notice.ok ? '#a7f3d0' : '#fecaca'}`, background: notice.ok ? '#ecfdf5' : '#fef2f2', color: notice.ok ? '#047857' : '#b91c1c' }}>
+            {notice.text}
+          </div>
+        )}
+
+        {readyForValidation && (
+          <div style={{ margin: '0 0 16px', padding: '14px 16px', borderRadius: 12, border: '1px solid #fde68a', background: '#fffbeb', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#92400e' }}>{t('planDetailFront.readyTitle')}</div>
+              <div style={{ fontSize: 13, color: '#78350f', marginTop: 2 }}>{t('planDetailFront.readyHint', { proofs: proofTotal })}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setDecisionError(null); setDecision({ kind: 'plan', approve: false }); }}
+              style={{ padding: '9px 16px', fontSize: 13, fontWeight: 700, borderRadius: 9, border: '1px solid #fecaca', background: '#fff', color: '#b91c1c', cursor: 'pointer' }}
+            >
+              {t('planDetailFront.returnPlan')}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDecisionError(null); setDecision({ kind: 'plan', approve: true }); }}
+              style={{ padding: '9px 18px', fontSize: 13, fontWeight: 700, borderRadius: 9, border: 0, background: '#059669', color: '#fff', cursor: 'pointer' }}
+            >
+              {t('planDetailFront.validatePlan')}
+            </button>
           </div>
         )}
 
@@ -622,9 +724,19 @@ export default function FrontActionPlanDetail() {
             {isAdmin && !isArchived && !isClosed && (
               <button
                 type="button"
+                onClick={() => openReassign({ kind: 'plan' })}
+                className="cofi-apd-badge"
+                style={{ background: '#eef2ff', color: '#000168', borderColor: '#c7d2fe', cursor: 'pointer', marginLeft: 'auto' }}
+              >
+                {t('planDetailFront.reassignPlan')}
+              </button>
+            )}
+            {isAdmin && !isArchived && !isClosed && (
+              <button
+                type="button"
                 onClick={openWarn}
                 className="cofi-apd-badge"
-                style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a', cursor: 'pointer', marginLeft: 'auto' }}
+                style={{ background: '#fffbeb', color: '#b45309', borderColor: '#fde68a', cursor: 'pointer' }}
               >
                 Avertir
               </button>
@@ -670,6 +782,7 @@ export default function FrontActionPlanDetail() {
                 {!isArchived && !isClosed && new Date(plan.deadline).setHours(0,0,0,0) < new Date().setHours(0,0,0,0)
                   ? ` · ${t('planDetailFront.lateLower')}`
                   : ''}
+                <ExtendDeadline kind="plan" id={plan.id} deadline={plan.deadline} open={!isArchived && !isClosed} onDone={() => { void loadData(); }} />
               </div>
             )}
             <div className="cofi-apd-meta-item">
@@ -798,6 +911,38 @@ export default function FrontActionPlanDetail() {
                       <History size={12} /> {t('planView.tabHistory')}
                     </button>
                   </div>
+                  {isAdmin && !isArchived && !isClosed && action.progressRaw !== 101 && action.progressRaw !== 102 && (
+                    <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => openReassign({ kind: 'action', id: action.id, title: action.title })}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#000168', border: '1px solid #c7d2fe', borderRadius: 8, padding: '5px 10px', background: '#eef2ff', cursor: 'pointer' }}
+                      >
+                        <User size={12} /> {t('planDetailFront.reassignAction')}
+                      </button>
+                      {!isDone && (
+                        <ExtendDeadline kind="action" id={action.id} deadline={action.deadline} open onDone={() => { void loadData(); }} />
+                      )}
+                      {isDone && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => { setDecisionError(null); setDecision({ kind: 'action', approve: true, id: action.id, title: action.title }); }}
+                            style={{ fontSize: 11, fontWeight: 700, color: '#fff', border: 0, borderRadius: 8, padding: '5px 12px', background: '#059669', cursor: 'pointer' }}
+                          >
+                            {t('planDetailFront.validateAction')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => { setDecisionError(null); setDecision({ kind: 'action', approve: false, id: action.id, title: action.title }); }}
+                            style={{ fontSize: 11, fontWeight: 700, color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 8, padding: '5px 12px', background: '#fff', cursor: 'pointer' }}
+                          >
+                            {t('planDetailFront.returnAction')}
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                   {!isArchived && (
                     <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>
@@ -858,6 +1003,65 @@ export default function FrontActionPlanDetail() {
                 style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderRadius: 8, border: 0, background: '#000168', color: '#fff', cursor: 'pointer', opacity: warnBusy || !warnTo || warnText.trim().length < 3 ? 0.5 : 1 }}
               >
                 {warnBusy ? 'Envoi…' : 'Envoyer'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <DecisionDialog
+        open={!!decision}
+        title={decision ? (decision.kind === 'plan'
+          ? t(decision.approve ? 'planDetailFront.validatePlanTitle' : 'planDetailFront.returnPlanTitle')
+          : t(decision.approve ? 'planDetailFront.validateActionTitle' : 'planDetailFront.returnActionTitle', { title: decision.title })) : ''}
+        message={decision?.approve ? t(decision.kind === 'plan' ? 'planDetailFront.validatePlanMessage' : 'planDetailFront.validateActionMessage') : undefined}
+        reason={!!decision && !decision.approve}
+        confirmLabel={decision?.approve ? t('planDetailFront.confirmValidate') : t('planDetailFront.confirmReturn')}
+        tone={decision?.approve ? 'ok' : 'danger'}
+        busy={decisionBusy}
+        error={decisionError}
+        onCancel={() => { if (!decisionBusy) setDecision(null); }}
+        onConfirm={(reason) => void confirmDecision(reason)}
+      />
+
+      {reassign && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" onClick={() => !reassignBusy && setReassign(null)}>
+          <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#0f172a' }}>
+              {reassign.kind === 'plan' ? t('planDetailFront.reassignPlanTitle') : t('planDetailFront.reassignActionTitle')}
+            </h3>
+            <p style={{ margin: '4px 0 4px', fontSize: 13, fontWeight: 600, color: '#334155' }}>
+              {reassign.kind === 'plan' ? plan.title : reassign.title}
+            </p>
+            <p style={{ margin: '0 0 12px', fontSize: 12.5, color: '#64748b' }}>
+              {reassign.kind === 'plan' ? t('planDetailFront.reassignPlanHint') : t('planDetailFront.reassignActionHint')}
+            </p>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('planDetailFront.reassignTo')}</label>
+            <select value={reassignTo} onChange={(e) => setReassignTo(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, marginBottom: 12, background: '#fff' }}>
+              <option value="">{t('planDetailFront.reassignPick')}</option>
+              {Object.entries(nameById).sort((a, b) => a[1].localeCompare(b[1])).map(([uid, name]) => <option key={uid} value={uid}>{name}</option>)}
+            </select>
+            <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 4 }}>{t('planDetailFront.reassignNote')}</label>
+            <textarea
+              value={reassignNote}
+              onChange={(e) => setReassignNote(e.target.value)}
+              rows={3}
+              maxLength={300}
+              placeholder={t('planDetailFront.reassignNotePlaceholder')}
+              style={{ width: '100%', padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 14, resize: 'vertical' }}
+            />
+            {reassignError && <div role="alert" style={{ marginTop: 10, fontSize: 13, fontWeight: 600, color: '#b91c1c' }}>{reassignError}</div>}
+            <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" disabled={reassignBusy} onClick={() => setReassign(null)} style={{ padding: '8px 16px', fontSize: 14, borderRadius: 8, border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer' }}>
+                {t('common.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={reassignBusy || !reassignTo}
+                onClick={() => void submitReassign()}
+                style={{ padding: '8px 16px', fontSize: 14, fontWeight: 600, borderRadius: 8, border: 0, background: '#000168', color: '#fff', cursor: 'pointer', opacity: reassignBusy || !reassignTo ? 0.5 : 1 }}
+              >
+                {reassignBusy ? t('common.saving') : t('planDetailFront.reassignConfirm')}
               </button>
             </div>
           </div>

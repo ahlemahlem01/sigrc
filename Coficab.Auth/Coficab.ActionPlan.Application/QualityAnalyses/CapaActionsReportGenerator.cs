@@ -60,7 +60,7 @@ public static class CapaActionsReportGenerator
         var all = new List<Flat>();
         foreach (var p in planList)
         {
-            var type = p.Type switch { ActionPlanType.PAC => "correctif", ActionPlanType.PAP => "amelioration", _ => "preventif" };
+            var type = p.Type switch { ActionPlanType.PAC => "correctif", ActionPlanType.PAP => "preventif", _ => "amelioration" };
             var process = string.IsNullOrWhiteSpace(p.Department?.Name) ? "—" : p.Department!.Name;
             foreach (var a in p.PlanActions.Where(x => !x.IsArchived))
             {

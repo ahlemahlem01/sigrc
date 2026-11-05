@@ -16,6 +16,7 @@ import { EmployeeRecommendationBanner } from '../../components/EmployeeRecommend
 import { CreateClaimForm } from '../claims/CreateClaimForm';
 import { CsvImportButton } from '../../components/CsvImportButton';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
+import { ExtendDeadline, canExtendDeadline } from '../../components/ExtendDeadline';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
@@ -54,6 +55,7 @@ const normalizeClaim = (raw: any): Claim => ({
   serialNumber: raw.serialNumber ?? raw.SerialNumber,
   description: raw.description ?? raw.Description ?? '',
   detectionDate: raw.detectionDate ?? raw.DetectionDate,
+  deadline: raw.deadline ?? raw.Deadline,
   createdAt: raw.createdAt ?? raw.CreatedAt,
   createdById: raw.createdById ?? raw.CreatedById,
   assignedAt: raw.assignedAt ?? raw.AssignedAt,
@@ -578,6 +580,24 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
                             ? new Date(selected.detectionDate).toLocaleDateString(dateLocale())
                             : '—'}
                         </div>
+                      </div>
+                      <div className="amc-info-card">
+                        <div className="amc-info-lbl">{t('claimDetail.deadlineChip')}</div>
+                        {(() => {
+                          const claimOpen = !['CLOTUREE', 'VALIDATED', 'ARCHIVED', 'DRAFT'].includes(resolveClaimStatus(selected));
+                          return (
+                            <>
+                              <div className="amc-info-val" style={canExtendDeadline(selected.deadline, claimOpen) ? { color: '#b91c1c' } : undefined}>
+                                {selected.deadline ? new Date(selected.deadline).toLocaleDateString(dateLocale()) : '—'}
+                              </div>
+                              {selected.deadline && (
+                                <div style={{ marginTop: 6 }}>
+                                  <ExtendDeadline kind="claim" id={String(selected.id)} deadline={selected.deadline} open={claimOpen} onDone={() => void load()} />
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                       <div className="amc-info-card">
                         <div className="amc-info-lbl">{t('managedClaims.currentAssignee')}</div>

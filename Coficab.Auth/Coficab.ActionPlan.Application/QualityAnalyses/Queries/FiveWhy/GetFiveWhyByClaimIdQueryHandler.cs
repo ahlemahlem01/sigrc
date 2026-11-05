@@ -39,11 +39,13 @@ public class GetFiveWhyByClaimIdQueryHandler : IRequestHandler<GetFiveWhyByClaim
             CreatedAt = analysis.CreatedAt,
             CreatedBy = analysis.CreatedBy,
             Steps = analysis.Steps
-                .OrderBy(s => s.StepNumber)
+                .OrderBy(s => s.BranchType == "DETECTION" ? 1 : 0)
+                .ThenBy(s => s.StepNumber)
                 .Select(s => new FiveWhyStepReadDto
                 {
                     Id = s.Id,
                     StepNumber = s.StepNumber,
+                    BranchType = s.BranchType,
                     Question = s.Question,
                     Answer = s.Answer
                 })

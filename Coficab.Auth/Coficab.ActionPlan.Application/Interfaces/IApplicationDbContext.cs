@@ -7,6 +7,7 @@ namespace Coficab.ActionPlan.Application.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<UserProfile> UserProfiles { get; }
+    DbSet<UserFunction> UserFunctions { get; }
     DbSet<UserAlias> UserAliases { get; }
     DbSet<Badge> Badges { get; }
     DbSet<Document> Documents { get; }
@@ -26,6 +27,8 @@ public interface IApplicationDbContext
     DbSet<PlanActionHistory> PlanActionHistories { get; }
     DbSet<ClaimEvent> ClaimEvents { get; }
     DbSet<SavedReport> SavedReports { get; }
+    DbSet<SavedReportVersion> SavedReportVersions { get; }
+    DbSet<EightDReportVersion> EightDReportVersions { get; }
     DbSet<ReportSchedule> ReportSchedules { get; }
     DbSet<PlanActionAssignmentHistory> PlanActionAssignmentHistories { get; }
     DbSet<FiveWhyAnalysis> FiveWhyAnalyses { get; }

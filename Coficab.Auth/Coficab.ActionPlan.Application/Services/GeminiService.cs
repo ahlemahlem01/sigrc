@@ -24,6 +24,15 @@ public interface IGeminiService
         string text,
         bool forQuery = false,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Envoie une image et une consigne à Gemini et renvoie sa réponse JSON brute (responseMimeType application/json).
+    /// </summary>
+    Task<string> GenerateJsonFromImageAsync(
+        byte[] image,
+        string mimeType,
+        string prompt,
+        CancellationToken cancellationToken = default);
 }
 
 public class GeminiService : IGeminiService
@@ -125,6 +134,72 @@ public class GeminiService : IGeminiService
         }
 
         return CleanPlainText(textElement.GetString() ?? string.Empty);
+    }
+
+    public async Task<string> GenerateJsonFromImageAsync(
+        byte[] image,
+        string mimeType,
+        string prompt,
+        CancellationToken cancellationToken = default)
+    {
+        var apiKey = _configuration["Gemini:ApiKey"];
+        var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
+        if (string.IsNullOrWhiteSpace(apiKey))
+            throw new InvalidOperationException("La clé d'API Gemini n'est pas configurée.");
+
+        var requestPayload = new
+        {
+            contents = new[]
+            {
+                new
+                {
+                    parts = new object[]
+                    {
+                        new { text = prompt },
+                        new { inline_data = new { mime_type = mimeType, data = Convert.ToBase64String(image) } },
+                    }
+                }
+            },
+            generationConfig = new
+            {
+                temperature = 0.2,
+                maxOutputTokens = 1024,
+                responseMimeType = "application/json",
+                thinkingConfig = new { thinkingLevel = "low" }
+            }
+        };
+
+        var httpClient = _httpClientFactory.CreateClient();
+        httpClient.Timeout = TimeSpan.FromSeconds(30);
+        var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
+
+        HttpResponseMessage response;
+        try
+        {
+            response = await httpClient.PostAsJsonAsync(endpoint, requestPayload, cancellationToken);
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+        {
+            _logger.LogWarning(ex, "Impossible de joindre Gemini (image)");
+            throw new InvalidOperationException("Impossible de contacter le service IA.", ex);
+        }
+
+        var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogWarning("Gemini image HTTP {Status}: {Body}", (int)response.StatusCode,
+                responseJson.Length > 300 ? responseJson[..300] : responseJson);
+            throw new InvalidOperationException($"Erreur lors de l'analyse IA de l'image ({(int)response.StatusCode}).");
+        }
+
+        using var doc = JsonDocument.Parse(responseJson);
+        if (!doc.RootElement.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0 ||
+            !candidates[0].TryGetProperty("content", out var content) ||
+            !content.TryGetProperty("parts", out var parts) || parts.GetArrayLength() == 0 ||
+            !parts[0].TryGetProperty("text", out var text))
+            throw new InvalidOperationException("L'analyse IA n'a retourné aucun résultat exploitable.");
+
+        return text.GetString() ?? string.Empty;
     }
 
     public async Task<float[]> EmbedAsync(

@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using Coficab.ActionPlan.API.Services;
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Core.DTOs.Employee;
@@ -43,6 +44,29 @@ public class AdminEmployeeController : ControllerBase
         _logger = logger;
     }
 
+    // ─── Department scope ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// The people this caller manages: the superadmin everyone (null), an administrator the people of his own department
+    /// (and himself). The employee pages show nobody else.
+    /// </summary>
+    private async Task<HashSet<string>?> DepartmentScopeAsync(CancellationToken ct = default)
+    {
+        if (User.IsInRole("superadmin")) return null;
+        var me = User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+        var deptId = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == me).Select(p => p.DepartmentId).FirstOrDefaultAsync(ct);
+        var ids = deptId == null
+            ? new List<string>()
+            : await _db.UserProfiles.AsNoTracking().Where(p => p.DepartmentId == deptId && p.UserId != "").Select(p => p.UserId).ToListAsync(ct);
+        var set = new HashSet<string>(ids, StringComparer.OrdinalIgnoreCase);
+        if (me.Length > 0) set.Add(me);
+        return set;
+    }
+
+    /// <summary>True when this person is outside the caller's scope (an administrator opening another department's employee).</summary>
+    private async Task<bool> OutOfScopeAsync(string userId, CancellationToken ct = default)
+        => await DepartmentScopeAsync(ct) is { } scope && !scope.Contains(userId);
+
     // ─── Profiles ────────────────────────────────────────────────────────────
 
     [HttpGet("profiles")]
@@ -53,6 +77,8 @@ public class AdminEmployeeController : ControllerBase
         var profiles = await _userProfileService.GetAllAsync();
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
             profiles = profiles.Where(p => people.Contains(p.Id)).ToList();
+        if (await DepartmentScopeAsync(HttpContext.RequestAborted) is { } mine)
+            profiles = profiles.Where(p => mine.Contains(p.Id)).ToList();
         return Ok(profiles);
     }
 
@@ -65,6 +91,19 @@ public class AdminEmployeeController : ControllerBase
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
         {
             var items = summary.Items.Where(i => people.Contains(i.UserId)).ToList();
+            summary = new EmployeeActivitySummaryDto
+            {
+                Total = items.Count,
+                Active = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.Active),
+                LowActivity = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.LowActivity),
+                Inactive = items.Count(i => i.ActivityStatus == Core.Enums.ActivityStatus.Inactive),
+                ComputedAt = summary.ComputedAt,
+                Items = items,
+            };
+        }
+        if (await DepartmentScopeAsync(HttpContext.RequestAborted) is { } mineActivity)
+        {
+            var items = summary.Items.Where(i => mineActivity.Contains(i.UserId)).ToList();
             summary = new EmployeeActivitySummaryDto
             {
                 Total = items.Count,
@@ -88,6 +127,7 @@ public class AdminEmployeeController : ControllerBase
     [HttpGet("profiles/{userId}")]
     public async Task<IActionResult> GetProfile(string userId)
     {
+        if (await OutOfScopeAsync(userId, HttpContext.RequestAborted)) return Forbid();
         await _employeeActivityService.RecalculateUserAsync(userId);
         var profile = await _userProfileService.GetByUserIdAsync(userId);
         return profile == null ? NotFound() : Ok(profile);
@@ -96,6 +136,7 @@ public class AdminEmployeeController : ControllerBase
     [HttpPut("profiles/{userId}")]
     public async Task<IActionResult> UpdateProfile(string userId, [FromBody] UpdateUserProfileDto dto)
     {
+        if (await OutOfScopeAsync(userId, HttpContext.RequestAborted)) return Forbid();
         var existing = await _userProfileService.GetByUserIdAsync(userId);
         if (existing == null)
         {
@@ -108,6 +149,137 @@ public class AdminEmployeeController : ControllerBase
     }
 
     /// <summary>Org chart drag-and-drop: moves an employee to another department (profile only; the account is updated by the Auth API).</summary>
+    /// <summary>Names (or clears) the hierarchical manager of an employee. The manager keeps his own role: this adds no right except reading the QRQC problems of the people he manages.</summary>
+    [HttpPut("profiles/{userId}/manager")]
+    public async Task<IActionResult> SetManager(string userId, [FromBody] SetManagerRequest dto, CancellationToken ct)
+    {
+        if (await OutOfScopeAsync(userId, ct)) return Forbid();
+        var profile = await _db.UserProfiles.FirstOrDefaultAsync(p => p.UserId == userId, ct);
+        if (profile == null) return NotFound();
+
+        if (string.IsNullOrWhiteSpace(dto.ManagerUserId))
+        {
+            profile.ManagerId = null; profile.ManagerName = null; profile.ManagerEmail = null;
+        }
+        else
+        {
+            var wanted = dto.ManagerUserId;
+            if (wanted.Equals(userId, StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Un employé ne peut pas être son propre chef hiérarchique.");
+            var manager = await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(p => p.UserId == wanted, ct);
+            if (manager == null) return BadRequest("Chef hiérarchique introuvable.");
+            if ((manager.ManagerId ?? string.Empty).Equals(userId, StringComparison.OrdinalIgnoreCase))
+                return BadRequest("Ce chef hiérarchique dépend déjà de cet employé.");
+            profile.ManagerId = manager.UserId; profile.ManagerName = manager.Name; profile.ManagerEmail = manager.Email;
+        }
+        profile.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { profile.UserId, profile.ManagerId, profile.ManagerName });
+    }
+
+    public sealed class PersonalDataRequest
+    {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Site { get; set; }
+        public List<string>? AdditionalEmails { get; set; }
+        public DateTime? DateOfBirth { get; set; }
+        public List<string>? Nationalities { get; set; }
+        public string? CinNumber { get; set; }
+        public DateTime? CinDate { get; set; }
+        public string? CinCountry { get; set; }
+        public string? PassportNumber { get; set; }
+        public DateTime? PassportValidFrom { get; set; }
+        public DateTime? PassportValidTill { get; set; }
+        public string? PassportCountry { get; set; }
+        public string? FatherName { get; set; }
+        public string? FatherLastName { get; set; }
+        public string? MotherName { get; set; }
+        public string? MotherLastName { get; set; }
+    }
+
+    private static string? Clean(string? v) => string.IsNullOrWhiteSpace(v) ? null : v.Trim();
+
+    /// <summary>Personal data of the specification (identity, passport, parents). Administrators only.</summary>
+    [HttpGet("profiles/{userId}/personal")]
+    public async Task<IActionResult> GetPersonal(string userId, CancellationToken ct)
+    {
+        if (await OutOfScopeAsync(userId, ct)) return Forbid();
+        var p = await _db.UserProfiles.AsNoTracking().FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+        return Ok(new
+        {
+            p.FirstName, p.LastName, p.Site,
+            additionalEmails = (p.AdditionalEmails ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            p.DateOfBirth,
+            nationalities = (p.Nationalities ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
+            p.CinNumber, p.CinDate, p.CinCountry, p.PassportNumber, p.PassportValidFrom, p.PassportValidTill, p.PassportCountry,
+            p.FatherName, p.FatherLastName, p.MotherName, p.MotherLastName,
+        });
+    }
+
+    [HttpPut("profiles/{userId}/personal")]
+    public async Task<IActionResult> SetPersonal(string userId, [FromBody] PersonalDataRequest r, CancellationToken ct)
+    {
+        if (await OutOfScopeAsync(userId, ct)) return Forbid();
+        var p = await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+
+        var today = DateTime.UtcNow.Date;
+        if (r.DateOfBirth.HasValue && r.DateOfBirth.Value.Date >= today) return BadRequest(new { message = "La date de naissance doit être dans le passé." });
+        if (r.CinDate.HasValue && r.CinDate.Value.Date > today) return BadRequest(new { message = "La date de la CIN ne peut pas être dans le futur." });
+        if (r.PassportValidFrom.HasValue && r.PassportValidTill.HasValue && r.PassportValidTill < r.PassportValidFrom)
+            return BadRequest(new { message = "La fin de validité du passeport doit suivre son début." });
+
+        var extraEmails = (r.AdditionalEmails ?? new()).Select(e => e.Trim()).Where(e => e.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (extraEmails.Any(e => !System.Net.Mail.MailAddress.TryCreate(e, out var addr) || addr.Address != e))
+            return BadRequest(new { message = "Une des adresses e-mail supplémentaires n'est pas valide." });
+
+        static DateTime? Utc(DateTime? d) => d.HasValue ? DateTime.SpecifyKind(d.Value.Date, DateTimeKind.Utc) : null;
+        p.FirstName = Clean(r.FirstName);
+        p.LastName = Clean(r.LastName);
+        p.Site = Clean(r.Site);
+        p.AdditionalEmails = extraEmails.Count == 0 ? null : string.Join(", ", extraEmails);
+        p.DateOfBirth = Utc(r.DateOfBirth);
+        var nationalities = (r.Nationalities ?? new()).Select(n => n.Trim()).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        p.Nationalities = nationalities.Count == 0 ? null : string.Join(", ", nationalities);
+        p.CinNumber = Clean(r.CinNumber);
+        p.CinDate = Utc(r.CinDate);
+        p.CinCountry = Clean(r.CinCountry);
+        p.PassportNumber = Clean(r.PassportNumber);
+        p.PassportValidFrom = Utc(r.PassportValidFrom);
+        p.PassportValidTill = Utc(r.PassportValidTill);
+        p.PassportCountry = Clean(r.PassportCountry);
+        p.FatherName = Clean(r.FatherName);
+        p.FatherLastName = Clean(r.FatherLastName);
+        p.MotherName = Clean(r.MotherName);
+        p.MotherLastName = Clean(r.MotherLastName);
+        p.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    public sealed class ArchiveRequest
+    {
+        public bool Archived { get; set; }
+    }
+
+    /// <summary>
+    /// Status "archived" of the specification: the person left the company. The profile is kept (nothing is deleted) and the console also
+    /// locks the account. Restoring puts the HR status back to active.
+    /// </summary>
+    [HttpPut("profiles/{userId}/archive")]
+    public async Task<IActionResult> Archive(string userId, [FromBody] ArchiveRequest request, CancellationToken ct)
+    {
+        if (await OutOfScopeAsync(userId, ct)) return Forbid();
+        var p = await _db.UserProfiles.FirstOrDefaultAsync(x => x.UserId == userId, ct);
+        if (p == null) return NotFound();
+        p.Status = request.Archived ? "archived" : "active";
+        p.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(ct);
+        return Ok(new { p.UserId, p.Status });
+    }
+
     [HttpPut("profiles/{userId}/department")]
     public async Task<IActionResult> MoveToDepartment(string userId, [FromBody] MoveDepartmentDto dto)
     {
@@ -136,6 +308,8 @@ public class AdminEmployeeController : ControllerBase
         var badges = await _badgeService.GetAllBadgesAsync();
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
             badges = badges.Where(b => people.Contains(b.UserId)).ToList();
+        if (await DepartmentScopeAsync(HttpContext.RequestAborted) is { } mine)
+            badges = badges.Where(b => mine.Contains(b.UserId)).ToList();
         return Ok(badges);
     }
 
@@ -190,6 +364,8 @@ public class AdminEmployeeController : ControllerBase
         var events = await _timelineService.GetAllTimelineAsync(500);
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
             events = events.Where(e => people.Contains(e.UserId)).ToList();
+        if (await DepartmentScopeAsync(HttpContext.RequestAborted) is { } mine)
+            events = events.Where(e => mine.Contains(e.UserId)).ToList();
         return Ok(events);
     }
 
@@ -223,6 +399,8 @@ public class AdminEmployeeController : ControllerBase
         var docs = await _documentService.GetAllDocumentsAsync();
         if (await OrganizationFilter.UserIdsAsync(_db, organizationIds, HttpContext.RequestAborted) is { } people)
             docs = docs.Where(d => d.UserId != null && people.Contains(d.UserId)).ToList();
+        if (await DepartmentScopeAsync(HttpContext.RequestAborted) is { } mine)
+            docs = docs.Where(d => d.UserId != null && mine.Contains(d.UserId)).ToList();
         return Ok(docs);
     }
 
@@ -366,4 +544,9 @@ public class NotifyPodiumRecipient
     public int Place { get; set; }
     public string FullName { get; set; } = string.Empty;
     public int Score { get; set; }
+}
+
+public class SetManagerRequest
+{
+    public string? ManagerUserId { get; set; }
 }

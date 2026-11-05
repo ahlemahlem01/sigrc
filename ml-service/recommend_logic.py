@@ -73,3 +73,28 @@ def rank_recommendations(
         }
         for i, item in enumerate(unique_ranked[:top_n])
     ]
+
+
+# Decision thresholds on the probability of being on time. They are decision thresholds, not calibrated
+# probabilities: the model is indicative (see "validated" in the /recommend answer).
+LOW_RISK_ABOVE = 0.80
+HIGH_RISK_BELOW = 0.50
+
+
+def risk_level(score: float) -> str:
+    """low: above 80 %, moderate: 50 to 80 % (both included), high: below 50 %."""
+    if score > LOW_RISK_ABOVE:
+        return "low"
+    if score >= HIGH_RISK_BELOW:
+        return "moderate"
+    return "high"
+
+
+_ACTION = {"low": "standard", "moderate": "adjust", "high": "alert"}
+
+
+def action_for(level: str) -> str:
+    """standard: usual assignment, adjust: assign with a margin (or take a less loaded candidate), alert: preventive alert,
+    reallocate resources or review the priority. A number of extra days is deliberately not given: the model predicts a
+    probability of being on time, not a duration."""
+    return _ACTION[level]

@@ -11,6 +11,7 @@ import WorkflowStages from '../../components/capa/WorkflowStages';
 import ActionProofs from '../../components/capa/ActionProofs';
 import PlanTimeline from '../../components/capa/PlanTimeline';
 import PlanComments from '../../components/capa/PlanComments';
+import { ExtendDeadline } from '../../components/ExtendDeadline';
 import {
   archiveActionPlan,
   createPlanAction,
@@ -242,7 +243,6 @@ export default function PlanPage() {
   const statusLabel = t(`planPage.status.${plan.status}`, { defaultValue: plan.status });
   const typeLabel = t(`planPage.type.${plan.type}`, { defaultValue: plan.type });
 
-
   return (
     <div className="text-slate-900 w-full min-w-0 pb-8">
       {/* identity of the plan */}
@@ -304,6 +304,11 @@ export default function PlanPage() {
         <Stat label={t('planPage.actions')} value={`${done}/${total}`} sub={h.lateActions > 0 ? t('planPage.lateActions', { count: h.lateActions }) : t('planPage.noLateAction')} tone={h.lateActions > 0 ? BAD : GOOD} />
         <Stat label={t('planPage.proofs')} value={String(h.proofCount)} sub={t('planPage.proofsHint')} tone={NAVY} />
       </div>
+      {!closed && plan.deadline && (
+        <div className="mb-4 flex justify-end">
+          <ExtendDeadline kind="plan" id={plan.id} deadline={plan.deadline} open onDone={() => void load()} />
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
         {/* the work */}
@@ -333,6 +338,9 @@ export default function PlanPage() {
                                 <button type="button" onClick={() => askValidate(a)} className="px-2 py-0.5 text-[11px] font-semibold rounded-md text-white" style={{ background: NAVY }}>Valider</button>
                                 <button type="button" onClick={() => openDialog({ kind: 'rejectAction', id: a.id, title: a.title })} className="px-2 py-0.5 text-[11px] font-semibold rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50">Rejeter</button>
                               </>
+                            )}
+                            {a.state === 'open' && (
+                              <ExtendDeadline kind="action" id={a.id} deadline={a.deadline} open onDone={() => void load()} />
                             )}
                             {a.state === 'open' && a.responsible.userId && (
                               <button type="button" onClick={() => openDialog({ kind: 'warnAction', id: a.id, title: a.title, to: a.responsible.userId ?? '' })} className="px-2 py-0.5 text-[11px] font-semibold rounded-md border border-slate-300 text-slate-700 hover:bg-slate-50">Avertir</button>

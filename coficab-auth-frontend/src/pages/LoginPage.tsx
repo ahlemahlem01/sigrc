@@ -1,8 +1,14 @@
+import TurnstileWidget from '../components/TurnstileWidget';
+import { useTurnstile } from '../hooks/useTurnstile';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { isAdminUser, resolvePostLoginTarget } from '../utils/roles';
 import { useTranslation } from 'react-i18next';
+import LanguageFlags from '../components/LanguageFlags';
+import LicenceBanner from '../components/LicenceBanner';
+import { IDLE_LOGOUT_FLAG } from '../components/IdleLogout';
+import { PASSWORD_CHANGED_FLAG } from './ChangePasswordPage';
 
 const LoginPage = () => {
   const { t } = useTranslation();
@@ -16,7 +22,22 @@ const LoginPage = () => {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [changedNotice] = useState(() => {
+    try {
+      const v = sessionStorage.getItem(PASSWORD_CHANGED_FLAG) === '1';
+      sessionStorage.removeItem(PASSWORD_CHANGED_FLAG);
+      return v;
+    } catch { return false; }
+  });
+  const [idleNotice] = useState(() => {
+    try {
+      const v = sessionStorage.getItem(IDLE_LOGOUT_FLAG) === '1';
+      sessionStorage.removeItem(IDLE_LOGOUT_FLAG);
+      return v;
+    } catch { return false; }
+  });
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -45,20 +66,24 @@ const LoginPage = () => {
     }
   }, [redirecting, isAuthenticated, user, navigate, redirectTo]);
 
+  const turnstile = useTurnstile();
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, turnstile.token);
       setRedirecting(true);
     } catch (err: any) {
       console.error('Login failed:', err);
       const status = Number(err?.response?.status);
       const code = err?.response?.data?.error;
+      turnstile.renew();                       // a Turnstile token works once
       setError(
         err?.loginStage === 'profile' ? t('login.errorProfile')
           : code === 'account_locked' ? t('login.errorLocked')
+          : code === 'captcha_failed' ? t('login.errorCaptcha')
           : !err?.response ? t('login.errorNetwork')
           : status >= 500 ? t('login.errorServer')
           : t('login.error'),
@@ -395,6 +420,14 @@ const LoginPage = () => {
           position: relative;
         }
 
+        .lr-eye {
+          position: absolute; top: 50%; right: 8px; transform: translateY(-50%);
+          width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+          background: none; border: 0; border-radius: 6px; color: #64748b; cursor: pointer;
+        }
+        .lr-eye:hover { color: #000168; background: rgba(0, 1, 104, .07); }
+        .lr-eye:focus-visible { outline: 2px solid #0066cc; outline-offset: 1px; }
+
         .lr-input {
           width: 100%;
           background: #f4f6fb;
@@ -603,6 +636,9 @@ const LoginPage = () => {
         </div>
 
         <div className="lr-right">
+          <LicenceBanner />
+          {changedNotice && <p role="status" style={{ background: '#ecfdf5', color: '#047857', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('changePassword.done')}</p>}
+          {idleNotice && <p role="status" style={{ background: '#eff6ff', color: '#1e40af', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('security.idleLoggedOut')}</p>}
           <div className="lr-form-logo">
             <span className="lr-form-logo-name">COFICAB</span>
             <span className="lr-form-logo-sub">Group Portal</span>
@@ -637,7 +673,8 @@ const LoginPage = () => {
               <div className="lr-input-wrap">
                 <input
                   className="lr-input"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
+                  style={{ paddingRight: 46 }}
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onFocus={() => setFocused('password')}
@@ -646,6 +683,28 @@ const LoginPage = () => {
                   required
                   autoComplete="current-password"
                 />
+                <button
+                  type="button"
+                  className="lr-eye"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                  aria-pressed={showPassword}
+                  title={showPassword ? t('login.hidePassword') : t('login.showPassword')}
+                >
+                  {showPassword ? (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+                      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+                      <path d="M14.12 14.12a3 3 0 1 1-4.24-4.24" />
+                      <line x1="1" y1="1" x2="23" y2="23" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
               </div>
               <div className="lr-underline" />
             </div>
@@ -661,7 +720,15 @@ const LoginPage = () => {
               </div>
             )}
 
-            <button className="lr-btn" type="submit" disabled={loading}>
+            {turnstile.enabled && turnstile.siteKey && !turnstile.unavailable && (
+              <TurnstileWidget siteKey={turnstile.siteKey} onToken={turnstile.setToken} resetKey={turnstile.resetKey} onUnavailable={() => turnstile.setUnavailable(true)} onError={turnstile.setErrorCode} />
+            )}
+            {turnstile.unavailable && <div className="lr-error">{t('login.captchaUnavailable')}</div>}
+            {turnstile.hintKey && (
+              <div className="lr-error" role="alert">{t(`login.turnstileHint.${turnstile.hintKey}`)} <small>({t('login.turnstileCode', { code: turnstile.errorCode })})</small></div>
+            )}
+
+            <button className="lr-btn" type="submit" disabled={loading || !turnstile.ready}>
               <span className="lr-btn-shimmer" />
               {loading ? (
                 <>
@@ -686,6 +753,7 @@ const LoginPage = () => {
               <strong>Coficab Group</strong> — {t('login.footerSystem')}<br />
               © 2026 · {t('login.footerAccess')}
             </p>
+            <LanguageFlags />
           </div>
         </div>
       </div>

@@ -80,6 +80,23 @@ public class ValidationTests : IClassFixture<ActionPlanApiFactory>
     }
 
     [Fact]
+    public void FiveWhy_AllowsFiveStepsPerBranch_ButNoDuplicatesNorAThirdBranch()
+    {
+        var validator = new CreateOrUpdateFiveWhyCommandValidator();
+        var command = new CreateOrUpdateFiveWhyCommand { ClaimId = Guid.NewGuid(), UserId = Guid.NewGuid() };
+        foreach (var branch in new[] { "OCCURRENCE", "DETECTION" })
+            for (var n = 1; n <= 5; n++)
+                command.Steps.Add(new FiveWhyStepDto { StepNumber = n, BranchType = branch, Question = "q", Answer = "" });
+        Assert.True(validator.Validate(command).IsValid);
+
+        command.Steps[0].BranchType = "DETECTION"; // step 1 of Detection now appears twice
+        Assert.False(validator.Validate(command).IsValid);
+
+        command.Steps[0].BranchType = "OTHER";
+        Assert.False(validator.Validate(command).IsValid);
+    }
+
+    [Fact]
     public void IshikawaCause_NeedsDescriptionWithinLimit()
     {
         var validator = new CreateIshikawaCauseCommandValidator();

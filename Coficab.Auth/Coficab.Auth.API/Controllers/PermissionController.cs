@@ -70,6 +70,19 @@ public class PermissionController : ControllerBase
         return Ok(permissions);
     }
 
+    // GET api/permissions/available-codes — the rights the project can enforce that are not created yet (the form offers these)
+    [HttpGet("available-codes")]
+    [Authorize(Roles = "superadmin")]
+    public async Task<IActionResult> AvailableCodes()
+    {
+        var existing = await _db.Permissions.Select(p => p.Name).ToListAsync();
+        var left = ProjectPermissionCatalog.Names
+            .Where(name => !existing.Contains(name, StringComparer.OrdinalIgnoreCase))
+            .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        return Ok(left);
+    }
+
     // POST api/permissions — créer une permission custom
     [HttpPost]
     [Authorize(Roles = "superadmin")]

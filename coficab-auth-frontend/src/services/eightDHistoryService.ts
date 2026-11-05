@@ -35,4 +35,54 @@ export const eightDHistoryService = {
 
   version: async (claimId: string, version: number, token: string): Promise<EightDVersionDetail> =>
     (await axios.get<EightDVersionDetail>(`${API_BASE_URL}/EightD/${claimId}/versions/${version}`, authHeaders(token))).data,
+
+  /** The customer report (every text and figure of the PDF): the latest edited version, or the one the data give today. */
+  report: async (claimId: string, token: string): Promise<EightDReportResponse> =>
+    (await axios.get<EightDReportResponse>(`${API_BASE_URL}/EightD/${claimId}/report`, authHeaders(token))).data,
+
+  freshReport: async (claimId: string, token: string): Promise<EightDReportModel> =>
+    (await axios.get<EightDReportModel>(`${API_BASE_URL}/EightD/${claimId}/report/fresh`, authHeaders(token))).data,
+
+  saveReport: async (claimId: string, model: EightDReportModel, note: string | null, token: string): Promise<EightDReportResponse> =>
+    (await axios.put<EightDReportResponse>(`${API_BASE_URL}/EightD/${claimId}/report`, { model, note }, authHeaders(token))).data,
+
+  reportVersions: async (claimId: string, token: string): Promise<EightDReportVersionRow[]> =>
+    (await axios.get<EightDReportVersionRow[]>(`${API_BASE_URL}/EightD/${claimId}/report/versions`, authHeaders(token))).data,
+
+  reportVersion: async (claimId: string, version: number, token: string): Promise<EightDReportResponse> =>
+    (await axios.get<EightDReportResponse>(`${API_BASE_URL}/EightD/${claimId}/report/versions/${version}`, authHeaders(token))).data,
 };
+
+export interface EightDReportModel {
+  company: string;
+  title: string;
+  reference: string;
+  date: string;
+  intro: string;
+  ishikawaHeading: string;
+  ishikawa: Array<{ category: string; description: string; major: string }>;
+  priorityHeading: string;
+  priority: { text: string; meta: string } | null;
+  fiveWhyHeading: string;
+  fiveWhy: { problem: string; statusLine: string; rows: Array<{ label: string; question: string; answer: string }>; rootCause: string } | null;
+  capaHeading: string;
+  capa: { title: string; rows: Array<{ action: string; deadline: string; status: string }> } | null;
+  conclusionHeading: string;
+  conclusion: string;
+}
+
+export interface EightDReportResponse {
+  model: EightDReportModel;
+  version: number;
+  edited: boolean;
+  savedAt?: string | null;
+  savedByName?: string | null;
+  note?: string | null;
+}
+
+export interface EightDReportVersionRow {
+  versionNumber: number;
+  savedAt: string;
+  savedByName?: string | null;
+  note?: string | null;
+}

@@ -3,6 +3,8 @@ import { Outlet, useLocation, useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../context/AuthContext';
 import LanguageSwitcher from '../LanguageSwitcher';
+import LicenceBanner from '../LicenceBanner';
+import { useInactiveModules } from '../../hooks/useAccess';
 import UserAvatar from '../UserAvatar';
 import { LogOut, LayoutDashboard, ChevronDown, Search, Calendar } from 'lucide-react';
 import { NotificationBell } from '../NotificationBell';
@@ -92,6 +94,7 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.orgList', icon: 'ti-list', path: '/admin/organizations' },
       { label: 'adminNav.departments', icon: 'ti-building', path: '/admin/departments' },
+      { label: 'adminNav.functions', icon: 'ti-id-badge-2', path: '/admin/functions' },
       { label: 'adminNav.orgChart', icon: 'ti-hierarchy-2', path: '/admin/organizations/map' },
     ],
   },
@@ -145,12 +148,12 @@ const NAV: NavItem[] = [
     children: [
       { label: 'adminNav.preferences', icon: 'ti-adjustments', path: '/admin/preferences' },
       { label: 'adminNav.thresholds', icon: 'ti-gauge', path: '/admin/settings/thresholds' },
+      { label: 'adminNav.security', icon: 'ti-shield-lock', path: '/admin/settings/security' },
       { label: 'adminNav.cvReview', icon: 'ti-photo-check', path: '/admin/settings/cv-review' },
       { label: 'adminNav.referenceLists', icon: 'ti-list-details', path: '/admin/claims/reference-lists' },
       { label: 'adminNav.workflowConfig', icon: 'ti-route', path: '/admin/claims/workflow' },
     ],
   },
-  { id: 'support', label: 'adminNav.support', icon: 'ti-help-circle', path: '/admin/dashboard', solo: true },
 ];
 
 const getPageMeta = (pathname: string): { title: string; crumb: string } => {
@@ -170,6 +173,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/reference':           { title: 'adminNav.claimReference', crumb: 'adminNav.claimsQuality' },
     '/admin/preferences':                { title: 'adminNav.preferences', crumb: 'adminNav.settings' },
     '/admin/settings/thresholds':        { title: 'adminNav.thresholds', crumb: 'adminNav.settings' },
+    '/admin/settings/security':          { title: 'adminNav.security', crumb: 'adminNav.settings' },
     '/admin/settings/cv-review':         { title: 'adminNav.cvReview', crumb: 'adminNav.settings' },
     '/admin/action-plans/create':        { title: 'adminNav.newPlan', crumb: 'adminNav.actionPlans' },
     '/admin/action-plans/assignments':   { title: 'adminNav.assignments', crumb: 'adminNav.actionPlans' },
@@ -184,6 +188,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
     '/admin/claims/import-history':      { title: 'adminNav.importHistory', crumb: 'adminNav.claimsQuality' },
     '/admin/claims/reference-lists':     { title: 'adminNav.referenceLists', crumb: 'adminNav.settings' },
     '/admin/claims/workflow':            { title: 'adminNav.workflowConfig', crumb: 'adminNav.settings' },
+    '/admin/functions':                  { title: 'adminNav.functions', crumb: 'adminNav.employees' },
     '/admin/employees':                  { title: 'adminNav.employeeList', crumb: 'adminNav.employees' },
     '/admin/employees/compare':          { title: 'adminNav.compare', crumb: 'adminNav.employees' },
     '/admin/employees/recognition':      { title: 'adminNav.recognition', crumb: 'adminNav.employees' },
@@ -212,6 +217,7 @@ const getPageMeta = (pathname: string): { title: string; crumb: string } => {
 export default function AdminLayout() {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const inactiveModules = useInactiveModules();
   const { param: scopeParam, ready: scopeReady } = useOrganizationScope();
   const navigate  = useNavigate();
   const location  = useLocation();
@@ -783,13 +789,14 @@ export default function AdminLayout() {
             </div>
           </div>
           <main className="al-main">
+            <LicenceBanner />
             <div className="al-page">
               {scopeReady ? <Outlet key={scopeParam ?? 'all'} /> : null}
             </div>
           </main>
         </div>
       </div>
-      <QualityAssistantWidget scope="admin" />
+      {!inactiveModules.includes('assistant') && <QualityAssistantWidget scope="admin" />}
     </div>
   );
 }

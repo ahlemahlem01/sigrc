@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
   createStoredPermission,
+  listAvailablePermissionCodes,
   listStoredPermissions,
   setStoredPermissionActive,
   StoredPermission,
@@ -29,7 +31,11 @@ export default function PermissionsCatalogPage() {
   const [notice, setNotice] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+  const [availableCodes, setAvailableCodes] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  // the right that was just created: its group opens in the list below and the line is highlighted
+  const [justCreated, setJustCreated] = useState<string | null>(null);
+  const [createdCategory, setCreatedCategory] = useState('');
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -45,6 +51,12 @@ export default function PermissionsCatalogPage() {
   }, [accessToken]);
 
   useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    if (!justCreated) return;
+    const line = document.getElementById(`perm-${justCreated.replace(/[^a-z0-9_-]/gi, '_')}`);
+    if (line) line.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [justCreated, rows, openKeys]);
 
   const groups = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -79,10 +91,29 @@ export default function PermissionsCatalogPage() {
     return names;
   }, [rows, language]);
 
+  // the area of a right follows the start of its code
+  const CATEGORY_OF_PREFIX: Record<string, string> = {
+    claims: 'Claims', data: 'Claims', capa: 'CAPA', analysis: 'Quality', '8d': 'Quality', assistant: 'Quality',
+    alerts: 'Alerts', employees: 'Employees', reports: 'Reports', admin: 'Admin',
+  };
+
   const startCreate = () => {
     setEditingId('new');
     setForm(emptyForm);
     setError('');
+    if (accessToken) listAvailablePermissionCodes(accessToken).then(setAvailableCodes).catch(() => setAvailableCodes([]));
+  };
+
+  // choosing a code fills the label, the explanation and the area, which stay editable
+  const pickCode = (code: string) => {
+    if (!code) { setForm({ ...emptyForm }); return; }
+    const prefix = code.split(':')[0];
+    setForm({
+      name: code,
+      displayName: permissionTitle(code),
+      description: permissionHelp(code),
+      category: CATEGORY_OF_PREFIX[prefix] || form.category,
+    });
   };
 
   const startEdit = (row: StoredPermission) => {
@@ -114,9 +145,18 @@ export default function PermissionsCatalogPage() {
     try {
       if (editingId === 'new') await createStoredPermission(accessToken, payload);
       else if (editingId) await updateStoredPermission(accessToken, editingId, payload);
+      const wasNew = editingId === 'new';
       setEditingId(null);
-      setNotice(editingId === 'new' ? t('permCatalog.created') : t('permCatalog.updated'));
+      setNotice(wasNew ? t('permCatalog.created') : t('permCatalog.updated'));
       await load();
+      if (wasNew) {
+        setSearch('');
+        setDomain('all');
+        setOpenKeys((prev) => (prev.indexOf(payload.category) >= 0 ? prev : [...prev, payload.category]));
+        setJustCreated(payload.name);
+        setCreatedCategory(payload.category);
+        window.setTimeout(() => setJustCreated(null), 30000);
+      }
     } catch (err: any) {
       setError(err?.response?.data?.message || t('permCatalog.saveFailed'));
     } finally {
@@ -154,8 +194,35 @@ export default function PermissionsCatalogPage() {
         )}
       </div>
 
+      <details className="pm-help">
+        <summary>{t('permCatalog.help.title')}</summary>
+        <div className="pm-help-body">
+          <p>{t('permCatalog.help.what')}</p>
+          <ol>
+            <li>{t('permCatalog.help.step1')}</li>
+            <li>{t('permCatalog.help.step2')}</li>
+            <li>{t('permCatalog.help.step3')}</li>
+            <li>{t('permCatalog.help.step4')}</li>
+          </ol>
+          <ul>
+            <li><strong>{t('permCatalog.help.delegateTitle')}</strong> {t('permCatalog.help.delegate')}</li>
+            <li><strong>{t('permCatalog.help.roleTitle')}</strong> {t('permCatalog.help.role')}</li>
+            <li><strong>{t('permCatalog.help.limitTitle')}</strong> {t('permCatalog.help.limit')}</li>
+            <li><strong>{t('permCatalog.help.relogTitle')}</strong> {t('permCatalog.help.relog')}</li>
+            <li><strong>{t('permCatalog.help.deactivateTitle')}</strong> {t('permCatalog.help.deactivate')}</li>
+          </ul>
+        </div>
+      </details>
+
       {error && <div className="pm-alert bad">{error}</div>}
-      {notice && <div className="pm-alert ok">{notice}</div>}
+      {notice && (
+        <div className="pm-alert ok">
+          {notice}
+          {justCreated && (
+            <> <Link className="pm-assign-link" to={`/admin/permissions/assign?category=${encodeURIComponent(createdCategory)}&focus=${encodeURIComponent(justCreated)}`}>{t('permCatalog.assignIt')}</Link></>
+          )}
+        </div>
+      )}
 
       {isSuperadmin && editingId && (
         <div className="pm-form">
@@ -166,7 +233,19 @@ export default function PermissionsCatalogPage() {
             </select>
           </label>
           <label className="pm-span">{t('permCatalog.allows')}<textarea className="pm-input" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder={t('permCatalog.allowsPh')} /></label>
-          <label className="pm-span">{t('permCatalog.internalRef')}<input className="pm-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="claims:create" /></label>
+          <label className="pm-span">{t('permCatalog.internalRef')}
+            {editingId === 'new' ? (
+              <>
+                <select className="pm-input" value={form.name} onChange={(e) => pickCode(e.target.value)}>
+                  <option value="">{t('permCatalog.pickCode')}</option>
+                  {availableCodes.map((code) => <option key={code} value={code}>{permissionTitle(code)} — {code}</option>)}
+                </select>
+                {availableCodes.length === 0 && <small>{t('permCatalog.noCodeLeft')}</small>}
+              </>
+            ) : (
+              <input className="pm-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="claims:create" />
+            )}
+          </label>
           <div className="pm-form-actions">
             <button type="button" className="pm-btn ghost sm" onClick={() => setEditingId(null)}>{t('common.cancel')}</button>
             <button type="button" className="pm-btn sm" disabled={saving} onClick={() => void save()}>{saving ? t('common.saving') : t('common.save')}</button>
@@ -218,11 +297,12 @@ export default function PermissionsCatalogPage() {
                 {open && (
                   <ul>
                     {group.permissions.map((row) => (
-                      <li key={row.id || row.name} className={row.isActive ? '' : 'off'} title={permissionHelp(row.name, row.description)}>
+                      <li key={row.id || row.name} id={`perm-${row.name.replace(/[^a-z0-9_-]/gi, '_')}`} className={`${row.isActive ? '' : 'off'}${row.name === justCreated ? ' new' : ''}`.trim()} title={permissionHelp(row.name, row.description)}>
                         <div className="pm-line">
                           <strong>{permissionTitle(row.name, row.displayName)}</strong>
                           <span>{permissionHelp(row.name, row.description)}</span>
                           {!row.isActive && <b className="pm-off">{t('activity.inactive')}</b>}
+                          {row.name === justCreated && <b className="pm-new">{t('permCatalog.newBadge')}</b>}
                         </div>
                         {isSuperadmin && (
                           <RowMenu
@@ -317,6 +397,15 @@ const PAGE_CSS = `
   .pm-menu-pop { position: absolute; right: 0; top: 30px; z-index: 5; min-width: 148px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); padding: 4px; }
   .pm-menu-pop button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 6px; padding: 7px 10px; font: inherit; font-size: 13px; color: #0f172a; cursor: pointer; }
   .pm-menu-pop button:hover { background: #f8fafc; color: #000168; }
+  .pm-help { border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 10px; margin: 0 0 14px; }
+  .pm-help summary { cursor: pointer; padding: 10px 14px; font-size: 13px; font-weight: 700; color: #000168; }
+  .pm-help-body { padding: 0 16px 12px; font-size: 13px; color: #334155; line-height: 1.55; }
+  .pm-help-body p { margin: 0 0 8px; }
+  .pm-help-body ol, .pm-help-body ul { margin: 0 0 6px; padding-left: 20px; }
+  .pm-help-body li { margin-bottom: 4px; }
+  .pm-group li.new { background: #ecfdf5; box-shadow: inset 0 0 0 2px #34d399; border-radius: 8px; }
+  .pm-new { margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: #059669; color: #fff; font-size: 11px; font-weight: 700; }
+  .pm-assign-link { margin-left: 6px; font-weight: 700; color: #000168; text-decoration: underline; }
   .pm-alert { border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 13px; }
   .pm-alert.bad { background: #fef2f2; color: #b91c1c; }
   .pm-alert.ok { background: #f0fdf4; color: #15803d; }

@@ -45,6 +45,7 @@ const ACTION_LABELS: Record<string, string> = {
   progress_updated: 'audit.action.progress_updated',
   marked_completed: 'capaHistory.markedCompleted',
   warning_sent: 'capaHistory.warningSent',
+  deadline_extended: 'audit.action.deadline_extended',
 };
 
 /** Values are i18n keys. */
