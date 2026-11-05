@@ -4288,6 +4288,8 @@
     "other": "Other"
   },
   "employeesAdmin": {
+    "archivedFilter": "Archived",
+    "archivedPill": "Archived",
     "extraEmailInvalid": "One of the additional e-mail addresses is not valid.",
     "ownDepartmentOnly": "The account is created in your own department only.",
     "untilUnlock": "Until an admin unlocks it",
@@ -4454,6 +4456,13 @@
       "UNLOCK": "Unlock",
       "RESET_PASSWORD": "Password reset",
       "LOGIN": "Sign-in",
+      "LOGIN_FAILED": "Failed sign-in",
+      "CAPTCHA_FAILED": "Anti-robot check failed",
+      "PASSWORD_CHANGED": "Password changed",
+      "PASSWORD_RESET_REQUESTED": "Password reset requested",
+      "claim_validation_approved": "Dossier approved",
+      "claim_validation_returned": "Dossier returned",
+      "fivewhy_returned": "5 Why returned",
       "created": "Plan created",
       "status_changed": "Status changed",
       "fields_updated": "Fields changed",

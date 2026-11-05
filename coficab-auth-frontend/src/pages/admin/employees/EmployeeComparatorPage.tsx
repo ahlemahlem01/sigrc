@@ -381,7 +381,6 @@ export default function EmployeeComparatorPage() {
 }
 
 const PAGE_CSS = `
-  @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
   .cmp-page {
     padding: 20px 24px 32px;

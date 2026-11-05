@@ -7,6 +7,7 @@ import KpiMiniCard from './KpiMiniCard';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
 import { severityKey, type SeverityKey } from '../../../utils/overviewSeverity';
+import { formatDecimal } from '../../../utils/formatNumber';
 
 function severityBadge(sev: string) {
   const key = sev.toUpperCase();
@@ -131,7 +132,7 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
           />
           <KpiMiniCard
             label={t('adminDashboard.claims.closureRate')}
-            value={`${(kpis?.closureRate ?? 0).toFixed(1)} %`}
+            value={`${formatDecimal(kpis?.closureRate ?? 0)} %`}
             loading={loading}
             accent={COFICAB.ok}
             tint={COFICAB.okSoft}

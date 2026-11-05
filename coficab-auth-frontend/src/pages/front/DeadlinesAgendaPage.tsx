@@ -12,6 +12,7 @@ import { resolveClaimStatus } from '../../utils/Claimutils';
 import { isAdminUser } from '../../utils/roles';
 import './DeadlinesAgendaPage.styles.css';
 import { defectLabel } from '../../utils/defectLabel';
+import i18n from '../../i18n';
 
 type DeadlineKind = 'claim' | 'plan' | 'action';
 type TabKey = 'upcoming' | 'past';
@@ -75,6 +76,11 @@ function dayKey(dateStr: string): string {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+/** The wording of a claim status (the workflow code is never shown as such). */
+function claimStatusText(code: string): string {
+  return code ? i18n.t(`claimStatus.${code}`, { defaultValue: code }) : '';
 }
 
 function isPlanClosed(status: number, progress: number): boolean {
@@ -146,11 +152,11 @@ export default function DeadlinesAgendaPage() {
             id: r.id,
             kind: r.kind,
             title: r.title || (r.kind === 'claim' ? t('employeeWorkspace.claimFallback', { id: r.id.slice(-8) }) : t('deadlines.untitledPlan')),
-            subtitle: r.subtitle || undefined,
+            subtitle: (r.kind === 'claim' ? defectLabel(r.subtitle) : r.subtitle) || undefined,
             assigneeId: r.assigneeId || undefined,
             assigneeName: r.assigneeName || undefined,
             deadline: r.deadline,
-            statusLabel: r.closed ? closedLabel : r.kind === 'claim' ? resolveClaimStatus({ statusCode: r.statusCode }) || open : open,
+            statusLabel: r.closed ? closedLabel : r.kind === 'claim' ? claimStatusText(resolveClaimStatus({ statusCode: r.statusCode })) || open : open,
             href: r.kind === 'claim' ? claimHref(r.id.replace('claim-', '')) : planHref(r.kind === 'plan' ? r.id.replace('plan-', '') : String(r.planId || '')),
             closed: r.closed,
           }))
@@ -185,7 +191,7 @@ export default function DeadlinesAgendaPage() {
           title: c.title || t('employeeWorkspace.claimFallback', { id: id.slice(0, 8) }),
           subtitle: defectLabel(c.defectType) || undefined,
           deadline: String(dl),
-          statusLabel: closed ? closedLabel : resolveClaimStatus(c) || open,
+          statusLabel: closed ? closedLabel : claimStatusText(resolveClaimStatus(c)) || open,
           href: claimHref(id),
           closed,
         });

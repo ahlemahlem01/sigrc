@@ -22,6 +22,7 @@ import { InvestigationWorkflows } from './InvestigationWorkflows';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { formatDecimal } from '../../utils/formatNumber';
 
 interface ClaimDetailCardProps {
   claim: Claim | null;
@@ -47,7 +48,7 @@ const formatClaimDate = (value?: string | null) => {
 const formatEstimateDays = (value?: number | null) => {
   if (value == null || Number.isNaN(Number(value))) return null;
   const n = Number(value);
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  return Number.isInteger(n) ? String(n) : formatDecimal(n);
 };
 
 const estimateMethodLabel = (method?: string | null) => {
@@ -222,7 +223,7 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
       <div className="pfe-pane-header">
         <div>
           <h2>{claim.title}</h2>
-          <span className="pfe-ref-pill">REF-ID: {claim.id}</span>
+          {claim.reference && <span className="pfe-ref-pill">{claim.reference}</span>}
         </div>
         <div className="pfe-header-actions">
           <span

@@ -10,6 +10,7 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import './WorkspaceExtras.styles.css';
 import { defectLabel } from '../../utils/defectLabel';
+import { formatDecimal } from '../../utils/formatNumber';
 
 const CLOSED = new Set(['CLOTUREE', 'VALIDATED', 'ARCHIVED']);
 export const DRAFTS_PATH = '/pages/front/quality-analyses/drafts';
@@ -232,7 +233,7 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
                       <span className="fwh-todo-title">{defectLabel(a.defectType)}</span>
                       <span className="fwh-todo-meta">{a.productionLine} · {shortDate(a.detectedAt, locale)}</span>
                     </span>
-                    <span className={`fwh-pill ${a.zScore >= 3 ? 'bad' : 'run'}`}>z = {a.zScore.toFixed(1)}</span>
+                    <span className={`fwh-pill ${a.zScore >= 3 ? 'bad' : 'run'}`}>z = {formatDecimal(a.zScore)}</span>
                   </div>
                 </li>
               ))}

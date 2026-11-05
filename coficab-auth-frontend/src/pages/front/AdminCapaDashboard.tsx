@@ -14,6 +14,7 @@ import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaIndicators, type CapaIndicators } from '../../services/capaIndicatorsService';
 import { domainOf, inDomain } from '../../utils/planDomain';
+import { formatDecimal } from '../../utils/formatNumber';
 
 const COFICAB = '#000168';
 const PAGE_SIZE = 8;
@@ -576,13 +577,13 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
                 <p className="text-xs mt-1 text-slate-500 leading-snug">
                   {figures.openActions === 0
                     ? t('indicators.criticalNone')
-                    : t('indicators.criticalSub', { pct: ((100 * figures.criticalOpenActions) / figures.openActions).toFixed(1), late: figures.criticalLateActions })}
+                    : t('indicators.criticalSub', { pct: formatDecimal((100 * figures.criticalOpenActions) / figures.openActions), late: figures.criticalLateActions })}
                 </p>
               </div>
               <div className="acd-card text-left rounded-xl px-4 py-3" style={{ ['--acd-accent' as string]: '#2563eb', cursor: 'default' }}>
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">{t('indicators.efficacy')}</div>
                 <div className="mt-1 text-2xl font-bold tabular-nums" style={{ color: '#2563eb' }}>
-                  {figures.efficacyRate.current == null ? '—' : `${figures.efficacyRate.current.toFixed(1)} %`}
+                  {figures.efficacyRate.current == null ? '—' : `${formatDecimal(figures.efficacyRate.current)} %`}
                 </div>
                 <p className="text-xs mt-1 text-slate-500 leading-snug">
                   {figures.efficacyEvaluated === 0
