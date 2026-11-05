@@ -4284,6 +4284,7 @@
     "other": "Autre"
   },
   "employeesAdmin": {
+    "ownDepartmentOnly": "Le compte est créé dans votre département uniquement.",
     "untilUnlock": "Jusqu’à déverrouillage admin",
     "badgeCategory": {
       "general": "Général",

@@ -301,8 +301,6 @@ public class AdminController : ControllerBase
     // ─── POST /api/admin/users ────────────────────────────────
 
     [HttpPost("users")]
-    [Authorize(Roles = "superadmin",
-        AuthenticationSchemes = OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme)]
     public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest request)
     {
         if (string.IsNullOrEmpty(CurrentUserId))
@@ -419,6 +417,19 @@ public class AdminController : ControllerBase
         var capacityError = await LicenceCapacityErrorAsync();
         if (capacityError != null)
             return new UserCreateOutcome(capacityError, null, null, null, null);
+
+        // an administrator creates simple user accounts, in his own department only
+        if (!CallerIsSuperadmin)
+        {
+            var caller = await _userManager.FindByIdAsync(CurrentUserId);
+            var scopeError = AdminAccountScope.Check(request.Role, request.OrganizationId, request.DepartmentId, caller?.OrganizationId, caller?.DepartmentId);
+            if (scopeError != null)
+                return new UserCreateOutcome(scopeError, null, null, null, null);
+            request.Role = "user";
+            request.OrganizationId = caller!.OrganizationId;
+            request.DepartmentId = caller.DepartmentId;
+            request.Permissions = [];
+        }
 
         var scopingError = ValidateRoleScoping(request.Role, request.OrganizationId, request.DepartmentId);
         if (scopingError != null)

@@ -398,12 +398,15 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!fullName.trim() || !email.trim()) { setError(t('employeesAdmin.nameEmailRequired')); return; }
     if (!poste.trim()) { setError(t('employeesAdmin.posteRequired')); return; }
     if (!equipe.trim()) { setError(t('employeesAdmin.teamRequired')); return; }
-    if (!orgDept.organizationId || !orgDept.departmentId) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
+    if (isSuperadmin && (!orgDept.organizationId || !orgDept.departmentId)) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
     setLoading(true); setError('');
     try {
       await createUser(accessToken!, {
-        fullName, email, department: orgDept.departmentName, departmentId: orgDept.departmentId,
-        organizationId: orgDept.organizationId, role, permissions: selectedPermissions,
+        fullName, email, role, permissions: isSuperadmin ? selectedPermissions : [],
+        // an administrator creates accounts in his own department: the server fills the department in
+        ...(isSuperadmin
+          ? { department: orgDept.departmentName, departmentId: orgDept.departmentId, organizationId: orgDept.organizationId }
+          : { department: String((user as any)?.department ?? '') }),
       });
       const users = await getUsers(accessToken!);
       const created = users.find((u) => u.email?.toLowerCase() === email.trim().toLowerCase());
@@ -461,11 +464,19 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <label className="em-label">{t('employeesAdmin.email')} <span className="em-req">*</span></label>
                   <input className="em-input" type="email" placeholder="email@coficab.com" value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
-                <OrganizationDepartmentFields
-                  value={orgDept}
-                  onChange={setOrgDept}
-                  classes={{ field: 'em-field', label: 'em-label', input: 'em-input' }}
-                />
+                {isSuperadmin ? (
+                  <OrganizationDepartmentFields
+                    value={orgDept}
+                    onChange={setOrgDept}
+                    classes={{ field: 'em-field', label: 'em-label', input: 'em-input' }}
+                  />
+                ) : (
+                  <div className="em-field">
+                    <label className="em-label">{t('planDetail.department')}</label>
+                    <input className="em-input" value={String((user as any)?.department ?? '')} readOnly />
+                    <small>{t('employeesAdmin.ownDepartmentOnly')}</small>
+                  </div>
+                )}
                 <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.poste')} <span className="em-req">*</span></label>
                   <input className="em-input" placeholder={t('employeesAdmin.postePh')} value={poste} onChange={e => setPoste(e.target.value)} />
@@ -482,14 +493,14 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                   <label className="em-label">{t('employeesAdmin.phone')}</label>
                   <input className="em-input" placeholder="+216 70 123 456" value={telephone} onChange={e => setTelephone(e.target.value)} />
                 </div>
-                <div className="em-field">
+                {isSuperadmin && <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.role')} <span className="em-req">*</span></label>
                   <select className="em-input" value={role} onChange={e => setRole(e.target.value)}>
                     <option value="user">{t('employeesAdmin.roleUser')}</option>
                     <option value="admin">Admin</option>
-                    {isSuperadmin && <option value="superadmin">Superadmin</option>}
+                    <option value="superadmin">Superadmin</option>
                   </select>
-                </div>
+                </div>}
               </div>
 
               <div className="em-info-banner">
@@ -1401,12 +1412,10 @@ export default function EmployeeManagement() {
                   <i className="ti ti-upload" />
                 </CsvImportButton>
               )}
-              {normalizeRoles(user as any).includes('superadmin') && (
-                <button className="em-btn em-btn-primary" onClick={() => setShowCreate(true)}>
-                  <i className="ti ti-user-plus" />
-                  {t('employeesAdmin.newEmployee')}
-                </button>
-              )}
+              <button className="em-btn em-btn-primary" onClick={() => setShowCreate(true)}>
+                <i className="ti ti-user-plus" />
+                {t('employeesAdmin.newEmployee')}
+              </button>
             </div>
           )}
         </div>

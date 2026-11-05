@@ -4284,6 +4284,7 @@
     "other": "Altro"
   },
   "employeesAdmin": {
+    "ownDepartmentOnly": "L'account viene creato solo nel tuo reparto.",
     "untilUnlock": "Fino allo sblocco da parte dell’amministratore",
     "badgeCategory": {
       "general": "Generale",

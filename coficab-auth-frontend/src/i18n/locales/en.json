@@ -4284,6 +4284,7 @@
     "other": "Other"
   },
   "employeesAdmin": {
+    "ownDepartmentOnly": "The account is created in your own department only.",
     "untilUnlock": "Until an admin unlocks it",
     "badgeCategory": {
       "general": "General",
