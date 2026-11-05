@@ -247,6 +247,8 @@ export interface ClaimsHistoryRow {
   assignedToId?: string | null;
   assignedToName?: string | null;
   productionLine?: string | null;
+  /** Department of the person in charge (or of the person who raised the claim). */
+  departmentName?: string | null;
   shift?: string | null;
   producedQuantity?: number | null;
   defectiveQuantity?: number | null;

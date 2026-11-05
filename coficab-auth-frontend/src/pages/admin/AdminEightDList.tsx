@@ -85,7 +85,7 @@ export default function AdminEightDList() {
   }, [accessToken]);
 
   const departments = useMemo(
-    () => Array.from(new Set(rows.map((row) => (row.productionLine || '').trim()).filter(Boolean))).sort(),
+    () => Array.from(new Set(rows.map((row) => (row.departmentName || '').trim()).filter(Boolean))).sort(),
     [rows],
   );
   const statuses = useMemo(
@@ -110,7 +110,7 @@ export default function AdminEightDList() {
     const from = dayStamp(filterFrom);
     const to = dayStamp(filterTo);
     return rows.filter((row) => {
-      if (filterDept !== 'all' && (row.productionLine || '') !== filterDept) return false;
+      if (filterDept !== 'all' && (row.departmentName || '') !== filterDept) return false;
       if (filterStep !== 'all' && String(row.eightDStep || '') !== filterStep) return false;
       if (filterStatus !== 'all' && (row.eightDStatus || '') !== filterStatus) return false;
       const stamp = dayStamp(row.updatedAt || row.createdAt);
@@ -118,7 +118,7 @@ export default function AdminEightDList() {
       if (from != null && stamp != null && stamp < from) return false;
       if (to != null && stamp != null && stamp > to) return false;
       if (!term) return true;
-      return [row.title, row.productionLine, champion(row), row.defectType, row.clientId]
+      return [row.title, row.departmentName, row.productionLine, champion(row), row.defectType, row.clientId]
         .some((value) => String(value || '').toLowerCase().includes(term));
     });
   }, [rows, search, filterDept, filterStep, filterStatus, filterFrom, filterTo]);
@@ -249,7 +249,7 @@ export default function AdminEightDList() {
               ) : pageRows.map((row) => (
                 <tr key={row.id} className="hover:bg-slate-50/80">
                   <td className="px-4 py-3.5 font-medium text-[#000168]">{row.title || t('closedArchive.untitled')}</td>
-                  <td className="px-4 py-3.5 text-slate-700">{row.productionLine || '—'}</td>
+                  <td className="px-4 py-3.5 text-slate-700">{row.departmentName || '—'}</td>
                   <td className="px-4 py-3.5 text-slate-700">{champion(row)}</td>
                   <td className="px-4 py-3.5 text-slate-700">{row.eightDStep ? `D${row.eightDStep}` : '—'}</td>
                   <td className="px-4 py-3.5"><span className="inline-flex px-2 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700">{getEightDStatusMeta(row.eightDStatus, null).label}</span></td>

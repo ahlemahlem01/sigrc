@@ -74,6 +74,8 @@ public class ClaimsHistoryRowDto
     public string? AssignedToId { get; set; }
     public string? AssignedToName { get; set; }
     public string? ProductionLine { get; set; }
+    /// <summary>Department of the person in charge (or, failing that, of the person who raised the claim).</summary>
+    public string? DepartmentName { get; set; }
     public bool IsInternal { get; set; }
     public string? Shift { get; set; }
     public int? ProducedQuantity { get; set; }
@@ -565,6 +567,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         {
             row.CreatedBy = ClaimVisibility.PersonName(profiles, row.CreatedById, row.CreatedBy, aliases);
             row.ProductionLine = ClaimVisibility.PlaceName(departments, row.ProductionLine);
+            row.DepartmentName = DepartmentOf(profiles, row.AssignedToId) ?? DepartmentOf(profiles, row.CreatedById);
         }
         facets.ProductionLines = facets.ProductionLines
             .Select(line => ClaimVisibility.PlaceName(departments, line) ?? line)
@@ -586,6 +589,13 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             Facets = facets,
             Stats = stats,
         };
+    }
+
+    private static string? DepartmentOf(IEnumerable<Coficab.ActionPlan.Core.Entities.UserProfile> profiles, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return null;
+        var department = profiles.FirstOrDefault(p => string.Equals(p.UserId, userId, StringComparison.OrdinalIgnoreCase))?.Department;
+        return department == null ? null : ClaimVisibility.DepartmentLabel(department);
     }
 
     private static string? Clip(string? value, int max)
