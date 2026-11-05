@@ -51,7 +51,7 @@ export default function FunctionsPage() {
     try {
       const [f, d, p, o] = await Promise.all([
         axios.get<Fn[]>(BASE, { headers, params: deptFilter ? { departmentId: deptFilter } : undefined }),
-        axios.get(`${ACTION_PLAN_API_URL}/department`, { headers }),
+        axios.get(`${BASE}/departments`, { headers }),
         axios.get<Perm[]>(`${BASE}/permissions`, { headers }),
         axios.get(`${ACTION_PLAN_API_URL}/organization`, { headers }).catch(() => ({ data: [] as any[] })),
       ]);

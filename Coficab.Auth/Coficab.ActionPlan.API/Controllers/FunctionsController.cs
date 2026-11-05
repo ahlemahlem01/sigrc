@@ -32,6 +32,20 @@ public class FunctionsController : ControllerBase
 
     private string CurrentUserId() => User.FindFirst("sub")?.Value ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "system";
 
+    /// <summary>
+    /// The department an administrator works in. The superadmin is not restricted (IsSuper); an administrator with no department
+    /// recorded manages nothing (Department is null).
+    /// </summary>
+    private async Task<(bool IsSuper, Guid? Department)> ScopeAsync(CancellationToken ct)
+    {
+        if (User.IsInRole("superadmin")) return (true, null);
+        var me = CurrentUserId();
+        var dept = await _db.UserProfiles.AsNoTracking().Where(p => p.UserId == me).Select(p => p.DepartmentId).FirstOrDefaultAsync(ct);
+        return (false, dept);
+    }
+
+    private static bool Allowed((bool IsSuper, Guid? Department) scope, Guid departmentId) => scope.IsSuper || (scope.Department != null && scope.Department == departmentId);
+
     private static List<string> SplitPermissions(string? raw) =>
         (raw ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
@@ -41,11 +55,25 @@ public class FunctionsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public IActionResult Permissions() => Ok(PermissionAccess.Catalog.Select(p => new { code = p.Code, label = p.Label }));
 
+    /// <summary>The departments in which the caller may manage functions: all for the superadmin, his own for an administrator.</summary>
+    [HttpGet("departments")]
+    [Authorize(Policy = "AdminOnly")]
+    public async Task<IActionResult> Departments(CancellationToken ct)
+    {
+        var scope = await ScopeAsync(ct);
+        var query = _db.Departments.AsNoTracking().Where(d => !d.IsArchived);
+        if (!scope.IsSuper) query = query.Where(d => scope.Department != null && d.Id == scope.Department);
+        var rows = await query.OrderBy(d => d.Name).Select(d => new { id = d.Id, name = d.Name, organizationId = d.OrganizationId }).ToListAsync(ct);
+        return Ok(rows);
+    }
+
     [HttpGet]
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> List([FromQuery] Guid? departmentId, CancellationToken ct)
     {
+        var scope = await ScopeAsync(ct);
         var query = _db.Functions.AsNoTracking().Include(f => f.Department).AsQueryable();
+        if (!scope.IsSuper) query = query.Where(f => scope.Department != null && f.DepartmentId == scope.Department);
         if (departmentId.HasValue) query = query.Where(f => f.DepartmentId == departmentId.Value);
         var functions = await query.OrderBy(f => f.Department.Name).ThenBy(f => f.FunctionCode).ToListAsync(ct);
 
@@ -108,6 +136,7 @@ public class FunctionsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create([FromBody] FunctionRequest request, CancellationToken ct)
     {
+        if (!Allowed(await ScopeAsync(ct), request.DepartmentId)) return Forbid();
         if (await ValidateAsync(request, null, ct) is { } error) return BadRequest(new { message = error });
         var function = new Function
         {
@@ -130,6 +159,8 @@ public class FunctionsController : ControllerBase
     {
         var function = await _db.Functions.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (function == null) return NotFound();
+        var scope = await ScopeAsync(ct);
+        if (!Allowed(scope, function.DepartmentId) || !Allowed(scope, request.DepartmentId)) return Forbid();
         if (await ValidateAsync(request, id, ct) is { } error) return BadRequest(new { message = error });
 
         function.FunctionCode = request.Code.Trim();
@@ -150,6 +181,7 @@ public class FunctionsController : ControllerBase
     {
         var function = await _db.Functions.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (function == null) return NotFound();
+        if (!Allowed(await ScopeAsync(ct), function.DepartmentId)) return Forbid();
         function.IsArchived = true;
         function.ArchivedAt = DateTime.UtcNow;
         function.ArchivedBy = CurrentUserId();
@@ -166,6 +198,7 @@ public class FunctionsController : ControllerBase
     {
         var function = await _db.Functions.FirstOrDefaultAsync(f => f.Id == id, ct);
         if (function == null) return NotFound();
+        if (!Allowed(await ScopeAsync(ct), function.DepartmentId)) return Forbid();
         if (file == null || file.Length == 0) return BadRequest(new { message = "Fichier requis." });
         if (file.Length > MaxJobDescriptionBytes) return BadRequest(new { message = "Le fichier dépasse 5 Mo." });
         if (!JobDescriptionExtensions.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
@@ -184,6 +217,7 @@ public class FunctionsController : ControllerBase
     public async Task<IActionResult> DownloadJobDescription(Guid id, CancellationToken ct)
     {
         var function = await _db.Functions.AsNoTracking().FirstOrDefaultAsync(f => f.Id == id, ct);
+        if (function != null && !Allowed(await ScopeAsync(ct), function.DepartmentId)) return Forbid();
         var physical = function == null ? null : DocumentStorage.Resolve(_env, function.JobDescriptionFilePath);
         if (function == null || physical == null || !System.IO.File.Exists(physical)) return NotFound();
 
@@ -220,6 +254,8 @@ public class FunctionsController : ControllerBase
     public async Task<IActionResult> Assignments([FromQuery] Guid? functionId, [FromQuery] string? userId, CancellationToken ct)
     {
         var query = _db.UserFunctions.AsNoTracking().Include(uf => uf.Function).AsQueryable();
+        var scope = await ScopeAsync(ct);
+        if (!scope.IsSuper) query = query.Where(uf => scope.Department != null && uf.Function.DepartmentId == scope.Department);
         if (functionId.HasValue) query = query.Where(uf => uf.FunctionId == functionId.Value);
         if (!string.IsNullOrWhiteSpace(userId)) query = query.Where(uf => uf.UserId == userId);
         var rows = await query.OrderBy(uf => uf.HireDate).ToListAsync(ct);
@@ -256,7 +292,12 @@ public class FunctionsController : ControllerBase
     {
         if (!TryStatus(request.Status, out var status)) return BadRequest(new { message = "Statut inconnu (Active, NotActive ou ByInterim)." });
         if (!await _db.UserProfiles.AnyAsync(p => p.UserId == request.UserId, ct)) return BadRequest(new { message = "Employé introuvable." });
-        if (!await _db.Functions.AnyAsync(f => f.Id == request.FunctionId, ct)) return BadRequest(new { message = "Fonction introuvable." });
+        var target = await _db.Functions.AsNoTracking().Where(f => f.Id == request.FunctionId).Select(f => new { f.DepartmentId }).FirstOrDefaultAsync(ct);
+        if (target == null) return BadRequest(new { message = "Fonction introuvable." });
+        var assignScope = await ScopeAsync(ct);
+        if (!Allowed(assignScope, target.DepartmentId)) return Forbid();
+        if (!assignScope.IsSuper && !await _db.UserProfiles.AnyAsync(p => p.UserId == request.UserId && p.DepartmentId == assignScope.Department, ct))
+            return BadRequest(new { message = "Cet employé n'appartient pas à votre département." });
         if (await _db.UserFunctions.AnyAsync(uf => uf.UserId == request.UserId && uf.FunctionId == request.FunctionId, ct))
             return BadRequest(new { message = "Cet employé a déjà cette fonction : modifiez son statut." });
 
@@ -283,8 +324,9 @@ public class FunctionsController : ControllerBase
     public async Task<IActionResult> SetStatus(Guid id, [FromBody] StatusRequest request, CancellationToken ct)
     {
         if (!TryStatus(request.Status, out var status)) return BadRequest(new { message = "Statut inconnu (Active, NotActive ou ByInterim)." });
-        var row = await _db.UserFunctions.FirstOrDefaultAsync(uf => uf.Id == id, ct);
+        var row = await _db.UserFunctions.Include(uf => uf.Function).FirstOrDefaultAsync(uf => uf.Id == id, ct);
         if (row == null) return NotFound();
+        if (!Allowed(await ScopeAsync(ct), row.Function.DepartmentId)) return Forbid();
         row.Status = status;
         row.UpdatedAt = DateTime.UtcNow;
         row.UpdatedBy = CurrentUserId();
@@ -296,8 +338,9 @@ public class FunctionsController : ControllerBase
     [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Unassign(Guid id, CancellationToken ct)
     {
-        var row = await _db.UserFunctions.FirstOrDefaultAsync(uf => uf.Id == id, ct);
+        var row = await _db.UserFunctions.Include(uf => uf.Function).FirstOrDefaultAsync(uf => uf.Id == id, ct);
         if (row == null) return NotFound();
+        if (!Allowed(await ScopeAsync(ct), row.Function.DepartmentId)) return Forbid();
         row.IsArchived = true;
         row.ArchivedAt = DateTime.UtcNow;
         row.ArchivedBy = CurrentUserId();

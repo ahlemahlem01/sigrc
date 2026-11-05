@@ -19,7 +19,7 @@ beforeEach(() => {
   mockedPost.mockReset();
   mockedGet.mockImplementation((url: string) => {
     if (url.endsWith('/functions')) return Promise.resolve({ data: [fn] });
-    if (url.endsWith('/department')) return Promise.resolve({ data: [{ id: 'd1', name: 'Qualité' }] });
+    if (url.endsWith('/functions/departments')) return Promise.resolve({ data: [{ id: 'd1', name: 'Qualité' }] });
     if (url.endsWith('/functions/people')) return Promise.resolve({ data: [{ id: 'u1', name: 'Rania Bouazizi' }] });
     if (url.endsWith('/functions/permissions')) return Promise.resolve({ data: [{ code: '8d:validate', label: 'Valider un 8D' }] });
     if (url.endsWith('/functions/assignments')) return Promise.resolve({ data: [{ id: 'a1', userId: 'u1', userName: 'Rania Bouazizi', functionId: 'f1', status: 'ByInterim', startDate: '2026-11-01' }] });
