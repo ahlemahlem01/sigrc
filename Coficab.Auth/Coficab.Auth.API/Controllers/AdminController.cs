@@ -149,6 +149,12 @@ public class AdminController : ControllerBase
             var callerOrgId = await GetCallerOrgIdAsync();
             if (callerOrgId == null) return Forbid();
             query = query.Where(u => u.OrganizationId == callerOrgId);
+            // an administrator sees the people of his own department only
+            var caller = await _userManager.FindByIdAsync(CurrentUserId);
+            var callerDeptId = caller?.DepartmentId;
+            query = callerDeptId == null
+                ? query.Where(u => u.Id == CurrentUserId)
+                : query.Where(u => u.DepartmentId == callerDeptId);
         }
         else if (ParseOrganizations(organizationIds) is { } followed)
         {
