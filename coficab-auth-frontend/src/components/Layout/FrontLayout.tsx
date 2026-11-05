@@ -16,6 +16,7 @@ import LanguageFlags from '../LanguageFlags';
 import LicenceBanner from '../LicenceBanner';
 import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
+import { roleLabel } from '../../utils/roleLabel';
 
 // Target route for Quality Analyses
 const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
@@ -54,7 +55,7 @@ const FrontLayout = () => {
   const handleLogout = () => { logout(); navigate('/'); };
 
   const userDisplayName = (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
-  const userRole = isAdmin ? t('employeeNav.qualityAdmin') : t('employeeNav.operator');
+  const userRole = roleLabel(user as any, t);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');

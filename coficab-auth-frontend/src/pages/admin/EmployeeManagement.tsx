@@ -1168,14 +1168,14 @@ export default function EmployeeManagement() {
         .em-btn-danger:hover { background: #fecaca; }
         .em-btn-danger:disabled { opacity: .6; cursor: not-allowed; }
         .em-btn-sm {
-          height: 30px; padding: 0 10px; border-radius: 7px;
+          height: 30px; padding: 0 10px; border-radius: 8px;
           font-size: 11.5px; font-weight: 600; gap: 5px;
           white-space: nowrap; line-height: 1;
         }
         .em-btn-sm i { font-size: 13px; }
         .em-btn-icon {
           width: 30px; min-width: 30px; height: 30px; padding: 0;
-          justify-content: center; border-radius: 7px;
+          justify-content: center; border-radius: 8px;
         }
         .em-btn-icon i { font-size: 14px; margin: 0; }
         .em-btn-view { background: #000168; color: #fff; border-color: #000168; }
@@ -1314,9 +1314,9 @@ export default function EmployeeManagement() {
       <div className="em-wrap">
         <div className="em-head">
           <div>
-            <div className="em-head-title">
+            <h1 className="em-head-title">
               {lockedOnly ? t('employeesAdmin.titleLocked') : t('employeesAdmin.title')}
-            </div>
+            </h1>
             <div className="em-head-sub">
               {lockedOnly
                 ? t('employeesAdmin.subtitleLocked')

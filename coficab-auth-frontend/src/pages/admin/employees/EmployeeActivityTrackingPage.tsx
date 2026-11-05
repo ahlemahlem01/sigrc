@@ -264,7 +264,7 @@ export default function EmployeeActivityTrackingPage() {
 
         .eat-btn-sm {
           display: inline-flex; align-items: center; gap: 6px;
-          height: 30px; padding: 0 10px; border-radius: 7px;
+          height: 30px; padding: 0 10px; border-radius: 8px;
           font: inherit; font-size: 12px; font-weight: 600;
           border: 1px solid transparent; cursor: pointer; transition: background .15s;
         }

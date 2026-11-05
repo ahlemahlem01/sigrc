@@ -656,7 +656,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         @media (max-width: 640px) { .pfe-sim-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pfe-sim-card { min-height: 44px; } }
         .pfe-file-actions { display: flex; align-items: center; gap: 8px; }
         .pfe-replace-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid #cbd5e1;
-          border-radius: 8px; background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+          border-radius: 8px; background: #fff; color: #000168; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .pfe-replace-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .pfe-cv-card {
           margin-top: 10px;
@@ -665,7 +665,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           background: #eff6ff;
           border-radius: 8px;
         }
-        .pfe-cv-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1e3a8a; }
+        .pfe-cv-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #000168; }
         .pfe-cv-conf { font-weight: 700; color: #15803d; }
         .pfe-cv-conf.low { color: #b45309; }
         .pfe-cv-code { margin: 6px 0; font-size: 15px; font-weight: 800; color: #0f172a; }
@@ -674,7 +674,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         .pfe-cv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .pfe-cv-btn, .pfe-cv-select {
           height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #93c5fd;
-          background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer;
+          background: #fff; color: #000168; font-size: 12.5px; font-weight: 600; cursor: pointer;
         }
         .pfe-cv-btn.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
         .pfe-file-card {
@@ -732,7 +732,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           padding: 9px 16px;
           background: #ffffff;
           border: 1px solid #cbd5e1;
-          border-radius: 7px;
+          border-radius: 8px;
           color: #334155;
           font-size: 12.5px;
           font-weight: 600;
@@ -750,7 +750,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           padding: 9px 18px;
           background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
           border: none;
-          border-radius: 7px;
+          border-radius: 8px;
           color: #ffffff;
           font-size: 12.5px;
           font-weight: 700;

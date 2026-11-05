@@ -489,7 +489,7 @@ export default function HrReportsPage() {
         .hrp-sub { margin: 6px 0 0; font-size: 13px; color: #64748b; max-width: 560px; line-height: 1.45; }
         .hrp-note {
           margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;
-          background: #eff6ff; color: #1e40af; font-size: 13px; border: 1px solid #bfdbfe;
+          background: #eff6ff; color: #1d4ed8; font-size: 13px; border: 1px solid #bfdbfe;
         }
         .hrp-err {
           margin-bottom: 12px; padding: 10px 12px; border-radius: 8px;

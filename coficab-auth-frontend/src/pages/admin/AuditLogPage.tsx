@@ -1040,7 +1040,7 @@ export default function AuditLogPage() {
         .aul-pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-top:1px solid #f0f2f8; }
         .aul-pg-info { font-size:12px; color:#64748b; }
         .aul-pg-btns { display:flex; gap:4px; }
-        .aul-pg-btn { padding:5px 12px; border-radius:6px; border:1px solid #e4e8f2; background:#f8f9fc; font-size:12px; font-weight:500; color:#374151; cursor:pointer; font-family:inherit; }
+        .aul-pg-btn { padding:5px 12px; border-radius:8px; border:1px solid #e4e8f2; background:#f8f9fc; font-size:12px; font-weight:500; color:#374151; cursor:pointer; font-family:inherit; }
         .aul-pg-btn:hover:not(:disabled) { border-color:#000168; color:#000168; }
         .aul-pg-btn:disabled { opacity:.4; cursor:not-allowed; }
         .aul-pg-btn.active { background:#000168; color:#fff; border-color:#000168; }

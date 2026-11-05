@@ -279,7 +279,7 @@ export default function EmployeeRecognitionPage() {
     <div className="rec-wrap">
       <div className="rec-head">
         <div>
-          <div className="rec-title">{t('employeeFile.recognition')}</div>
+          <h1 className="rec-title">{t('employeeFile.recognition')}</h1>
           <div className="rec-sub">
             {t('recognition.subtitle', { month: MONTH_LABEL })}
           </div>

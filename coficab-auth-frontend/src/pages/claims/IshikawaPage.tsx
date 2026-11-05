@@ -558,13 +558,13 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
         }
         .btn-predict:not(:disabled):hover { filter: brightness(1.06); box-shadow: 0 6px 16px -8px rgba(29,78,216,0.55); }
 
-        .ik-icon-btn { display: inline-flex; align-items: center; gap: 5px; border: none; border-radius: 6px; padding: 5px 9px; font-size: 11px; font-weight: 600; font-family: Inter, sans-serif; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; }
+        .ik-icon-btn { display: inline-flex; align-items: center; gap: 5px; border: none; border-radius: 8px; padding: 5px 9px; font-size: 11px; font-weight: 600; font-family: Inter, sans-serif; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease; }
         .ik-icon-btn:disabled { cursor: not-allowed; opacity: 0.5; }
         .ik-icon-btn:not(:disabled):hover { transform: translateY(-1px); }
         .ik-flag-off { background: #EEF0F5; color: #4B5065; }
         .ik-flag-off:not(:disabled):hover { background: #E2E4EF; }
         .ik-flag-on { background: var(--danger); color: #fff; }
-        .ik-remove-btn { background: none; border: none; color: #A1A6B8; cursor: pointer; padding: 4px; border-radius: 5px; transition: color 0.15s ease, background 0.15s ease; }
+        .ik-remove-btn { background: none; border: none; color: #A1A6B8; cursor: pointer; padding: 4px; border-radius: 8px; transition: color 0.15s ease, background 0.15s ease; }
         .ik-remove-btn:hover { color: var(--danger); background: #FDF1F1; }
 
         .ik-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }

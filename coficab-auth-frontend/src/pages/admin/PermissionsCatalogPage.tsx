@@ -392,7 +392,7 @@ const PAGE_CSS = `
   .pm-line span { min-width: 0; font-size: 13px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pm-off { flex-shrink: 0; font-size: 11px; font-weight: 700; color: #b45309; background: #fef3c7; border-radius: 999px; padding: 2px 7px; }
   .pm-menu { position: relative; flex-shrink: 0; }
-  .pm-menu-btn { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent; color: #475569; cursor: pointer; }
+  .pm-menu-btn { width: 28px; height: 28px; border: 0; border-radius: 8px; background: transparent; color: #475569; cursor: pointer; }
   .pm-menu-btn:hover { background: #f1f5f9; color: #000168; }
   .pm-menu-pop { position: absolute; right: 0; top: 30px; z-index: 5; min-width: 148px; background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 8px 24px rgba(15, 23, 42, .08); padding: 4px; }
   .pm-menu-pop button { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 6px; padding: 7px 10px; font: inherit; font-size: 13px; color: #0f172a; cursor: pointer; }

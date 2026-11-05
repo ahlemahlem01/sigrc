@@ -106,7 +106,7 @@ const HistoryImportPage: React.FC = () => {
         .hi-card h2 { margin: 0 0 4px; font-size: 15px; color: ${NAVY}; display: flex; gap: 8px; align-items: center; }
         .hi-step { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; background: ${NAVY}; color: #fff; font-size: 12px; align-items: center; justify-content: center; }
         .hi-card p { margin: 0 0 10px; font-size: 13px; color: #64748b; line-height: 1.5; }
-        .hi-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d6dbe6; background: #fff; font-family: inherit; color: #0f172a; }
+        .hi-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d6dbe6; background: #fff; font-family: inherit; color: #0f172a; }
         .hi-btn.primary { background: ${NAVY}; color: #fff; border-color: ${NAVY}; }
         .hi-btn:disabled { opacity: .55; cursor: not-allowed; }
         .hi-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }

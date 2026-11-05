@@ -400,7 +400,7 @@ const OrganizationList = () => {
 
         /* buttons */
         .ol-btn {
-          padding: 9px 18px; border-radius: 7px; font-size: 12px;
+          padding: 9px 18px; border-radius: 8px; font-size: 12px;
           font-weight: 700; cursor: pointer; border: none;
           font-family: var(--font-head); transition: all .15s;
         }
@@ -423,7 +423,7 @@ const OrganizationList = () => {
         {/* header */}
         <div className="ol-head">
           <div>
-            <div className="ol-title">{t('orgs.title')}</div>
+            <h1 className="ol-title">{t('orgs.title')}</h1>
             <div className="ol-sub">{t('orgs.subtitle')}</div>
           </div>
           <div className="ol-head-right">

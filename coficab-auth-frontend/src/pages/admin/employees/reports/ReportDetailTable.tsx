@@ -54,7 +54,7 @@ export default function ReportDetailTable({ rows }: Props) {
         .hrt-lv { display: inline-flex; flex-wrap: wrap; gap: 4px; max-width: 210px; }
         .hrt-lv span { white-space: nowrap; display: inline-flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 6px; font-size: 11px; font-weight: 650; }
         .hrt-lv .e { background: #dcfce7; color: #166534; }
-        .hrt-lv .c { background: #dbeafe; color: #1e40af; }
+        .hrt-lv .c { background: #dbeafe; color: #1d4ed8; }
         .hrt-lv .b { background: #f1f5f9; color: #475569; }
         .hrt tr:last-child td { border-bottom: none; }
         .hrt-name { font-weight: 650; }

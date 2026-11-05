@@ -476,7 +476,7 @@ const handleLock = async (id: string) => {
         .ad-pi.sel { border-color: var(--navy); color: var(--navy); font-weight: 600; background: var(--navy-light); }
         .ad-pi-ck { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; transition: background .15s, border .15s; }
 
-        .ad-btn { padding: 9px 18px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font-head); transition: all .15s; }
+        .ad-btn { padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font-head); transition: all .15s; }
         .btn-primary { background: var(--navy); color: #fff; }
         .btn-primary:hover { background: var(--navy-mid); }
         .btn-ghost { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }

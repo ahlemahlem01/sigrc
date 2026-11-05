@@ -202,7 +202,7 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
         .aps-back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: var(--font-body); margin-bottom: 4px; }
         .aps-back:hover { color: var(--navy); border-color: #93c5fd; background: var(--navy-light); }
         .aps-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--navy); margin: 0; line-height: 1.2; }
-        .aps-id { font-size: 11px; color: var(--subtle); font-family: monospace; }
+        .aps-id { font-size: 11px; color: var(--subtle); font-family: var(--font-mono); }
         .aps-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: -0.01em; text-transform: none; width: fit-content; }
         .aps-status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
 

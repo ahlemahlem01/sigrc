@@ -918,7 +918,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
         .btn {
           display: inline-flex; align-items: center; justify-content: center;
           padding: 7px 14px; font-size: 13px; font-weight: 500;
-          border-radius: 6px; border: 1px solid transparent; cursor: pointer;
+          border-radius: 8px; border: 1px solid transparent; cursor: pointer;
           transition: all 0.15s ease; user-select: none; outline: none; line-height: 1.4;
         }
         .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -959,7 +959,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
             </h2>
           </div>
           <p style={{ margin: '3px 0 0 12px', color: '#64748B', fontSize: '13px' }}>
-            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'monospace', color: COFICAB_NAVY, fontWeight: '600' }}>{claim?.title || claimId}</span>
+            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'var(--font-mono)', color: COFICAB_NAVY, fontWeight: '600' }}>{claim?.title || claimId}</span>
           </p>
         </div>
 
@@ -968,7 +968,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
             <span style={{ padding: '5px 12px', borderRadius: '12px', background: '#D1FAE5', color: '#065F46', fontWeight: '600', fontSize: '12px' }}>{t('fiveWhy.badgeValidated')}</span>
           )}
           {status === 'PENDING_VALIDATION' && (
-            <span style={{ padding: '5px 12px', borderRadius: '12px', background: '#DBEAFE', color: '#1E40AF', fontWeight: '600', fontSize: '12px' }}>{t('fiveWhy.badgePending')}</span>
+            <span style={{ padding: '5px 12px', borderRadius: '12px', background: '#DBEAFE', color: '#1d4ed8', fontWeight: '600', fontSize: '12px' }}>{t('fiveWhy.badgePending')}</span>
           )}
           {status === 'DRAFT' && (
             <span style={{ padding: '5px 12px', borderRadius: '12px', background: '#FEF3C7', color: '#92400E', fontWeight: '600', fontSize: '12px' }}>{t('claimStatus.draft')}</span>
@@ -1160,7 +1160,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
 
           <div style={{
             marginBottom: 16, padding: '10px 14px', borderRadius: 6,
-            background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#1E3A8A', fontSize: 13,
+            background: '#EFF6FF', border: '1px solid #BFDBFE', color: '#000168', fontSize: 13,
           }}>
             {t('fiveWhy.iatfNote')}
           </div>

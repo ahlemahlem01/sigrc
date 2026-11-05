@@ -965,7 +965,7 @@ export default function EmployeeOrgChartPage() {
         .org-pop-actions { display: flex; gap: 8px; margin-top: 12px; }
         .org-pop-btn {
           display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
-          border-radius: 7px; font: inherit; font-size: 12px; font-weight: 600;
+          border-radius: 8px; font: inherit; font-size: 12px; font-weight: 600;
           border: 1px solid transparent; cursor: pointer; background: ${NAVY}; color: #fff;
         }
         .org-pop-btn:hover { background: #00009e; }

@@ -1,4 +1,5 @@
 {
+  "roleNames": { "superadmin": "Superadmin", "admin": "Amministratore", "user": "Dipendente" },
   "thresholds": {
     "on": "Attivo",
     "off": "Disattivo",

@@ -32,7 +32,7 @@ export default function ConfirmDialog({ title, text, confirmLabel, danger, busy,
             autoFocus
             disabled={busy}
             onClick={onConfirm}
-            className={`px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-50 ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#1a237e] hover:bg-[#0d1642]'}`}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-50 ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[#000168] hover:bg-[#0d1642]'}`}
           >
             {busy ? 'En cours…' : confirmLabel}
           </button>

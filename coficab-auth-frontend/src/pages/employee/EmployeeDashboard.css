@@ -567,7 +567,7 @@
   font-weight: 600;
   cursor: pointer;
   padding: 4px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   transition: background 0.2s;
 }
 .view-all-btn:hover {
