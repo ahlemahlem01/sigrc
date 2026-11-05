@@ -178,7 +178,7 @@ export function PriorityCauseCard({ claimId, version, evidence, footer, external
         .pc-row { display: flex; gap: 8px; flex-wrap: wrap; }
         .pc-row input, .pc-row select { border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 10px; font-size: 13.5px; font-family: inherit; }
         .pc-row input { flex: 1 1 260px; min-width: 0; }
-        .pc-btn { border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #000168; background: #000168; color: #fff; font-family: inherit; }
+        .pc-btn { border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #000168; background: #000168; color: #fff; font-family: inherit; }
         .pc-btn:disabled { opacity: .55; cursor: not-allowed; }
         .pc-ik { margin: 0 0 10px; }
         .pc-ik ul { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }

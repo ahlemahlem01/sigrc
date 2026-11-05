@@ -380,7 +380,7 @@ export const FrontPlanActionManagement: React.FC = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#1a237e]"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#000168]"></div>
       </div>
     );
   }
@@ -419,7 +419,7 @@ export const FrontPlanActionManagement: React.FC = () => {
             {!isCreating && (
               <button
                 onClick={startCreate}
-                className="px-4 py-2 bg-[#1a237e] text-white rounded-lg hover:bg-[#0d1642] transition-colors text-sm font-medium flex items-center gap-2"
+                className="px-4 py-2 bg-[#000168] text-white rounded-lg hover:bg-[#0d1642] transition-colors text-sm font-medium flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -453,7 +453,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                 type="text"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none text-sm"
                 placeholder={t('planActionsMgmt.titlePh')}
               />
             </div>
@@ -464,7 +464,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none text-sm resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none text-sm resize-none"
                 placeholder={t('planActionsMgmt.descriptionPh')}
               />
             </div>
@@ -475,7 +475,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                 <select
                   value={formData.assignedToId}
                   onChange={(e) => setFormData({ ...formData, assignedToId: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none text-sm bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none text-sm bg-white"
                 >
                   <option value="">{t('claimDetail.unassigned')}</option>
                   {users.map((user) => (
@@ -491,7 +491,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as PlanActionPriority })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none text-sm bg-white"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none text-sm bg-white"
                 >
                   <option value="low">{t('myActionPlans.priorityLow')}</option>
                   <option value="medium">{t('myActionPlans.priorityMedium')}</option>
@@ -505,7 +505,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                   type="date"
                   value={formData.deadline}
                   onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none text-sm"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none text-sm"
                 />
               </div>
             </div>
@@ -520,7 +520,7 @@ export const FrontPlanActionManagement: React.FC = () => {
               <button
                 onClick={() => (editingId ? handleUpdate(editingId) : handleCreate())}
                 disabled={!formData.title.trim()}
-                className="px-4 py-2 bg-[#1a237e] text-white rounded-lg hover:bg-[#0d1642] transition-colors text-sm disabled:opacity-50"
+                className="px-4 py-2 bg-[#000168] text-white rounded-lg hover:bg-[#0d1642] transition-colors text-sm disabled:opacity-50"
               >
                 {editingId ? t('plansAdmin.update') : t('orgs.create')}
               </button>
@@ -604,7 +604,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                     </div>
                     <div className="mt-2 flex items-center gap-2 max-w-xs">
                       <div className="h-1.5 flex-1 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, action.progress ?? 0)}%`, background: (action.progressRaw ?? 0) === 101 ? '#2f855a' : (action.progressRaw ?? 0) === 100 ? '#f59e0b' : '#1a237e' }} />
+                        <div className="h-full rounded-full" style={{ width: `${Math.min(100, action.progress ?? 0)}%`, background: (action.progressRaw ?? 0) === 101 ? '#2f855a' : (action.progressRaw ?? 0) === 100 ? '#f59e0b' : '#000168' }} />
                       </div>
                       <span className="text-[11px] tabular-nums text-gray-600">
                         {(action.progressRaw ?? 0) === 101 ? 'Validée' : (action.progressRaw ?? 0) === 102 ? 'Annulée' : `${action.progress ?? 0} %`}
@@ -620,7 +620,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                         type="button"
                         disabled={validatingId === action.id}
                         onClick={() => void handleValidate(action)}
-                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#1a237e] text-white hover:bg-[#0d1642] disabled:opacity-50"
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-[#000168] text-white hover:bg-[#0d1642] disabled:opacity-50"
                       >
                         {validatingId === action.id ? 'Validation…' : 'Valider'}
                       </button>
@@ -629,7 +629,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                       disabled={(action.progressRaw ?? 0) === 101}
                       value={action.status}
                       onChange={(e) => handleStatusChange(action.id, e.target.value as ActionPlanStatus)}
-                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-[#1a237e] focus:border-transparent outline-none disabled:opacity-60"
+                      className="text-sm border border-gray-300 rounded-lg px-2 py-1 bg-white focus:ring-2 focus:ring-[#000168] focus:border-transparent outline-none disabled:opacity-60"
                     >
                       <option value="created">{t('planDetailFront.statusAwaitingAssignment')}</option>
                       <option value="ongoing">{t('status.ongoing')}</option>
@@ -793,11 +793,11 @@ export const FrontPlanActionManagement: React.FC = () => {
               rows={4}
               maxLength={500}
               placeholder={msgModal.kind === 'reject' ? 'Motif du rejet…' : "Message d'avertissement…"}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#1a237e] outline-none"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-[#000168] outline-none"
             />
             <div className="mt-4 flex justify-end gap-2">
               <button type="button" disabled={msgBusy} onClick={() => setMsgModal(null)} className="px-4 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">Annuler</button>
-              <button type="button" disabled={msgBusy || msgText.trim().length < 3} onClick={() => void submitMessage()} className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#1a237e] text-white hover:bg-[#0d1642] disabled:opacity-50">
+              <button type="button" disabled={msgBusy || msgText.trim().length < 3} onClick={() => void submitMessage()} className="px-4 py-2 text-sm font-semibold rounded-lg bg-[#000168] text-white hover:bg-[#0d1642] disabled:opacity-50">
                 {msgBusy ? 'Envoi…' : msgModal.kind === 'reject' ? 'Rejeter' : 'Envoyer'}
               </button>
             </div>

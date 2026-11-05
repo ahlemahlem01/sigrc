@@ -297,7 +297,7 @@ const loadEmployeeNames = async () => {
         .asl-perm { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; margin: 1px; }
         .perm-on { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
         .perm-off { background: #f8fafc; color: #94a3b8; border: 1px solid var(--border); }
-        .asl-uid { font-family: monospace; font-size: 10px; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+        .asl-uid { font-family: var(--font-mono); font-size: 10px; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
         .asl-ab { display: inline-flex; align-items: center; gap: 3px; padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #f8f9fc; color: var(--muted); transition: color .15s, border-color .15s; font-family: var(--font-body); }
         .asl-ab:hover { color: #b91c1c; border-color: #fca5a5; }
         .asl-empty { padding: 48px 24px; text-align: center; color: var(--muted); }
@@ -343,7 +343,7 @@ const loadEmployeeNames = async () => {
         <div className="asl-header">
           <div>
             <div className="asl-eyebrow">{t('createPlan.eyebrow')}</div>
-            <div className="asl-title">{t('assignmentsList.title')}</div>
+            <h1 className="asl-title">{t('assignmentsList.title')}</h1>
             <div className="asl-sub">{t('assignmentsList.subtitle')}</div>
           </div>
           <div className="asl-actions">

@@ -141,7 +141,7 @@ export default function PlanComments({ token, planId }: { token: string; planId:
         .pc-compose { margin-top: 12px; }
         .pc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
         .pc-hint { font-size: 11px; color: #94a3b8; }
-        .pc-btn { background: #000168; color: #fff; border: 0; border-radius: 9px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .pc-btn { background: #000168; color: #fff; border: 0; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
         .pc-btn:disabled { opacity: .45; cursor: default; }
         .pc-btn.sec { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
         .pc-empty { font-size: 13px; color: #94a3b8; margin: 4px 0 0; }

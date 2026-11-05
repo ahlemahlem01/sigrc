@@ -16,6 +16,7 @@ import LanguageFlags from '../LanguageFlags';
 import LicenceBanner from '../LicenceBanner';
 import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
+import { roleLabel } from '../../utils/roleLabel';
 
 // Target route for Quality Analyses
 const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
@@ -54,7 +55,7 @@ const FrontLayout = () => {
   const handleLogout = () => { logout(); navigate('/'); };
 
   const userDisplayName = (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
-  const userRole = isAdmin ? t('employeeNav.qualityAdmin') : t('employeeNav.operator');
+  const userRole = roleLabel(user as any, t);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -326,7 +327,7 @@ const FrontLayout = () => {
         
         .fl-user-info { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
         .fl-user-name { font-size: 13px; font-weight: 500; color: #fff; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fl-user-role { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px; }
+        .fl-user-role { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.55); margin-top: 1px; }
 
         .fl-dropdown {
           position: absolute; top: calc(100% + 16px); right: 0;

@@ -188,7 +188,7 @@ export default function EmployeeComparatorPage() {
       <div className="cmp-page">
         <div className="cmp-toolbar">
           <div>
-            <div className="cmp-title">{t('comparator.title')}</div>
+            <h1 className="cmp-title">{t('comparator.title')}</h1>
             <div className="cmp-sub">
               {t('comparator.sideBySide', { count: selectedRows.length })}
             </div>
@@ -255,7 +255,7 @@ export default function EmployeeComparatorPage() {
     <div className="cmp-page">
       <div className="cmp-toolbar">
         <div>
-          <div className="cmp-title">{t('comparator.title')}</div>
+          <h1 className="cmp-title">{t('comparator.title')}</h1>
           <div className="cmp-sub">
             {t('comparator.intro', { max: MAX_SELECT })}
           </div>
@@ -399,7 +399,7 @@ const PAGE_CSS = `
 
   .cmp-btn {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 16px; border-radius: 9px; font-size: 13px; font-weight: 650;
+    padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 650;
     border: 1px solid transparent; cursor: pointer; font-family: inherit;
     transition: all .15s;
   }
