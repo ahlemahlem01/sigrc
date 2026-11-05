@@ -959,7 +959,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
             </h2>
           </div>
           <p style={{ margin: '3px 0 0 12px', color: '#64748B', fontSize: '13px' }}>
-            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'monospace', color: COFICAB_NAVY, fontWeight: '600' }}>{claimId}</span>
+            {t('fiveWhy.claimLabel')} <span style={{ fontFamily: 'monospace', color: COFICAB_NAVY, fontWeight: '600' }}>{claim?.title || claimId}</span>
           </p>
         </div>
 

@@ -39,6 +39,8 @@ public class GetClaimsHistoryQuery : IRequest<ClaimsHistoryPageDto>
     public string? Sort { get; set; } = "updatedAt";
     public string? Dir { get; set; } = "desc";
     public bool IncludeDrafts { get; set; }
+    /// <summary>False for the following pages of a bulk load: the figures and filter lists are only needed once, with the first page.</summary>
+    public bool IncludeSummary { get; set; } = true;
     /// <summary>open (claims not closed yet) | closed | empty (all).</summary>
     public string? Scope { get; set; }
     /// <summary>What needs attention: noFiveWhy | eightD | noCapa | capaLate. Counts of the four are always returned in the stats.</summary>
@@ -505,6 +507,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         }
 
         var stats = new ClaimsHistoryStatsDto { Total = total };
+        var facets = new ClaimsHistoryFacetsDto();
+        if (request.IncludeSummary)
+        {
+        stats = new ClaimsHistoryStatsDto { Total = total };
         stats.NoFiveWhy = await unfocused.CountAsync(c => !fiveWhy.Any(f => f.ClaimId == c.Id), cancellationToken);
         stats.EightDToHandle = await unfocused.CountAsync(c => !c.StatusCode.ToUpper().Contains("CLOTUR") && !c.StatusCode.ToUpper().Contains("CLOSED")
                     && c.StatusCode.ToUpper() != "VALIDATED" && c.StatusCode.ToUpper() != "ARCHIVED"
@@ -541,7 +547,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 d => filteredIds.Contains(d.ClaimId) && (d.StatusCode.ToUpper() == "VALIDATED" || d.StatusCode.ToUpper() == "CLOSED"), cancellationToken);
         }
 
-        var facets = new ClaimsHistoryFacetsDto
+        facets = new ClaimsHistoryFacetsDto
         {
             Clients = await facetSource.Where(c => c.ClientId != "").Select(c => c.ClientId).Distinct().OrderBy(x => x).Take(300).ToListAsync(cancellationToken),
             DefectTypes = await facetSource.Where(c => c.DefectType != "").Select(c => c.DefectType).Distinct().OrderBy(x => x).Take(200).ToListAsync(cancellationToken),
@@ -550,6 +556,7 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             Shifts = await facetSource.Where(c => c.Shift != null && c.Shift != "").Select(c => c.Shift!).Distinct().OrderBy(x => x).Take(50).ToListAsync(cancellationToken),
             CreatedBy = await facetSource.Where(c => c.CreatedBy != null && c.CreatedBy != "").Select(c => c.CreatedBy!).Distinct().OrderBy(x => x).Take(200).ToListAsync(cancellationToken),
         };
+        }
 
         var profiles = await _context.UserProfiles.AsNoTracking().Include(p => p.Department).ToListAsync(cancellationToken);
         var departments = await _context.Departments.AsNoTracking().ToListAsync(cancellationToken);

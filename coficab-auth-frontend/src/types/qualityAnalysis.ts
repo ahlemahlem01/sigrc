@@ -318,6 +318,8 @@ export interface ClaimsHistoryQuery {
   internal?: string;
   page?: number;
   pageSize?: number;
+  /** false: skip the figures and filter lists (following pages of a bulk load). */
+  includeSummary?: boolean;
   search?: string;
   claimStatus?: string;
   fiveWhyStatus?: string;

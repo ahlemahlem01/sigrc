@@ -66,13 +66,15 @@ export default function AdminEightDList() {
       if (!cancel) setServerStats(first.stats ?? null);
       const items = [...(first.items || [])];
       const total = first.total || items.length;
-      for (let next = 2; items.length < total && next <= 5; next += 1) {
-        const pageData = await qualityAnalysisService.getClaimsHistory(
-          { page: next, pageSize: 100, hasEightD: 'YES', sort: 'updatedAt', dir: 'desc' },
+      // the following pages are asked together, without the figures already received with the first one
+      const lastPage = Math.min(Math.ceil(total / 100), 10);
+      const others = await Promise.all(
+        Array.from({ length: Math.max(0, lastPage - 1) }, (_, i) => qualityAnalysisService.getClaimsHistory(
+          { page: i + 2, pageSize: 100, hasEightD: 'YES', sort: 'updatedAt', dir: 'desc', includeSummary: false },
           accessToken,
-        );
-        items.push(...(pageData.items || []));
-      }
+        )),
+      );
+      others.forEach((pageData) => items.push(...(pageData.items || [])));
       return items;
     };
     load()

@@ -139,6 +139,7 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
   const [generating, setGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [claimTitle, setClaimTitle] = useState<string | null>(null);
   const [genSummary, setGenSummary] = useState<{
     total: number;
     red: number;
@@ -146,6 +147,16 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
     green: number;
     focus?: string;
   } | null>(null);
+
+  // the header names the claim by its title; the identifier is only the fallback
+  useEffect(() => {
+    if (!claimId || isAuthLoading) return;
+    let live = true;
+    qualityAnalysisService.getClaimById(claimId, accessToken || undefined)
+      .then((c) => { if (live) setClaimTitle(c?.title || null); })
+      .catch(() => { if (live) setClaimTitle(null); });
+    return () => { live = false; };
+  }, [claimId, accessToken, isAuthLoading]);
 
   const loadIshikawa = useCallback(async () => {
     if (isAuthLoading) return;
@@ -582,7 +593,7 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
           <p className="ik-eyebrow">{t('ishikawa.eyebrow')}</p>
           <h2 className="ik-title">{t('ishikawa.title')}</h2>
           <div className="ik-claim-badge">
-            {t('analysisTools.claim')} <b>{claimId}</b>
+            {t('analysisTools.claim')} <b>{claimTitle || claimId}</b>
           </div>
         </div>
 
