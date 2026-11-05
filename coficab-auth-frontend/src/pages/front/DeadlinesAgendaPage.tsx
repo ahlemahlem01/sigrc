@@ -8,11 +8,10 @@ import { getAdminDeadlines } from '../../services/validationsService';
 import { getScopeParam } from '../../services/organizationScopeStore';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import type { Claim } from '../../types/qualityAnalysis';
-import { resolveClaimStatus } from '../../utils/Claimutils';
+import { getStatusBadge, resolveClaimStatus } from '../../utils/Claimutils';
 import { isAdminUser } from '../../utils/roles';
 import './DeadlinesAgendaPage.styles.css';
 import { defectLabel } from '../../utils/defectLabel';
-import i18n from '../../i18n';
 
 type DeadlineKind = 'claim' | 'plan' | 'action';
 type TabKey = 'upcoming' | 'past';
@@ -80,7 +79,7 @@ function dayKey(dateStr: string): string {
 
 /** The wording of a claim status (the workflow code is never shown as such). */
 function claimStatusText(code: string): string {
-  return code ? i18n.t(`claimStatus.${code}`, { defaultValue: code }) : '';
+  return code ? getStatusBadge(code).label : '';
 }
 
 function isPlanClosed(status: number, progress: number): boolean {
