@@ -148,8 +148,8 @@ public class AdminController : ControllerBase
         {
             var callerOrgId = await GetCallerOrgIdAsync();
             if (callerOrgId == null) return Forbid();
-            query = query.Where(u => u.OrganizationId == callerOrgId);
-            // an administrator sees the people of his own department only
+            // an administrator sees the people of his own department only (a department belongs to one organization, and some
+            // older accounts have no organization recorded: the department is what counts)
             var caller = await _userManager.FindByIdAsync(CurrentUserId);
             var callerDeptId = caller?.DepartmentId;
             query = callerDeptId == null
