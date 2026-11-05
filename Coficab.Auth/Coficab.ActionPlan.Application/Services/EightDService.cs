@@ -140,7 +140,8 @@ public class EightDService : IEightDService
         var claim = await _db.Claims.FirstAsync(c => c.Id == claimId, ct);
 
         if (!string.Equals(dossier.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Ce dossier n'est pas en attente de validation.");
+            throw new InvalidOperationException(await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(
+                _db, claimId, "Ce dossier", "Ce dossier n'est pas en attente de validation.", dossier.ValidatedById, dossier.ValidatedAt, ct));
 
         if (Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.TookPart(claim, dossier, userId))
             throw new InvalidOperationException(Coficab.ActionPlan.Application.QualityAnalyses.Services.SelfValidationGate.Message);

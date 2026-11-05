@@ -193,8 +193,8 @@ public class PlanCommentsController : ControllerBase
             // themselves), the administrators are told
             var authorIsAdmin = IsAdminRole(author?.Role) || IsAdmin();
             if (!authorIsAdmin && !profiles.Any(p => IsAdminRole(p.Role)))
-                await _notifications.NotifyAdminsAsync("plan_comment", "Nouveau commentaire", $"{who} a commenté « {plan.Title} » : {Preview(body)}",
-                    plan.Id, linkPath: $"/pages/front/action-plans/{plan.Id}", excludeUserId: authorId);
+                await _notifications.NotifyValidatorsAsync("plan_comment", "Nouveau commentaire", $"{who} a commenté « {plan.Title} » : {Preview(body)}",
+                    permission: null, departmentId: plan.DepartmentId, actionPlanId: plan.Id, linkPath: $"/pages/front/action-plans/{plan.Id}", excludeUserId: authorId);
 
             foreach (var profile in profiles)
             {

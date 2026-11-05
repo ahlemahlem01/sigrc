@@ -818,6 +818,20 @@ public class QualityAnalysisController : ControllerBase
             }
         }
 
+        // two administrators can open the same request: the first to approve wins, the second is told who did
+        if (command.IsApproved)
+        {
+            var existing = await _db.FiveWhyAnalyses.AsNoTracking()
+                .Where(a => a.Id == command.AnalysisId || a.ClaimId == command.ClaimId)
+                .Select(a => new { a.ClaimId, a.StatusCode }).FirstOrDefaultAsync(cancellationToken);
+            if (existing != null && string.Equals(existing.StatusCode, "VALIDATED", StringComparison.OrdinalIgnoreCase))
+                return Conflict(new
+                {
+                    message = await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(
+                        _db, existing.ClaimId, "Cette analyse 5 Why", "Cette analyse 5 Why est déjà validée.", null, null, cancellationToken)
+                });
+        }
+
         command.ValidatedBy = userName;
         var success = await _mediator.Send(command, cancellationToken);
         if (!success) return NotFound(new { message = "Analyse 5 Why introuvable." });

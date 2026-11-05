@@ -116,7 +116,7 @@ public class PlanCommentTests : IClassFixture<ActionPlanApiFactory>
         var notes = Notifications();
 
         Assert.Equal(HttpStatusCode.OK, (await Employee().PostAsJsonAsync($"/api/ActionPlan/{plan}/comments", new { body = "Une question pour la qualité." })).StatusCode);
-        notes.Verify(n => n.NotifyAdminsAsync("plan_comment", It.IsAny<string>(), It.Is<string>(m => m.Contains("Une question pour la qualité.")), plan, null, $"/pages/front/action-plans/{plan}", Me), Times.Once);
+        notes.Verify(n => n.NotifyValidatorsAsync("plan_comment", It.IsAny<string>(), It.Is<string>(m => m.Contains("Une question pour la qualité.")), null, It.IsAny<Guid?>(), plan, null, $"/pages/front/action-plans/{plan}", Me), Times.Once);
     }
 
     [Fact]

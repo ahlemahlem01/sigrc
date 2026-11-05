@@ -112,7 +112,7 @@ public class ValidationsController : ControllerBase
             }
             if (!string.Equals(claim.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase))
             {
-                results.Add(new { id, ok = false, error = "Ce dossier n'est plus en attente de validation." });
+                results.Add(new { id, ok = false, error = await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(_db, id, "Ce dossier", "Ce dossier n'est plus en attente de validation.", null, null, ct) });
                 continue;
             }
             try

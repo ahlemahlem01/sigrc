@@ -104,4 +104,17 @@ public class ValidatorNotificationTests : IDisposable
 
         Assert.Equal(new[] { "adminP", "super" }, await Recipients("plan_ready_for_validation"));
     }
+
+    [Fact]
+    public async Task ASecondAdministrator_IsToldWhoAlreadyDecided_AndWhen()
+    {
+        var claim = await Seed();
+        _db.ClaimEvents.Add(new ClaimEvent { ClaimId = claim, ActionType = "fivewhy_validated", ActorId = "adminQ1", CreatedAt = new DateTime(2026, 11, 5, 9, 30, 0, DateTimeKind.Utc) });
+        await _db.SaveChangesAsync();
+
+        var message = await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(_db, claim, "Cette analyse 5 Why", "fallback");
+
+        Assert.Contains("a déjà été traité par adminQ1", message);
+        Assert.Equal("fallback", await Coficab.ActionPlan.Application.QualityAnalyses.Services.DecisionTrace.AlreadyDecidedAsync(_db, Guid.NewGuid(), "x", "fallback"));
+    }
 }
