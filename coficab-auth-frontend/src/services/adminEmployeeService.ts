@@ -90,6 +90,10 @@ export const adminEmployeeService = {
   setManager: (token: string, userId: string, managerUserId: string | null) =>
     axios.put(`${API_URL}/profiles/${userId}/manager`, { managerUserId }, h(token)).then(r => r.data),
 
+  /** Personal data of the specification (first/last name, site, other e-mails, identity...). Administrators only. */
+  setPersonal: (token: string, userId: string, data: any) =>
+    axios.put(`${API_URL}/profiles/${userId}/personal`, data, h(token)).then(r => r.data),
+
   updateProfile: (token: string, userId: string, data: any) =>
     axios.put(`${API_URL}/profiles/${userId}`, data, h(token)).then(r => r.data),
 

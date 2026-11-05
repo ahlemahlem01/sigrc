@@ -368,6 +368,10 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const [equipe,     setEquipe]     = useState('');
   const [ligneProduction, setLigneProduction] = useState('');
   const [telephone,  setTelephone]  = useState('');
+  const [firstName,  setFirstName]  = useState('');
+  const [lastName,   setLastName]   = useState('');
+  const [site,       setSite]       = useState('');
+  const [extraEmails, setExtraEmails] = useState('');
   const [role,       setRole]       = useState('user');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [permissionGroups, setPermissionGroups] = useState<CatalogGroup[]>([]);
@@ -399,6 +403,8 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
     if (!poste.trim()) { setError(t('employeesAdmin.posteRequired')); return; }
     if (!equipe.trim()) { setError(t('employeesAdmin.teamRequired')); return; }
     if (isSuperadmin && (!orgDept.organizationId || !orgDept.departmentId)) { setError(t('usersAdmin.orgDeptRequiredEmployee')); return; }
+    const others = extraEmails.split(',').map((x) => x.trim()).filter(Boolean);
+    if (others.some((x) => !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(x))) { setError(t('employeesAdmin.extraEmailInvalid')); return; }
     setLoading(true); setError('');
     try {
       await createUser(accessToken!, {
@@ -421,6 +427,11 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
           telephone: telephone.trim() || null,
           status: 'active',
         });
+        if (firstName.trim() || lastName.trim() || site.trim() || others.length > 0) {
+          await adminEmployeeService.setPersonal(accessToken!, created.id, {
+            firstName: firstName.trim() || null, lastName: lastName.trim() || null, site: site.trim() || null, additionalEmails: others,
+          });
+        }
       }
       setSuccess(true);
       setTimeout(() => { onCreated(); onClose(); }, 1200);
@@ -463,6 +474,22 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 <div className="em-field">
                   <label className="em-label">{t('employeesAdmin.email')} <span className="em-req">*</span></label>
                   <input className="em-input" type="email" placeholder="email@coficab.com" value={email} onChange={e => setEmail(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.firstName')}</label>
+                  <input className="em-input" value={firstName} onChange={e => setFirstName(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.lastName')}</label>
+                  <input className="em-input" value={lastName} onChange={e => setLastName(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.site')}</label>
+                  <input className="em-input" value={site} onChange={e => setSite(e.target.value)} />
+                </div>
+                <div className="em-field">
+                  <label className="em-label">{t('personalData.additionalEmails')}</label>
+                  <input className="em-input" placeholder="autre@exemple.com, ..." value={extraEmails} onChange={e => setExtraEmails(e.target.value)} />
                 </div>
                 {isSuperadmin ? (
                   <OrganizationDepartmentFields

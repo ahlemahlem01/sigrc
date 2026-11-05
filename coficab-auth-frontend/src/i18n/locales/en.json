@@ -4288,6 +4288,7 @@
     "other": "Other"
   },
   "employeesAdmin": {
+    "extraEmailInvalid": "One of the additional e-mail addresses is not valid.",
     "ownDepartmentOnly": "The account is created in your own department only.",
     "untilUnlock": "Until an admin unlocks it",
     "badgeCategory": {

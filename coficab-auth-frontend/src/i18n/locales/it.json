@@ -4288,6 +4288,7 @@
     "other": "Altro"
   },
   "employeesAdmin": {
+    "extraEmailInvalid": "Uno degli indirizzi e-mail aggiuntivi non è valido.",
     "ownDepartmentOnly": "L'account viene creato solo nel tuo reparto.",
     "untilUnlock": "Fino allo sblocco da parte dell’amministratore",
     "badgeCategory": {
