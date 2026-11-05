@@ -327,7 +327,7 @@ const FrontLayout = () => {
         
         .fl-user-info { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
         .fl-user-name { font-size: 13px; font-weight: 500; color: #fff; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fl-user-role { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px; }
+        .fl-user-role { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.55); margin-top: 1px; }
 
         .fl-dropdown {
           position: absolute; top: calc(100% + 16px); right: 0;
