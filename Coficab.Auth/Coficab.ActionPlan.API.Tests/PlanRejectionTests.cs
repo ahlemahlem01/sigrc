@@ -124,8 +124,8 @@ public class PlanRejectionTests : IClassFixture<ActionPlanApiFactory>
         notifications.Invocations.Clear();
         var resubmit = await employee.PostAsync($"/api/ActionPlan/assigned/{planId}/resubmit", null);
         Assert.Equal(HttpStatusCode.OK, resubmit.StatusCode);
-        notifications.Verify(n => n.NotifyAdminsAsync(
-            "plan_ready_for_validation", It.IsAny<string>(), It.IsAny<string>(), planId, null, It.IsAny<string?>(), Me), Times.Once);
+        notifications.Verify(n => n.NotifyValidatorsAsync(
+            "plan_ready_for_validation", It.IsAny<string>(), It.IsAny<string>(), null, It.IsAny<Guid?>(), planId, null, It.IsAny<string?>(), Me), Times.Once);
 
         Assert.Null(Find(await DataAsync(await employee.GetAsync("/api/ActionPlan/rejected")), planId));
         Assert.NotNull(Find(await DataAsync(await admin.GetAsync("/api/ActionPlan/pending-validation")), planId));

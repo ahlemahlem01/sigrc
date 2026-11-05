@@ -48,8 +48,8 @@ public class FiveWhyValidationTests : IClassFixture<ActionPlanApiFactory>
             new { analysisId = analysis, claimId = claim, isApproved = false, statusCode = "PENDING_VALIDATION" });
         Assert.Equal(HttpStatusCode.OK, submit.StatusCode);
 
-        _factory.Notifier.Verify(n => n.NotifyAdminsAsync("five_why_pending_validation", "5 Why à valider",
-            It.Is<string>(m => m.Contains("Isolation endommagée")), null, claim,
+        _factory.Notifier.Verify(n => n.NotifyValidatorsAsync("five_why_pending_validation", "5 Why à valider",
+            It.Is<string>(m => m.Contains("Isolation endommagée")), "analysis:validate_fivewhy", null, null, claim,
             It.Is<string?>(l => l != null && l.Contains("fivewhy")), It.IsAny<string?>()), Times.Once);
 
         using var queue = JsonDocument.Parse(await ClientAs("admin").GetStringAsync("/api/validations/five-why"));

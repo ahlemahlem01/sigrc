@@ -1338,11 +1338,13 @@ public class ActionPlanService : IActionPlanService
             Note = $"Plan corrigé et renvoyé en validation ({oldProgress}% → 100%)",
         });
 
-        await _notificationService.NotifyAdminsAsync(
+        await _notificationService.NotifyValidatorsAsync(
             "plan_ready_for_validation",
             "Plan corrigé à valider",
             $"Le plan « {plan.Title} » a été corrigé et attend à nouveau votre validation.",
-            planId,
+            permission: null,
+            departmentId: plan.DepartmentId,
+            actionPlanId: planId,
             linkPath: "/admin/validations?tab=capa",
             excludeUserId: userId);
     }

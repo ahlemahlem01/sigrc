@@ -850,10 +850,11 @@ public class QualityAnalysisController : ControllerBase
 
             if (submitted)
             {
-                await _notificationService.NotifyAdminsAsync(
+                await _notificationService.NotifyValidatorsAsync(
                     "five_why_pending_validation",
                     "5 Why à valider",
                     $"L'analyse 5 Why de « {claim.Title} » a été soumise pour validation.",
+                    permission: "analysis:validate_fivewhy",
                     claimId: claimId,
                     linkPath: $"/pages/front/validations?tab=fivewhy&claimId={claimId}",
                     excludeUserId: actor);

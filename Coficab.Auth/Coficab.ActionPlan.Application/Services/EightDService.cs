@@ -118,13 +118,15 @@ public class EightDService : IEightDService
         await GenerateAndStorePdfAsync(dossier, claimId, ct);
         await _db.SaveChangesAsync(ct);
 
-        await _notifications.NotifyAdminsAsync(
+        await _notifications.NotifyValidatorsAsync(
             "eight_d_pending_validation",
             "Dossier 8D à valider",
             $"Le dossier 8D « {claim.Title} » a été soumis pour validation finale.",
+            permission: "8d:validate",
             actionPlanId: dto.CapaPlanId,
             claimId: claimId,
-            linkPath: $"/pages/front/quality-analyses/8d/{claimId}");
+            linkPath: $"/pages/front/quality-analyses/8d/{claimId}",
+            excludeUserId: userId);
 
         var submitted = await MapAndPersistAsync(dossier, claim, ct);
         await RecordVersionAsync(dossier, submitted, EightDVersionEvents.Submitted, userId, null, ct);

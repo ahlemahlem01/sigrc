@@ -7,6 +7,7 @@ namespace Coficab.ActionPlan.Application.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<UserProfile> UserProfiles { get; }
+    DbSet<UserFunction> UserFunctions { get; }
     DbSet<UserAlias> UserAliases { get; }
     DbSet<Badge> Badges { get; }
     DbSet<Document> Documents { get; }
