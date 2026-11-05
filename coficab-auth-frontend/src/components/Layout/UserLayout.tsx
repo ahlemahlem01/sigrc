@@ -196,7 +196,6 @@ export default function UserLayout() {
   return (
     <div className="al-root">
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         *, *::before, *::after { box-sizing: border-box; }
         html, body, #root { overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100dvh; margin: 0; }

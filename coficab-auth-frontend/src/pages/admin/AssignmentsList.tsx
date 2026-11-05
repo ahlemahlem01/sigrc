@@ -257,7 +257,6 @@ const loadEmployeeNames = async () => {
     <>
       <style>{
         `
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --navy: #000168; --navy-mid: #00009e; --navy-light: #eef2ff;

@@ -28,6 +28,7 @@ import './AlertsPage.css';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { formatDecimal } from '../../utils/formatNumber';
 
 type SeverityLevel = 'attention' | 'eleve' | 'critique';
 
@@ -48,7 +49,7 @@ function formatWhen(iso: string): string {
 
 function formatMean(value: number): string {
   if (!Number.isFinite(value)) return '—';
-  return Number.isInteger(value) ? String(value) : value.toFixed(1);
+  return Number.isInteger(value) ? String(value) : formatDecimal(value);
 }
 
 function sanitizeUserText(text: string): string {

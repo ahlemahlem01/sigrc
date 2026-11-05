@@ -4288,6 +4288,8 @@
     "other": "Autre"
   },
   "employeesAdmin": {
+    "archivedFilter": "Archivés",
+    "archivedPill": "Archivé",
     "extraEmailInvalid": "Une des adresses e-mail supplémentaires n’est pas valide.",
     "ownDepartmentOnly": "Le compte est créé dans votre département uniquement.",
     "untilUnlock": "Jusqu’à déverrouillage admin",
@@ -4454,6 +4456,13 @@
       "UNLOCK": "Déverrouillage",
       "RESET_PASSWORD": "Reset MDP",
       "LOGIN": "Connexion",
+      "LOGIN_FAILED": "Échec de connexion",
+      "CAPTCHA_FAILED": "Échec de la vérification anti-robot",
+      "PASSWORD_CHANGED": "Mot de passe modifié",
+      "PASSWORD_RESET_REQUESTED": "Réinitialisation du mot de passe demandée",
+      "claim_validation_approved": "Dossier validé",
+      "claim_validation_returned": "Dossier renvoyé",
+      "fivewhy_returned": "5 Pourquoi renvoyé",
       "created": "Plan créé",
       "status_changed": "Statut modifié",
       "fields_updated": "Champs modifiés",

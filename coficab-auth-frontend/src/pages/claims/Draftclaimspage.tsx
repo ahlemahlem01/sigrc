@@ -1254,7 +1254,7 @@ export const DraftClaimsPage: React.FC = () => {
               <div className="pfe-pane-header">
                 <div>
                   <h2>{selectedClaim.title || t('drafts.untitled')}</h2>
-                  <span className="pfe-ref-pill">REF-ID: {selectedClaim.id}</span>
+                  {selectedClaim.reference && <span className="pfe-ref-pill">{selectedClaim.reference}</span>}
                 </div>
                 <div className="pfe-header-actions">
                   {isSelectedClaimReady ? (

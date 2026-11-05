@@ -4288,6 +4288,8 @@
     "other": "Altro"
   },
   "employeesAdmin": {
+    "archivedFilter": "Archiviati",
+    "archivedPill": "Archiviato",
     "extraEmailInvalid": "Uno degli indirizzi e-mail aggiuntivi non è valido.",
     "ownDepartmentOnly": "L'account viene creato solo nel tuo reparto.",
     "untilUnlock": "Fino allo sblocco da parte dell’amministratore",
@@ -4454,6 +4456,13 @@
       "UNLOCK": "Sblocco",
       "RESET_PASSWORD": "Reset password",
       "LOGIN": "Accesso",
+      "LOGIN_FAILED": "Accesso non riuscito",
+      "CAPTCHA_FAILED": "Verifica anti-robot non riuscita",
+      "PASSWORD_CHANGED": "Password modificata",
+      "PASSWORD_RESET_REQUESTED": "Reimpostazione password richiesta",
+      "claim_validation_approved": "Pratica approvata",
+      "claim_validation_returned": "Pratica restituita",
+      "fivewhy_returned": "5 Perché restituito",
       "created": "Piano creato",
       "status_changed": "Stato modificato",
       "fields_updated": "Campi modificati",
