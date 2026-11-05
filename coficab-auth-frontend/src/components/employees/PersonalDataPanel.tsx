@@ -5,12 +5,14 @@ import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useAuth } from '../../context/AuthContext';
 
 type Data = {
+  firstName: string; lastName: string; site: string; additionalEmails: string;
   dateOfBirth: string; nationalities: string; cinNumber: string; cinDate: string; cinCountry: string;
   passportNumber: string; passportValidFrom: string; passportValidTill: string; passportCountry: string;
   fatherName: string; fatherLastName: string; motherName: string; motherLastName: string;
 };
 
 const EMPTY: Data = {
+  firstName: '', lastName: '', site: '', additionalEmails: '',
   dateOfBirth: '', nationalities: '', cinNumber: '', cinDate: '', cinCountry: '', passportNumber: '', passportValidFrom: '', passportValidTill: '',
   passportCountry: '', fatherName: '', fatherLastName: '', motherName: '', motherLastName: '',
 };
@@ -38,6 +40,7 @@ export default function PersonalDataPanel({ userId }: { userId: string }) {
       const r = await axios.get(url, { headers: { Authorization: `Bearer ${accessToken}` } });
       const d = r.data ?? {};
       setData({
+        firstName: d.firstName ?? '', lastName: d.lastName ?? '', site: d.site ?? '', additionalEmails: (d.additionalEmails ?? []).join(', '),
         dateOfBirth: day(d.dateOfBirth), nationalities: (d.nationalities ?? []).join(', '), cinNumber: d.cinNumber ?? '', cinDate: day(d.cinDate), cinCountry: d.cinCountry ?? '',
         passportNumber: d.passportNumber ?? '', passportValidFrom: day(d.passportValidFrom), passportValidTill: day(d.passportValidTill), passportCountry: d.passportCountry ?? '',
         fatherName: d.fatherName ?? '', fatherLastName: d.fatherLastName ?? '', motherName: d.motherName ?? '', motherLastName: d.motherLastName ?? '',
@@ -53,6 +56,8 @@ export default function PersonalDataPanel({ userId }: { userId: string }) {
     const orNull = (v: string) => (v.trim() ? v.trim() : null);
     try {
       await axios.put(url, {
+        firstName: orNull(data.firstName), lastName: orNull(data.lastName), site: orNull(data.site),
+        additionalEmails: data.additionalEmails.split(',').map((n) => n.trim()).filter(Boolean),
         dateOfBirth: orNull(data.dateOfBirth), nationalities: data.nationalities.split(',').map((n) => n.trim()).filter(Boolean),
         cinNumber: orNull(data.cinNumber), cinDate: orNull(data.cinDate), cinCountry: orNull(data.cinCountry),
         passportNumber: orNull(data.passportNumber), passportValidFrom: orNull(data.passportValidFrom), passportValidTill: orNull(data.passportValidTill), passportCountry: orNull(data.passportCountry),
@@ -78,6 +83,12 @@ export default function PersonalDataPanel({ userId }: { userId: string }) {
       <p style={{ fontSize: 12, color: '#64748b', margin: '0 0 14px' }}>{t('personalData.help')}</p>
       {!loaded ? <p style={{ fontSize: 13 }}>…</p> : (
         <>
+          <div style={grid}>
+            {field('firstName', t('personalData.firstName'))}
+            {field('lastName', t('personalData.lastName'))}
+            {field('site', t('personalData.site'))}
+            {field('additionalEmails', t('personalData.additionalEmails'))}
+          </div>
           <div style={grid}>
             {field('dateOfBirth', t('personalData.dateOfBirth'), 'date')}
             {field('nationalities', t('personalData.nationalities'))}

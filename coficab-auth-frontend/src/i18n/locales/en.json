@@ -273,6 +273,10 @@
     "signOut": "Sign out"
   },
   "personalData": {
+    "firstName": "First name",
+    "lastName": "Last name",
+    "site": "Site",
+    "additionalEmails": "Other e-mail addresses (comma-separated)",
     "title": "Personal data",
     "help": "Visible to administrators only, never to colleagues.",
     "dateOfBirth": "Date of birth",

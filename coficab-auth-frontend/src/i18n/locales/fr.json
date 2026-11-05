@@ -273,6 +273,10 @@
     "signOut": "Se déconnecter"
   },
   "personalData": {
+    "firstName": "Prénom",
+    "lastName": "Nom de famille",
+    "site": "Site",
+    "additionalEmails": "Autres adresses e-mail (séparées par des virgules)",
     "title": "Données personnelles",
     "help": "Visibles par les administrateurs seulement, jamais par les collègues.",
     "dateOfBirth": "Date de naissance",

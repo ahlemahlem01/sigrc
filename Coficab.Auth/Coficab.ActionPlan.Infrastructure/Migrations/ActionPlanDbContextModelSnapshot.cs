@@ -2835,6 +2835,9 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<DateTime?>("ActivityStatusComputedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("AdditionalEmails")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("CinCountry")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -2873,6 +2876,9 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("nvarchar(120)");
 
+                    b.Property<string>("FirstName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("HireDate")
                         .HasColumnType("datetime2");
 
@@ -2881,6 +2887,9 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
 
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LigneProduction")
                         .HasMaxLength(120)
@@ -2945,6 +2954,9 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Site")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Status")
                         .IsRequired()

@@ -23,6 +23,13 @@ public class UserProfile
 
     // Manager relation
     // ── Personal data of the specification (set by the administrator, never shown to colleagues) ──
+    /// <summary>First name and last name kept apart (Name stays the display name).</summary>
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    /// <summary>Plant or site where the person works.</summary>
+    public string? Site { get; set; }
+    /// <summary>Other e-mail addresses of the person, separated by commas.</summary>
+    public string? AdditionalEmails { get; set; }
     public DateTime? DateOfBirth { get; set; }
     /// <summary>Several nationalities are possible: names separated by commas.</summary>
     public string? Nationalities { get; set; }

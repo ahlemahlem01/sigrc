@@ -138,6 +138,10 @@ public class AdminEmployeeController : ControllerBase
 
     public sealed class PersonalDataRequest
     {
+        public string? FirstName { get; set; }
+        public string? LastName { get; set; }
+        public string? Site { get; set; }
+        public List<string>? AdditionalEmails { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public List<string>? Nationalities { get; set; }
         public string? CinNumber { get; set; }
@@ -163,6 +167,8 @@ public class AdminEmployeeController : ControllerBase
         if (p == null) return NotFound();
         return Ok(new
         {
+            p.FirstName, p.LastName, p.Site,
+            additionalEmails = (p.AdditionalEmails ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             p.DateOfBirth,
             nationalities = (p.Nationalities ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries),
             p.CinNumber, p.CinDate, p.CinCountry, p.PassportNumber, p.PassportValidFrom, p.PassportValidTill, p.PassportCountry,
@@ -182,7 +188,15 @@ public class AdminEmployeeController : ControllerBase
         if (r.PassportValidFrom.HasValue && r.PassportValidTill.HasValue && r.PassportValidTill < r.PassportValidFrom)
             return BadRequest(new { message = "La fin de validité du passeport doit suivre son début." });
 
+        var extraEmails = (r.AdditionalEmails ?? new()).Select(e => e.Trim()).Where(e => e.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (extraEmails.Any(e => !System.Net.Mail.MailAddress.TryCreate(e, out var addr) || addr.Address != e))
+            return BadRequest(new { message = "Une des adresses e-mail supplémentaires n'est pas valide." });
+
         static DateTime? Utc(DateTime? d) => d.HasValue ? DateTime.SpecifyKind(d.Value.Date, DateTimeKind.Utc) : null;
+        p.FirstName = Clean(r.FirstName);
+        p.LastName = Clean(r.LastName);
+        p.Site = Clean(r.Site);
+        p.AdditionalEmails = extraEmails.Count == 0 ? null : string.Join(", ", extraEmails);
         p.DateOfBirth = Utc(r.DateOfBirth);
         var nationalities = (r.Nationalities ?? new()).Select(n => n.Trim()).Where(n => n.Length > 0).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         p.Nationalities = nationalities.Count == 0 ? null : string.Join(", ", nationalities);

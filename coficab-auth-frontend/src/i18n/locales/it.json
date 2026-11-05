@@ -273,6 +273,10 @@
     "signOut": "Esci"
   },
   "personalData": {
+    "firstName": "Nome",
+    "lastName": "Cognome",
+    "site": "Sede",
+    "additionalEmails": "Altri indirizzi e-mail (separati da virgole)",
     "title": "Dati personali",
     "help": "Visibili solo agli amministratori, mai ai colleghi.",
     "dateOfBirth": "Data di nascita",

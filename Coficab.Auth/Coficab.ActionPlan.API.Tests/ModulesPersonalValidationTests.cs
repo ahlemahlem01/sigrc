@@ -90,6 +90,7 @@ public class ModulesPersonalValidationTests : IClassFixture<ActionPlanApiFactory
             dateOfBirth = "1995-04-12", nationalities = new[] { "Tunisienne", "Française" }, cinNumber = "01234567", cinDate = "2015-06-01", cinCountry = "Tunisie",
             passportNumber = "P1234567", passportValidFrom = "2022-01-01", passportValidTill = "2032-01-01", passportCountry = "Tunisie",
             fatherName = "Ali", fatherLastName = "Ben Salah", motherName = "Samia", motherLastName = "Trabelsi",
+            firstName = "Rania", lastName = "Bouazizi", site = "Coficab Tunisia - Mateur", additionalEmails = new[] { "rania@perso.tn", "r.bouazizi@coficab.com" },
         };
         Assert.Equal(HttpStatusCode.NoContent, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/personal", body)).StatusCode);
 
@@ -97,6 +98,10 @@ public class ModulesPersonalValidationTests : IClassFixture<ActionPlanApiFactory
         Assert.Equal(2, read.GetProperty("nationalities").GetArrayLength());
         Assert.Equal("01234567", read.GetProperty("cinNumber").GetString());
         Assert.Equal("Trabelsi", read.GetProperty("motherLastName").GetString());
+        Assert.Equal("Bouazizi", read.GetProperty("lastName").GetString());
+        Assert.Equal("Coficab Tunisia - Mateur", read.GetProperty("site").GetString());
+        Assert.Equal(2, read.GetProperty("additionalEmails").GetArrayLength());
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/personal", new { additionalEmails = new[] { "not-an-email" } })).StatusCode);
 
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/personal", new { dateOfBirth = "2999-01-01" })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/personal", new { passportValidFrom = "2030-01-01", passportValidTill = "2020-01-01" })).StatusCode);
