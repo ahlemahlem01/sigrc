@@ -110,7 +110,7 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
     public async Task TheAdministrator_NamesTheManager_WhoIsRefusedWhenItIsTheSamePersonOrACycle()
     {
         var (manager, worker, _) = await AddPeople();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
 
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{worker}/manager", new { managerUserId = worker })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{manager}/manager", new { managerUserId = worker })).StatusCode);

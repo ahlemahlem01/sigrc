@@ -83,7 +83,7 @@ public class ModulesPersonalValidationTests : IClassFixture<ActionPlanApiFactory
     public async Task PersonalData_IsKeptByTheAdministrator_WithSeveralNationalities_AndChecked()
     {
         var person = await AddPerson();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
 
         var body = new
         {
@@ -112,7 +112,7 @@ public class ModulesPersonalValidationTests : IClassFixture<ActionPlanApiFactory
     public async Task APersonIsArchivedAndRestored_NothingIsDeleted()
     {
         var person = await AddPerson();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
         Assert.Equal("archived", (await Json(await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/archive", new { archived = true }))).GetProperty("status").GetString());
         Assert.Equal("active", (await Json(await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{person}/archive", new { archived = false }))).GetProperty("status").GetString());
     }
@@ -143,5 +143,39 @@ public class ModulesPersonalValidationTests : IClassFixture<ActionPlanApiFactory
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/validations/dossiers/decide", new { claimIds = new[] { Guid.NewGuid() }, approve = true })).StatusCode);   // not the right to validate dossiers
         Assert.NotEqual(HttpStatusCode.Forbidden, (await ClientAs("admin").GetAsync("/api/validations/five-why")).StatusCode);
         Assert.NotEqual(Guid.Empty, function);
+    }
+
+    [Fact]
+    public async Task AnAdministrator_SeesAndOpensOnlyTheEmployeesOfHisDepartment()
+    {
+        var adminId = Guid.NewGuid().ToString(); var mate = Guid.NewGuid().ToString(); var other = Guid.NewGuid().ToString();
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
+            var org = new Organization { Name = "Org " + Guid.NewGuid().ToString("N")[..5] };
+            db.Organizations.Add(org);
+            var a = new Department { Name = "A " + Guid.NewGuid().ToString("N")[..5], Code = "A" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            var b = new Department { Name = "B " + Guid.NewGuid().ToString("N")[..5], Code = "B" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            db.Departments.AddRange(a, b);
+            db.UserProfiles.AddRange(
+                new UserProfile { Id = Guid.NewGuid(), UserId = adminId, Name = "Admin A", Email = "adm@t.com", Role = "admin", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = mate, Name = "Collegue A", Email = "mate@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = other, Name = "Autre B", Email = "oth@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = b.Id });
+            await db.SaveChangesAsync();
+        }
+
+        var admin = ClientAs("admin", adminId);
+        var list = await Json(await admin.GetAsync("/api/admin/employees/profiles"));
+        var ids = list.EnumerateArray().Select(x => x.GetProperty("id").GetString()).ToList();
+        Assert.Contains(mate, ids);
+        Assert.DoesNotContain(other, ids);
+
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync($"/api/admin/employees/profiles/{mate}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.GetAsync($"/api/admin/employees/profiles/{other}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{other}/personal", new { site = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsJsonAsync($"/api/admin/employees/profiles/{other}/archive", new { archived = true })).StatusCode);
+
+        var all = await Json(await ClientAs("superadmin", Guid.NewGuid().ToString()).GetAsync("/api/admin/employees/profiles"));
+        Assert.Contains(other, all.EnumerateArray().Select(x => x.GetProperty("id").GetString()));
     }
 }

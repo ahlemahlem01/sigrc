@@ -267,10 +267,10 @@ public class EmployeeDocumentsBadgesTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.Forbidden,
             (await ClientAs("user").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = to })).StatusCode);
 
-        var ok = await ClientAs("admin").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = to });
+        var ok = await ClientAs("superadmin").PutAsJsonAsync($"/api/admin/employees/profiles/{user}/department", new { departmentId = to });
         Assert.Equal(HttpStatusCode.NoContent, ok.StatusCode);
 
-        var profile = await ClientAs("admin").GetFromJsonAsync<JsonElement>($"/api/admin/employees/profiles/{user}", JsonOpts);
+        var profile = await ClientAs("superadmin").GetFromJsonAsync<JsonElement>($"/api/admin/employees/profiles/{user}", JsonOpts);
         Assert.Equal("Qualite move", profile.GetProperty("department").GetString());
         Assert.Equal(to.ToString(), profile.GetProperty("departmentId").GetString(), ignoreCase: true);
         Assert.Equal("Mover", profile.GetProperty("name").GetString());       // nothing else changed
