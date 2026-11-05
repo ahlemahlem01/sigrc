@@ -243,10 +243,6 @@ export default function PlanPage() {
   const statusLabel = t(`planPage.status.${plan.status}`, { defaultValue: plan.status });
   const typeLabel = t(`planPage.type.${plan.type}`, { defaultValue: plan.type });
 
-<<<<<<< HEAD
-=======
-
->>>>>>> origin/main
   return (
     <div className="text-slate-900 w-full min-w-0 pb-8">
       {/* identity of the plan */}
