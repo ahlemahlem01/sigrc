@@ -51,7 +51,7 @@ public class FunctionsTests : IClassFixture<ActionPlanApiFactory>
     public async Task AFunction_IsCreatedInADepartment_WithLinks_AndTheCodeIsUniqueThere()
     {
         var (dept, _) = await SeedDepartmentAndPerson();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
 
         var boss = await Json(await admin.PostAsJsonAsync("/api/functions", new { code = "DIR-QUAL", description = "Directeur qualité", departmentId = dept }));
         Assert.NotEqual(Guid.Empty, boss.GetProperty("id").GetGuid());
@@ -69,7 +69,7 @@ public class FunctionsTests : IClassFixture<ActionPlanApiFactory>
     public async Task APerson_CanHoldSeveralFunctions_WithAStatus_AndNothingIsDeleted()
     {
         var (dept, person) = await SeedDepartmentAndPerson();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
         var f1 = (await Json(await admin.PostAsJsonAsync("/api/functions", new { code = "F-A", description = "Fonction A", departmentId = dept }))).GetProperty("id").GetGuid();
         var f2 = (await Json(await admin.PostAsJsonAsync("/api/functions", new { code = "F-B", description = "Fonction B", departmentId = dept }))).GetProperty("id").GetGuid();
 
@@ -94,7 +94,7 @@ public class FunctionsTests : IClassFixture<ActionPlanApiFactory>
     public async Task AFunction_CarriesTheRightToValidate_ForWhoHoldsItActively_NotForWhoDoesNot()
     {
         var (dept, person) = await SeedDepartmentAndPerson();
-        var admin = ClientAs("admin");
+        var admin = ClientAs("superadmin");
         var function = (await Json(await admin.PostAsJsonAsync("/api/functions", new { code = "RQ-" + Guid.NewGuid().ToString("N")[..4], description = "Responsable qualité", departmentId = dept, permissions = new[] { "8d:validate" } }))).GetProperty("id").GetGuid();
 
         var claim = Guid.NewGuid();
@@ -150,5 +150,54 @@ public class FunctionsTests : IClassFixture<ActionPlanApiFactory>
         Assert.Contains(mateId, everyone);
 
         Assert.Equal(HttpStatusCode.Forbidden, (await ClientAs("user").GetAsync("/api/functions/people")).StatusCode);
+    }
+
+    [Fact]
+    public async Task AnAdministrator_ManagesTheFunctionsOfHisOwnDepartmentOnly()
+    {
+        var adminId = Guid.NewGuid().ToString(); var mate = Guid.NewGuid().ToString(); var outsider = Guid.NewGuid().ToString();
+        Guid mine, other;
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ActionPlanDbContext>();
+            var org = new Organization { Name = "Org " + Guid.NewGuid().ToString("N")[..5] };
+            db.Organizations.Add(org);
+            var a = new Department { Name = "A " + Guid.NewGuid().ToString("N")[..5], Code = "A" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            var b = new Department { Name = "B " + Guid.NewGuid().ToString("N")[..5], Code = "B" + Guid.NewGuid().ToString("N")[..4], OrganizationId = org.Id };
+            db.Departments.AddRange(a, b);
+            db.UserProfiles.AddRange(
+                new UserProfile { Id = Guid.NewGuid(), UserId = adminId, Name = "Admin A", Email = "fa@t.com", Role = "admin", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = mate, Name = "Collegue A", Email = "fm@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = a.Id },
+                new UserProfile { Id = Guid.NewGuid(), UserId = outsider, Name = "Autre B", Email = "fo@t.com", Role = "user", Poste = "x", Equipe = "x", DepartmentId = b.Id });
+            await db.SaveChangesAsync();
+            mine = a.Id; other = b.Id;
+        }
+
+        var superadmin = ClientAs("superadmin", Guid.NewGuid().ToString());
+        var admin = ClientAs("admin", adminId);
+        var inMine = await Json(await admin.PostAsJsonAsync("/api/functions", new { code = "F-MINE", description = "Ma fonction", departmentId = mine }));
+        var theirs = await Json(await superadmin.PostAsJsonAsync("/api/functions", new { code = "F-THEIRS", description = "Leur fonction", departmentId = other }));
+
+        // the administrator cannot create in, move to, or touch another department
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PostAsJsonAsync("/api/functions", new { code = "F-X", description = "Ailleurs", departmentId = other })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PutAsJsonAsync($"/api/functions/{inMine.GetProperty("id").GetGuid()}", new { code = "F-MINE", description = "Deplacee", departmentId = other })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.DeleteAsync($"/api/functions/{theirs.GetProperty("id").GetGuid()}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.PostAsJsonAsync("/api/functions/assignments", new { userId = outsider, functionId = theirs.GetProperty("id").GetGuid(), status = "Active" })).StatusCode);
+
+        // he sees only his own functions and departments
+        var codes = (await Json(await admin.GetAsync("/api/functions"))).EnumerateArray().Select(x => x.GetProperty("code").GetString()).ToList();
+        Assert.Contains("F-MINE", codes);
+        Assert.DoesNotContain("F-THEIRS", codes);
+        var depts = (await Json(await admin.GetAsync("/api/functions/departments"))).EnumerateArray().Select(x => x.GetProperty("id").GetGuid()).ToList();
+        Assert.Equal(new[] { mine }, depts);
+
+        // he gives a function of his department to a colleague of his department, not to someone from another one
+        Assert.Equal(HttpStatusCode.OK, (await admin.PostAsJsonAsync("/api/functions/assignments", new { userId = mate, functionId = inMine.GetProperty("id").GetGuid(), status = "Active" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await admin.PostAsJsonAsync("/api/functions/assignments", new { userId = outsider, functionId = inMine.GetProperty("id").GetGuid(), status = "Active" })).StatusCode);
+
+        // the superadmin still sees everything
+        var all = (await Json(await superadmin.GetAsync("/api/functions"))).EnumerateArray().Select(x => x.GetProperty("code").GetString()).ToList();
+        Assert.Contains("F-THEIRS", all);
+        Assert.Contains("F-MINE", all);
     }
 }
