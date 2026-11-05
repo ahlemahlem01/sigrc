@@ -535,7 +535,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                 {t('employeesAdmin.tempPassword')}
               </div>
 
-              <div className="em-field" style={{ marginTop: 16 }}>
+              {isSuperadmin && <div className="em-field" style={{ marginTop: 16 }}>
                 <label className="em-label">{t('employeesAdmin.permissions')}</label>
                 {role === 'user' && (
                   <div className="em-perm-hint">
@@ -579,7 +579,7 @@ function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreate
                     </div>
                   ))}
                 </div>
-              </div>
+              </div>}
             </>
           )}
         </div>

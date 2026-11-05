@@ -92,13 +92,13 @@ public class AdminController : ControllerBase
     {
         if (departmentId == null) return;
         await _db.Database.ExecuteSqlInterpolatedAsync($"UPDATE actionplan.UserProfiles SET DepartmentId = {departmentId}, UpdatedAt = SYSUTCDATETIME() WHERE UserId = {user.Id}");
-        if (role is "admin" or "superadmin")
-        {
-            await _db.Database.ExecuteSqlInterpolatedAsync($@"
-                INSERT INTO actionplan.UserProfiles (Id, UserId, Name, Email, Role, Poste, Equipe, DepartmentId, HireDate, Status, ActivityStatus, CreatedAt)
-                SELECT NEWID(), {user.Id}, {user.FullName}, {user.Email}, {role}, 'Administrateur', {user.Department}, {departmentId}, SYSUTCDATETIME(), 'active', 0, SYSUTCDATETIME()
-                WHERE NOT EXISTS (SELECT 1 FROM actionplan.UserProfiles WHERE UserId = {user.Id})");
-        }
+        // every account gets its profile now, in the department: without it the department scoping would not see the person
+        // until someone fills the profile in (the employee form then completes poste and team)
+        var poste = role is "admin" or "superadmin" ? "Administrateur" : "Employé";
+        await _db.Database.ExecuteSqlInterpolatedAsync($@"
+            INSERT INTO actionplan.UserProfiles (Id, UserId, Name, Email, Role, Poste, Equipe, DepartmentId, HireDate, Status, ActivityStatus, CreatedAt)
+            SELECT NEWID(), {user.Id}, {user.FullName}, {user.Email}, {role}, {poste}, {user.Department}, {departmentId}, SYSUTCDATETIME(), 'active', 0, SYSUTCDATETIME()
+            WHERE NOT EXISTS (SELECT 1 FROM actionplan.UserProfiles WHERE UserId = {user.Id})");
     }
 
     /// <summary>
