@@ -92,7 +92,7 @@ const MyPendingValidationsPage: React.FC = () => {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { setPage(1); }, [section, query, kind, wait, step, pageSize]);
 
-  const all = items ?? [];
+  const all = useMemo(() => items ?? [], [items]);
   const counts = useMemo(() => ({
     claims: all.filter((i) => i.kind !== 'capa').length,
     plans: all.filter((i) => i.kind === 'capa').length,

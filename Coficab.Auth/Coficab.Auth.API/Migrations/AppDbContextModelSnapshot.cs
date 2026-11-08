@@ -85,6 +85,18 @@ namespace Coficab.Auth.API.Migrations
                     b.Property<Guid?>("AlertId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ApprovalComment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ApprovalDecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovalDecidedById")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ArchivedAt")
                         .HasColumnType("datetime2");
 
