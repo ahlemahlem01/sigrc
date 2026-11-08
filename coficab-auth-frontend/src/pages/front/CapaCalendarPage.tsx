@@ -27,6 +27,7 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
 
 type ViewMode = 'month' | 'week' | 'day';
 type AudienceMode = 'all' | 'users' | 'departments';
@@ -1483,7 +1484,7 @@ export default function CapaCalendarPage() {
                               onChange={() => toggleUser(u.id)}
                             />
                             <span>
-                              {u.fullName}
+                              {pn(u.fullName)}
                               <span style={{ color: '#80868b', marginLeft: 6 }}>
                                 {[u.department, u.email].filter(Boolean).join(' · ')}
                               </span>

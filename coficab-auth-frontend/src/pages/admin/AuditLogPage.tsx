@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { withScope } from '../../services/organizationScopeStore';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
+import FilterSelect from '../../components/FilterSelect';
 
 /** Page unique de traçabilité : comptes + workflow (CAPA, claims, RH, orgs…). */
 const PAGE_SIZE = 25;
@@ -239,7 +241,7 @@ const moduleMeta = (mod: ModuleKey) => {
 
 /** Actor sentinels stay stable for filtering; only their display is translated. */
 const actorDisplay = (name: string) =>
-  name === ACTOR_SYSTEM ? i18n.t('audit.system') : name === ACTOR_UNKNOWN ? i18n.t('audit.unknown') : name;
+  name === ACTOR_SYSTEM ? i18n.t('audit.system') : name === ACTOR_UNKNOWN ? i18n.t('audit.unknown') : pn(name);
 
 const normAction = (a: string) => String(a || '').trim().toUpperCase();
 const isLoginAction = (a: string) => normAction(a) === 'LOGIN';
@@ -339,14 +341,14 @@ function resolveActorLabel(raw: string | null | undefined, index: UserIndex): st
   if (index.byEmail[lower]) return one(index.byEmail[lower]);
 
   if (value.includes('@')) return emailLocalPart(value) || value;
-  if (isUuid(value)) return `${value.slice(0, 8)}…`;
+  if (isUuid(value) || /^[0-9a-f]{8}…?$/i.test(value)) return ACTOR_UNKNOWN;
   return index.canon[lower] ?? value;
 }
 
 function actorFilterLabel(name: string): string {
   if (name === ACTOR_SYSTEM) return i18n.t('audit.systemFilter');
   if (name === ACTOR_UNKNOWN) return i18n.t('audit.unknownFilter');
-  return name;
+  return pn(name);
 }
 
 function mapIam(log: AuthAuditLog, users: UserIndex): UnifiedEvent {
@@ -1136,68 +1138,51 @@ export default function AuditLogPage() {
       </div>
 
       <div className="aul-filters">
-        <select
-          className="aul-sel"
+        <FilterSelect
           value={filterSource}
-          onChange={(e) => { setFilterSource(e.target.value as SourceKey); setFilterAction(''); bumpPage(); }}
-        >
-          <option value="">{t('audit.allSources')}</option>
-          <option value="iam">{t('audit.sourceAccounts')}</option>
-          <option value="workflow">{t('audit.workflow')}</option>
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterSource(v as SourceKey); setFilterAction(''); bumpPage(); }}
+          allLabel={t('audit.allSources')}
+          options={[{ value: 'iam', label: t('audit.sourceAccounts') }, { value: 'workflow', label: t('audit.workflow') }]}
+        />
+        <FilterSelect
           value={filterModule}
-          onChange={(e) => { setFilterModule(e.target.value); setFilterAction(''); bumpPage(); }}
-        >
-          <option value="">{t('audit.allModules')}</option>
-          {moduleOptions.map((key) => (
-            <option key={key} value={key}>{moduleMeta(key).label}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterModule(v); setFilterAction(''); bumpPage(); }}
+          allLabel={t('audit.allModules')}
+          options={moduleOptions.map((key) => ({ value: key, label: moduleMeta(key).label }))}
+        />
+        <FilterSelect
           value={filterAction}
-          onChange={(e) => { setFilterAction(e.target.value); bumpPage(); }}
-        >
-          <option value="">{t('audit.allActions')}</option>
-          {actionOptions.map((key) => (
-            <option key={key} value={key}>{actionMeta(key).label}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterAction(v); bumpPage(); }}
+          allLabel={t('audit.allActions')}
+          options={actionOptions.map((key) => ({ value: key, label: actionMeta(key).label }))}
+          searchable
+        />
+        <FilterSelect
           value={filterActor}
-          onChange={(e) => { setFilterActor(e.target.value); bumpPage(); }}
+          onChange={(v) => { setFilterActor(v); bumpPage(); }}
           title={t('audit.actorHint')}
-        >
-          <option value="">{t('audit.allActors')}</option>
-          {actorOptions.map((name) => (
-            <option key={name} value={name}>{actorFilterLabel(name)}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          allLabel={t('audit.allActors')}
+          options={actorOptions.map((name) => ({ value: name, label: actorFilterLabel(name) }))}
+          searchable
+        />
+        <FilterSelect
           value={filterSeverity}
-          onChange={(e) => { setFilterSeverity(e.target.value as SeverityKey); bumpPage(); }}
-        >
-          <option value="">{t('audit.allSeverities')}</option>
-          <option value="security">{t('audit.kpi.security.label')}</option>
-          <option value="mutation">{t('audit.kpi.mutations.label')}</option>
-          <option value="assignment">{t('audit.kpi.assign.label')}</option>
-          <option value="activity">{t('audit.activity')}</option>
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterSeverity(v as SeverityKey); bumpPage(); }}
+          allLabel={t('audit.allSeverities')}
+          options={[
+            { value: 'security', label: t('audit.kpi.security.label') },
+            { value: 'mutation', label: t('audit.kpi.mutations.label') },
+            { value: 'assignment', label: t('audit.kpi.assign.label') },
+            { value: 'activity', label: t('audit.activity') },
+          ]}
+        />
+        <FilterSelect
           value={filterDept}
-          onChange={(e) => { setFilterDept(e.target.value); bumpPage(); }}
+          onChange={(v) => { setFilterDept(v); bumpPage(); }}
           disabled={deptOptions.length === 0}
-        >
-          <option value="">{t('audit.allDepartments')}</option>
-          {deptOptions.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
+          allLabel={t('audit.allDepartments')}
+          options={deptOptions.map((d) => ({ value: d.id, label: d.name }))}
+        />
         <input
           type="date"
           className="aul-date"

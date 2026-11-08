@@ -38,6 +38,7 @@ import { useTranslation } from 'react-i18next';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
 
 const DEFAULT_FILTERS: ClaimsHistoryQuery = {
   page: 1,
@@ -497,7 +498,7 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
                               <h4>{t('qualityHistory.colClaim')}</h4>
                               <p>{claim.descriptionPreview || t('qualityHistory.noDescription')}</p>
                               <p className="qh-sub">
-                                {t('qualityHistory.authorCreated', { author: claim.createdBy || '—', date: fmtDate(claim.createdAt, true) })}
+                                {t('qualityHistory.authorCreated', { author: pn(claim.createdBy) || '—', date: fmtDate(claim.createdAt, true) })}
                                 {claim.completedAt
                                   ? ` · ${t('qualityHistory.closedShort', { date: fmtDate(claim.completedAt, true) })}${
                                       claim.isOnTime === true
@@ -517,14 +518,14 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
                               {claim.rootCauseOccurrence && <p>{t('qualityHistory.occurrence', { value: claim.rootCauseOccurrence })}</p>}
                               {claim.rootCauseDetection && <p>{t('qualityHistory.detection', { value: claim.rootCauseDetection })}</p>}
                               {claim.fiveWhyValidatedBy && (
-                                <p className="qh-sub">{t('qualityHistory.validatedBy', { name: claim.fiveWhyValidatedBy, date: fmtDate(claim.fiveWhyValidatedAt, true) })}</p>
+                                <p className="qh-sub">{t('qualityHistory.validatedBy', { name: pn(claim.fiveWhyValidatedBy), date: fmtDate(claim.fiveWhyValidatedAt, true) })}</p>
                               )}
                               {!claim.fiveWhyId && <p className="qh-sub">{t('qualityHistory.noFiveWhy')}</p>}
                             </div>
                             <div>
                               <h4>{t('qualityHistory.eightDPath')}</h4>
                               <p><strong>{e8.label}</strong></p>
-                              {claim.championName && <p>{t('qualityHistory.champion', { name: claim.championName })}</p>}
+                              {claim.championName && <p>{t('qualityHistory.champion', { name: pn(claim.championName) })}</p>}
                               <p className="qh-sub">
                                 {claim.containmentVerified ? t('qualityHistory.containmentVerified') : t('qualityHistory.containmentNotVerified')}
                                 {claim.eightDSubmittedAt ? ` · ${t('qualityHistory.submittedShort', { date: fmtDate(claim.eightDSubmittedAt, true) })}` : ''}

@@ -66,6 +66,7 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
     public DbSet<ReferenceItem> ReferenceItems => Set<ReferenceItem>();
     public DbSet<EightDVersion> EightDVersions => Set<EightDVersion>();
     public DbSet<ValidationReminder> ValidationReminders => Set<ValidationReminder>();
+    public DbSet<SuperadminDepartmentWatch> SuperadminDepartmentWatches => Set<SuperadminDepartmentWatch>();
     public DbSet<OverviewSetting> OverviewSettings => Set<OverviewSetting>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -714,6 +715,14 @@ public class ActionPlanDbContext : DbContext, IApplicationDbContext
             entity.Property(e => e.Kind).IsRequired().HasMaxLength(20);
             entity.Property(e => e.RequestedById).IsRequired().HasMaxLength(80);
             entity.HasIndex(e => new { e.Kind, e.TargetId, e.RequestedById, e.CreatedAt });
+        });
+
+        modelBuilder.Entity<SuperadminDepartmentWatch>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.UserId).IsRequired().HasMaxLength(80);
+            entity.HasIndex(e => new { e.UserId, e.DepartmentId }).IsUnique();
+            entity.HasIndex(e => e.DepartmentId);
         });
 
         modelBuilder.Entity<OverviewSetting>(entity =>

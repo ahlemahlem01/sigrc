@@ -9,6 +9,7 @@ import {
 import './MyActionPlans.styles.css';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { domainLabel, domainOf } from '../../utils/planDomain';
+import { pn } from '../../utils/person';
 
 interface AssignedPlan {
   id: string;
@@ -752,7 +753,7 @@ export default function MyActionPlans() {
                             </span>
                           ) : null}
                           {plan.assigneeLabel && plan.assigneeLabel !== displayName && !/^[0-9a-f]{8}$/i.test(plan.assigneeLabel) ? (
-                            <span className="map-assignee">{plan.assigneeLabel}</span>
+                            <span className="map-assignee">{pn(plan.assigneeLabel)}</span>
                           ) : null}
                           {plan.claimId ? (
                             <Link

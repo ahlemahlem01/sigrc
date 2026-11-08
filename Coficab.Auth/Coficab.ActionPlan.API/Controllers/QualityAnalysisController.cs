@@ -963,7 +963,7 @@ public class QualityAnalysisController : ControllerBase
             {
                 // the reference and the analyst tell two claims with the same title apart; the plan comes after this validation
                 var which = string.IsNullOrWhiteSpace(claim.Reference) ? $"« {claim.Title} »" : $"{claim.Reference} « {claim.Title} »";
-                var by = string.IsNullOrWhiteSpace(claim.AssignedToName) ? string.Empty : $" (analyste : {claim.AssignedToName})";
+                var by = string.IsNullOrWhiteSpace(claim.AssignedToName) ? string.Empty : $" (analyste : {await PersonLabel.ForAsync(_db, claim.AssignedToId, claim.AssignedToName, ct)})";
                 await _notificationService.NotifyValidatorsAsync(
                     "five_why_pending_validation",
                     "5 Why à valider",

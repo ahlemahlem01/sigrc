@@ -39,6 +39,7 @@ import { computePpm, formatPpm } from '../../utils/Ppm';
 import { CameraCaptureModal } from '../../components/CameraCaptureModal';
 import { ClaimCreationSheet } from '../../components/ClaimCreationSheet';
 import { applySimilarCase, SimilarCase } from '../../utils/similarCase';
+import SimilarValueHint from '../../components/SimilarValueHint';
 
 interface CreateClaimFormProps {
   onSuccess?: () => void; // called after a successful create (e.g. when rendered inside a modal); falls back to navigation + reload when absent
@@ -1215,6 +1216,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                             placeholder={t('createClaim.examplePrefix', { value: 'STELLANTIS-01' })}
                           />
                         </div>
+                        <SimilarValueHint field="client" value={formData.clientId} token={accessToken} onPick={(v) => setFormData((prev) => ({ ...prev, clientId: v }))} />
                       </div>
 
                       <div className="pfe-field">

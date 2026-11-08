@@ -17,6 +17,7 @@ import LicenceBanner from '../LicenceBanner';
 import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { roleLabel } from '../../utils/roleLabel';
+import { pn } from '../../utils/person';
 
 // Target route for Quality Analyses
 const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
@@ -54,7 +55,9 @@ const FrontLayout = () => {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
-  const userDisplayName = (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
+  // the name comes with the code of the person's department when it is known; otherwise the e-mail, as before
+  const taggedName = pn((user as any)?.name, ((user as any)?.id ?? (user as any)?.sub ?? (user as any)?.userId));
+  const userDisplayName = (taggedName && taggedName !== (user as any)?.name ? taggedName : '') || (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
   const userRole = roleLabel(user as any, t);
 
   const isActive = (path: string) =>

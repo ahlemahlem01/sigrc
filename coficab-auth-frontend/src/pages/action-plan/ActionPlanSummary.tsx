@@ -9,6 +9,7 @@ import {
 } from '../../services/actionPlanService';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 // ── Inline Icons ──
 const IconArrowLeft = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>;
@@ -454,7 +455,7 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
                 </div>
                 <div className="aps-info-row">
                   <span>{t('planView.createdBy')}</span>
-                  <span>{plan.createdBy || '—'}</span>
+                  <span>{pn(plan.createdBy) || '—'}</span>
                 </div>
                 <div className="aps-info-row">
                   <span>{t('planView.creationDate')}</span>

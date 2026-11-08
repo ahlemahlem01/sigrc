@@ -18,6 +18,7 @@ import {
   normalizeActivityStatus,
   type ActivityStatus,
 } from '../../utils/activityStatus';
+import { pn } from '../../utils/person';
 
 type EmployeeInitial = {
   id?: string;
@@ -917,7 +918,7 @@ export default function EmployeeProfile({
             </div>
 
             <div className="ep-id">
-              <h1 className="ep-name">{displayName}</h1>
+              <h1 className="ep-name">{pn(displayName)}</h1>
               <p className="ep-email">{meta.email || t('employeeProfile.emailUnavailable')}</p>
               <div className="ep-meta">
                 {meta.department ? <span>{meta.department}</span> : null}

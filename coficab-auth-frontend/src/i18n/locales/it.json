@@ -5223,6 +5223,14 @@
   "resetPassword": {
     "invalidLink": "Link non valido o scaduto."
   },
+  "notificationWatch": {
+    "title": "Notifiche per reparto",
+    "help": "Scegli i reparti di cui vuoi ricevere le richieste di convalida (5 Why, piani d'azione, 8D). Senza scelta ricevi solo le richieste che nessun altro può gestire.",
+    "loading": "Caricamento...",
+    "error": "Impossibile caricare o salvare la scelta.",
+    "saved": "Scelta salvata."
+  },
+  "similarValue": { "hint": "Valore simile già in uso:" },
   "preferences": {
     "subtitle": "Le tue scelte personali e i modelli di importazione.",
     "personal": "Le mie preferenze",

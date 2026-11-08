@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '../ConfirmDialog';
 import { addPlanComment, archivePlanComment, editPlanComment, getPlanComments, PlanComment } from '../../services/actionPlanService';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 const MAX = 2000;
 const POLL_MS = 20000;
@@ -162,7 +163,7 @@ export default function PlanComments({ token, planId }: { token: string; planId:
             <div className={`pc-avatar ${c.authorRole}`} aria-hidden>{initials(c.authorName)}</div>
             <div className="pc-bubble">
               <div className="pc-meta">
-                <strong>{c.authorName}</strong>
+                <strong>{pn(c.authorName)}</strong>
                 {c.authorRole === 'admin' && <span className="pc-role">{t('planComments.admin')}</span>}
                 <span title={new Date(c.createdAt).toLocaleString(dateLocale())}>{when(c.createdAt, t)}</span>
                 {c.editedAt && <span>· {t('planComments.edited')}</span>}

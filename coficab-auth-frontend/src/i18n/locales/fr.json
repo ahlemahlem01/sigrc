@@ -5223,6 +5223,14 @@
   "resetPassword": {
     "invalidLink": "Lien invalide ou expiré."
   },
+  "notificationWatch": {
+    "title": "Notifications par département",
+    "help": "Choisissez les départements dont vous voulez recevoir les demandes de validation (analyses 5 Why, plans d'actions, 8D). Sans choix, vous ne recevez que les demandes que personne d'autre ne peut traiter.",
+    "loading": "Chargement...",
+    "error": "Impossible d'enregistrer ou de charger le choix.",
+    "saved": "Choix enregistré."
+  },
+  "similarValue": { "hint": "Valeur proche déjà utilisée :" },
   "preferences": {
     "subtitle": "Vos choix personnels et les modèles d'import.",
     "personal": "Mes préférences",

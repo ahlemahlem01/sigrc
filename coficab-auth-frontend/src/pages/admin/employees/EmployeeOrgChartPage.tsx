@@ -33,6 +33,7 @@ import {
 import { inferWorkFieldsFromDepartment, phoneFromId } from '../../../utils/employeeWorkFields';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { pn } from '../../../utils/person';
 
 const NAVY = '#000168';
 const LINE = '#e4e8f2';
@@ -156,7 +157,7 @@ function EmployeeNode({ data }: NodeProps) {
         radius="lg"
       />
       <div className="org-emp-body">
-        <div className="org-emp-name">{e.fullName}</div>
+        <div className="org-emp-name">{pn(e.fullName)}</div>
         <div className="org-emp-poste">{e.poste || '—'}</div>
         <div className="org-emp-equipe">{e.equipe || '—'}</div>
       </div>
@@ -601,7 +602,7 @@ function OrgChartCanvas({
               radius="lg"
             />
             <div style={{ minWidth: 0 }}>
-              <div className="org-pop-name">{selected.fullName}</div>
+              <div className="org-pop-name">{pn(selected.fullName)}</div>
               <div className="org-pop-dept">
                 {selected.department || '—'} · {selected.poste}
               </div>

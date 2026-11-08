@@ -13,6 +13,7 @@ import ComparisonRadar, { COMPARE_COLORS } from './ComparisonRadar';
 import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { pn } from '../../../utils/person';
 
 const MAX_SELECT = 3;
 const MIN_COMPARE = 2;
@@ -209,7 +210,7 @@ export default function EmployeeComparatorPage() {
                 radius="lg"
               />
               <div className="cmp-emp-meta">
-                <div className="cmp-emp-name">{emp.fullName}</div>
+                <div className="cmp-emp-name">{pn(emp.fullName)}</div>
                 <div className="cmp-emp-email">{emp.email || '—'}</div>
                 {(emp.poste || emp.equipe) && (
                   <div className="cmp-emp-role">{[emp.poste, emp.equipe].filter(Boolean).join(' · ')}</div>

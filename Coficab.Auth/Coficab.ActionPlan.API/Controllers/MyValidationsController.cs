@@ -137,7 +137,7 @@ public class MyValidationsController : ControllerBase
         if (last.HasValue && now - last.Value < Cooldown)
             return Conflict(new { code = "tooSoon", message = "Vous avez déjà relancé la validation aujourd'hui.", nextReminderAt = last.Value + Cooldown });
 
-        var who = User.FindFirst("name")?.Value ?? User.FindFirstValue(ClaimTypes.Name) ?? "Un employé";
+        var who = await PersonLabel.ForAsync(_db, me, User.FindFirst("name")?.Value ?? User.FindFirstValue(ClaimTypes.Name) ?? "Un employé", ct);
         var which = string.IsNullOrWhiteSpace(item.Reference) ? $"« {item.Title} »" : $"{item.Reference} « {item.Title} »";
         var days = (int)Math.Floor((now - item.Since).TotalDays);
         var waiting = days >= 1 ? $" (en attente depuis {days} j)" : string.Empty;
@@ -185,7 +185,7 @@ public class MyValidationsController : ControllerBase
         plan.ApprovalDecidedById = null;
         await _db.SaveChangesAsync(ct);
 
-        var who = User.FindFirst("name")?.Value ?? User.FindFirstValue(ClaimTypes.Name) ?? "Un employé";
+        var who = await PersonLabel.ForAsync(_db, me, User.FindFirst("name")?.Value ?? User.FindFirstValue(ClaimTypes.Name) ?? "Un employé", ct);
         await _notifications.NotifyValidatorsAsync(
             "capa_submitted",
             "Plan d'actions à approuver",

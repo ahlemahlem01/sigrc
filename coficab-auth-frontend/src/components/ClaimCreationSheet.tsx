@@ -7,6 +7,7 @@ import { dateLocale } from '../i18n';
 import { useReferenceLists } from '../hooks/useReferenceLists';
 import { defectLabel, defectValueFromInput } from '../utils/defectLabel';
 import type { Claim, ClaimCreationSheet as Sheet, ValidateClaimCreationPayload } from '../types/qualityAnalysis';
+import { pn } from '../utils/person';
 
 const MAX_DAYS_AHEAD = 180;
 const dayOf = (iso?: string | null) => (iso ? iso.slice(0, 10) : '');
@@ -167,7 +168,7 @@ export const ClaimCreationSheet: React.FC<Props> = ({ claimId, origin, onClose }
     return (
       <li key={`${ev.actionType}-${ev.createdAt}`} style={{ fontSize: 12.5, color: '#334155', lineHeight: 1.45 }}>
         <strong>{t(`creationSheet.events.${ev.actionType}`, { defaultValue: ev.actionType })}</strong>
-        {' · '}{ev.actorName} · <span style={{ color: '#64748b' }}>{when}</span>
+        {' · '}{pn(ev.actorName)} · <span style={{ color: '#64748b' }}>{when}</span>
         {detail && ev.actionType !== 'claim_created' && ev.actionType !== 'claim_creation_validated' && <div style={{ color: '#475569' }}>{detail}</div>}
       </li>
     );
@@ -195,7 +196,7 @@ export const ClaimCreationSheet: React.FC<Props> = ({ claimId, origin, onClose }
         {!sheet || !form ? (!loadError && <p style={{ margin: 0, color: '#64748b', fontSize: 13 }}>{t('creationSheet.loading')}</p>) : (
           <>
             <p style={{ margin: 0, fontSize: 13, color: '#475569' }}>
-              {editable ? t(origin === 'create' ? 'creationSheet.introCreate' : 'creationSheet.introEdit') : sheet.validated ? t('creationSheet.introValidated', { name: sheet.validatedByName || sheet.creatorName, date: sheet.validatedAt ? new Date(sheet.validatedAt).toLocaleDateString(dateLocale()) : '' }) : sheet.isCreator ? t('creationSheet.introClosed') : t('creationSheet.introReadOnly', { name: sheet.creatorName })}
+              {editable ? t(origin === 'create' ? 'creationSheet.introCreate' : 'creationSheet.introEdit') : sheet.validated ? t('creationSheet.introValidated', { name: pn(sheet.validatedByName || sheet.creatorName), date: sheet.validatedAt ? new Date(sheet.validatedAt).toLocaleDateString(dateLocale()) : '' }) : sheet.isCreator ? t('creationSheet.introClosed') : t('creationSheet.introReadOnly', { name: pn(sheet.creatorName) })}
             </p>
             <p style={{ margin: 0, fontSize: 12.5, color: '#475569' }}>
               {t('creationSheet.createdBy')} <strong>{sheet.creatorName || '—'}</strong> · {t('creationSheet.assignedTo')} <strong>{sheet.assigneeName || t('creationSheet.notAssigned')}</strong> <span style={{ color: '#94a3b8' }}>({t('creationSheet.readOnly')})</span>

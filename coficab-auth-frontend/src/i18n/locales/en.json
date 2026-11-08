@@ -5223,6 +5223,14 @@
   "resetPassword": {
     "invalidLink": "Invalid or expired link."
   },
+  "notificationWatch": {
+    "title": "Notifications by department",
+    "help": "Choose the departments whose validation requests (5 Why, action plans, 8D) you want to receive. With no choice, you only receive the requests nobody else can handle.",
+    "loading": "Loading...",
+    "error": "The choice could not be loaded or saved.",
+    "saved": "Choice saved."
+  },
+  "similarValue": { "hint": "Similar value already in use:" },
   "preferences": {
     "subtitle": "Your personal choices and the import templates.",
     "personal": "My preferences",

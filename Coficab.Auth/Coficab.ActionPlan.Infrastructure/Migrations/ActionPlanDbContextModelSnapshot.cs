@@ -2681,6 +2681,33 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.ToTable("Sites", "actionplan");
                 });
 
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.SuperadminDepartmentWatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("UserId", "DepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("SuperadminDepartmentWatches", "actionplan");
+                });
+
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.TimelineEvent", b =>
                 {
                     b.Property<Guid>("Id")

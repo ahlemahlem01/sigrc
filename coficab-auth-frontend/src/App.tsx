@@ -75,6 +75,8 @@ import MustChangePasswordRedirect from './components/MustChangePasswordRedirect'
 import ChangePasswordPage from './pages/ChangePasswordPage';
 import { FrontValidatorRoute } from './pages/front/FrontValidatorRoute';
 import ReferenceLabelsLoader from './components/ReferenceLabelsLoader';
+import { usePeopleDirectory } from './utils/person';
+import EmployeeOnlyRoute from './components/EmployeeOnlyRoute';
 import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
 import MyActionPlanDetail from './pages/front/MyActionPlanDetail';
@@ -118,8 +120,11 @@ const HistoryRedirect = () => {
 // ── Guards ────────────────────────────────────────────────────────────────────
 const ProtectedRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
+  // the people directory is loaded before the pages: every name is shown with the code of the person's department
+  const directoryReady = usePeopleDirectory();
   if (isLoading) return <div className="flex items-center justify-center h-screen">Chargement...</div>;
   if (!isAuthenticated) return <RedirectToLogin />;
+  if (!directoryReady) return <div className="flex items-center justify-center h-screen">Chargement...</div>;
   return <Outlet />;
 };
 
@@ -137,6 +142,8 @@ const HrReportsRoute = () => <HrReportsPage />;
 
 const AdminRoute = () => {
   const { isAuthenticated, isLoading, user } = useAuth();
+  // same as the other areas: the people directory is loaded before the pages, so every name carries the code of the department
+  const directoryReady = usePeopleDirectory();
 
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen">Chargement...</div>;
@@ -146,6 +153,9 @@ const AdminRoute = () => {
   }
   if (!isAdminUser(user)) {
     return <Navigate to="/dashboard" replace />;
+  }
+  if (!directoryReady) {
+    return <div className="flex items-center justify-center h-screen">Chargement...</div>;
   }
   return <Outlet />;
 };
@@ -172,6 +182,7 @@ const App = () => {
 
           {/* ── User routes ── */}
           <Route element={<ProtectedRoute />}>
+            <Route element={<EmployeeOnlyRoute />}>
             <Route element={<UserLayout />}>
               <Route path="/dashboard"                    element={<FrontWorkspaceHome />} />
               <Route path="/declarations"                 element={<EmployeeDeclarationsPage />} />
@@ -184,6 +195,7 @@ const App = () => {
               <Route path="/action-plans"                 element={<MyActionPlans />} />
               <Route path="/action-plans/:id/summary"    element={<ActionPlanSummary />} />
               <Route path="/action-plans/:id"            element={<ActionPlanDetail />} />
+            </Route>
             </Route>
           </Route>
 
@@ -252,10 +264,13 @@ const App = () => {
           <Route element={<ProtectedRoute />}>
             <Route element={<FrontLayout />}>
               <Route path="/pages/front"                                  element={<FrontLandingPage />} />
-              <Route path="/pages/front/my-action-plans"                  element={<MyActionPlans />} />
-              <Route path="/pages/front/my-action-plans/:id"              element={<MyActionPlanDetail />} />
-              <Route path="/pages/front/my-validations"                    element={<MyPendingValidationsPage />} />
-              <Route path="/pages/front/my-claims"                       element={<MyAssignedClaimsPage />} />
+              {/* The employee's own workspace: administrators work from the administration and the admin front office */}
+              <Route element={<EmployeeOnlyRoute />}>
+                <Route path="/pages/front/my-action-plans"                  element={<MyActionPlans />} />
+                <Route path="/pages/front/my-action-plans/:id"              element={<MyActionPlanDetail />} />
+                <Route path="/pages/front/my-validations"                    element={<MyPendingValidationsPage />} />
+                <Route path="/pages/front/my-claims"                       element={<MyAssignedClaimsPage />} />
+              </Route>
               <Route path="/alerts"                                      element={<AlertsPage />} />
               <Route path="/pages/front/alerts"                          element={<Navigate to="/alerts" replace />} />
               <Route path="/pages/front/action-plans/calendar"            element={<CapaCalendarPage />} />

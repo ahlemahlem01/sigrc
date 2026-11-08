@@ -19,6 +19,7 @@ import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal'
 import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import { parseProgress, parseProgressRaw } from '../admin/capaAnalytics';
+import { pn } from '../../utils/person';
 
 // ── Config ────────────────────────────────────────────────────────────────────
 /** label = i18n key */
@@ -740,7 +741,7 @@ export const FrontPlanActionManagement: React.FC = () => {
                 </div>
                 {openId === action.id && (() => {
                   const u = users.find((x) => String(x.id) === String(action.assignedToId));
-                  const who = action.assignedToName || u?.fullName || `${u?.firstName || ''} ${u?.lastName || ''}`.trim() || t('claimDetail.unassigned');
+                  const who = pn(action.assignedToName || u?.fullName || `${u?.firstName || ''} ${u?.lastName || ''}`.trim(), action.assignedToId) || t('claimDetail.unassigned');
                   const statusText = ({ created: t('planDetailFront.statusAwaitingAssignment'), ongoing: t('status.ongoing'), closed: t('plansAdmin.statusPending'), archived: t('status.archived') } as Record<string, string>)[action.status ?? 'created'];
                   const rows: [string, React.ReactNode][] = [
                     ['Responsable', who],

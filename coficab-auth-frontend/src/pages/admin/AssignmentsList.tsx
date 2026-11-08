@@ -5,6 +5,7 @@ import { getUsers } from '../../services/adminService';
 import TableSkeleton from '../../components/TableSkeleton';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 const unwrapList = (raw: any): any[] => {
   if (Array.isArray(raw)) return raw;
   if (Array.isArray(raw?.['$values'])) return raw['$values'];
@@ -453,7 +454,7 @@ const loadEmployeeNames = async () => {
                         </span>
                         {a.updatedBy && (
                           <span style={{ fontSize: 10, color: 'var(--subtle)' }}>
-                            {t('assignmentsMap.assignedBy', { name: employeeNames[a.updatedBy] || a.updatedBy })}
+                            {t('assignmentsMap.assignedBy', { name: pn(employeeNames[a.updatedBy] || a.updatedBy) })}
                           </span>
                         )}
                       </div>

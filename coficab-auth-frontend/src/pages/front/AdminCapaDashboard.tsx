@@ -15,6 +15,7 @@ import { useOrganizationScope } from '../../context/OrganizationScopeContext';
 import { fetchCapaIndicators, type CapaIndicators } from '../../services/capaIndicatorsService';
 import { domainOf, inDomain } from '../../utils/planDomain';
 import { formatDecimal } from '../../utils/formatNumber';
+import { pn } from '../../utils/person';
 
 const COFICAB = '#000168';
 const PAGE_SIZE = 8;
@@ -741,7 +742,7 @@ export default function AdminCapaDashboard({ embedded = false }: { embedded?: bo
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2 min-w-[150px]">
                             <UserAvatar name={r.responsibleName} size={28} />
-                            <span className="text-slate-700 truncate">{r.responsibleName}</span>
+                            <span className="text-slate-700 truncate">{pn(r.responsibleName)}</span>
                           </div>
                         </td>
                         <td className="px-4 py-3">

@@ -11,6 +11,7 @@ import { resolveClaimStatus } from '../../utils/Claimutils';
 import './WorkspaceExtras.styles.css';
 import { defectLabel } from '../../utils/defectLabel';
 import { formatDecimal } from '../../utils/formatNumber';
+import { pn } from '../../utils/person';
 
 const CLOSED = new Set(['CLOTUREE', 'VALIDATED', 'ARCHIVED']);
 export const DRAFTS_PATH = '/pages/front/quality-analyses/drafts';
@@ -167,7 +168,7 @@ export default function WorkspaceExtras({ accessToken, assigned, pins, onToggleP
                     onKeyDown={(e) => { if (e.key === 'Enter') navigate(claimPath(c)); }}>
                     <span className="fwh-row-main">
                       <span className="fwh-todo-title">{c.reference && <span className="fwh-ref">{c.reference}</span>}{c.title}</span>
-                      <span className="fwh-todo-meta">{shortDate(c.createdAt, locale)}{c.assignedToName ? ` · ${c.assignedToName}` : ''}</span>
+                      <span className="fwh-todo-meta">{shortDate(c.createdAt, locale)}{c.assignedToName ? ` · ${pn(c.assignedToName)}` : ''}</span>
                     </span>
                     <StatusPill claim={c} />
                     <PinStar pin={pinFor(c)} pins={pins} onToggle={onTogglePin} />

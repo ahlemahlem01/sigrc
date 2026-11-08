@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../../../../i18n';
 import type { HrReportEmployeePayload } from '../../../../services/hrReportService';
 import { SKILL_LEVEL_LABEL, type SkillLevel } from '../../../../services/employeePerformanceService';
+import { pn } from '../../../../utils/person';
 
 type Props = {
   rows: HrReportEmployeePayload[];
@@ -100,7 +101,7 @@ export default function ReportDetailTable({ rows }: Props) {
                 return (
                   <tr key={r.userId}>
                     <td>
-                      <div className="hrt-name">{r.fullName}</div>
+                      <div className="hrt-name">{pn(r.fullName)}</div>
                       <div className="hrt-muted">{r.department || '—'}</div>
                     </td>
                     <td className="nw">

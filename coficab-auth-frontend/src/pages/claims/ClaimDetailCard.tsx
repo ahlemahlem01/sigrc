@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
 import { formatDecimal } from '../../utils/formatNumber';
+import { pn } from '../../utils/person';
 
 interface ClaimDetailCardProps {
   claim: Claim | null;
@@ -191,7 +192,7 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
   const isAnalysisLocked = canStartAnalysis;
   const assigneeLabel = (() => {
     const name = claim.assignedToName || (claim as any).assigned_to_name;
-    if (name && !/^[0-9a-f-]{8,}$/i.test(String(name))) return String(name);
+    if (name && !/^[0-9a-f-]{8,}$/i.test(String(name))) return pn(String(name));
     return claim.assignedToId ? t('claimDetail.unassigned') : null;
   })();
   const completedAtLabel = formatClaimDate(claim.completedAt || (claim as any).CompletedAt);

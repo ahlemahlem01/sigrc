@@ -19,6 +19,7 @@ import { ExtendDeadline } from '../../components/ExtendDeadline';
 import ConfirmDialog from '../../components/ConfirmDialog';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
 
 const PAGE_SIZE = 12;
 const btnSecondary =
@@ -55,7 +56,7 @@ function dayStamp(value?: string | null): number | null {
 
 function person(claim: Claim): string {
   const name = claim.assignedToName || '';
-  if (name && !/^[0-9a-f-]{8,}$/i.test(name)) return name;
+  if (name && !/^[0-9a-f-]{8,}$/i.test(name)) return pn(name);
   return i18n.t('claimDetail.unassigned');
 }
 

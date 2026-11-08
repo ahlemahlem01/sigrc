@@ -5,6 +5,7 @@ import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../../i18n';
 import { getStatusBadge, resolveClaimStatus } from '../../../utils/Claimutils';
+import { pn } from '../../../utils/person';
 
 const fmt = (iso?: string) =>
   iso
@@ -34,7 +35,7 @@ export default function EmployeeDetailDrawer({ row, open, onClose }: Props) {
               radius="lg"
             />
             <div>
-              <div className="edd-name">{row.fullName}</div>
+              <div className="edd-name">{pn(row.fullName)}</div>
               <div className="edd-email">{row.email}</div>
               <div className="edd-email">
                 {[row.poste, row.equipe, row.department].filter(Boolean).join(' · ') || '—'}

@@ -27,6 +27,7 @@ import { ValidationThread } from '../../components/ValidationThread';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
 
 type TabId = 'dossiers' | 'capa' | 'rejected' | 'fivewhy' | 'approval';
 type SortKey = 'oldest' | 'newest' | 'severity' | 'line';
@@ -386,7 +387,7 @@ export const AdminValidationHub: React.FC = () => {
                       <span>{t('validationHub.planStatus', { status: t(`validationHub.planStatusName.${p.status}`) })} · {t('validationHub.progress')} {p.progress}%</span>
                       {p.reference && <span>{p.reference}</span>}
                       {p.claimReference && <span>{p.claimReference}</span>}
-                      {p.assignedToName && <span>{t('validationHub.byAnalyst', { name: p.assignedToName })}</span>}
+                      {p.assignedToName && <span>{t('validationHub.byAnalyst', { name: pn(p.assignedToName) })}</span>}
                       {p.deadline && <span>{t('validationHub.dueShort')} {new Date(p.deadline).toLocaleDateString(dateLocale())}</span>}
                     </div>
                     <ValidationThread root="validated" plan="toApprove" />
@@ -673,7 +674,7 @@ export const AdminValidationHub: React.FC = () => {
                             <span>{claim.severity || '—'}</span>
                             {claim.productionLine && <span>{claim.productionLine}</span>}
                             {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
-                            {claim.assignedToName && <span>{claim.assignedToName}</span>}
+                            {claim.assignedToName && <span>{pn(claim.assignedToName)}</span>}
                           </div>
                           {claim.description && (
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
@@ -756,7 +757,7 @@ export const AdminValidationHub: React.FC = () => {
                       <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
                       <span>{item.clientId || '—'}</span>
                       <span>{defectLabel(item.defectType) || '—'}</span>
-                      {item.assignedToName && <span>{item.assignedToName}</span>}
+                      {item.assignedToName && <span>{pn(item.assignedToName)}</span>}
                     </div>
                     <ValidationThread root="toValidate" plan={item.planStep} progress={item.planProgress} />
                     {item.rootCauseOccurrence || item.rootCauseDetection ? (

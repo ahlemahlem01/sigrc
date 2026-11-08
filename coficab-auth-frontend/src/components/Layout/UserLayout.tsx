@@ -11,6 +11,7 @@ import { useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
 import { MOBILE_NAV_CSS } from './mobileNav';
+import { pn } from '../../utils/person';
 
 type NavChild = { labelKey: string; icon: string; path: string };
 type NavGroup = { id: string; labelKey: string; icon: string; children: NavChild[] };
@@ -169,7 +170,7 @@ export default function UserLayout() {
       : 'fr-FR';
 
   const userDisplayName =
-    (user as any)?.name || (user as any)?.fullName || (user as any)?.email || t('employeeNav.roles.user');
+    pn((user as any)?.name || (user as any)?.fullName, ((user as any)?.id ?? (user as any)?.sub ?? (user as any)?.userId)) || (user as any)?.email || t('employeeNav.roles.user');
   
   const getRoleLabel = (role: string | string[]) => {
     const r = Array.isArray(role) ? role[0] : role;

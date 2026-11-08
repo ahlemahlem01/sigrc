@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { pn } from '../../../../utils/person';
 
 export type ReportParams = {
   periodStart: string;
@@ -215,7 +216,7 @@ export default function ReportParametersForm({
                 checked={value.selectedIds.includes(e.id)}
                 onChange={() => toggleEmployee(e.id)}
               />
-              {e.fullName}
+              {pn(e.fullName)}
               <span>{e.department || '—'}</span>
             </label>
           ))}
