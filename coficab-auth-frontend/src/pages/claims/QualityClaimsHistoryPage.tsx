@@ -531,7 +531,8 @@ const QualityClaimsHistoryPage: React.FC<{ preset?: Partial<ClaimsHistoryQuery>;
                                 {claim.eightDValidatedAt ? ` · ${t('qualityHistory.validatedShort', { date: fmtDate(claim.eightDValidatedAt, true) })}` : ''}
                                 {claim.eightDClosedAt ? ` · ${t('qualityHistory.closedShort', { date: fmtDate(claim.eightDClosedAt, true) })}` : ''}
                               </p>
-                              <p className="qh-sub">{t('qualityHistory.ishikawa', { status: claim.ishikawaStatus ? getFiveWhyStatusMeta(claim.ishikawaStatus).label : t('qualityHistory.notStarted') })}</p>
+                              <p className="qh-sub">{t('qualityHistory.ishikawa', { status: (claim.ishikawaCauseCount ?? 0) > 0 ? t('qualityHistory.causesListed', { count: claim.ishikawaCauseCount }) : claim.ishikawaStatus ? getFiveWhyStatusMeta(claim.ishikawaStatus).label : t('qualityHistory.notStarted') })}</p>
+                              <p className="qh-sub">{t('qualityHistory.pareto', { status: (claim.paretoScoredCount ?? 0) > 0 ? t('qualityHistory.paretoScored', { scored: claim.paretoScoredCount, count: claim.ishikawaCauseCount ?? 0 }) : t('qualityHistory.notStarted') })}</p>
                               <div className="qh-detail-actions">
                                 <button type="button" className="pfe-btn-secondary qh-btn" onClick={() => navigate(`/pages/front/quality-analyses/8d/${claim.id}`)}>{t('analysisTools.eightD')}</button>
                                 <button type="button" className="pfe-btn-secondary qh-btn" onClick={() => navigate(`/pages/front/quality-analyses/parcours/${claim.id}`)}>{t('analysisTools.guide')}</button>

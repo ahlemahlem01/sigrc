@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { ExtendDeadline, canExtendDeadline } from '../../components/ExtendDeadline';
+import { ChangeClaimDeadline } from '../../components/ChangeClaimDeadline';
+import ConfirmDialog from '../../components/ConfirmDialog';
+import { ClaimCreationSheet } from '../../components/ClaimCreationSheet';
 import {
   Building2,
   Calendar,
@@ -13,6 +16,8 @@ import {
   GitFork,
   ShieldAlert,
   Clock,
+  Archive,
+  ClipboardCheck,
 } from 'lucide-react';
 import { Claim } from '../../types/qualityAnalysis';
 import { useAuth } from '../../context/AuthContext';
@@ -32,10 +37,10 @@ interface ClaimDetailCardProps {
   onOpenStartAnalysisModal?: () => void;
   /** Admin/SuperAdmin can edit + reassign; employees typically only analyse. */
   canEdit?: boolean;
-  onApplySuggestedDeadline?: (claimId: string, deadlineIso: string) => Promise<void> | void;
-  applyingDeadline?: boolean;
   /** Called after an administrator gave the claim more time, to reload it. */
   onDeadlineExtended?: () => void;
+  /** Called after an administrator archived the claim (it leaves every list but stays in the database). */
+  onArchived?: () => void;
 }
 
 const formatClaimDate = (value?: string | null) => {
@@ -103,12 +108,15 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
   onEdit,
   onOpenStartAnalysisModal,
   canEdit = true,
-  onApplySuggestedDeadline,
-  applyingDeadline = false,
   onDeadlineExtended,
+  onArchived,
 }) => {
   const { t } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, hasRole } = useAuth();
+  const [askArchive, setAskArchive] = useState(false);
+  const [showSheet, setShowSheet] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const [liveEstimate, setLiveEstimate] = useState<{
     daysP50: number;
     daysP80: number;
@@ -212,11 +220,6 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
     Boolean(suggestedDeadlineIso) &&
     new Date(currentDeadlineIso as string).toDateString() ===
       new Date(suggestedDeadlineIso as string).toDateString();
-  const canApplyDeadline =
-    Boolean(onApplySuggestedDeadline) &&
-    Boolean(suggestedDeadlineIso) &&
-    !deadlineAlreadyApplied &&
-    currentStatus !== 'CLOTUREE';
 
   return (
     <div className="pfe-detail-pane">
@@ -239,13 +242,63 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
             </button>
           )}
 
+          {claimStatus !== 'DRAFT' && claimStatus !== 'BROUILLON' && (
+            <button type="button" className="pfe-btn-edit" onClick={() => setShowSheet(true)}>
+              <ClipboardCheck size={13} /> {t('creationSheet.open')}
+            </button>
+          )}
+
           {canEdit && (
             <button type="button" className="pfe-btn-edit" onClick={onEdit}>
               <Pencil size={13} /> {t('claimDetail.editAssign')}
             </button>
           )}
+
+          {(hasRole('admin') || hasRole('superadmin')) && !(claim as any).isArchived && (
+            <button type="button" className="pfe-btn-edit" onClick={() => { setArchiveError(null); setAskArchive(true); }}>
+              <Archive size={13} /> {t('adminLists.archive')}
+            </button>
+          )}
         </div>
       </div>
+
+      {showSheet && (
+        <ClaimCreationSheet
+          claimId={String(claim.id)}
+          origin="detail"
+          onClose={(validated) => { setShowSheet(false); if (validated) onDeadlineExtended?.(); }}
+        />
+      )}
+
+      {archiveError && (
+        <div role="alert" style={{ margin: '8px 16px 0', padding: '8px 12px', borderRadius: 8, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', fontSize: 13 }}>
+          {archiveError}
+        </div>
+      )}
+      {askArchive && (
+        <ConfirmDialog
+          title={t('adminLists.archiveTitle')}
+          text={t('adminLists.archiveText', { title: claim.title || t('closedArchive.untitled') })}
+          confirmLabel={t('adminLists.archive')}
+          danger
+          busy={archiving}
+          onConfirm={async () => {
+            if (!accessToken) return;
+            setArchiving(true);
+            try {
+              await qualityAnalysisService.archiveClaim(String(claim.id), accessToken);
+              setAskArchive(false);
+              onArchived?.();
+            } catch (e: any) {
+              setAskArchive(false);
+              setArchiveError(e?.response?.data?.message || t('adminLists.archiveFailed'));
+            } finally {
+              setArchiving(false);
+            }
+          }}
+          onCancel={() => setAskArchive(false)}
+        />
+      )}
 
       <div className="pfe-pane-content">
         <div className="pfe-compact-chips-grid">
@@ -371,7 +424,9 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
                   <strong>
                     {t('claimDetail.estimateRange', { min: formatEstimateDays(daysP50), max: formatEstimateDays(daysP80) })}
                   </strong>
-                  {t('claimDetail.estimateBasis', { count: sampleSize ?? 0, method: estimateMethodLabel(method) })}
+                  {String(method || '').toLowerCase() === 'ml'
+                    ? t('claimDetail.estimateBasisMl', { count: sampleSize ?? 0 })
+                    : t('claimDetail.estimateBasis', { count: sampleSize ?? 0, method: estimateMethodLabel(method) })}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
                   <span style={{ fontSize: 12.5, color: '#475569' }}>
@@ -381,20 +436,12 @@ export const ClaimDetailCard: React.FC<ClaimDetailCardProps> = ({
                       ? ` · ${t('claimDetail.currentDeadline', { date: deadlineLabel })}`
                       : ` · ${t('claimDetail.noDeadline')}`}
                   </span>
-                  {canApplyDeadline && (
-                    <button
-                      type="button"
-                      className="pfe-btn-primary"
-                      disabled={applyingDeadline}
-                      onClick={() => {
-                        if (!suggestedDeadlineIso || !onApplySuggestedDeadline) return;
-                        void onApplySuggestedDeadline(String(claim.id), suggestedDeadlineIso);
-                      }}
-                      style={{ padding: '6px 10px', fontSize: 12 }}
-                    >
-                      {applyingDeadline ? t('claimDetail.applying') : t('claimDetail.applyDeadline')}
-                    </button>
-                  )}
+                  <ChangeClaimDeadline
+                    claimId={String(claim.id)}
+                    deadline={claim.deadline || (claim as any).Deadline}
+                    open={claimIsOpen}
+                    onDone={() => onDeadlineExtended?.()}
+                  />
                   {deadlineAlreadyApplied && (
                     <span style={{ fontSize: 12, color: '#059669', fontWeight: 600 }}>
                       {t('claimDetail.deadlineAligned')}

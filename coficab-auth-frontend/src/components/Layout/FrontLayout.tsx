@@ -94,6 +94,7 @@ const FrontLayout = () => {
         label: t(isAdmin ? 'employeeWorkspace.frontPlans' : 'employeeWorkspace.frontMyPlans'),
         active: isPlansNavActive || isActive('/pages/front/my-action-plans'),
       },
+      ...(!isAdmin ? [{ to: '/pages/front/my-validations', label: t('employeeWorkspace.frontMyValidations'), active: isActive('/pages/front/my-validations') }] : []),
       { to: '/pages/front/agenda/deadlines', label: t('employeeWorkspace.frontAgenda'), active: isAgendaPath },
       { to: QUALITY_ANALYSIS_PATH, label: t('employeeWorkspace.frontQuality'), active: isQualityPath },
     ] : []),

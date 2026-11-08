@@ -89,7 +89,15 @@ public class CreateClaimCommandHandler : IRequestHandler<CreateClaimCommand, Gui
         var estimate = await _estimator.EstimateAsync(
             request.DefectType,
             request.Severity.ToString(),
-            cancellationToken);
+            cancellationToken,
+            new ClaimEstimateContext(
+                ClientId: request.ClientId,
+                ProductionLine: string.IsNullOrWhiteSpace(request.ProductionLine) ? null : request.ProductionLine.Trim(),
+                IsInternal: request.IsInternal,
+                ProducedQuantity: request.ProducedQuantity,
+                DefectiveQuantity: request.DefectiveQuantity,
+                AssigneeId: assignedToId,
+                Month: DateTime.UtcNow.Month));
 
         var claim = new Claim
         {

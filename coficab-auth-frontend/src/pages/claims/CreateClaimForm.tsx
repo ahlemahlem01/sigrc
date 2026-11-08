@@ -37,6 +37,7 @@ import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 import { appendCvProposal, CvProposal } from '../../utils/cvPayload';
 import { computePpm, formatPpm } from '../../utils/Ppm';
 import { CameraCaptureModal } from '../../components/CameraCaptureModal';
+import { ClaimCreationSheet } from '../../components/ClaimCreationSheet';
 import { applySimilarCase, SimilarCase } from '../../utils/similarCase';
 
 interface CreateClaimFormProps {
@@ -52,6 +53,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
+  const [sheetClaimId, setSheetClaimId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [assignableUsers, setAssignableUsers] = useState<
@@ -294,6 +296,16 @@ const handleSaveDraft = async () => {
   await submitClaim('DRAFT');
 };
 
+const finishCreation = (statusCode: 'DRAFT' | 'OUVERTE') => {
+  if (onSuccess) {
+    onSuccess();
+  } else if (statusCode === 'DRAFT') {
+    navigate('/pages/front/quality-analyses/drafts', { replace: true });
+  } else {
+    navigate('/pages/front/quality-analyses', { replace: true });
+  }
+};
+
 const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
   if (currentStep < 3) {
     nextStep();
@@ -349,14 +361,13 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
       payload.append('AssignedToName', label);
     }
 
-    await qualityAnalysisService.createClaim(payload, accessToken);
+    const created = await qualityAnalysisService.createClaim(payload, accessToken);
 
-    if (onSuccess) {
-      onSuccess();
-    } else if (statusCode === 'DRAFT') {
-      navigate('/pages/front/quality-analyses/drafts', { replace: true });
+    // a declared claim (not a draft) opens its creation sheet: the creator confirms or corrects it, and chooses the estimated date
+    if (statusCode !== 'DRAFT' && created?.id) {
+      setSheetClaimId(created.id);
     } else {
-      navigate('/pages/front/quality-analyses', { replace: true });
+      finishCreation(statusCode);
     }
   } catch (err: any) {
     const message =
@@ -389,6 +400,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         <span>{t('createClaim.authenticating')}</span>
       </div>
     );
+  }
+
+  if (sheetClaimId) {
+    return <ClaimCreationSheet claimId={sheetClaimId} origin="create" onClose={() => finishCreation('OUVERTE')} />;
   }
 
   const sevStyle = getSeverityBadgeClass(formData.severity);

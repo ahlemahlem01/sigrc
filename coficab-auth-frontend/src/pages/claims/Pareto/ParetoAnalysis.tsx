@@ -5,8 +5,9 @@ import ParetoActions from '../../../pages/claims/Pareto/ParetoActions';
 import ParetoChart from '../../../pages/claims/Pareto/ParetoChart';
 import MiningInsightsPanel, { useMiningInsights } from './MiningInsightsPanel';
 import { useClaimClosed } from '../../../hooks/useClaimClosed';
+import { useValidatedLock } from '../../../hooks/useValidatedLock';
 import { ClosedDossierBanner } from '../../../components/ClosedDossierBanner';
-import CausesPareto from './CausesPareto';
+import ProspectivePareto from './ProspectivePareto';
 import ManualParetoPanel from './ManualParetoPanel';
 import { activeFilters, EMPTY_MANUAL, ManualParetoConfig, manualRequest } from './manualPareto';
 import { LockedStep, useD4Order } from '../D4Order';
@@ -40,6 +41,8 @@ export default function ParetoAnalysis() {
   const [pcVersion, setPcVersion] = useState(0);
   const [pcError, setPcError] = useState<string | null>(null);
   const closedClaim = useClaimClosed(claimId);
+  const validatedLock = useValidatedLock(claimId);
+  const locked = closedClaim || validatedLock;
   const [pickedText, setPickedText] = useState<string | null>(null);
   const [measure, setMeasure] = useState<ParetoMeasure>('count');
   // 'guided' = the setup chosen from the claim (axis recommended by the mining); 'manual' = the person sets the axis, filters, period and measure
@@ -286,18 +289,21 @@ export default function ParetoAnalysis() {
         </p>
       )}
 
-      {claimId && <CausesPareto claimId={claimId} evidence={mining.data?.causeEvidence} loading={mining.loading} />}
+      {claimId && <ProspectivePareto claimId={claimId} readOnly={locked} />}
 
       {closedClaim && <ClosedDossierBanner />}
+      {validatedLock && !closedClaim && (
+        <p role="status" style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, background: '#ECFDF5', color: '#065F46', fontSize: 13, fontWeight: 600 }}>{t('fiveWhy.validatedLocked')}</p>
+      )}
 
-      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={closedClaim} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
+      {claimId && <PriorityCauseCard claimId={claimId} version={pcVersion} evidence={mining.data?.causeEvidence} externalError={pcError} readOnly={locked} footer={<ParetoActions claimId={claimId} />} onChanged={() => { setPcError(null); setPcVersion((v) => v + 1); }} />}
 
       {claim && claimId && (
         <MiningInsightsPanel
           data={mining.data}
           loading={mining.loading}
           chosenText={pickedText}
-          onPick={closedClaim ? undefined : (cause) => {
+          onPick={locked ? undefined : (cause) => {
             if (!accessToken) return;
             setPcError(null);
             priorityCauseService

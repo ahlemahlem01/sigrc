@@ -5,11 +5,16 @@ namespace Coficab.ActionPlan.Application.Tests;
 
 public class FallbackRulesTests
 {
-    [Fact]
-    public void CapaSuggestionRules_BuildLocal_ProducesCorrectiveAndPreventive()
+    [Theory]
+    [InlineData(null, "CORRECTIVE")]   // the type is chosen by the person; without it the local rules fall back on the corrective plan
+    [InlineData(2, "CORRECTIVE")]
+    [InlineData(3, "PREVENTIVE")]
+    [InlineData(1, "IMPROVEMENT")]
+    public void CapaSuggestionRules_BuildLocal_WritesOneActionPerRootCause_OfTheNatureOfThePlan(int? planType, string kind)
     {
         var dto = CapaSuggestionRules.BuildLocal(new SuggestCapaRequestDto
         {
+            PlanType = planType,
             ClaimTitle = "Soudure WR-04",
             ProblemStatement = "Défaut soudure sur lot L1",
             RootCauseOccurrence = "Paramètre laser hors tolérance",
@@ -18,8 +23,8 @@ public class FallbackRulesTests
 
         Assert.Contains("Soudure WR-04", dto.PlanTitle);
         Assert.Equal(2, dto.Actions.Count);
-        Assert.Contains(dto.Actions, a => a.Kind == "CORRECTIVE" && a.Branch == "OCCURRENCE");
-        Assert.Contains(dto.Actions, a => a.Kind == "PREVENTIVE" && a.Branch == "DETECTION");
+        Assert.Contains(dto.Actions, a => a.Kind == kind && a.Branch == "OCCURRENCE" && a.Description.Contains("Paramètre laser hors tolérance"));
+        Assert.Contains(dto.Actions, a => a.Kind == kind && a.Branch == "DETECTION" && a.Description.Contains("Contrôle final non adapté au défaut"));
     }
 
     [Fact]

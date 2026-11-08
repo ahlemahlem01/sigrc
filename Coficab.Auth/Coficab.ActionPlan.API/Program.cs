@@ -58,6 +58,7 @@ builder.Services.AddHttpClient("AuthApi")
         return handler;
     });
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Coficab.ActionPlan.Application.QualityAnalyses.Services.IDelayModelClient, Coficab.ActionPlan.API.Services.MlDelayModelClient>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();

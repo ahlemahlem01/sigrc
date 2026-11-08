@@ -39,6 +39,8 @@ interface PlanActionItem {
 interface EnrichedPlan extends AssignedPlan {
   progress: number;
   nearestDeadline: string | null;
+  /** Actions finished (100 %, whether or not validated). */
+  doneActions: number;
   totalActions: number;
   openActions: number;
   isOverdue: boolean;
@@ -368,6 +370,7 @@ export default function MyActionPlans() {
             progress: Number.isFinite(progress) ? progress : 0,
             totalActions: actions.length,
             openActions: openActions.length,
+            doneActions: actions.filter((a) => toProgress(a.progress) >= 100).length,
             nearestDeadline,
             isOverdue: overdueDays > 0,
             overdueDays,
@@ -407,8 +410,9 @@ export default function MyActionPlans() {
     }
     if (filterDateFrom || filterDateTo) {
       list = list.filter((p) => {
-        if (!p.nearestDeadline) return false;
-        const d = new Date(p.nearestDeadline);
+        // the plans created between the two dates (whatever their state: a closed plan has no deadline left)
+        if (!p.createdAt) return false;
+        const d = new Date(p.createdAt);
         if (Number.isNaN(d.getTime())) return false;
         if (filterDateFrom && d < new Date(`${filterDateFrom}T00:00:00`)) return false;
         if (filterDateTo && d > new Date(`${filterDateTo}T23:59:59`)) return false;
@@ -744,7 +748,7 @@ export default function MyActionPlans() {
                           ) : null}
                           {plan.totalActions > 0 ? (
                             <span className="map-actions" title={t('myActionPlans.colOpenActions')}>
-                              {t('myActionPlans.actionsShort', { open: plan.openActions, total: plan.totalActions })}
+                              {t('myActionPlans.actionsShort', { open: plan.doneActions, total: plan.totalActions })}
                             </span>
                           ) : null}
                           {plan.assigneeLabel && plan.assigneeLabel !== displayName && !/^[0-9a-f]{8}$/i.test(plan.assigneeLabel) ? (
@@ -778,7 +782,11 @@ export default function MyActionPlans() {
                       </td>
                       <td>
                         <span className={`map-due ${dueCls}`}>
-                          {plan.nearestDeadline ? formatDate(plan.nearestDeadline, dateLocale) : '—'}
+                          {plan.nearestDeadline
+                            ? formatDate(plan.nearestDeadline, dateLocale)
+                            : (plan as any).completedAt
+                              ? formatDate((plan as any).completedAt, dateLocale)
+                              : '—'}
                         </span>
                       </td>
                       <td>

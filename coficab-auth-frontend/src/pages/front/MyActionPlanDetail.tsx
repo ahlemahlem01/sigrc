@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { resubmitPlan } from '../../services/validationsService';
 import {
   updatePlanActionProgress,
   getAssignedActionPlanById,
@@ -57,6 +58,9 @@ interface ActionPlan {
   deadline?: string;
   updatedBy?: string;
   claimId?: string;
+  /** 0 approved, 1 waiting for the administrator's approval, 2 returned: a plan is carried out once approved. */
+  approval?: number;
+  approvalComment?: string;
   permissions?: { view: boolean; edit: boolean; delete: boolean };
 }
 
@@ -257,6 +261,8 @@ export default function MyActionPlanDetail() {
         createdAt: planRaw?.createdAt ?? planRaw?.CreatedAt,
         deadline: planRaw?.deadline ?? planRaw?.Deadline,
         updatedBy: planRaw?.updatedBy ?? planRaw?.UpdatedBy,
+        approval: Number(planRaw?.approvalStatus ?? planRaw?.ApprovalStatus ?? 0),
+        approvalComment: fixText(planRaw?.approvalComment ?? planRaw?.ApprovalComment ?? '') || undefined,
         claimId: (() => {
           const c = planRaw?.claimId ?? planRaw?.ClaimId;
           return c ? String(c) : undefined;
@@ -535,6 +541,28 @@ export default function MyActionPlanDetail() {
 
   return (
     <div className="mpd-wrap">
+      {plan.approval === 1 && (
+        <div role="status" style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: 10, background: '#FFFBEB', border: '1px solid #FDE68A', color: '#92400E', fontSize: 13.5, fontWeight: 600 }}>
+          {t('planDetail.awaitingApproval')}
+        </div>
+      )}
+      {plan.approval === 2 && (
+        <div role="alert" style={{ margin: '0 0 14px', padding: '10px 14px', borderRadius: 10, background: '#FEF2F2', border: '1px solid #FECACA', color: '#991B1B', fontSize: 13.5 }}>
+          <strong>{t('planDetail.approvalReturned')}</strong>
+          {plan.approvalComment ? <div style={{ marginTop: 4 }}>{t('planDetail.approvalReason', { reason: plan.approvalComment })}</div> : null}
+          <button
+            type="button"
+            className="btn btn-primary"
+            style={{ marginTop: 8 }}
+            onClick={async () => {
+              if (!accessToken) return;
+              try { await resubmitPlan(accessToken, plan.id); await load(); } catch { setError(t('planDetail.resubmitFailed')); }
+            }}
+          >
+            {t('planDetail.resubmitForApproval')}
+          </button>
+        </div>
+      )}
       <div className="mpd-head">
         <div className="mpd-head-left">
           <button
@@ -548,17 +576,18 @@ export default function MyActionPlanDetail() {
             <div className="mpd-kicker">{t('planDetail.kicker')}</div>
             <h1 className={`mpd-title${planIsOverdue ? ' is-overdue' : ''}`}>{plan.title || t('closedArchive.untitled')}</h1>
             {plan.description && <p className="mpd-desc">{plan.description}</p>}
-            {plan.claimId && (
-              <Link
-                className="mpd-dossier-link"
-                to={`/pages/front/quality-analyses/8d/${encodeURIComponent(plan.claimId)}`}
-              >
-                {t('planDetail.linkedDossier')}
-              </Link>
-            )}
           </div>
         </div>
         <div className="mpd-head-actions">
+          {plan.claimId && (
+            <button
+              type="button"
+              className="mpd-btn-sec"
+              onClick={() => navigate(`/pages/front/quality-analyses/8d/${encodeURIComponent(plan.claimId as string)}`)}
+            >
+              {t('planDetail.openDossier')}
+            </button>
+          )}
           <button type="button" className="mpd-btn-sec" onClick={() => void load()}>
             <RefreshCw size={14} /> {t('qualityHistory.refresh')}
           </button>

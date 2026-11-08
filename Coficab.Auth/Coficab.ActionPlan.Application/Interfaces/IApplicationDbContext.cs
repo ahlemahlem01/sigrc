@@ -54,6 +54,7 @@ public interface IApplicationDbContext
     DbSet<WorkflowTransition> WorkflowTransitions { get; }
     DbSet<ReferenceItem> ReferenceItems { get; }
     DbSet<EightDVersion> EightDVersions { get; }
+    DbSet<ValidationReminder> ValidationReminders { get; }
     DbSet<OverviewSetting> OverviewSettings { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

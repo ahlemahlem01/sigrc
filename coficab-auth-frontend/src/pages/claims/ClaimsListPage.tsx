@@ -34,7 +34,7 @@ export const ClaimsListPage: React.FC = () => {
     canAssign, assignableUsers,
     openStartAnalysisModal, openEditModal, closeEditModal,
     handleInputChange, handleSaveClaim,
-    applySuggestedDeadline, applyingDeadline, deadlineApplyError,
+    deadlineApplyError,
     isProductionModalOpen, productionModalMode, productionFormData,
     isSavingProduction, productionSaveError, closeProductionModal,
     handleProductionInputChange, handleSubmitProductionData,
@@ -293,9 +293,8 @@ export const ClaimsListPage: React.FC = () => {
           onEdit={openEditModal}
           onOpenStartAnalysisModal={openStartAnalysisModal}
           canEdit={canAssign}
-          onApplySuggestedDeadline={applySuggestedDeadline}
-          applyingDeadline={applyingDeadline}
           onDeadlineExtended={() => refetch()}
+          onArchived={() => { setSelectedClaimId(null); refetch(); }}
         />
       </div>
 

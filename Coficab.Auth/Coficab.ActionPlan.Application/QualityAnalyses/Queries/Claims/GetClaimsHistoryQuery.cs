@@ -102,6 +102,10 @@ public class ClaimsHistoryRowDto
 
     public Guid? IshikawaId { get; set; }
     public string? IshikawaStatus { get; set; }
+    /// <summary>Causes listed in the Ishikawa (the status of the analysis alone stays empty while someone fills it in).</summary>
+    public int IshikawaCauseCount { get; set; }
+    /// <summary>Causes rated for the prospective Pareto (severity, occurrence and detection all given).</summary>
+    public int ParetoScoredCount { get; set; }
 
     public Guid? CapaId { get; set; }
     public string? CapaTitle { get; set; }
@@ -440,6 +444,11 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 .Select(i => new { i.Id, i.ClaimId, i.StatusCode })
                 .ToListAsync(cancellationToken);
 
+            var causeRows = await _context.IshikawaCauses.AsNoTracking()
+                .Where(c => !c.IsArchived && ids.Contains(c.ClaimId))
+                .Select(c => new { c.ClaimId, Scored = c.RiskSeverity != null && c.RiskOccurrence != null && c.RiskDetection != null })
+                .ToListAsync(cancellationToken);
+
             var capaRows = await capas
                 .Where(p => ids.Contains(p.ClaimId!.Value))
                 .Select(p => new { p.Id, p.ClaimId, p.Title, p.Status, p.Progress, p.CreatedAt })
@@ -484,6 +493,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                     row.EightDValidatedAt = e8.ValidatedAt;
                     row.EightDClosedAt = e8.ClosedAt ?? (closedClaim || closedEightD ? e8.ValidatedAt : null);
                 }
+
+                var claimCauses = causeRows.Where(c => c.ClaimId == row.Id).ToList();
+                row.IshikawaCauseCount = claimCauses.Count;
+                row.ParetoScoredCount = claimCauses.Count(c => c.Scored);
 
                 var ish = ishRows.FirstOrDefault(i => i.ClaimId == row.Id);
                 if (ish != null)

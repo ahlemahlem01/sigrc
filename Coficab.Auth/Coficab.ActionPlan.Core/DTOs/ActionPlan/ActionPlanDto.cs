@@ -36,4 +36,9 @@ public class ActionPlanDto
     public int ProofCount { get; set; }
     public DateTime? LastRejectedAt { get; set; }
     public string? LastRejectComment { get; set; }
+
+    /// <summary>Approved | Pending | Returned: the plan is carried out once the administrator approved it.</summary>
+    public PlanApprovalStatus ApprovalStatus { get; set; }
+    public DateTime? ApprovalDecidedAt { get; set; }
+    public string? ApprovalComment { get; set; }
 }

@@ -63,6 +63,10 @@ public class PriorityCauseController : ControllerBase
         if (await Services.ClosedDossier.IsClosedAsync(_db, claimId, ct))
             return Conflict(Services.ClosedDossier.Refusal);
 
+        if (await Services.ValidatedAnalysis.IsLockedForAsync(_db, User, HttpContext.RequestServices, claimId, ct))
+            return Conflict(Services.ValidatedAnalysis.Refusal);
+        var amended = await Services.ValidatedAnalysis.IsValidatedAsync(_db, claimId, ct);
+
         var text = (request.Text ?? string.Empty).Trim();
         if (text.Length == 0 || text.Length > 500)
             return BadRequest(new { message = "La cause est obligatoire (500 caractères maximum)." });
@@ -99,6 +103,9 @@ public class PriorityCauseController : ControllerBase
         });
         await _db.SaveChangesAsync(ct);
         if (tx != null) await tx.CommitAsync(ct);
+        if (amended)
+            await Services.ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, claimId,
+                $"cause prioritaire changée ({(text.Length > 80 ? text[..80] + "…" : text)}).", ct);
 
         var rows = await ReadAsync(claimId, ct);
         return Ok(new { current = rows.FirstOrDefault(r => r.IsCurrent), history = rows });

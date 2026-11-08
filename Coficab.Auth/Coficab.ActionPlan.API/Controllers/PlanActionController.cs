@@ -317,6 +317,13 @@ public class PlanActionController : ControllerBase
     public async Task<IActionResult> UpdateProgress(Guid id, [FromBody] UpdateProgressDto dto)
     {
         var userId = CurrentUserId() ?? "system";
+        if (await Services.PlanApprovalGate.ActionIsBlockedAsync(_db, id, HttpContext.RequestAborted))
+            return Conflict(Services.PlanApprovalGate.Refusal);
+
+        // an action is only finished (100 %) with a proof attached: a photo, a report
+        if (dto.Progress == 100
+            && !await _db.ActionDocuments.AsNoTracking().AnyAsync(d => d.PlanActionId == id && !d.IsArchived, HttpContext.RequestAborted))
+            return Conflict(new { code = "proofRequired", error = "Joignez une preuve (photo, rapport) avant de passer à 100 %." });
 
         try
         {

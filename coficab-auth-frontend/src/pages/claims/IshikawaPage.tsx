@@ -7,6 +7,7 @@ import { AnalysisToolsNav } from './AnalysisToolsNav';
 import { LockedStep, useD4Order } from './D4Order';
 import { useTranslation } from 'react-i18next';
 import { useClaimClosed } from '../../hooks/useClaimClosed';
+import { useValidatedLock } from '../../hooks/useValidatedLock';
 import i18n from '../../i18n';
 
 interface IshikawaPageProps {
@@ -122,7 +123,8 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
   const claimId = propClaimId || window.location.pathname.split('/').pop() || '';
   // a closed claim is shown as it was, whoever opens it
   const closedClaim = useClaimClosed(readOnlyProp ? undefined : claimId);
-  const readOnly = readOnlyProp || closedClaim;
+  const validatedLock = useValidatedLock(readOnlyProp ? undefined : claimId);
+  const readOnly = readOnlyProp || closedClaim || validatedLock;
   const order = useD4Order(readOnly ? undefined : claimId);
   const { user, accessToken, isLoading: isAuthLoading } = useAuth();
   const location = useLocation();
@@ -663,7 +665,7 @@ export const IshikawaPage: React.FC<IshikawaPageProps> = ({ claimId: propClaimId
       {readOnly && (
         <div className="banner banner-warning">
           <IconLock />
-          <span>{t('ishikawa.readOnly')}</span>
+          <span>{validatedLock && !closedClaim && !readOnlyProp ? t('fiveWhy.validatedLocked') : t('ishikawa.readOnly')}</span>
         </div>
       )}
       {error && (

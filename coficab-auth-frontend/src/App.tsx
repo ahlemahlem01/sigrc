@@ -79,6 +79,7 @@ import FrontPlanActionManagement from './pages/front/FrontPlanActionManagement';
 import AlertsPage from './pages/front/AlertsPage';
 import MyActionPlanDetail from './pages/front/MyActionPlanDetail';
 import MyActionPlans from './pages/front/MyActionPlans';
+import MyPendingValidationsPage from './pages/front/MyPendingValidationsPage';
 import MyAssignedClaimsPage from './pages/front/MyAssignedClaimsPage';
 import AdminManagedClaimsPage from './pages/front/AdminManagedClaimsPage';
 
@@ -253,6 +254,7 @@ const App = () => {
               <Route path="/pages/front"                                  element={<FrontLandingPage />} />
               <Route path="/pages/front/my-action-plans"                  element={<MyActionPlans />} />
               <Route path="/pages/front/my-action-plans/:id"              element={<MyActionPlanDetail />} />
+              <Route path="/pages/front/my-validations"                    element={<MyPendingValidationsPage />} />
               <Route path="/pages/front/my-claims"                       element={<MyAssignedClaimsPage />} />
               <Route path="/alerts"                                      element={<AlertsPage />} />
               <Route path="/pages/front/alerts"                          element={<Navigate to="/alerts" replace />} />

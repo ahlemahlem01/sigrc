@@ -154,3 +154,24 @@ def test_deploy_still_replaces_the_weights_when_the_service_is_down(weights, mon
     monkeypatch.setattr(auto_retrain, "reload_service", lambda url: (False, "service not reachable (ConnectionError)"))
     outcome = auto_retrain.deploy("http://x/reload", "better")
     assert (weights / "best.pt").read_bytes() == b"new" and "restart or reload the service" in outcome
+
+
+# ---- when the retraining starts by itself ------------------------------------------------------------------------------------------------
+from datetime import datetime, timedelta
+
+from retrain_logic import retrain_due
+
+NOW = datetime(2026, 11, 6, 2, 0, 0)
+
+
+def test_a_first_retraining_needs_a_minimum_of_validated_photos():
+    assert not retrain_due(4, {}, NOW).due
+    assert retrain_due(12, {}, NOW).due
+
+
+def test_no_retraining_before_the_minimum_delay_or_without_enough_new_photos():
+    last = {"last_run": (NOW - timedelta(days=3)).isoformat(), "last_count": 40}
+    assert not retrain_due(200, last, NOW).due                                   # too early, even with many photos
+    old = {"last_run": (NOW - timedelta(days=10)).isoformat(), "last_count": 40}
+    assert not retrain_due(55, old, NOW).due                                     # 15 new photos < 20
+    assert retrain_due(60, old, NOW).due                                         # 20 new photos, 10 days: time to retrain

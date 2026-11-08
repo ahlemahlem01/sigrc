@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import {
@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { useClaimClosed } from '../../hooks/useClaimClosed';
 import { ClosedDossierBanner } from '../../components/ClosedDossierBanner';
 import { isAdminUser } from '../../utils/roles';
-import i18n from '../../i18n';
+import i18n, { dateLocale } from '../../i18n';
 
 interface FiveWhyPageProps {
   claimId?: string;
@@ -65,6 +65,29 @@ type CoachFeedbackMap = Record<string, ValidateFiveWhyStepResponseDto | undefine
 type AcceptedMap = Record<string, boolean>;
 
 const stepKey = (branch: FiveWhyBranch, stepNumber: number) => `${branch}-${stepNumber}`;
+
+/** The CAPA form opens with the two actions the method asks for, empty: a corrective one (Occurrence) and a preventive one (Detection). The AI proposal is optional. */
+const blankCapaActions = (): SuggestedCapaActionDto[] => [
+  { kind: 'CORRECTIVE', branch: 'OCCURRENCE', title: '', description: '', priority: 1, suggestedDeadlineDays: 14 },
+  { kind: 'PREVENTIVE', branch: 'DETECTION', title: '', description: '', priority: 1, suggestedDeadlineDays: 21 },
+];
+
+const pad2 = (n: number) => String(n).padStart(2, '0');
+/** The calendar day (yyyy-mm-dd, local) that is `days` days from today. */
+const dayFromToday = (days: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + Math.max(0, days));
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+};
+/** The longest delay among the actions of the plan, in days (at least 1). */
+const latestActionDays = (actions: SuggestedCapaActionDto[]) =>
+  Math.max(1, ...actions.map((a) => (Number(a.suggestedDeadlineDays) > 0 ? Number(a.suggestedDeadlineDays) : 14)));
+const showDay = (iso: string) => (iso ? new Date(`${iso}T00:00:00`).toLocaleDateString(dateLocale()) : '—');
+
+const defaultCapaDescription = (problem: string, occurrence: string, detection: string) =>
+  [problem && `Problème : ${problem}`, occurrence && `Cause Occurrence : ${occurrence}`, detection && `Cause Détection : ${detection}`]
+    .filter(Boolean)
+    .join('\n\n');
 
 export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }) => {
   const { t } = useTranslation();
@@ -117,9 +140,18 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
   const [existingCapaId, setExistingCapaId] = useState<string | null>(null);
   const [suggestingCapa, setSuggestingCapa] = useState(false);
   const [creatingCapa, setCreatingCapa] = useState(false);
+  const capaFormOpened = useRef(false);
+  // type of the plan, chosen by the person (required, no default): 2 = PAC (corrective), 3 = PAP (preventive), 1 = PA (improvement).
+  // An internal claim is always corrective, so it needs no choice.
+  const [capaPlanType, setCapaPlanType] = useState<number | ''>('');
+  const capaKindOfType = (type: number | '') => (type === 3 ? 'PREVENTIVE' : type === 1 ? 'IMPROVEMENT' : 'CORRECTIVE');
 
   const [claim, setClaim] = useState<Claim | null>(null);
+  const internalClaim = Boolean((claim as any)?.isInternal);
+  const effectivePlanType: number | '' = internalClaim ? 2 : capaPlanType;
   const closedClaim = useClaimClosed(claimId);
+  // What the administrator validated is final for the employee: only an administrator can reopen it.
+  const lockedByValidation = status === 'VALIDATED' && !isAdmin;
   const [isEditingQuantities, setIsEditingQuantities] = useState<boolean>(false);
   const [producedQtyInput, setProducedQtyInput] = useState<string>('');
   const [defectiveQtyInput, setDefectiveQtyInput] = useState<string>('');
@@ -307,14 +339,47 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     loadExistingCapa();
   }, [loadFiveWhy, loadClaim, loadExistingCapa]);
 
+  // Once the root causes are validated the CAPA form opens by itself, with its two empty actions: writing them by hand is the normal way,
+  // the AI proposal is only a help. Opened once, so what the person removes or writes is never put back.
+  useEffect(() => {
+    if (status !== 'VALIDATED' || existingCapaId || capaFormOpened.current || !claim) return;
+    capaFormOpened.current = true;
+    setCapaActions((prev) => (prev.length > 0 ? prev : blankCapaActions()));
+    setCapaTitle((prev) => prev || (claim?.title ? `CAPA — ${claim.title}`.slice(0, 120) : ''));
+    setCapaDescription((prev) => prev || defaultCapaDescription(problemStatement, rootCauseOccurrence, rootCauseDetection));
+  }, [status, existingCapaId, claim, problemStatement, rootCauseOccurrence, rootCauseDetection]);
+
+  // The deadline of the plan follows the delays of its actions (the day the last action ends) until the person chooses a date of their own.
+  const capaDeadlineFollowsActions = useRef(true);
+  useEffect(() => {
+    if (!capaFormOpened.current || !capaDeadlineFollowsActions.current || capaActions.length === 0) return;
+    setCapaDeadline(dayFromToday(latestActionDays(capaActions)));
+  }, [capaActions]);
+
+  const addCapaAction = () =>
+    setCapaActions((prev) => [...prev, { kind: 'CORRECTIVE', branch: 'OCCURRENCE', title: '', description: '', priority: 1, suggestedDeadlineDays: 14 }]);
+
+  const removeCapaAction = (index: number) => setCapaActions((prev) => prev.filter((_, i) => i !== index));
+
   const handleSuggestCapa = async () => {
     setError(null);
     setSuccessMsg(null);
     if (!claimId) return;
+    if (status !== 'VALIDATED') {
+      setError(t('fiveWhy.capaLocked'));
+      return;
+    }
     if (!rootCauseOccurrence.trim() || !rootCauseDetection.trim()) {
       setError(t('fiveWhy.capaNeedsCauses'));
       return;
     }
+    // the type of the plan is chosen first: it tells the AI which kind of actions to write
+    if (effectivePlanType === '') {
+      setError(t('fiveWhy.capaPlanTypeRequired'));
+      return;
+    }
+    // the proposal replaces the actions: do not erase what the person already wrote without asking
+    if (capaActions.some((a) => a.title.trim() || a.description.trim()) && !window.confirm(t('fiveWhy.capaOverwriteConfirm'))) return;
 
     setSuggestingCapa(true);
     try {
@@ -325,6 +390,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
           rootCauseOccurrence,
           rootCauseDetection,
           claimTitle: claim?.title,
+          planType: Number(effectivePlanType),
         },
         accessToken || undefined
       );
@@ -336,14 +402,8 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
           suggestedDeadlineDays: a.suggestedDeadlineDays > 0 ? a.suggestedDeadlineDays : 14,
         }))
       );
-      // Échéance plan par défaut = max(jours suggérés actions, 21)
-      const maxDays = Math.max(
-        21,
-        ...(result.actions || []).map((a) => a.suggestedDeadlineDays || 14)
-      );
-      const d = new Date();
-      d.setDate(d.getDate() + maxDays);
-      setCapaDeadline(d.toISOString().slice(0, 10));
+      // the deadline of the plan follows the delays of the proposed actions again
+      capaDeadlineFollowsActions.current = true;
       setSuccessMsg(t('fiveWhy.capaSuggested'));
     } catch (err: any) {
       if (err?.response?.status === 401) {
@@ -360,7 +420,17 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     setError(null);
     setSuccessMsg(null);
     if (!claimId) return;
-    if (!capaActions.length) {
+    if (status !== 'VALIDATED') {
+      setError(t('fiveWhy.capaLocked'));
+      return;
+    }
+    if (effectivePlanType === '') {
+      setError(t('fiveWhy.capaPlanTypeRequired'));
+      return;
+    }
+    // an action with no title is an empty line of the form, not an action
+    const filled = capaActions.filter((a) => a.title.trim());
+    if (!filled.length) {
       setError(t('fiveWhy.capaNoActions'));
       return;
     }
@@ -373,8 +443,10 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
           planTitle: capaTitle,
           planDescription: capaDescription,
           deadline: capaDeadline ? new Date(capaDeadline).toISOString() : undefined,
-          actions: capaActions.map((a) => ({
+          planType: Number(effectivePlanType),
+          actions: filled.map((a) => ({
             ...a,
+            kind: capaKindOfType(effectivePlanType),   // every action follows the type of the plan
             suggestedDeadlineDays: Number(a.suggestedDeadlineDays) > 0 ? Number(a.suggestedDeadlineDays) : 14,
           })),
         },
@@ -481,6 +553,8 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
     if (!userId) return;
 
     setCurrentStep(2);
+    // Switching tabs is a view change: only a draft is saved. A submitted or validated analysis must never be rewritten as a draft.
+    if (status !== 'DRAFT') return;
     try {
       await qualityAnalysisService.saveFiveWhy(buildPayload(userId, 'DRAFT'), accessToken || undefined);
     } catch {
@@ -1086,6 +1160,12 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
 
       {currentStep === 2 && (
         <div>
+          <fieldset disabled={lockedByValidation} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}>
+          {lockedByValidation && (
+            <p role="status" style={{ margin: '0 0 12px', padding: '8px 12px', borderRadius: 8, background: '#ECFDF5', color: '#065F46', fontSize: 13, fontWeight: 600 }}>
+              {t('fiveWhy.validatedLocked')}
+            </p>
+          )}
           <div style={{ background: '#FFF', padding: '14px 18px', borderRadius: '8px', borderLeft: `4px solid ${COFICAB_NAVY}`, border: `1px solid ${COFICAB_CARD_BORDER}`, borderLeftWidth: '4px', marginBottom: '16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontWeight: '700', color: COFICAB_NAVY, fontSize: '13px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -1341,6 +1421,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
               </div>
             ))}
           </div>
+          </fieldset>
 
           {/* CAPA — Corrective (Occurrence) + Préventive (Détection) */}
           <div style={{
@@ -1355,6 +1436,16 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                 <p style={{ margin: '4px 0 0', fontSize: 12, color: '#64748B' }}>
                   {t('fiveWhy.capaHint')}
                 </p>
+                {!existingCapaId && status !== 'VALIDATED' && (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#B45309', fontWeight: 600 }}>
+                    {t('fiveWhy.capaLocked')}
+                  </p>
+                )}
+                {!existingCapaId && status === 'VALIDATED' && (
+                  <p style={{ margin: '4px 0 0', fontSize: 12, color: '#047857', fontWeight: 600 }}>
+                    {t('fiveWhy.capaFormIntro')}
+                  </p>
+                )}
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {existingCapaId ? (
@@ -1372,27 +1463,43 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                       type="button"
                       className="btn btn-secondary"
                       onClick={() => void handleSuggestCapa()}
-                      disabled={suggestingCapa || !rootCauseOccurrence.trim() || !rootCauseDetection.trim()}
+                      disabled={status !== 'VALIDATED' || suggestingCapa || effectivePlanType === '' || !rootCauseOccurrence.trim() || !rootCauseDetection.trim()}
+                      title={effectivePlanType === '' ? t('fiveWhy.capaPlanTypeRequired') : undefined}
                       style={{ color: COFICAB_ACCENT, borderColor: COFICAB_ACCENT }}
                     >
                       {suggestingCapa ? t('fiveWhy.suggesting') : t('fiveWhy.suggestCapa')}
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      onClick={() => void handleCreateCapa()}
-                      disabled={creatingCapa || capaActions.length === 0}
-                      style={{ background: '#059669' }}
-                    >
-                      {creatingCapa ? t('fiveWhy.creating') : t('fiveWhy.createCapa')}
                     </button>
                   </>
                 )}
               </div>
             </div>
 
-            {!existingCapaId && capaActions.length > 0 && (
+            {!existingCapaId && status === 'VALIDATED' && (
               <div style={{ marginTop: 14 }}>
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#475569', marginBottom: 4, textTransform: 'uppercase' }}>
+                    {t('fiveWhy.capaPlanType')} *
+                  </label>
+                  {internalClaim ? (
+                    <p style={{ margin: 0, fontSize: 12, color: '#64748B' }}>{t('fiveWhy.capaInternalPlanNote')}</p>
+                  ) : (
+                    <>
+                      <select
+                        aria-label={t('fiveWhy.capaPlanType')}
+                        aria-required="true"
+                        value={capaPlanType}
+                        onChange={(e) => setCapaPlanType(e.target.value === '' ? '' : Number(e.target.value))}
+                        style={{ padding: '8px 10px', borderRadius: 6, border: `1px solid ${capaPlanType === '' ? '#F59E0B' : '#CBD5E1'}`, fontSize: 13 }}
+                      >
+                        <option value="">{t('fiveWhy.capaPlanTypePlaceholder')}</option>
+                        <option value={2}>{t('createPlan.typeOptPAC')}</option>
+                        <option value={3}>{t('createPlan.typeOptPAP')}</option>
+                        <option value={1}>{t('createPlan.typeOptPA')}</option>
+                      </select>
+                      <p style={{ margin: '4px 0 0', fontSize: 12, color: capaPlanType === '' ? '#B45309' : '#64748B' }}>{t('fiveWhy.capaPlanTypeHelp')}</p>
+                    </>
+                  )}
+                </div>
                 <input
                   className="coficab-input"
                   value={capaTitle}
@@ -1416,19 +1523,46 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                     type="date"
                     className="coficab-input"
                     value={capaDeadline}
-                    onChange={(e) => setCapaDeadline(e.target.value)}
+                    onChange={(e) => { capaDeadlineFollowsActions.current = false; setCapaDeadline(e.target.value); }}
                     style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid #CBD5E1', fontSize: 13 }}
                   />
+                  {capaDeadline !== dayFromToday(latestActionDays(capaActions)) && capaActions.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => { capaDeadlineFollowsActions.current = true; setCapaDeadline(dayFromToday(latestActionDays(capaActions))); }}
+                      style={{ marginLeft: 10, background: 'none', border: 0, color: COFICAB_ACCENT, fontSize: 12, cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                      {t('fiveWhy.capaDeadlineFollow', { date: showDay(dayFromToday(latestActionDays(capaActions))) })}
+                    </button>
+                  ) : (
+                    <span style={{ marginLeft: 10, fontSize: 12, color: '#64748B' }}>{t('fiveWhy.capaDeadlineAuto')}</span>
+                  )}
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   {capaActions.map((action, idx) => (
                     <div key={`${action.branch}-${idx}`} style={{ background: COFICAB_LIGHT_BG, padding: 12, borderRadius: 6, border: '1px solid #E2E8F0' }}>
-                      <div style={{ fontSize: 11, fontWeight: 700, color: action.kind === 'PREVENTIVE' ? '#0369A1' : '#059669', textTransform: 'uppercase', marginBottom: 6 }}>
-                        {action.kind} · {action.branch}
+                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
+                        <select
+                          aria-label={t('fiveWhy.capaBranch')}
+                          value={action.branch}
+                          onChange={(e) => updateCapaAction(idx, 'branch', e.target.value)}
+                          style={{ padding: '3px 6px', borderRadius: 4, border: '1px solid #CBD5E1', fontSize: 11, fontWeight: 700, color: '#475569', textTransform: 'uppercase' }}
+                        >
+                          <option value="OCCURRENCE">{t('fiveWhy.occurrence')}</option>
+                          <option value="DETECTION">{t('fiveWhy.detection')}</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeCapaAction(idx)}
+                          style={{ marginLeft: 'auto', background: 'none', border: 0, color: '#B91C1C', fontSize: 12, cursor: 'pointer' }}
+                        >
+                          {t('fiveWhy.capaRemoveAction')}
+                        </button>
                       </div>
                       <input
                         className="coficab-input"
                         value={action.title}
+                        placeholder={t('fiveWhy.capaActionTitlePlaceholder')}
                         onChange={(e) => updateCapaAction(idx, 'title', e.target.value)}
                         style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid #CBD5E1', fontSize: 13, marginBottom: 6, boxSizing: 'border-box' }}
                       />
@@ -1436,6 +1570,7 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                         className="coficab-input"
                         rows={4}
                         value={action.description}
+                        placeholder={t('fiveWhy.capaActionDescPlaceholder')}
                         onChange={(e) => updateCapaAction(idx, 'description', e.target.value)}
                         style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid #CBD5E1', fontSize: 12, boxSizing: 'border-box', fontFamily: 'inherit', marginBottom: 6 }}
                       />
@@ -1450,8 +1585,35 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
                         onChange={(e) => updateCapaAction(idx, 'suggestedDeadlineDays', Number(e.target.value) || 14)}
                         style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid #CBD5E1', fontSize: 13, boxSizing: 'border-box' }}
                       />
+                      {(() => {
+                        // the real date of the action, and a warning when it ends after the deadline of the plan
+                        const actionDay = dayFromToday(Number(action.suggestedDeadlineDays) > 0 ? Number(action.suggestedDeadlineDays) : 14);
+                        const late = capaDeadline !== '' && actionDay > capaDeadline;
+                        return (
+                          <p style={{ margin: '4px 0 0', fontSize: 12, color: late ? '#B45309' : '#64748B', fontWeight: late ? 600 : 400 }}>
+                            {t('fiveWhy.capaActionDate', { date: showDay(actionDay) })}
+                            {late ? ` · ${t('fiveWhy.capaActionAfterPlan')}` : ''}
+                          </p>
+                        );
+                      })()}
                     </div>
                   ))}
+                </div>
+                <button type="button" className="btn btn-secondary" onClick={addCapaAction} style={{ marginTop: 12 }}>
+                  + {t('fiveWhy.capaAddAction')}
+                </button>
+                {/* the plan has its own submission, apart from the 5 Why buttons at the bottom of the page */}
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: `1px solid ${COFICAB_CARD_BORDER}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 12, color: '#64748B' }}>{t('fiveWhy.capaSubmitHint')}</span>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => void handleCreateCapa()}
+                    disabled={status !== 'VALIDATED' || creatingCapa || effectivePlanType === '' || !capaActions.some((a) => a.title.trim())}
+                    style={{ background: '#059669' }}
+                  >
+                    {creatingCapa ? t('fiveWhy.creating') : t('fiveWhy.createCapa')}
+                  </button>
                 </div>
               </div>
             )}
@@ -1463,8 +1625,8 @@ export const FiveWhyPage: React.FC<FiveWhyPageProps> = ({ claimId: propClaimId }
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', marginTop: 20 }}>
-            <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving}>
+          <div style={{ display: lockedByValidation ? 'none' : 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center', marginTop: 20 }}>
+            <button type="button" className="btn btn-secondary" onClick={handleSaveDraft} disabled={saving || lockedByValidation}>
               {saving ? t('common.saving') : t('common.save')}
             </button>
 
