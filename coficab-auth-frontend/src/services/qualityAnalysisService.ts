@@ -17,6 +17,8 @@ import {
   ClaimsHistoryPage,
   ClaimsHistoryQuery,
   ClaimResolutionEstimate,
+  ClaimCreationSheet,
+  ValidateClaimCreationPayload,
 } from '../types/qualityAnalysis';
 
 import { ACTION_PLAN_API_URL as API_BASE_URL } from '../config/apiEnv';
@@ -95,7 +97,7 @@ export interface ValidateFiveWhyChainStepDto extends ValidateFiveWhyStepResponse
 }
 
 export interface SuggestedCapaActionDto {
-  kind: 'CORRECTIVE' | 'PREVENTIVE' | string;
+  kind: 'CORRECTIVE' | 'PREVENTIVE' | 'IMPROVEMENT' | string;
   branch: 'OCCURRENCE' | 'DETECTION' | string;
   title: string;
   description: string;
@@ -108,6 +110,8 @@ export interface SuggestCapaRequestDto {
   rootCauseOccurrence: string;
   rootCauseDetection: string;
   claimTitle?: string;
+  /** Required: 1 = PA (improvement), 2 = PAC (corrective), 3 = PAP (preventive). The AI writes actions of that nature. */
+  planType?: number;
 }
 
 export interface SuggestCapaResponseDto {
@@ -123,6 +127,8 @@ export interface CreateCapaFromFiveWhyRequestDto {
   departmentId?: string;
   assignedToId?: string;
   deadline?: string;
+  /** 1 = PA (improvement), 2 = PAC (corrective, the default), 3 = PAP (preventive). An internal claim always gets a PAC. */
+  planType?: number;
   actions: SuggestedCapaActionDto[];
 }
 
@@ -340,10 +346,31 @@ export const qualityAnalysisService = {
     return response.data;
   },
 
+  /** The creation sheet of a claim: creator, confirmation, suggested deadline and the trace of what was set or corrected. */
+  getClaimCreationSheet: async (id: string, token?: string): Promise<ClaimCreationSheet> => {
+    const response = await api.get<ClaimCreationSheet>(`/claims/${id}/creation-sheet`, getAuthConfig(token));
+    return response.data;
+  },
+
+  /** The creator confirms the sheet (after correcting fields and/or choosing the deadline). Only once. */
+  validateClaimCreation: async (id: string, body: ValidateClaimCreationPayload, token?: string) => {
+    const response = await api.post<{ deadline?: string | null }>(`/claims/${id}/creation-sheet/validate`, body, getAuthConfig(token));
+    return response.data;
+  },
+
   setClaimDeadline: async (id: string, deadlineIso: string, token?: string) => {
     const response = await api.patch<{ success: boolean; message: string; deadline?: string }>(
       `/claims/${id}/deadline`,
       { deadline: deadlineIso },
+      getAuthConfig(token)
+    );
+    return response.data;
+  },
+
+  changeClaimDeadline: async (id: string, newDeadline: string, reason: string, token?: string) => {
+    const response = await api.post<{ oldDeadline: string | null; newDeadline: string }>(
+      `/claims/${id}/deadline-change`,
+      { newDeadline, reason },
       getAuthConfig(token)
     );
     return response.data;
@@ -474,6 +501,16 @@ export const qualityAnalysisService = {
 
   addIshikawaCause: async (command: CreateIshikawaCauseCommand, token?: string): Promise<string> => {
     const response = await ishikawaApi.post<string>('/causes', command, getAuthConfig(token));
+    return response.data;
+  },
+
+  /** Prospective Pareto: scores one cause (severity, occurrence, detection, 1 to 10; all null clears them). */
+  setIshikawaCauseRisk: async (
+    causeId: string,
+    scores: { severity: number | null; occurrence: number | null; detection: number | null },
+    token?: string
+  ): Promise<{ criticality?: number | null }> => {
+    const response = await ishikawaApi.put<{ criticality?: number | null }>(`/causes/${causeId}/risk`, scores, getAuthConfig(token));
     return response.data;
   },
 

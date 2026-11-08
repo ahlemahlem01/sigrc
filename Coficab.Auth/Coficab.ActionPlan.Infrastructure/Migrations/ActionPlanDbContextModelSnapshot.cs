@@ -85,6 +85,18 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<Guid?>("AlertId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ApprovalComment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ApprovalDecidedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ApprovalDecidedById")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ApprovalStatus")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("ArchivedAt")
                         .HasColumnType("datetime2");
 
@@ -1730,6 +1742,15 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.Property<bool>("IsRootCause")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("RiskDetection")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RiskOccurrence")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RiskSeverity")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClaimId", "Category");
@@ -2660,6 +2681,33 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                     b.ToTable("Sites", "actionplan");
                 });
 
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.SuperadminDepartmentWatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.HasIndex("UserId", "DepartmentId")
+                        .IsUnique();
+
+                    b.ToTable("SuperadminDepartmentWatches", "actionplan");
+                });
+
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.TimelineEvent", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2981,6 +3029,38 @@ namespace Coficab.ActionPlan.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("UserProfiles", "actionplan");
+                });
+
+            modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.ValidationReminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ClaimId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("RequestedById")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Kind", "TargetId", "RequestedById", "CreatedAt");
+
+                    b.ToTable("ValidationReminders", "actionplan");
                 });
 
             modelBuilder.Entity("Coficab.ActionPlan.Core.Entities.WorkflowStatus", b =>

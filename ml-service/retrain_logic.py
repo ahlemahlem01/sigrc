@@ -98,6 +98,35 @@ class Decision:
     reason: str
 
 
+@dataclass
+class DueDecision:
+    due: bool
+    reason: str
+
+
+def retrain_due(validated_now: int, state: dict, now, min_new: int = 20, min_days: int = 7, min_first: int = 10) -> DueDecision:
+    """Is it time to start a retraining by itself?
+
+    validated_now: photos the quality engineer has validated so far. state: {"last_run": ISO date or None, "last_count": validated photos
+    already seen at the last run}. A first run needs min_first photos; after that, at least min_new new validated photos and min_days days
+    since the last run (a retraining takes hours of CPU: it must not start for two photos, nor every night).
+    """
+    from datetime import datetime
+
+    last_run = state.get("last_run")
+    if not last_run:
+        if validated_now >= min_first:
+            return DueDecision(True, f"first run: {validated_now} validated photos (needed {min_first})")
+        return DueDecision(False, f"{validated_now} validated photos, {min_first} needed for a first run")
+    days = (now - datetime.fromisoformat(last_run)).total_seconds() / 86400
+    new = validated_now - int(state.get("last_count", 0))
+    if days < min_days:
+        return DueDecision(False, f"last run {days:.1f} days ago (at least {min_days} between two runs)")
+    if new < min_new:
+        return DueDecision(False, f"{new} new validated photos since the last run (needed {min_new})")
+    return DueDecision(True, f"{new} new validated photos, last run {days:.0f} days ago")
+
+
 def decide(
     current: dict,
     candidate: dict,

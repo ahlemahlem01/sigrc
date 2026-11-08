@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useAuth } from '../../context/AuthContext';
+import { pn } from '../../utils/person';
 
 type Fn = {
   id: string; code: string; description: string; hierarchicalLink: string | null; functionalLink: string | null;
@@ -248,7 +249,7 @@ export default function FunctionsPage() {
                           {holders.length === 0 && <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>{t('functions.noHolder')}</p>}
                           {holders.map((h) => (
                             <div key={h.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 0', flexWrap: 'wrap' }}>
-                              <strong style={{ minWidth: 180 }}>{h.userName}</strong>
+                              <strong style={{ minWidth: 180 }}>{pn(h.userName)}</strong>
                               <select aria-label={t('functions.status')} style={input} value={h.status} onChange={(e) => void setStatus(h, e.target.value)}>
                                 {STATUSES.map((s) => <option key={s} value={s}>{t(`functions.statuses.${s}`)}</option>)}
                               </select>

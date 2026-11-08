@@ -14,7 +14,7 @@ public class EightDVersion
     /// <summary>1, 2, 3... per dossier.</summary>
     public int VersionNumber { get; set; }
 
-    /// <summary>baseline | saved | submitted | approved | rejected</summary>
+    /// <summary>baseline | saved | submitted | approved | rejected | amended</summary>
     public string EventType { get; set; } = "saved";
 
     public DateTime SavedAt { get; set; } = DateTime.UtcNow;
@@ -40,4 +40,6 @@ public static class EightDVersionEvents
     public const string Submitted = "submitted";
     public const string Approved = "approved";
     public const string Rejected = "rejected";
+    /// <summary>An administrator changed an analysis (Ishikawa, Pareto, priority cause, 5 Why) after its root cause was validated.</summary>
+    public const string Amended = "amended";
 }

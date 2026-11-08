@@ -339,7 +339,6 @@ const handleDocToggleFavorite = async (id: string) => {
   return (
     <>
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         :root {
           --navy: #000168; --navy-mid: #00009e; --navy-light: #eef2ff;

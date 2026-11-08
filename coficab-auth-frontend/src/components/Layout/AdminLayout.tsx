@@ -14,6 +14,7 @@ import { useEffect, useRef } from 'react';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
 import { useSidebarScroll } from './useSidebarScroll';
 import { MOBILE_NAV_CSS } from './mobileNav';
+import { roleLabel } from '../../utils/roleLabel';
 
 type NavLink = { label: string; icon: string; path: string };
 type NavSection = { id: string; label: string; children: NavLink[] };
@@ -279,9 +280,20 @@ export default function AdminLayout() {
   const meta = getPageMeta(location.pathname);
   const pageTitle = lockedEmployees || lockedAdmins ? t('adminNav.locked') : t(meta.title);
   const crumbLabel = t(meta.crumb);
+  // a page that carries its own main heading is not titled a second time in the top bar (the bar then shows the path only)
+  const [pageHasHeading, setPageHasHeading] = useState(false);
+  useEffect(() => {
+    const shell = document.querySelector('.al-content-shell');
+    if (!shell) return undefined;
+    const check = () => setPageHasHeading(!!shell.querySelector('h1'));
+    check();
+    const observer = new MutationObserver(check);
+    observer.observe(shell, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [location.pathname]);
 
   const userDisplayName = (user as any)?.email || (user as any)?.name || 'Utilisateur';
-  const userRole = (user?.role as string) || 'Admin';
+  const userRole = roleLabel(user as any, t);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -323,7 +335,6 @@ export default function AdminLayout() {
   return (
     <div className="al-root">
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         *, *::before, *::after { box-sizing: border-box; }
         html, body, #root { overflow-y: auto; overflow-x: hidden; height: auto; min-height: 100dvh; margin: 0; }
@@ -461,7 +472,7 @@ export default function AdminLayout() {
           padding: 6px 10px; border: none; background: none; cursor: pointer;
           font: inherit; font-size: 10.5px; font-weight: 700; letter-spacing: .4px;
           text-transform: uppercase; color: #94a3b8; text-align: left;
-          border-radius: 6px;
+          border-radius: 8px;
         }
         .al-sidebar-section-btn:hover { color: #000168; background: #f8fafc; }
         .al-sidebar-section-btn.active { color: #000168; }
@@ -542,6 +553,7 @@ export default function AdminLayout() {
           font-size: 10px; color: #94a3b8;
           display: flex; align-items: center; gap: 4px; margin-top: 2px;
         }
+        .al-tb-crumb.only { font-size: 12px; font-weight: 600; color: #64748b; margin-top: 0; }
         .al-tb-right { display: flex; align-items: center; gap: 8px; }
 
         /* ─── Topbar icons ─── */
@@ -733,8 +745,8 @@ export default function AdminLayout() {
               <button type="button" className="al-burger" aria-label={t('adminNav.menu', { defaultValue: 'Menu' })} onClick={openMobileNav}>
                 <i className="ti ti-menu-2" />
               </button>
-              <div className="al-tb-title">{pageTitle}</div>
-              <div className="al-tb-crumb">
+              {!pageHasHeading && <div className="al-tb-title">{pageTitle}</div>}
+              <div className={`al-tb-crumb${pageHasHeading ? ' only' : ''}`}>
                 <i className="ti ti-home" style={{ fontSize: 11 }} /> Admin
                 <i className="ti ti-chevron-right" style={{ fontSize: 11 }} />
                 {crumbLabel}

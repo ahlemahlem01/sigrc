@@ -326,7 +326,7 @@ export default function DepartmentsPage() {
           font-size: 12px;
           font-weight: 600;
           padding: 5px 10px;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
         }
         .dept-action-btn:hover { background: #f6f7fb; }

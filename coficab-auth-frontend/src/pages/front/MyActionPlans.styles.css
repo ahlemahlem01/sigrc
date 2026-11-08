@@ -14,7 +14,6 @@
   --warn: #b45309;
   --font-head: Inter, sans-serif;
   --font-body: 'Inter', sans-serif;
-  --font-mono: 'JetBrains Mono', SFMono-Regular, monospace;
 
   font-family: var(--font-body);
   background: var(--bg);

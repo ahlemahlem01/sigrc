@@ -741,6 +741,8 @@ public class ActionPlanService : IActionPlanService
                 Deadline = a.ActionPlan.Deadline,
                 CompletedAt = a.ActionPlan.CompletedAt,
                 IsOnTime = a.ActionPlan.IsOnTime,
+                ApprovalStatus = (int)a.ActionPlan.ApprovalStatus,
+                ApprovalComment = a.ActionPlan.ApprovalComment,
                 Permissions = new ActionPlanPermissions
                 {
                     View = a.CanView,
@@ -786,6 +788,8 @@ public class ActionPlanService : IActionPlanService
                 Deadline = plan.Deadline,
                 CompletedAt = plan.CompletedAt,
                 IsOnTime = plan.IsOnTime,
+                ApprovalStatus = (int)plan.ApprovalStatus,
+                ApprovalComment = plan.ApprovalComment,
                 Permissions = new ActionPlanPermissions
                 {
                     View = true,
@@ -840,6 +844,8 @@ public class ActionPlanService : IActionPlanService
             Deadline = plan.Deadline,
             CompletedAt = plan.CompletedAt,
             IsOnTime = plan.IsOnTime,
+            ApprovalStatus = (int)plan.ApprovalStatus,
+            ApprovalComment = plan.ApprovalComment,
             Permissions = new ActionPlanPermissions
             {
                 View = true,
@@ -914,6 +920,8 @@ public class ActionPlanService : IActionPlanService
             Deadline = a.ActionPlan.Deadline,
             CompletedAt = a.ActionPlan.CompletedAt,
             IsOnTime = a.ActionPlan.IsOnTime,
+            ApprovalStatus = (int)a.ActionPlan.ApprovalStatus,
+            ApprovalComment = a.ActionPlan.ApprovalComment,
             Permissions = new ActionPlanPermissions
             {
                 View = a.CanView,

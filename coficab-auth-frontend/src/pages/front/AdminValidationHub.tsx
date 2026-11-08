@@ -10,20 +10,26 @@ import {
 } from '../../services/actionPlanService';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import {
+  approvePlan,
   decideDossiers,
   getFiveWhyQueue,
+  getPlansToApprove,
   notifyFiveWhyReturned,
+  returnPlan,
   type FiveWhyQueueItem,
+  type PlanToApprove,
 } from '../../services/validationsService';
 import { Claim } from '../../types/qualityAnalysis';
 import { resolveClaimStatus } from '../../utils/Claimutils';
 import { computeIatfSla, slaToneStyles } from '../../utils/iatfSla';
 import DecisionDialog from '../../components/DecisionDialog';
+import { ValidationThread } from '../../components/ValidationThread';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
 
-type TabId = 'dossiers' | 'capa' | 'rejected' | 'fivewhy';
+type TabId = 'dossiers' | 'capa' | 'rejected' | 'fivewhy' | 'approval';
 type SortKey = 'oldest' | 'newest' | 'severity' | 'line';
 
 type PendingCapa = {
@@ -44,7 +50,8 @@ type PendingCapa = {
 type Pending =
   | { kind: 'dossiers'; ids: string[]; approve: boolean }
   | { kind: 'fivewhy'; item: FiveWhyQueueItem; approve: boolean }
-  | { kind: 'capa'; plan: PendingCapa; approve: boolean };
+  | { kind: 'capa'; plan: PendingCapa; approve: boolean }
+  | { kind: 'planApproval'; plan: PlanToApprove; approve: boolean };
 
 const SEVERITY_RANK: Record<string, number> = { critical: 0, critique: 0, high: 1, elevee: 1, élevée: 1, medium: 2, moyenne: 2, low: 3, faible: 3 };
 
@@ -104,9 +111,10 @@ export const AdminValidationHub: React.FC = () => {
   const [params, setParams] = useSearchParams();
   const tabParam = params.get('tab');
   const tab: TabId =
-    tabParam === 'capa' ? 'capa' :
+    tabParam === 'capa' || tabParam === 'approval' ? 'capa' :
     tabParam === 'rejected' ? 'rejected' :
     tabParam === 'fivewhy' ? 'fivewhy' :
+    tabParam === 'approval' ? 'approval' :
     'dossiers';
 
   const [dossiers, setDossiers] = useState<Claim[]>([]);
@@ -116,6 +124,7 @@ export const AdminValidationHub: React.FC = () => {
   const [capa, setCapa] = useState<PendingCapa[]>([]);
   const [rejected, setRejected] = useState<PendingCapa[]>([]);
   const [fiveWhyQueue, setFiveWhyQueue] = useState<FiveWhyQueueItem[]>([]);
+  const [approvalQueue, setApprovalQueue] = useState<PlanToApprove[]>([]);
   // the 5 Why queue: most recent submissions first, searchable; a notification can point at one analysis (?claimId=) which is shown first
   const [fwSearch, setFwSearch] = useState('');
   const [fwSort, setFwSort] = useState<'newest' | 'oldest'>('newest');
@@ -182,6 +191,15 @@ export const AdminValidationHub: React.FC = () => {
     }
   }, [accessToken]);
 
+  const loadApproval = useCallback(async () => {
+    if (!accessToken) return;
+    try {
+      setApprovalQueue(await getPlansToApprove(accessToken));
+    } catch {
+      setApprovalQueue([]);
+    }
+  }, [accessToken]);
+
   const loadAll = useCallback(async () => {
     if (!accessToken) {
       setLoading(false);
@@ -190,14 +208,14 @@ export const AdminValidationHub: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      await Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy()]);
+      await Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy(), loadApproval()]);
     } catch (e: any) {
       console.error(e);
       setError(e?.message || i18n.t('validationHub.loadFailed'));
     } finally {
       setLoading(false);
     }
-  }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy]);
+  }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy, loadApproval]);
 
   useEffect(() => { void loadAll(); }, [loadAll]);
 
@@ -206,12 +224,12 @@ export const AdminValidationHub: React.FC = () => {
     if (!accessToken) return;
     const quiet = () => {
       if (document.visibilityState === 'hidden') return;
-      void Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy()]).catch(() => undefined);
+      void Promise.all([loadDossiers(), loadCapa(), loadRejected(), loadFiveWhy(), loadApproval()]).catch(() => undefined);
     };
     const timer = window.setInterval(quiet, 30000);
     document.addEventListener('visibilitychange', quiet);
     return () => { window.clearInterval(timer); document.removeEventListener('visibilitychange', quiet); };
-  }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy]);
+  }, [accessToken, loadDossiers, loadCapa, loadRejected, loadFiveWhy, loadApproval]);
 
   const counts = useMemo(
     () => ({
@@ -219,8 +237,9 @@ export const AdminValidationHub: React.FC = () => {
       capa: capa.length,
       rejected: rejected.length,
       fivewhy: fiveWhyQueue.length,
+      approval: approvalQueue.length,
     }),
-    [dossiers.length, capa.length, rejected.length, fiveWhyQueue.length]
+    [dossiers.length, capa.length, rejected.length, fiveWhyQueue.length, approvalQueue.length]
   );
 
   const sortedDossiers = useMemo(() => {
@@ -300,6 +319,12 @@ export const AdminValidationHub: React.FC = () => {
         if (!approve) await notifyFiveWhyReturned(accessToken, item.claimId, reason).catch(() => undefined);
         setFiveWhyQueue((prev) => prev.filter((x) => x.analysisId !== item.analysisId));
         setNotice(t(approve ? 'validationHub.noticeApproved' : 'validationHub.noticeReturned', { count: 1 }));
+      } else if (pending.kind === 'planApproval') {
+        const { plan, approve } = pending;
+        if (approve) await approvePlan(accessToken, plan.planId, reason || undefined);
+        else await returnPlan(accessToken, plan.planId, reason);
+        setApprovalQueue((prev) => prev.filter((x) => x.planId !== plan.planId));
+        setNotice(t(approve ? 'validationHub.noticePlanApproved' : 'validationHub.noticePlanReturned'));
       } else {
         const { plan, approve } = pending;
         if (approve) {
@@ -341,7 +366,60 @@ export const AdminValidationHub: React.FC = () => {
       ? t(pending.approve ? 'validationHub.dialogApproveDossiers' : 'validationHub.dialogReturnDossiers', { count: dialogCount })
       : pending.kind === 'fivewhy'
         ? t(pending.approve ? 'validationHub.confirmApproveFiveWhy' : 'validationHub.confirmReturnFiveWhy')
-        : t(pending.approve ? 'validationHub.confirmValidateCapa' : 'validationHub.returnReasonPrompt');
+        : pending.kind === 'planApproval'
+          ? t(pending.approve ? 'validationHub.confirmApprovePlan' : 'validationHub.returnReasonPrompt')
+          : t(pending.approve ? 'validationHub.confirmValidateCapa' : 'validationHub.returnReasonPrompt');
+
+  const renderApprovalSection = () => (
+    <>
+      <h2 className="avh-section">{t('validationHub.sectionApproval')} <span className="n">{approvalQueue.length}</span></h2>
+      <p className="avh-section-hint">{t('validationHub.sectionApprovalHint')}</p>
+      {approvalQueue.length === 0 ? (
+            <div className="avh-empty">{t('validationHub.emptyApproval')}</div>
+          ) : (
+            <div className="avh-list">
+              {approvalQueue.map((p) => (
+                <div key={p.planId} className="avh-card">
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <h3 className="avh-title-sm">{p.title}</h3>
+                    <div className="avh-meta">
+                      <span className="avh-pill">{t('validationHub.toApprove')}</span>
+                      <span>{t('validationHub.planStatus', { status: t(`validationHub.planStatusName.${p.status}`) })} · {t('validationHub.progress')} {p.progress}%</span>
+                      {p.reference && <span>{p.reference}</span>}
+                      {p.claimReference && <span>{p.claimReference}</span>}
+                      {p.assignedToName && <span>{t('validationHub.byAnalyst', { name: pn(p.assignedToName) })}</span>}
+                      {p.deadline && <span>{t('validationHub.dueShort')} {new Date(p.deadline).toLocaleDateString(dateLocale())}</span>}
+                    </div>
+                    <ValidationThread root="validated" plan="toApprove" />
+                    {p.description ? <p className="avh-desc">{p.description}</p> : null}
+                    {p.actions.length > 0 && (
+                      <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 12.5, color: '#334155' }}>
+                        {p.actions.map((a, i) => (
+                          <li key={i}>
+                            <strong>{a.title}</strong>
+                            {a.deadline ? ` · ${new Date(a.deadline).toLocaleDateString(dateLocale())}` : ''}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  <div className="avh-acts">
+                    <button type="button" className="avh-ghost" onClick={() => navigate(`/pages/front/action-plans/${p.planId}`)}>
+                      {t('qualityHistory.open')}
+                    </button>
+                    <button type="button" className="avh-ko" onClick={() => openDialog({ kind: 'planApproval', plan: p, approve: false })}>
+                      {t('validationHub.return')}
+                    </button>
+                    <button type="button" className="avh-ok" onClick={() => openDialog({ kind: 'planApproval', plan: p, approve: true })}>
+                      {t('validationHub.approve')}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+    </>
+  );
 
   const renderCapaCard = (p: PendingCapa, mode: 'pending' | 'rejected') => {
     const sla = computeIatfSla(p.createdAt || p.deadline, { progress: p.progress, gate: 'D5' });
@@ -374,6 +452,7 @@ export const AdminValidationHub: React.FC = () => {
               {t('validationHub.proofs')} {p.proofCount ?? 0}
             </span>
           </div>
+          <ValidationThread root="validated" plan={mode === 'pending' ? 'toValidate' : 'inProgress'} progress={p.progress} />
           {p.lastRejectComment && (
             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#b45309' }}>
               {t('validationHub.reason')} : {p.lastRejectComment}
@@ -483,6 +562,9 @@ export const AdminValidationHub: React.FC = () => {
           .avh-ok, .avh-ko, .avh-ghost { height: 44px; }
           .avh-bulk { flex-wrap: wrap; }
         }
+        .avh-section { margin:6px 0 2px; font-size:16px; font-weight:800; color:#000168; display:flex; align-items:center; gap:8px; }
+        .avh-section .n { font-size:12px; font-weight:700; padding:1px 9px; border-radius:999px; background:#eef2ff; color:#3730a3; }
+        .avh-section-hint { margin:0 0 12px; font-size:12.5px; color:var(--muted); }
         .avh-empty, .avh-loading { padding:48px 20px; text-align:center; color:var(--muted); background:#fff; border:1px dashed var(--line); border-radius:14px; }
         .avh-error { background:#fef2f2; color:#b91c1c; border:1px solid #fecaca; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; }
         .avh-notice { background:#ecfdf5; color:#047857; border:1px solid #a7f3d0; border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; display:flex; justify-content:space-between; gap:10px; }
@@ -509,7 +591,7 @@ export const AdminValidationHub: React.FC = () => {
             {t('validationHub.tabFiveWhy')} <span className="n">{counts.fivewhy}</span>
           </button>
           <button type="button" className={`avh-tab${tab === 'capa' ? ' on' : ''}`} onClick={() => setTab('capa')}>
-            CAPA · D5 <span className="n">{counts.capa}</span>
+            {t('validationHub.tabApproval')} <span className="n">{counts.capa + counts.approval}</span>
           </button>
           <button type="button" className={`avh-tab${tab === 'rejected' ? ' on' : ''}`} onClick={() => setTab('rejected')}>
             {t('validationHub.tabReturned')} <span className="n">{counts.rejected}</span>
@@ -592,7 +674,7 @@ export const AdminValidationHub: React.FC = () => {
                             <span>{claim.severity || '—'}</span>
                             {claim.productionLine && <span>{claim.productionLine}</span>}
                             {claim.lotNumber && <span>{t('closedArchive.lot', { lot: claim.lotNumber })}</span>}
-                            {claim.assignedToName && <span>{claim.assignedToName}</span>}
+                            {claim.assignedToName && <span>{pn(claim.assignedToName)}</span>}
                           </div>
                           {claim.description && (
                             <p style={{ margin: '6px 0 0', fontSize: 12, color: '#64748b' }}>
@@ -623,11 +705,16 @@ export const AdminValidationHub: React.FC = () => {
             </>
           )
         ) : tab === 'capa' ? (
-          capa.length === 0 ? (
-            <div className="avh-empty">{t('validationHub.emptyCapa')}</div>
-          ) : (
-            <div className="avh-list">{capa.map((p) => renderCapaCard(p, 'pending'))}</div>
-          )
+          <>
+            {renderApprovalSection()}
+            <h2 className="avh-section" style={{ marginTop: 28 }}>{t('validationHub.sectionFinal')} <span className="n">{capa.length}</span></h2>
+            <p className="avh-section-hint">{t('validationHub.sectionFinalHint')}</p>
+            {capa.length === 0 ? (
+              <div className="avh-empty">{t('validationHub.emptyCapa')}</div>
+            ) : (
+              <div className="avh-list">{capa.map((p) => renderCapaCard(p, 'pending'))}</div>
+            )}
+          </>
         ) : tab === 'rejected' ? (
           rejected.length === 0 ? (
             <div className="avh-empty">{t('validationHub.emptyReturned')}</div>
@@ -670,14 +757,24 @@ export const AdminValidationHub: React.FC = () => {
                       <span className={`avh-wait ${waitTone(days)}`}>{t('validationHub.waitingFor', { count: days })}</span>
                       <span>{item.clientId || '—'}</span>
                       <span>{defectLabel(item.defectType) || '—'}</span>
-                      {item.assignedToName && <span>{item.assignedToName}</span>}
+                      {item.assignedToName && <span>{pn(item.assignedToName)}</span>}
                     </div>
-                    {item.rootCause && (
+                    <ValidationThread root="toValidate" plan={item.planStep} progress={item.planProgress} />
+                    {item.rootCauseOccurrence || item.rootCauseDetection ? (
+                      <div style={{ margin: '8px 0 0', fontSize: 12, color: '#334155', display: 'grid', gap: 3 }}>
+                        {item.rootCauseOccurrence && (
+                          <p style={{ margin: 0 }}><strong>{t('validationThread.occurrence')}</strong> : {item.rootCauseOccurrence}</p>
+                        )}
+                        {item.rootCauseDetection && (
+                          <p style={{ margin: 0 }}><strong>{t('validationThread.detection')}</strong> : {item.rootCauseDetection}</p>
+                        )}
+                      </div>
+                    ) : item.rootCause ? (
                       <p style={{ margin: '6px 0 0', fontSize: 12, color: '#334155' }}>
                         {t('validationHub.rootCause')} : {item.rootCause.slice(0, 160)}
                         {item.rootCause.length > 160 ? '…' : ''}
                       </p>
-                    )}
+                    ) : null}
                   </div>
                   <div className="avh-acts">
                     <button

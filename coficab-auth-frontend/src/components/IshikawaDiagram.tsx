@@ -50,7 +50,7 @@ export const IshikawaDiagram: React.FC<IshikawaDiagramProps> = ({
           Diagramme d'Ishikawa (Cause à Effet)
         </h3>
         {claimId && (
-          <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '12px', color: '#64748b', fontFamily: 'var(--font-mono)' }}>
             ID Réclamation: {claimId}
           </span>
         )}

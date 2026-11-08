@@ -18,6 +18,12 @@ public class IshikawaCause
     public string CauseDescription { get; set; } = string.Empty;
     public bool IsRootCause { get; set; }
 
+    // Prospective Pareto: the analyst's own estimate of how critical the cause is (1 to 10 each), independent of any history.
+    // Severity if it happens, Occurrence (how often), Detection (how hard it is to see before shipping). All three or none.
+    public int? RiskSeverity { get; set; }
+    public int? RiskOccurrence { get; set; }
+    public int? RiskDetection { get; set; }
+
     // Audit Trail
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string CreatedBy { get; set; } = string.Empty;

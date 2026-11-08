@@ -82,9 +82,51 @@ public class IshikawaController : ControllerBase
     {
         var blocked = await EnsureOpenAsync(command.ClaimId);
         if (blocked != null) return blocked;
+        if (await Services.ValidatedAnalysis.IsLockedForAsync(_db, User, HttpContext.RequestServices, command.ClaimId, HttpContext.RequestAborted))
+            return Conflict(Services.ValidatedAnalysis.Refusal);
+        var amended = await Services.ValidatedAnalysis.IsValidatedAsync(_db, command.ClaimId, HttpContext.RequestAborted);
 
         var causeId = await _mediator.Send(command);
+        if (amended)
+            await Services.ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, command.ClaimId, "cause Ishikawa ajoutée.", HttpContext.RequestAborted);
         return CreatedAtAction(nameof(GetByClaimId), new { claimId = command.ClaimId }, causeId);
+    }
+
+    public sealed class IshikawaRiskRequest
+    {
+        public int? Severity { get; set; }
+        public int? Occurrence { get; set; }
+        public int? Detection { get; set; }
+    }
+
+    /// <summary>
+    /// Prospective Pareto: the analyst scores a cause (Severity, Occurrence, Detection, 1 to 10 each, or all null to clear).
+    /// An estimate that does not depend on any history; each change is traced in the claim history.
+    /// </summary>
+    [HttpPut("causes/{causeId:guid}/risk")]
+    public async Task<IActionResult> SetCauseRisk(Guid causeId, [FromBody] IshikawaRiskRequest body)
+    {
+        var actor = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(actor)) return Unauthorized(new { message = "Utilisateur non authentifié." });
+
+        var cause = await _db.IshikawaCauses.AsNoTracking().FirstOrDefaultAsync(c => c.Id == causeId, HttpContext.RequestAborted);
+        if (cause != null && await Services.ClosedDossier.IsClosedAsync(_db, cause.ClaimId, HttpContext.RequestAborted))
+            return Conflict(Services.ClosedDossier.Refusal);
+        var amended = false;
+        if (cause != null)
+        {
+            if (await Services.ValidatedAnalysis.IsLockedForAsync(_db, User, HttpContext.RequestServices, cause.ClaimId, HttpContext.RequestAborted))
+                return Conflict(Services.ValidatedAnalysis.Refusal);
+            amended = await Services.ValidatedAnalysis.IsValidatedAsync(_db, cause.ClaimId, HttpContext.RequestAborted);
+        }
+
+        var result = await _mediator.Send(new SetIshikawaCauseRiskCommand(causeId, body?.Severity, body?.Occurrence, body?.Detection, actor));
+        return result.Code switch
+        {
+            null => await TracedOkAsync(amended, cause?.ClaimId, result.Criticality),
+            "notFound" => NotFound(new { code = result.Code, message = "Cause introuvable." }),
+            _ => BadRequest(new { code = result.Code, message = "Notes refusées : trois notes entre 1 et 10, ou aucune." }),
+        };
     }
 
     /// <summary>
@@ -97,6 +139,14 @@ public class IshikawaController : ControllerBase
         if (cause != null && await Services.ClosedDossier.IsClosedAsync(_db, cause.ClaimId, HttpContext.RequestAborted))
             return Conflict(Services.ClosedDossier.Refusal);
 
+        var amended = false;
+        if (cause != null)
+        {
+            if (await Services.ValidatedAnalysis.IsLockedForAsync(_db, User, HttpContext.RequestServices, cause.ClaimId, HttpContext.RequestAborted))
+                return Conflict(Services.ValidatedAnalysis.Refusal);
+            amended = await Services.ValidatedAnalysis.IsValidatedAsync(_db, cause.ClaimId, HttpContext.RequestAborted);
+        }
+
         var command = new ArchiveIshikawaCauseCommand(
             causeId,
             request.ArchivedBy,
@@ -107,7 +157,18 @@ public class IshikawaController : ControllerBase
         if (!success)
             return NotFound($"Cause with ID {causeId} not found.");
 
+        if (amended && cause != null)
+            await Services.ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, cause.ClaimId,
+                $"cause Ishikawa archivée ({(cause.CauseDescription.Length > 80 ? cause.CauseDescription[..80] + "…" : cause.CauseDescription)}).", HttpContext.RequestAborted);
+
         return NoContent();
+    }
+
+    private async Task<IActionResult> TracedOkAsync(bool amended, Guid? claimId, int? criticality)
+    {
+        if (amended && claimId.HasValue)
+            await Services.ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, claimId.Value, "cotation du Pareto prospectif modifiée.", HttpContext.RequestAborted);
+        return Ok(new { criticality });
     }
 }
 

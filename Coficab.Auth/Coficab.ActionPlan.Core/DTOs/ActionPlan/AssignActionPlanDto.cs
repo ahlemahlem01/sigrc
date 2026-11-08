@@ -40,4 +40,7 @@ public class AssignedActionPlanDto
     public string? AssignedBy { get; set; }
     public Guid? ClaimId { get; set; }
 
+    /// <summary>0 Approved, 1 Pending (waiting for the administrator), 2 Returned: a plan is carried out once approved.</summary>
+    public int ApprovalStatus { get; set; }
+    public string? ApprovalComment { get; set; }
 }

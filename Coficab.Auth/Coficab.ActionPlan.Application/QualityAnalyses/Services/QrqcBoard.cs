@@ -39,12 +39,12 @@ public static class QrqcEscalation
     }
 }
 
-/// <summary>Exchange format of the problems for SAP QM: one line per quality notification, with the technical names of its fields.</summary>
+/// <summary>Exchange format of the problems for SAP QM: one line per quality notification. Only the number (QMNUM) and the text (QMTXT) keep their SAP names; the other columns are named in plain French.</summary>
 public static class QrqcSapExport
 {
     public static readonly string[] Columns =
     {
-        "QMART", "QMNUM", "QMTXT", "QMDAT", "ARBPL", "CHARG", "PRIOK", "FECOD", "URTXT", "MNTXT", "QMSTATUS", "STATUT_SIGRC", "NIVEAU_ESCALADE", "MINUTES_OUVERT",
+        "Type", "QMNUM", "QMTXT", "Date", "Ligne", "Lot", "Priorité", "Code défaut", "Cause", "Action", "Statut SAP", "Statut SIGRC", "Niveau d'escalade", "Minutes ouvert",
     };
 
     /// <summary>Q3 = internal problem report, Q1 = customer complaint.</summary>

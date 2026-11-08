@@ -29,6 +29,7 @@ import DecisionDialog from '../../components/DecisionDialog';
 import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface ActionPlanDto {
@@ -786,7 +787,7 @@ export default function FrontActionPlanDetail() {
               </div>
             )}
             <div className="cofi-apd-meta-item">
-              <User size={15} />{labelOrId(plan.createdByName ?? plan.ownerName, plan.ownerId)}
+              <User size={15} />{pn(labelOrId(plan.createdByName ?? plan.ownerName, plan.ownerId), plan.ownerId)}
             </div>
           </div>
         </div>
@@ -882,7 +883,7 @@ export default function FrontActionPlanDetail() {
                   <div className="cofi-apd-action-foot">
                     <div className="cofi-apd-action-foot-item">
                       <User size={13} />
-                      {labelOrId(action.assignedToName, action.assignedToId) || t('claimDetail.unassigned')}
+                      {pn(labelOrId(action.assignedToName, action.assignedToId), action.assignedToId) || t('claimDetail.unassigned')}
                     </div>
                     <div
                       className="cofi-apd-action-foot-item"

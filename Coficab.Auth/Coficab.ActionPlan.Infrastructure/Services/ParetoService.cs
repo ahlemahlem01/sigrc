@@ -36,7 +36,9 @@ public class ParetoService : IParetoService
         var defectTypes = await DefectTypeResolver.LoadAsync(_context, default);
         var baseClaims = await BaseClaimsAsync();
         var variants = await VariantsAsync(baseClaims, defectTypes, request.DefectType);
-        var query = ApplyFilters(baseClaims, request, variants);
+        var clients = await TextSimilarity.VariantsAsync(baseClaims.Select(c => (string?)c.ClientId), request.ClientId);
+        var shifts = await TextSimilarity.VariantsAsync(baseClaims.Select(c => c.Shift), request.Shift);
+        var query = ApplyFilters(baseClaims, request, variants, clients, shifts);
         return await BuildParetoAsync(query, request.Dimension, request.Measure, defectTypes);
     }
 
@@ -222,18 +224,24 @@ public class ParetoService : IParetoService
     private static IQueryable<Core.Entities.Claim> ApplyFilters(
         IQueryable<Core.Entities.Claim> query,
         ParetoRequestDto request,
-        IReadOnlyCollection<string>? defectTypeVariants = null)
+        IReadOnlyCollection<string>? defectTypeVariants = null,
+        IReadOnlyCollection<string>? clientVariants = null,
+        IReadOnlyCollection<string>? shiftVariants = null)
     {
         if (request.DateFrom.HasValue)
             query = query.Where(c => c.DetectionDate >= request.DateFrom.Value);
         if (request.DateTo.HasValue)
             query = query.Where(c => c.DetectionDate <= request.DateTo.Value);
         if (!string.IsNullOrEmpty(request.ClientId))
-            query = query.Where(c => c.ClientId == request.ClientId);
+            query = clientVariants is { Count: > 0 }
+                ? query.Where(c => clientVariants.Contains(c.ClientId))
+                : query.Where(c => c.ClientId == request.ClientId);
         if (!string.IsNullOrEmpty(request.ProductionLine))
             query = query.Where(c => c.ProductionLine == request.ProductionLine);
         if (!string.IsNullOrEmpty(request.Shift))
-            query = query.Where(c => c.Shift == request.Shift);
+            query = shiftVariants is { Count: > 0 }
+                ? query.Where(c => shiftVariants.Contains(c.Shift!))
+                : query.Where(c => c.Shift == request.Shift);
         if (!string.IsNullOrEmpty(request.Severity))
         {
             var level = request.Severity.Trim().ToUpperInvariant();

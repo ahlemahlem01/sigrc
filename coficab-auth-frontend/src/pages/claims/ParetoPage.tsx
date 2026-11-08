@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { qualityAnalysisService } from '../../services/qualityAnalysisService';
 import { ParetoReport } from '../../types/qualityAnalysis';
+import { formatDecimal } from '../../utils/formatNumber';
 
 export const ParetoPage: React.FC = () => {
   const [report, setReport] = useState<ParetoReport | null>(null);
@@ -68,7 +69,7 @@ export const ParetoPage: React.FC = () => {
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '14px', fontWeight: '600' }}>
                     <span style={{ color: '#1f2937' }}>{item.category}</span>
                     <span style={{ color: '#4b5563' }}>
-                      {item.frequency} occurrences ({item.percentage.toFixed(1)}%) — Cumul: {item.cumulativePercentage.toFixed(1)}%
+                      {item.frequency} occurrences ({formatDecimal(item.percentage)}%) — Cumul: {formatDecimal(item.cumulativePercentage)}%
                     </span>
                   </div>
 
@@ -107,8 +108,8 @@ export const ParetoPage: React.FC = () => {
                   <tr key={item.category} style={{ borderBottom: '1px solid #f3f4f6' }}>
                     <td style={{ padding: '10px 8px', fontWeight: '500' }}>{item.category}</td>
                     <td style={{ padding: '10px 8px' }}>{item.frequency}</td>
-                    <td style={{ padding: '10px 8px' }}>{item.percentage.toFixed(1)}%</td>
-                    <td style={{ padding: '10px 8px' }}>{item.cumulativePercentage.toFixed(1)}%</td>
+                    <td style={{ padding: '10px 8px' }}>{formatDecimal(item.percentage)}%</td>
+                    <td style={{ padding: '10px 8px' }}>{formatDecimal(item.cumulativePercentage)}%</td>
                     <td style={{ padding: '10px 8px' }}>
                       <span
                         style={{

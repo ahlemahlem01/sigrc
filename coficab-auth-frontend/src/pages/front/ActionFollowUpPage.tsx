@@ -10,6 +10,7 @@ import { getDepartments } from '../../services/adminService';
 import { fixMojibake } from '../../utils/textEncoding';
 import { CapaPageHeader } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
+import { pn } from '../../utils/person';
 
 const COFICAB = '#000168';
 const btn =
@@ -526,7 +527,7 @@ export default function ActionFollowUpPage({ embedded = false, focus, domain }: 
                             {r.planTitle}
                           </div>
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-slate-700">{r.responsibleName}</td>
+                        <td className="px-4 py-3 whitespace-nowrap text-slate-700">{pn(r.responsibleName)}</td>
                         <td className={embedded ? 'hidden' : 'px-4 py-3 whitespace-nowrap text-slate-700'}>{r.process}</td>
                         <td className={embedded ? 'hidden' : 'px-4 py-3 whitespace-nowrap text-slate-600'}>{formatDate(r.dateFrom)}</td>
                         <td className="px-4 py-3 whitespace-nowrap">

@@ -1,0 +1,70 @@
+{
+  "validated": true,
+  "label": "Modèle validé",
+  "trainRows": 10032,
+  "testRows": 2508,
+  "trainPeriod": [
+    "2023-01-23",
+    "2026-03-24"
+  ],
+  "testPeriod": [
+    "2026-03-24",
+    "2026-11-03"
+  ],
+  "baseline": {
+    "pinball50": 2.82,
+    "pinball80": 2.445,
+    "coverage80": 0.784
+  },
+  "modelAssigneeKnown": {
+    "pinball50": 2.689,
+    "pinball80": 2.316,
+    "coverage80": 0.801
+  },
+  "modelAssigneeUnknown": {
+    "pinball50": 2.763,
+    "pinball80": 2.4,
+    "coverage80": 0.8
+  },
+  "gainPct": {
+    "assigneeKnown": {
+      "pinball50": 4.7,
+      "pinball80": 5.2
+    },
+    "assigneeUnknown": {
+      "pinball50": 2.0,
+      "pinball80": 1.8
+    }
+  },
+  "p80GainCi95": {
+    "assigneeKnown": [
+      0.075,
+      0.189
+    ],
+    "assigneeUnknown": [
+      0.001,
+      0.088
+    ]
+  },
+  "checks": {
+    "p80GainCiAboveZero_assigneeKnown": true,
+    "p80GainCiAboveZero_assigneeUnknown": true,
+    "p50BeatsBaseline_both": true,
+    "p80CoverageCalibrated_both": true
+  },
+  "features": [
+    "defect",
+    "severity",
+    "client",
+    "line",
+    "shift",
+    "assignee",
+    "internal",
+    "month",
+    "produced",
+    "defective",
+    "rate"
+  ],
+  "note": "Les données d'entraînement sont en grande partie des données de référence : ces chiffres montrent la méthode, pas la performance réelle chez Coficab.",
+  "finalTrainRows": 12540
+}

@@ -11,7 +11,7 @@ using Moq;
 namespace Coficab.ActionPlan.API.Tests;
 
 /// <summary>A request for validation reaches the people who can give it: the administrators of the department, the holders of a function
-/// carrying the right, the superadmins; not the administrators of the other departments.</summary>
+/// carrying the right, the superadmins who follow the department (or, as a last resort, all of them); not the administrators of the other departments.</summary>
 public class ValidatorNotificationTests : IDisposable
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
@@ -63,13 +63,13 @@ public class ValidatorNotificationTests : IDisposable
         await _db.Notifications.Where(n => n.Type == type).Select(n => n.RecipientId).OrderBy(x => x).ToListAsync();
 
     [Fact]
-    public async Task AValidationRequest_ReachesTheDepartmentAdmins_TheFunctionHolders_AndTheSuperadmin_Only()
+    public async Task AValidationRequest_ReachesTheDepartmentAdmins_AndTheFunctionHolders_Only()
     {
         var claim = await Seed();
 
         await _service.NotifyValidatorsAsync("eight_d_pending_validation", "t", "m", "8d:validate", claimId: claim, excludeUserId: "employee");
 
-        Assert.Equal(new[] { "adminQ1", "adminQ2", "responsable", "super" }, await Recipients("eight_d_pending_validation"));
+        Assert.Equal(new[] { "adminQ1", "adminQ2", "responsable" }, await Recipients("eight_d_pending_validation"));
     }
 
     [Fact]
@@ -82,7 +82,7 @@ public class ValidatorNotificationTests : IDisposable
 
         await _service.NotifyValidatorsAsync("five_why_pending_validation", "t", "m", "8d:validate", claimId: claim, excludeUserId: "adminQ1");
 
-        Assert.Equal(new[] { "adminQ2", "super" }, await Recipients("five_why_pending_validation"));
+        Assert.Equal(new[] { "adminQ2" }, await Recipients("five_why_pending_validation"));
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class ValidatorNotificationTests : IDisposable
 
         await _service.NotifyValidatorsAsync("plan_ready_for_validation", "t", "m", null);
 
-        Assert.Equal(new[] { "adminP", "adminQ1", "adminQ2", "super" }, await Recipients("plan_ready_for_validation"));
+        Assert.Equal(new[] { "adminP", "adminQ1", "adminQ2" }, await Recipients("plan_ready_for_validation"));
     }
 
     [Fact]
@@ -102,7 +102,41 @@ public class ValidatorNotificationTests : IDisposable
 
         await _service.NotifyValidatorsAsync("plan_ready_for_validation", "t", "m", null, departmentId: _production);
 
-        Assert.Equal(new[] { "adminP", "super" }, await Recipients("plan_ready_for_validation"));
+        Assert.Equal(new[] { "adminP" }, await Recipients("plan_ready_for_validation"));
+    }
+
+    [Fact]
+    public async Task ASuperadmin_IsToldAboutTheDepartmentsTheyFollow_AndOnlyThose()
+    {
+        var claim = await Seed();
+        _db.SuperadminDepartmentWatches.Add(new SuperadminDepartmentWatch { UserId = "super", DepartmentId = _quality });
+        await _db.SaveChangesAsync();
+
+        await _service.NotifyValidatorsAsync("a", "t", "m", null, claimId: claim, excludeUserId: "employee");
+        await _service.NotifyValidatorsAsync("b", "t", "m", null, departmentId: _production);
+
+        Assert.Equal(new[] { "adminQ1", "adminQ2", "super" }, await Recipients("a"));
+        Assert.Equal(new[] { "adminP" }, await Recipients("b"));
+    }
+
+    [Fact]
+    public async Task WhenNobodyElseCanDecide_TheSuperadminIsTheLastResort()
+    {
+        await Seed();
+
+        await _service.NotifyValidatorsAsync("c", "t", "m", null, departmentId: Guid.NewGuid());
+
+        Assert.Equal(new[] { "super" }, await Recipients("c"));
+    }
+
+    [Fact]
+    public async Task ASuperadminWhoOnlyHasToDecide_IsNotToldTwice_WhenTheyAreTheSubmitter()
+    {
+        await Seed();
+
+        await _service.NotifyValidatorsAsync("d", "t", "m", null, departmentId: Guid.NewGuid(), excludeUserId: "super");
+
+        Assert.Empty(await Recipients("d"));
     }
 
     [Fact]

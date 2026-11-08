@@ -13,6 +13,7 @@ import ComparisonRadar, { COMPARE_COLORS } from './ComparisonRadar';
 import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { pn } from '../../../utils/person';
 
 const MAX_SELECT = 3;
 const MIN_COMPARE = 2;
@@ -188,7 +189,7 @@ export default function EmployeeComparatorPage() {
       <div className="cmp-page">
         <div className="cmp-toolbar">
           <div>
-            <div className="cmp-title">{t('comparator.title')}</div>
+            <h1 className="cmp-title">{t('comparator.title')}</h1>
             <div className="cmp-sub">
               {t('comparator.sideBySide', { count: selectedRows.length })}
             </div>
@@ -209,7 +210,7 @@ export default function EmployeeComparatorPage() {
                 radius="lg"
               />
               <div className="cmp-emp-meta">
-                <div className="cmp-emp-name">{emp.fullName}</div>
+                <div className="cmp-emp-name">{pn(emp.fullName)}</div>
                 <div className="cmp-emp-email">{emp.email || '—'}</div>
                 {(emp.poste || emp.equipe) && (
                   <div className="cmp-emp-role">{[emp.poste, emp.equipe].filter(Boolean).join(' · ')}</div>
@@ -255,7 +256,7 @@ export default function EmployeeComparatorPage() {
     <div className="cmp-page">
       <div className="cmp-toolbar">
         <div>
-          <div className="cmp-title">{t('comparator.title')}</div>
+          <h1 className="cmp-title">{t('comparator.title')}</h1>
           <div className="cmp-sub">
             {t('comparator.intro', { max: MAX_SELECT })}
           </div>
@@ -381,7 +382,6 @@ export default function EmployeeComparatorPage() {
 }
 
 const PAGE_CSS = `
-  @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
   .cmp-page {
     padding: 20px 24px 32px;
@@ -400,7 +400,7 @@ const PAGE_CSS = `
 
   .cmp-btn {
     display: inline-flex; align-items: center; gap: 7px;
-    padding: 9px 16px; border-radius: 9px; font-size: 13px; font-weight: 650;
+    padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 650;
     border: 1px solid transparent; cursor: pointer; font-family: inherit;
     transition: all .15s;
   }

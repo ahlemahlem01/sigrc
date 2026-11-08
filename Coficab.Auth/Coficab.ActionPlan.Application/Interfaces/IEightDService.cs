@@ -10,6 +10,8 @@ public interface IEightDService
     Task<EightDDossierDto?> PeekAsync(Guid claimId, CancellationToken ct = default);
     Task<EightDDossierDto> SaveAsync(Guid claimId, SaveEightDDossierDto dto, string userId, CancellationToken ct = default);
     Task<EightDDossierDto> SubmitAsync(Guid claimId, string userId, CancellationToken ct = default);
+    /// <summary>Leaves a version in the history of the dossier saying what an administrator changed after the root cause was validated. No dossier yet: nothing to record.</summary>
+    Task RecordAmendmentAsync(Guid claimId, string userId, string what, CancellationToken ct = default);
     Task<EightDDossierDto> ValidateAsync(Guid claimId, ValidateEightDDossierDto dto, string userId, CancellationToken ct = default);
     Task<IReadOnlyList<EightDDossierDto>> GetPendingAsync(CancellationToken ct = default);
     Task<byte[]> GetOrGenerateCustomerPdfAsync(Guid claimId, string userId, CancellationToken ct = default);

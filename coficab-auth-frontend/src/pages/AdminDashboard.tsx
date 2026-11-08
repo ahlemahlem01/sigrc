@@ -23,6 +23,7 @@ import {
 } from '../services/adminService';
 import EmployeeAdminView from './employee/EmployeeAdminView';
 import { useTranslation } from 'react-i18next';
+import { pn } from '../utils/person';
 
 const initials = (name: string) =>
   name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase();
@@ -324,7 +325,6 @@ const handleLock = async (id: string) => {
   return (
     <>
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -477,7 +477,7 @@ const handleLock = async (id: string) => {
         .ad-pi.sel { border-color: var(--navy); color: var(--navy); font-weight: 600; background: var(--navy-light); }
         .ad-pi-ck { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; transition: background .15s, border .15s; }
 
-        .ad-btn { padding: 9px 18px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font-head); transition: all .15s; }
+        .ad-btn { padding: 9px 18px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font-head); transition: all .15s; }
         .btn-primary { background: var(--navy); color: #fff; }
         .btn-primary:hover { background: var(--navy-mid); }
         .btn-ghost { background: var(--bg); color: var(--text2); border: 1px solid var(--border); }
@@ -686,7 +686,7 @@ const handleLock = async (id: string) => {
                               {initials(u.fullName)}
                             </div>
                             <div>
-                              <div className="ad-uname">{u.fullName}</div>
+                              <div className="ad-uname">{pn(u.fullName)}</div>
                               <div className="ad-uemail">{u.email}</div>
                             </div>
                           </div>
@@ -935,7 +935,7 @@ const handleLock = async (id: string) => {
                                 {initials(u.fullName)}
                               </div>
                               <div>
-                                <div className="ad-uname">{u.fullName}</div>
+                                <div className="ad-uname">{pn(u.fullName)}</div>
                                 <div className="ad-uemail">{u.email}</div>
                               </div>
                             </div>
@@ -1256,7 +1256,7 @@ const handleLock = async (id: string) => {
             </div>
             <div className="ad-mbody">
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                {t('usersAdmin.newPasswordFor')} <strong>{selected?.fullName}</strong>
+                {t('usersAdmin.newPasswordFor')} <strong>{pn(selected?.fullName)}</strong>
               </p>
               <div className="ad-fg">
                 <label className="ad-lbl">{t('usersAdmin.newPassword')}</label>

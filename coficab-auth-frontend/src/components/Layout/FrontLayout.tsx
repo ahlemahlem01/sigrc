@@ -16,6 +16,8 @@ import LanguageFlags from '../LanguageFlags';
 import LicenceBanner from '../LicenceBanner';
 import { canValidate, useFunctionPermissions, useInactiveModules } from '../../hooks/useAccess';
 import QualityAssistantWidget from '../QualityAssistant/QualityAssistantWidget';
+import { roleLabel } from '../../utils/roleLabel';
+import { pn } from '../../utils/person';
 
 // Target route for Quality Analyses
 const QUALITY_ANALYSIS_PATH = '/pages/front/quality-analyses';
@@ -53,8 +55,10 @@ const FrontLayout = () => {
 
   const handleLogout = () => { logout(); navigate('/'); };
 
-  const userDisplayName = (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
-  const userRole = isAdmin ? t('employeeNav.qualityAdmin') : t('employeeNav.operator');
+  // the name comes with the code of the person's department when it is known; otherwise the e-mail, as before
+  const taggedName = pn((user as any)?.name, ((user as any)?.id ?? (user as any)?.sub ?? (user as any)?.userId));
+  const userDisplayName = (taggedName && taggedName !== (user as any)?.name ? taggedName : '') || (user as any)?.email || (user as any)?.name || t('employeeNav.roles.user');
+  const userRole = roleLabel(user as any, t);
 
   const isActive = (path: string) =>
     location.pathname === path || location.pathname.startsWith(path + '/');
@@ -93,6 +97,7 @@ const FrontLayout = () => {
         label: t(isAdmin ? 'employeeWorkspace.frontPlans' : 'employeeWorkspace.frontMyPlans'),
         active: isPlansNavActive || isActive('/pages/front/my-action-plans'),
       },
+      ...(!isAdmin ? [{ to: '/pages/front/my-validations', label: t('employeeWorkspace.frontMyValidations'), active: isActive('/pages/front/my-validations') }] : []),
       { to: '/pages/front/agenda/deadlines', label: t('employeeWorkspace.frontAgenda'), active: isAgendaPath },
       { to: QUALITY_ANALYSIS_PATH, label: t('employeeWorkspace.frontQuality'), active: isQualityPath },
     ] : []),
@@ -326,7 +331,7 @@ const FrontLayout = () => {
         
         .fl-user-info { display: flex; flex-direction: column; line-height: 1.25; text-align: left; }
         .fl-user-name { font-size: 13px; font-weight: 500; color: #fff; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .fl-user-role { font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.6px; margin-top: 1px; }
+        .fl-user-role { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.55); margin-top: 1px; }
 
         .fl-dropdown {
           position: absolute; top: calc(100% + 16px); right: 0;

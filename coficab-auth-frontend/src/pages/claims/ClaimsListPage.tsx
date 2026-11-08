@@ -34,7 +34,7 @@ export const ClaimsListPage: React.FC = () => {
     canAssign, assignableUsers,
     openStartAnalysisModal, openEditModal, closeEditModal,
     handleInputChange, handleSaveClaim,
-    applySuggestedDeadline, applyingDeadline, deadlineApplyError,
+    deadlineApplyError,
     isProductionModalOpen, productionModalMode, productionFormData,
     isSavingProduction, productionSaveError, closeProductionModal,
     handleProductionInputChange, handleSubmitProductionData,
@@ -232,9 +232,12 @@ export const ClaimsListPage: React.FC = () => {
             )}
           </div>
 
-          <button className="pfe-btn-primary" onClick={() => navigate(location.pathname.startsWith('/admin/claims') ? '/admin/claims/create' : '/pages/front/quality-analyses/create')}>
-            <Plus size={15} /> {t('claimsList.newClaim')}
-          </button>
+          {/* in the front office the header of the section already carries this button */}
+          {location.pathname.startsWith('/admin/claims') && (
+            <button className="pfe-btn-primary" onClick={() => navigate('/admin/claims/create')}>
+              <Plus size={15} /> {t('claimsList.newClaim')}
+            </button>
+          )}
           {isPlatformAdmin(user) && accessToken && (
             <CsvImportButton
               className="pfe-btn-secondary"
@@ -293,9 +296,8 @@ export const ClaimsListPage: React.FC = () => {
           onEdit={openEditModal}
           onOpenStartAnalysisModal={openStartAnalysisModal}
           canEdit={canAssign}
-          onApplySuggestedDeadline={applySuggestedDeadline}
-          applyingDeadline={applyingDeadline}
           onDeadlineExtended={() => refetch()}
+          onArchived={() => { setSelectedClaimId(null); refetch(); }}
         />
       </div>
 

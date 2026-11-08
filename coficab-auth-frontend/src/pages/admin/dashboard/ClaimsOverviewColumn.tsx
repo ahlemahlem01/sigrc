@@ -7,6 +7,8 @@ import KpiMiniCard from './KpiMiniCard';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB } from './dashPalette';
 import { severityKey, type SeverityKey } from '../../../utils/overviewSeverity';
+import { formatDecimal } from '../../../utils/formatNumber';
+import { pn } from '../../../utils/person';
 
 function severityBadge(sev: string) {
   const key = sev.toUpperCase();
@@ -131,7 +133,7 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
           />
           <KpiMiniCard
             label={t('adminDashboard.claims.closureRate')}
-            value={`${(kpis?.closureRate ?? 0).toFixed(1)} %`}
+            value={`${formatDecimal(kpis?.closureRate ?? 0)} %`}
             loading={loading}
             accent={COFICAB.ok}
             tint={COFICAB.okSoft}
@@ -177,7 +179,7 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
                       <div className="min-w-0 flex-1">
                         <div className="text-xs font-semibold text-slate-800 truncate">{row.title}</div>
                         <div className="text-[11px] text-slate-500 truncate">
-                          {row.clientId} · {row.responsibleName || '—'}
+                          {row.clientId} · {pn(row.responsibleName) || '—'}
                         </div>
                       </div>
                       <span
@@ -224,7 +226,7 @@ export default function ClaimsOverviewColumn({ data, loading, part = 'steering' 
                   <li key={row.id} className="px-3 py-2.5 flex items-center gap-2" style={{ borderColor: COFICAB.line }}>
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-slate-800 truncate">{row.title}</div>
-                      <div className="text-[11px] text-slate-500 truncate">{row.clientId} · {row.responsibleName || '—'}</div>
+                      <div className="text-[11px] text-slate-500 truncate">{row.clientId} · {pn(row.responsibleName) || '—'}</div>
                     </div>
                     <span className="text-[11px] font-semibold tabular-nums shrink-0" style={{ color: COFICAB.muted }}>
                       {t('adminDashboard.claims.noDeadlineAge', { count: row.ageDays })}
