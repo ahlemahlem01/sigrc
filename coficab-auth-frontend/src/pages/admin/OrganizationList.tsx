@@ -129,7 +129,6 @@ const OrganizationList = () => {
   return (
     <>
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -401,7 +400,7 @@ const OrganizationList = () => {
 
         /* buttons */
         .ol-btn {
-          padding: 9px 18px; border-radius: 7px; font-size: 12px;
+          padding: 9px 18px; border-radius: 8px; font-size: 12px;
           font-weight: 700; cursor: pointer; border: none;
           font-family: var(--font-head); transition: all .15s;
         }
@@ -424,7 +423,7 @@ const OrganizationList = () => {
         {/* header */}
         <div className="ol-head">
           <div>
-            <div className="ol-title">{t('orgs.title')}</div>
+            <h1 className="ol-title">{t('orgs.title')}</h1>
             <div className="ol-sub">{t('orgs.subtitle')}</div>
           </div>
           <div className="ol-head-right">

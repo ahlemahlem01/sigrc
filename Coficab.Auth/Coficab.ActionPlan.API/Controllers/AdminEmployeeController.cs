@@ -292,9 +292,21 @@ public class AdminEmployeeController : ControllerBase
         };
     }
 
+    /// <summary>
+    /// A profile is removed for good only when the person appears nowhere: claims, plans, actions and events point at a person by identifier, with no
+    /// database constraint behind. Otherwise the profile is archived (PUT profiles/{userId}/archive), which keeps the history readable.
+    /// </summary>
     [HttpDelete("profiles/{userId}")]
-    public async Task<IActionResult> DeleteProfile(string userId)
+    public async Task<IActionResult> DeleteProfile(string userId, CancellationToken ct)
     {
+        var inHistory =
+            await _db.Claims.IgnoreQueryFilters().AnyAsync(c => c.AssignedToId == userId || c.CreatedById == userId, ct)
+            || await _db.ActionPlans.IgnoreQueryFilters().AnyAsync(p => p.OwnerId == userId || p.AssignedToId == userId, ct)
+            || await _db.PlanActions.IgnoreQueryFilters().AnyAsync(a => a.AssignedToId == userId, ct)
+            || await _db.ClaimEvents.IgnoreQueryFilters().AnyAsync(e => e.ActorId == userId, ct);
+        if (inHistory)
+            return Conflict(new { code = "profile_has_history", message = "Cette personne apparaît dans des réclamations, des plans ou des actions : archivez son profil au lieu de le supprimer." });
+
         await _userProfileService.DeleteAsync(userId);
         return NoContent();
     }

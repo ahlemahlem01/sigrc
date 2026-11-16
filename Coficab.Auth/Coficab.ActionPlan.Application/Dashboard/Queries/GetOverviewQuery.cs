@@ -457,7 +457,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             .OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
             .ToList();
         var pairs = inPeriod.Where(c => !string.IsNullOrWhiteSpace(c.ProductionLine))
-            .GroupBy(c => (Defect: Defect(c.DefectType), Line: c.ProductionLine!.Trim()))
+            .GroupBy(c => (Defect: Defect(c.DefectType), Line: TextSimilarity.Key(c.ProductionLine)))
             .Where(g => g.Count() >= RecurringPairMin)
             .OrderByDescending(g => g.Count())
             .ToList();
@@ -466,7 +466,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
             withLot.Count,
             lots.Take(3).Select(g => new RepeatedLotDto(g.Key, g.Count(), g.Select(c => Defect(c.DefectType)).Distinct().Count(), g.Select(c => c.ClientId).FirstOrDefault())).ToList(),
             pairs.Count,
-            pairs.Take(2).Select(g => new RecurringPairDto(g.Key.Defect, g.Key.Line, g.Count())).ToList());
+            pairs.Take(2).Select(g => new RecurringPairDto(g.Key.Defect, TextSimilarity.Merged(g.Select(c => c.ProductionLine!.Trim())).First(), g.Count())).ToList());
 
         // only employees count: administrators (and people without a profile) are not part of the team's workload
         bool IsEmployee(string id) => profiles.FirstOrDefault(p => string.Equals(p.UserId, id, StringComparison.OrdinalIgnoreCase)) is { } p
@@ -603,7 +603,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
 
         // ── customers: where the risk sits ──
         var clients = live.Where(c => !string.IsNullOrWhiteSpace(c.ClientId))
-            .GroupBy(c => c.ClientId.Trim(), StringComparer.OrdinalIgnoreCase)
+            .GroupBy(c => TextSimilarity.Key(c.ClientId))
             .Select(g =>
             {
                 var gOpen = g.Where(c => !IsClosed(c.StatusCode)).ToList();
@@ -613,7 +613,7 @@ public class GetOverviewQueryHandler : IRequestHandler<GetOverviewQuery, Overvie
                                        && c.ProducedQuantity is > 0 && c.DefectiveQuantity != null).ToList();
                 var produced = qty.Sum(c => (double)c.ProducedQuantity!.Value);
                 return new OverviewClientDto(
-                    g.Key,
+                    TextSimilarity.Merged(g.Select(c => c.ClientId.Trim())).First(),
                     gOpen.Count,
                     gOpen.Count(c => IsCriticalSeverity(c.Severity)),
                     gOpen.Count(c => ClaimDeadlines.IsLate(c.Deadline, today)),

@@ -629,6 +629,11 @@ public class QualityAnalysisController : ControllerBase
         if (!Guid.TryParse(userIdString, out var userId))
             return Unauthorized(new { message = "Invalid user claim token." });
 
+        // The deadline is chosen by the person who created the claim, on the creation sheet (POST claims/{id}/creation-sheet/validate).
+        // This direct call stays for quality administrators only.
+        if (!IsQualityAdmin())
+            return Forbid();
+
         if (body?.Deadline == null)
             return BadRequest(new { message = "Deadline est requise." });
 
@@ -676,6 +681,78 @@ public class QualityAnalysisController : ControllerBase
             null => Ok(new { oldDeadline = result.OldDeadline, newDeadline = result.NewDeadline, extraDays = result.ExtraDays }),
             "notFound" => NotFound(new { code = result.Code, message = "Réclamation introuvable." }),
             _ => BadRequest(new { code = result.Code, message = "Prolongation refusée : " + result.Code }),
+        };
+    }
+
+    /// <summary>
+    /// An administrator sets a deadline of their own (earlier or later than the suggestion), with a mandatory reason.
+    /// The old date, the new date and the reason are written to the audit trail in the same save.
+    /// </summary>
+    [HttpPost("claims/{id:guid}/deadline-change")]
+    public async Task<IActionResult> ChangeClaimDeadline(Guid id, [FromBody] ExtendDeadlineRequest body, CancellationToken cancellationToken)
+    {
+        if (!await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ExtendDeadline)) return Forbid();
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Utilisateur non authentifié." });
+        if (body?.NewDeadline is null) return BadRequest(new { code = "newDateRequired", message = "La nouvelle date est requise." });
+
+        if (!IsSuperAdmin())
+        {
+            var visible = await ClaimVisibility.ApplyAsync(_db, _db.Claims.AsNoTracking().Where(c => c.Id == id), userId, cancellationToken);
+            if (!await visible.AnyAsync(cancellationToken)) return NotFound(new { code = "notFound", message = "Réclamation introuvable." });
+        }
+
+        var result = await _mediator.Send(new ChangeClaimDeadlineCommand(id, body.NewDeadline.Value, body.Reason ?? string.Empty, userId), cancellationToken);
+        return result.Code switch
+        {
+            null => Ok(new { oldDeadline = result.OldDeadline, newDeadline = result.NewDeadline }),
+            "notFound" => NotFound(new { code = result.Code, message = "Réclamation introuvable." }),
+            _ => BadRequest(new { code = result.Code, message = "Changement refusé : " + result.Code }),
+        };
+    }
+
+    /// <summary>The creation sheet of a claim: who created it, whether it was confirmed, the suggested deadline and the trace of what was set or corrected.</summary>
+    [HttpGet("claims/{id:guid}/creation-sheet")]
+    public async Task<IActionResult> GetClaimCreationSheet(Guid id, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Utilisateur non authentifié." });
+
+        if (!IsSuperAdmin())
+        {
+            var visible = await ClaimVisibility.ApplyAsync(_db, _db.Claims.AsNoTracking().Where(c => c.Id == id), userId, cancellationToken);
+            if (!await visible.AnyAsync(cancellationToken)) return NotFound(new { code = "notFound", message = "Réclamation introuvable." });
+        }
+
+        var sheet = await _mediator.Send(new GetClaimCreationSheetQuery(id, userId), cancellationToken);
+        return sheet is null ? NotFound(new { code = "notFound", message = "Réclamation introuvable." }) : Ok(sheet);
+    }
+
+    public sealed class ValidateClaimCreationRequest
+    {
+        public ClaimSheetChanges? Changes { get; set; }
+        public DateTime? Deadline { get; set; }
+        public string? DeadlineReason { get; set; }
+    }
+
+    /// <summary>
+    /// The person who created the claim confirms it, after correcting any field and choosing the deadline if they want. Only the creator, only once;
+    /// every change goes to the claim history with the old and the new value.
+    /// </summary>
+    [HttpPost("claims/{id:guid}/creation-sheet/validate")]
+    public async Task<IActionResult> ValidateClaimCreation(Guid id, [FromBody] ValidateClaimCreationRequest body, CancellationToken cancellationToken)
+    {
+        var userId = CurrentUserId();
+        if (string.IsNullOrWhiteSpace(userId)) return Unauthorized(new { message = "Utilisateur non authentifié." });
+
+        var result = await _mediator.Send(
+            new ValidateClaimCreationCommand(id, userId, body?.Changes, body?.Deadline, body?.DeadlineReason), cancellationToken);
+        return result.Code switch
+        {
+            null => Ok(new { deadline = result.Deadline }),
+            "notFound" => NotFound(new { code = result.Code, message = "Réclamation introuvable." }),
+            "notCreator" => StatusCode(StatusCodes.Status403Forbidden, new { code = result.Code, message = "Seul le créateur de la réclamation peut valider cette fiche." }),
+            _ => BadRequest(new { code = result.Code, message = "Validation refusée : " + result.Code }),
         };
     }
 
@@ -739,6 +816,11 @@ public class QualityAnalysisController : ControllerBase
         if (await ClosedDossier.IsClosedAsync(_db, command.ClaimId, cancellationToken))
             return Conflict(ClosedDossier.Refusal);
 
+        // A validated 5 Why is final: only someone who holds the validation right can reopen or rewrite it.
+        if (await ValidatedAnalysis.IsLockedForAsync(_db, User, HttpContext.RequestServices, command.ClaimId, cancellationToken))
+            return Conflict(ValidatedAnalysis.Refusal);
+        var amendingValidated = await ValidatedAnalysis.IsValidatedAsync(_db, command.ClaimId, cancellationToken);
+
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         if (Guid.TryParse(userIdString, out var userId)) command.UserId = userId;
 
@@ -783,6 +865,9 @@ public class QualityAnalysisController : ControllerBase
             return BadRequest(new { message = ex.Message });
         }
 
+        if (amendingValidated)
+            await ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, command.ClaimId, "analyse 5 Why modifiée.", cancellationToken);
+
         string successText = command.StatusCode?.ToUpper() == "PENDING_VALIDATION"
             ? "Analyse 5 Why soumise pour validation."
             : "Analyse 5 Why enregistrée en brouillon.";
@@ -795,6 +880,11 @@ public class QualityAnalysisController : ControllerBase
     {
         // anyone can send a 5 Why for validation; approving one needs the right (held by administrators)
         if (command.IsApproved && !await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy)) return Forbid();
+        // sending back to draft something already validated is also reserved to the validators
+        var revertingValidated = !command.IsApproved && !string.Equals(command.StatusCode, "VALIDATED", StringComparison.OrdinalIgnoreCase)
+            && await _db.FiveWhyAnalyses.AsNoTracking().AnyAsync(a => (a.Id == command.AnalysisId || a.ClaimId == command.ClaimId) && a.StatusCode == "VALIDATED", cancellationToken);
+        if (revertingValidated && !await PermissionAccess.HasAsync(User, HttpContext.RequestServices, PermissionAccess.ValidateFiveWhy))
+            return Conflict(ValidatedAnalysis.Refusal);
         var userName = User.FindFirstValue(ClaimTypes.Name)
                     ?? User.FindFirstValue("preferred_username")
                     ?? "System";
@@ -837,6 +927,13 @@ public class QualityAnalysisController : ControllerBase
         if (!success) return NotFound(new { message = "Analyse 5 Why introuvable." });
 
         await NotifyFiveWhyDecisionAsync(command, cancellationToken);
+        if (revertingValidated)
+        {
+            var claimForTrace = command.ClaimId != Guid.Empty ? command.ClaimId
+                : await _db.FiveWhyAnalyses.Where(a => a.Id == command.AnalysisId).Select(a => a.ClaimId).FirstOrDefaultAsync(cancellationToken);
+            if (claimForTrace != Guid.Empty)
+                await ValidatedAnalysis.TraceAsync(_db, User, HttpContext.RequestServices, claimForTrace, "5 Why validé repassé en brouillon.", cancellationToken);
+        }
 
         return Ok(new { success, message = "Statut 5-Why mis à jour." });
     }
@@ -855,7 +952,7 @@ public class QualityAnalysisController : ControllerBase
             if (claimId == Guid.Empty) return;
 
             var claim = await _db.Claims.AsNoTracking().Where(c => c.Id == claimId)
-                .Select(c => new { c.Title, c.AssignedToId, c.CreatedById }).FirstOrDefaultAsync(ct);
+                .Select(c => new { c.Title, c.Reference, c.AssignedToId, c.AssignedToName, c.CreatedById }).FirstOrDefaultAsync(ct);
             if (claim == null) return;
 
             var actor = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
@@ -864,10 +961,13 @@ public class QualityAnalysisController : ControllerBase
 
             if (submitted)
             {
+                // the reference and the analyst tell two claims with the same title apart; the plan comes after this validation
+                var which = string.IsNullOrWhiteSpace(claim.Reference) ? $"« {claim.Title} »" : $"{claim.Reference} « {claim.Title} »";
+                var by = string.IsNullOrWhiteSpace(claim.AssignedToName) ? string.Empty : $" (analyste : {await PersonLabel.ForAsync(_db, claim.AssignedToId, claim.AssignedToName, ct)})";
                 await _notificationService.NotifyValidatorsAsync(
                     "five_why_pending_validation",
                     "5 Why à valider",
-                    $"L'analyse 5 Why de « {claim.Title} » a été soumise pour validation.",
+                    $"L'analyse 5 Why de {which}{by} a été soumise pour validation : cause racine d'abord, plan d'actions ensuite.",
                     permission: "analysis:validate_fivewhy",
                     claimId: claimId,
                     linkPath: $"/pages/front/validations?tab=fivewhy&claimId={claimId}",
@@ -1370,6 +1470,12 @@ severity OK = accepte.";
         return Ok(result);
     }
 
+    private const string FiveWhyNotValidatedMessage = "Le plan CAPA s'ouvre une fois les causes racines (5 Pourquoi) validées.";
+
+    private static bool IsFiveWhyValidated(FiveWhyDetailsDto? fiveWhy) =>
+        fiveWhy != null
+        && (string.Equals(fiveWhy.StatusCode, "VALIDATED", StringComparison.OrdinalIgnoreCase) || fiveWhy.IsValidated);
+
     /// <summary>
     /// Propose un plan CAPA (1 plan + actions Corrective/Préventive) à partir des 2 causes racines 5 Why.
     /// </summary>
@@ -1379,8 +1485,18 @@ severity OK = accepte.";
         var fiveWhy = await _mediator.Send(new GetFiveWhyByClaimIdQuery(claimId));
         var claim = await _db.Claims.AsNoTracking().FirstOrDefaultAsync(c => c.Id == claimId);
 
+        // The CAPA is built on validated root causes (D4 before D5).
+        if (!IsFiveWhyValidated(fiveWhy))
+            return Conflict(new { message = FiveWhyNotValidatedMessage });
+
+        // The type of the plan (corrective, preventive or improvement) is chosen first: it tells the AI what kind of actions to write.
+        var internalClaim = claim?.IsInternal ?? false;
+        if (CapaPlanTypeRules.ChoiceMissing(dto?.PlanType, internalClaim)) return PlanTypeRequired();
+        var planType = CapaPlanTypeRules.Resolve(dto?.PlanType, internalClaim);
+
         var request = new SuggestCapaRequestDto
         {
+            PlanType = (int)planType,
             ClaimTitle = claim?.Title ?? dto?.ClaimTitle,
             ProblemStatement = !string.IsNullOrWhiteSpace(dto?.ProblemStatement)
                 ? dto!.ProblemStatement
@@ -1400,9 +1516,12 @@ severity OK = accepte.";
         }
 
         var local = CapaSuggestionRules.BuildLocal(request);
-        var ai = await TrySuggestCapaWithGeminiAsync(claimId, request);
-        return Ok(ai ?? local);
+        var ai = await TrySuggestCapaWithGeminiAsync(claimId, request, planType);
+        return Ok(ai != null ? CapaSuggestionRules.AlignWithPlanType(ai, planType) : local);
     }
+
+    private IActionResult PlanTypeRequired() =>
+        BadRequest(new { code = "planTypeRequired", message = "Choisissez d'abord le type de plan (correctif, préventif ou amélioration)." });
 
     /// <summary>
     /// Crée 1 ActionPlan CAPA lié au claim + les actions Corrective / Préventive éditées.
@@ -1418,8 +1537,17 @@ severity OK = accepte.";
         if (Coficab.ActionPlan.Core.Common.CompletionTracking.IsClosedClaimStatus(claim.StatusCode))
             return Conflict(ClosedDossier.Refusal);
 
+        // The CAPA is built on validated root causes (D4 before D5).
+        if (!IsFiveWhyValidated(await _mediator.Send(new GetFiveWhyByClaimIdQuery(claimId))))
+            return Conflict(new { message = FiveWhyNotValidatedMessage });
+
         if (dto.Actions == null || dto.Actions.Count == 0)
             return BadRequest(new { message = "Au moins une action CAPA est requise." });
+
+        // the type of the plan is chosen, never assumed (an internal problem is always a corrective plan)
+        if (CapaPlanTypeRules.ChoiceMissing(dto.PlanType, claim.IsInternal)) return PlanTypeRequired();
+        var planType = CapaPlanTypeRules.Resolve(dto.PlanType, claim.IsInternal);
+        var actionKind = CapaPlanTypeRules.KindOf(planType);
 
         var existing = await _actionPlanService.GetByClaimIdAsync(claimId);
         if (existing.Any())
@@ -1446,6 +1574,7 @@ severity OK = accepte.";
 
         var fallback = CapaSuggestionRules.BuildLocal(new SuggestCapaRequestDto
         {
+            PlanType = (int)planType,
             ClaimTitle = claim.Title,
             ProblemStatement = claim.Description,
             RootCauseOccurrence = dto.Actions.FirstOrDefault(a => a.Branch == "OCCURRENCE")?.Description ?? "",
@@ -1456,7 +1585,7 @@ severity OK = accepte.";
         {
             Title = string.IsNullOrWhiteSpace(dto.PlanTitle) ? fallback.PlanTitle : dto.PlanTitle!.Trim(),
             Description = string.IsNullOrWhiteSpace(dto.PlanDescription) ? fallback.PlanDescription : dto.PlanDescription,
-            Type = ActionPlanType.PAC,
+            Type = planType,
             OrganizationId = orgId,
             DepartmentId = deptId,
             AssignedToId = string.IsNullOrWhiteSpace(dto.AssignedToId) ? userId : dto.AssignedToId,
@@ -1464,10 +1593,11 @@ severity OK = accepte.";
             ClaimId = claimId,
             PlanActions = dto.Actions.Select((a, idx) => new CreatePlanActionDto
             {
+                // every action carries the nature of the plan; only the targeted cause (Occurrence or Detection) is the action's own
                 Title = string.IsNullOrWhiteSpace(a.Title)
-                    ? (a.Kind == "PREVENTIVE" ? "Action préventive" : "Action corrective")
+                    ? CapaPlanTypeRules.DefaultActionTitle(actionKind)
                     : a.Title.Trim(),
-                Description = $"[{a.Kind}/{a.Branch}]\n{(a.Description ?? string.Empty).Trim()}",
+                Description = $"[{actionKind}/{CapaPlanTypeRules.NormalizeBranch(a.Branch, idx)}]\n{(a.Description ?? string.Empty).Trim()}",
                 Priority = a.Priority is >= 1 and <= 3 ? a.Priority : 1,
                 Deadline = DateTime.UtcNow.AddDays(a.SuggestedDeadlineDays > 0 ? a.SuggestedDeadlineDays : 14),
                 AssignedToId = string.IsNullOrWhiteSpace(dto.AssignedToId) ? userId : dto.AssignedToId,
@@ -1510,6 +1640,41 @@ severity OK = accepte.";
                     linkPath: $"/pages/front/action-plans/{plan.Id}",
                     claimId: claimId);
             }
+        }
+        catch
+        {
+            // Non bloquant
+        }
+
+        // The plan is the employee's own submission: the administrator approves it before its actions are carried out.
+        try
+        {
+            var created = await _db.ActionPlans.FirstOrDefaultAsync(p => p.Id == plan.Id);
+            if (created != null)
+            {
+                created.ApprovalStatus = Coficab.ActionPlan.Core.Enums.PlanApprovalStatus.Pending;
+                created.Status = Coficab.ActionPlan.Core.Enums.ActionPlanStatus.Created;   // not started until the administrator approves it
+                await _db.SaveChangesAsync();
+            }
+        }
+        catch
+        {
+            // Non bloquant : un plan non marqué reste exécutable
+        }
+
+        try
+        {
+            var which = string.IsNullOrWhiteSpace(claim.Reference) ? $"« {claim.Title} »" : $"{claim.Reference} « {claim.Title} »";
+            await _notificationService.NotifyValidatorsAsync(
+                "capa_submitted",
+                "Plan d'actions à approuver",
+                $"Le plan « {plan.Title} » a été soumis pour {which} : approuvez-le pour que ses actions puissent démarrer.",
+                permission: null,
+                departmentId: plan.DepartmentId,
+                actionPlanId: plan.Id,
+                claimId: claimId,
+                linkPath: "/pages/front/validations?tab=approval",
+                excludeUserId: userId);
         }
         catch
         {
@@ -1561,9 +1726,13 @@ severity OK = accepte.";
         return (Guid.Empty, Guid.Empty);
     }
 
+    /// <summary>The AI proposal is a help, never a blocker: it gets a short time and the local rules answer when it does not.</summary>
+    private static readonly TimeSpan CapaAiTimeout = TimeSpan.FromSeconds(25);
+
     private async Task<SuggestCapaResponseDto?> TrySuggestCapaWithGeminiAsync(
         Guid claimId,
-        SuggestCapaRequestDto request)
+        SuggestCapaRequestDto request,
+        Coficab.ActionPlan.Core.Enums.ActionPlanType planType)
     {
         var apiKey = _configuration["Gemini:ApiKey"];
         var model = _configuration["Gemini:Model"] ?? "gemini-3.6-flash";
@@ -1571,10 +1740,17 @@ severity OK = accepte.";
 
         try
         {
+            var (kindWord, occGoal, detGoal) = planType switch
+            {
+                Coficab.ActionPlan.Core.Enums.ActionPlanType.PAP => ("PREVENTIVE", "empêcher que le défaut apparaisse ailleurs (postes, lignes, produits similaires)", "empêcher qu'un défaut similaire échappe au contrôle"),
+                Coficab.ActionPlan.Core.Enums.ActionPlanType.PA => ("IMPROVEMENT", "améliorer le process pour réduire durablement le risque d'apparition", "améliorer le système de contrôle pour voir plus tôt les écarts"),
+                _ => ("CORRECTIVE", "éliminer pourquoi le défaut est apparu", "corriger pourquoi le contrôle a échoué"),
+            };
+            using var timeout = new CancellationTokenSource(CapaAiTimeout);
             var prompt = $@"Tu es un consultant Qualité Automobile (IATF 16949 / 8D / CAPA) chez Coficab.
-À partir des 2 causes racines du 5 Why, propose un plan CAPA minimal :
-- 1 action CORRECTIVE liée à OCCURRENCE (éliminer pourquoi le défaut est apparu)
-- 1 action PREVENTIVE liée à DETECTION (renforcer pourquoi le contrôle a échoué)
+À partir des 2 causes racines du 5 Why, propose un plan de type {kindWord} minimal. Les DEUX actions sont de nature {kindWord} :
+- 1 action {kindWord} liée à OCCURRENCE ({occGoal})
+- 1 action {kindWord} liée à DETECTION ({detGoal})
 
 Réclamation: {claimId}
 Titre: {request.ClaimTitle}
@@ -1588,7 +1764,7 @@ Réponds UNIQUEMENT en JSON valide (sans markdown) :
   ""planDescription"": ""..."",
   ""actions"": [
     {{
-      ""kind"": ""CORRECTIVE"",
+      ""kind"": ""{kindWord}"",
       ""branch"": ""OCCURRENCE"",
       ""title"": ""..."",
       ""description"": ""action concrète, mesurable, IATF"",
@@ -1596,7 +1772,7 @@ Réponds UNIQUEMENT en JSON valide (sans markdown) :
       ""suggestedDeadlineDays"": 14
     }},
     {{
-      ""kind"": ""PREVENTIVE"",
+      ""kind"": ""{kindWord}"",
       ""branch"": ""DETECTION"",
       ""title"": ""..."",
       ""description"": ""..."",
@@ -1621,11 +1797,12 @@ Réponds UNIQUEMENT en JSON valide (sans markdown) :
             var endpoint = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
             var response = await http.PostAsync(
                 endpoint,
-                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"));
+                new StringContent(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json"),
+                timeout.Token);
 
             if (!response.IsSuccessStatusCode) return null;
 
-            var responseJson = await response.Content.ReadAsStringAsync();
+            var responseJson = await response.Content.ReadAsStringAsync(timeout.Token);
             using var doc = JsonDocument.Parse(responseJson);
             var root = doc.RootElement;
             if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)

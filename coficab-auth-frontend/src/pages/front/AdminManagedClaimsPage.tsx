@@ -17,6 +17,7 @@ import { CreateClaimForm } from '../claims/CreateClaimForm';
 import { CsvImportButton } from '../../components/CsvImportButton';
 import { CapaKpiStrip } from '../../components/capa/CapaAdminUi';
 import { ExtendDeadline, canExtendDeadline } from '../../components/ExtendDeadline';
+import { ClaimCreationSheet } from '../../components/ClaimCreationSheet';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
@@ -82,6 +83,7 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
   const [assignMsg, setAssignMsg] = useState<string | null>(null);
   const [assignErr, setAssignErr] = useState<string | null>(null);
   const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [sheetClaimId, setSheetClaimId] = useState<string | null>(null);
   const [assignModalClaimId, setAssignModalClaimId] = useState<string | null>(null);
   const [modalAssignee, setModalAssignee] = useState('');
   const [modalErr, setModalErr] = useState<string | null>(null);
@@ -546,6 +548,9 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
                             {sev.label}
                           </span>
                         )}
+                        <button type="button" className="amc-btn" onClick={() => setSheetClaimId(String(selected.id))}>
+                          {t('creationSheet.open')}
+                        </button>
                         <button
                           type="button"
                           className="amc-btn accent"
@@ -621,6 +626,14 @@ export default function AdminManagedClaimsPage({ scope = 'mine' }: { scope?: 'mi
           </>
         )}
       </div>
+
+      {sheetClaimId && (
+        <ClaimCreationSheet
+          claimId={sheetClaimId}
+          origin="detail"
+          onClose={(validated) => { setSheetClaimId(null); if (validated) void load(); }}
+        />
+      )}
 
       {assignModalOpen && (
         <div

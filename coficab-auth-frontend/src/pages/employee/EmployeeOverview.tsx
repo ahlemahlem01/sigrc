@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 interface Props {
   profile: any;
@@ -108,7 +109,7 @@ export default function EmployeeOverview({
               {profile?.name?.split(' ').map((n: string) => n[0]).join('') || initials(profile?.fullName || 'U')}
             </div>
             <div className="identity-info">
-              <h1 className="identity-name">{profile?.name || profile?.fullName || t('employeesAdmin.roleUser')}</h1>
+              <h1 className="identity-name">{pn(profile?.name || profile?.fullName) || t('employeesAdmin.roleUser')}</h1>
               <p className="identity-role">
                 {profile?.poste || profile?.role || t('employeeOverview.employee')} • {profile?.department || '—'} • {t('orgChart.team')} : <strong>{profile?.equipe || '—'}</strong>
               </p>

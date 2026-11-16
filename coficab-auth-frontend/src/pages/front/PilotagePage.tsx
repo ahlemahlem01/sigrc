@@ -8,6 +8,8 @@ import { departmentService } from '../../services/departmentService';
 import { getPilotage, type Pilotage, type PilotageItem } from '../../services/employeeWorkspaceService';
 import './FrontWorkspaceHome.styles.css';
 import '../../components/employee/WorkspaceExtras.styles.css';
+import { formatDecimal } from '../../utils/formatNumber';
+import { defectLabel } from '../../utils/defectLabel';
 
 const CLAIM_PATH = (id: string) => `/pages/front/quality-analyses/8d/${id}`;
 const PLAN_PATH = (id: string) => `/pages/front/action-plans/${id}`;
@@ -249,10 +251,10 @@ export default function PilotagePage() {
                         <div className="fwh-row" role="button" tabIndex={0} onClick={() => navigate('/alerts')}
                           onKeyDown={(e) => { if (e.key === 'Enter') navigate('/alerts'); }}>
                           <span className="fwh-row-main">
-                            <span className="fwh-todo-title">{a.defectType}</span>
+                            <span className="fwh-todo-title">{defectLabel(a.defectType)}</span>
                             <span className="fwh-todo-meta">{a.productionLine} · {new Date(a.detectedAt).toLocaleDateString(locale, { day: '2-digit', month: 'short' })}</span>
                           </span>
-                          <span className={`fwh-pill ${a.zScore >= 3 ? 'bad' : 'run'}`}>z = {a.zScore.toFixed(1)}</span>
+                          <span className={`fwh-pill ${a.zScore >= 3 ? 'bad' : 'run'}`}>z = {formatDecimal(a.zScore)}</span>
                         </div>
                       </li>
                     ))}

@@ -14,6 +14,7 @@ import { ListSkeleton } from '../../components/TableSkeleton';
 import { downloadTable, readPrefs } from '../../utils/dataExchange';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 type RawAssignmentExtended = RawAssignment & {
   status?: string;
@@ -319,7 +320,7 @@ const CellDetailModal = ({
         <div className="ao-detail-head">
           <div>
             <div className="ao-detail-title">{assignment.planTitle}</div>
-            <div className="ao-detail-sub">{i18n.t('claimDetail.assignedTo')} {assignment.userName}</div>
+            <div className="ao-detail-sub">{i18n.t('claimDetail.assignedTo')} {pn(assignment.userName)}</div>
           </div>
           <button className="ao-detail-close" onClick={onClose} aria-label={i18n.t('fiveWhy.close')}><i className="ti ti-x" /></button>
         </div>

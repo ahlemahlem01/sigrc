@@ -6,6 +6,8 @@ public class SuggestCapaRequestDto
     public string RootCauseOccurrence { get; set; } = string.Empty;
     public string RootCauseDetection { get; set; } = string.Empty;
     public string? ClaimTitle { get; set; }
+    /// <summary>1 = PA (improvement), 2 = PAC (corrective), 3 = PAP (preventive). Set by the server from the person's choice, which is required.</summary>
+    public int? PlanType { get; set; }
 }
 
 public class SuggestedCapaActionDto
@@ -35,5 +37,7 @@ public class CreateCapaFromFiveWhyRequestDto
     public Guid? DepartmentId { get; set; }
     public string? AssignedToId { get; set; }
     public DateTime? Deadline { get; set; }
+    /// <summary>1 = PA (improvement), 2 = PAC (corrective), 3 = PAP (preventive). Absent or unknown = PAC. An internal claim always gets a PAC.</summary>
+    public int? PlanType { get; set; }
     public List<SuggestedCapaActionDto> Actions { get; set; } = new();
 }

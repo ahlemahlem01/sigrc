@@ -12,6 +12,7 @@ import ActionFollowUpPage from '../front/ActionFollowUpPage';
 import CapaFlowOverview from './CapaFlowOverview';
 import CapaAssigneeGlance from './CapaAssigneeGlance';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
+import { formatDecimal } from '../../utils/formatNumber';
 
 const TABS = [
   { id: 'todo', labelKey: 'tracking.todo' },
@@ -118,7 +119,7 @@ export default function CapaTrackingPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   <Figure label={t('tracking.latePlans')} value={figures.latePlans} tone={figures.latePlans > 0 ? BAD : GOOD} hint={t('tracking.latePlansHint', { open: figures.openPlans })} active={view === 'plans' && focus === 'late'} onClick={() => pick('plans', 'late')} />
                   <Figure label={t('tracking.noActionPlans')} value={figures.plansWithoutActions} tone={NAVY} hint={t('tracking.noActionPlansHint')} active={view === 'plans' && focus === 'noActions'} onClick={() => pick('plans', 'noActions')} />
-                  <Figure label={t('indicators.efficacy')} value={figures.efficacyRate.current == null ? '—' : `${figures.efficacyRate.current.toFixed(1)} %`}
+                  <Figure label={t('indicators.efficacy')} value={figures.efficacyRate.current == null ? '—' : `${formatDecimal(figures.efficacyRate.current)} %`}
                     tone={figures.efficacyRate.current == null ? '#94a3b8' : figures.efficacyRate.current >= 85 ? GOOD : figures.efficacyRate.current >= 70 ? ORANGE : BAD}
                     hint={figures.efficacyEvaluated === 0 ? t('indicators.efficacyNone') : t('indicators.efficacySub', { effective: figures.efficacyEffective, evaluated: figures.efficacyEvaluated })}
                     active={false} onClick={() => undefined} />
@@ -130,7 +131,7 @@ export default function CapaTrackingPage() {
                   <Figure label={t('tracking.lateActions')} value={figures.lateActions} tone={figures.lateActions > 0 ? BAD : GOOD} hint={t('tracking.lateActionsHint')} active={view === 'actions' && focus === 'belated'} onClick={() => pick('actions', 'belated')} />
                   <Figure label={t('tracking.toValidate')} value={figures.actionsToValidate} tone={figures.actionsToValidate > 0 ? ORANGE : GOOD} hint={t('tracking.toValidateHint')} active={view === 'actions' && focus === 'realized'} onClick={() => pick('actions', 'realized')} />
                   <Figure label={t('indicators.criticalActions')} value={figures.criticalOpenActions} tone={figures.criticalOpenActions > 0 ? BAD : GOOD}
-                    hint={figures.openActions === 0 ? t('indicators.criticalNone') : t('indicators.criticalSub', { pct: ((100 * figures.criticalOpenActions) / figures.openActions).toFixed(1), late: figures.criticalLateActions })}
+                    hint={figures.openActions === 0 ? t('indicators.criticalNone') : t('indicators.criticalSub', { pct: formatDecimal((100 * figures.criticalOpenActions) / figures.openActions), late: figures.criticalLateActions })}
                     active={false} onClick={() => undefined} />
                 </div>
               </div>

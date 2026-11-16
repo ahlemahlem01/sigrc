@@ -1,5 +1,6 @@
 using Coficab.ActionPlan.Application.Interfaces;
 using Coficab.ActionPlan.Core.Enums;
+using Coficab.ActionPlan.Application.ReferenceLists;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -102,6 +103,10 @@ public class ClaimsHistoryRowDto
 
     public Guid? IshikawaId { get; set; }
     public string? IshikawaStatus { get; set; }
+    /// <summary>Causes listed in the Ishikawa (the status of the analysis alone stays empty while someone fills it in).</summary>
+    public int IshikawaCauseCount { get; set; }
+    /// <summary>Causes rated for the prospective Pareto (severity, occurrence and detection all given).</summary>
+    public int ParetoScoredCount { get; set; }
 
     public Guid? CapaId { get; set; }
     public string? CapaTitle { get; set; }
@@ -216,7 +221,11 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 || c.StatusCode.ToUpper() == "VALIDATED" || c.StatusCode.ToUpper() == "ARCHIVED");
 
         if (!string.IsNullOrWhiteSpace(request.ClientId))
-            claims = claims.Where(c => c.ClientId == request.ClientId);
+        {
+            // every spelling of the chosen customer ("Leoni", "LEONI", "Léoni")
+            var clientSpellings = await TextSimilarity.VariantsAsync(facetSource.Select(c => (string?)c.ClientId), request.ClientId, cancellationToken);
+            claims = claims.Where(c => clientSpellings.Contains(c.ClientId));
+        }
         if (!string.IsNullOrWhiteSpace(request.DefectType))
             claims = claims.Where(c => c.DefectType == request.DefectType);
         if (!string.IsNullOrWhiteSpace(request.Severity))
@@ -231,7 +240,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
         if (string.Equals(request.Internal, "YES", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => c.IsInternal);
         else if (string.Equals(request.Internal, "NO", StringComparison.OrdinalIgnoreCase)) claims = claims.Where(c => !c.IsInternal);
         if (!string.IsNullOrWhiteSpace(request.Shift))
-            claims = claims.Where(c => c.Shift == request.Shift);
+        {
+            var shiftSpellings = await TextSimilarity.VariantsAsync(facetSource.Select(c => c.Shift), request.Shift, cancellationToken);
+            claims = claims.Where(c => shiftSpellings.Contains(c.Shift!));
+        }
         if (!string.IsNullOrWhiteSpace(request.CreatedBy))
             claims = claims.Where(c => c.CreatedBy == request.CreatedBy);
 
@@ -440,6 +452,11 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                 .Select(i => new { i.Id, i.ClaimId, i.StatusCode })
                 .ToListAsync(cancellationToken);
 
+            var causeRows = await _context.IshikawaCauses.AsNoTracking()
+                .Where(c => !c.IsArchived && ids.Contains(c.ClaimId))
+                .Select(c => new { c.ClaimId, Scored = c.RiskSeverity != null && c.RiskOccurrence != null && c.RiskDetection != null })
+                .ToListAsync(cancellationToken);
+
             var capaRows = await capas
                 .Where(p => ids.Contains(p.ClaimId!.Value))
                 .Select(p => new { p.Id, p.ClaimId, p.Title, p.Status, p.Progress, p.CreatedAt })
@@ -484,6 +501,10 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
                     row.EightDValidatedAt = e8.ValidatedAt;
                     row.EightDClosedAt = e8.ClosedAt ?? (closedClaim || closedEightD ? e8.ValidatedAt : null);
                 }
+
+                var claimCauses = causeRows.Where(c => c.ClaimId == row.Id).ToList();
+                row.IshikawaCauseCount = claimCauses.Count;
+                row.ParetoScoredCount = claimCauses.Count(c => c.Scored);
 
                 var ish = ishRows.FirstOrDefault(i => i.ClaimId == row.Id);
                 if (ish != null)
@@ -569,6 +590,8 @@ public class GetClaimsHistoryQueryHandler : IRequestHandler<GetClaimsHistoryQuer
             row.ProductionLine = ClaimVisibility.PlaceName(departments, row.ProductionLine);
             row.DepartmentName = DepartmentOf(profiles, row.AssignedToId) ?? DepartmentOf(profiles, row.CreatedById);
         }
+        facets.Clients = TextSimilarity.Merged(facets.Clients);
+        facets.Shifts = TextSimilarity.Merged(facets.Shifts);
         facets.ProductionLines = facets.ProductionLines
             .Select(line => ClaimVisibility.PlaceName(departments, line) ?? line)
             .Distinct()

@@ -287,6 +287,60 @@ def health() -> dict[str, Any]:
     }
 
 
+# ── resolution-delay model (optional: the application falls back on its empirical percentiles) ──────────────────────
+import delay_logic
+
+DELAY_MODEL_PATH = ARTIFACTS_DIR / "delay_model.joblib"
+
+
+def _load_delay_bundle() -> dict[str, Any] | None:
+    try:
+        return joblib.load(DELAY_MODEL_PATH) if DELAY_MODEL_PATH.exists() else None
+    except Exception as exc:  # noqa: BLE001 — a broken artifact must never stop the service
+        print(f"[ml-service] WARNING: delay model not loaded: {exc}")
+        return None
+
+
+delay_bundle: dict[str, Any] | None = _load_delay_bundle()
+
+
+class DelayRequest(BaseModel):
+    DefectType: str | None = None
+    Severity: str | None = None
+    ClientId: str | None = None
+    ProductionLine: str | None = None
+    Shift: str | None = None
+    IsInternal: bool = False
+    ProducedQuantity: float | None = None
+    DefectiveQuantity: float | None = None
+    AssigneeId: str | None = None
+    Month: int | None = None
+
+
+@app.post("/estimate-delay")
+def estimate_delay(payload: DelayRequest) -> dict[str, Any]:
+    """P50 / P80 of the resolution delay. Only answers when the model passed its validation gate; otherwise available=false."""
+    if delay_bundle is None:
+        return {"available": False, "reason": "model_missing"}
+    report = delay_bundle.get("report", {})
+    if not report.get("validated"):
+        return {"available": False, "reason": "not_validated", "label": report.get("label", "Indicatif")}
+    p50, p80 = delay_logic.predict_one(delay_bundle, {
+        "defect": payload.DefectType, "severity": payload.Severity, "client": payload.ClientId, "line": payload.ProductionLine,
+        "shift": payload.Shift, "internal": payload.IsInternal, "produced": payload.ProducedQuantity, "defective": payload.DefectiveQuantity,
+        "assignee": payload.AssigneeId, "month": payload.Month,
+    })
+    return {"available": True, "method": "ml", "daysP50": p50, "daysP80": p80, "trainRows": report.get("finalTrainRows"), "label": report.get("label")}
+
+
+@app.get("/delay-model")
+def delay_model_report() -> dict[str, Any]:
+    """The validation report of the delay model (what was measured on unseen claims, and whether the gate was passed)."""
+    if delay_bundle is None:
+        return {"loaded": False}
+    return {"loaded": True, **delay_bundle.get("report", {})}
+
+
 @app.post("/recommend", response_model=RecommendResponse)
 def recommend(payload: RecommendRequest) -> RecommendResponse:
     if runtime.model is None or runtime.preprocessor is None:

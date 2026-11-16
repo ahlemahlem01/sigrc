@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import { loadCapaDataset, PlanRow, UiType } from './capaAnalytics';
 import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
+import { pn } from '../../utils/person';
 
 const PAGE_SIZE = 12;
 const btn =
@@ -201,7 +202,7 @@ export default function AdminCapaPlanReference() {
                       </td>
                       <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{p.process}</td>
                       <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                        {p.assignedToName || t('dashboard.unassigned')}
+                        {pn(p.assignedToName) || t('dashboard.unassigned')}
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap">
                         <div className="inline-flex gap-1.5">

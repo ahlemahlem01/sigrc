@@ -164,7 +164,7 @@ services:
         # These are the addresses the BROWSER uses, so they point at the published ports.
         REACT_APP_AUTH_API_URL: http://${PUBLIC_HOST:-localhost}:5119
         REACT_APP_ACTION_PLAN_API_URL: http://${PUBLIC_HOST:-localhost}:5129/api
-        REACT_APP_ML_API_URL: http://localhost:${ML_PORT:-8001}
+        REACT_APP_ML_API_URL: http://${PUBLIC_HOST:-localhost}:${ML_PORT:-8001}
     container_name: sigrc_frontend
     restart: unless-stopped
     ports:

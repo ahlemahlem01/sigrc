@@ -368,7 +368,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #ffffff;
           color: #334155;
           padding: 7px 14px;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 600;
           border: 1px solid #e2e8f0;
@@ -387,7 +387,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #0f2b5c;
           color: #ffffff;
           padding: 7px 14px;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 600;
           border: none;
@@ -395,7 +395,7 @@ export const DraftClaimsPage: React.FC = () => {
           transition: all 0.2s ease;
         }
         .pfe-btn-edit:hover {
-          background: #1e40af;
+          background: #1d4ed8;
           transform: translateY(-1px);
         }
 
@@ -407,7 +407,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #ffffff;
           color: #475569;
           padding: 7px 10px;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 600;
           border: 1px solid #e2e8f0;
@@ -426,7 +426,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #16a34a;
           color: #ffffff;
           padding: 7px 14px;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 700;
           border: none;
@@ -634,7 +634,7 @@ export const DraftClaimsPage: React.FC = () => {
         }
         .pfe-ref-pill {
           font-size: 10.5px;
-          font-family: 'JetBrains Mono', SFMono-Regular, monospace;
+          font-family: var(--font-mono);
           color: #475569;
           background: #e2e8f0;
           padding: 2px 6px;
@@ -785,7 +785,7 @@ export const DraftClaimsPage: React.FC = () => {
           display: inline-flex;
           align-items: center;
           gap: 4px;
-          color: #1e40af;
+          color: #1d4ed8;
           border-color: #bfdbfe;
           background: #eff6ff;
           font-weight: 600;
@@ -834,7 +834,7 @@ export const DraftClaimsPage: React.FC = () => {
           height: 30px;
           border-radius: 8px;
           background: #eff6ff;
-          color: #1e40af;
+          color: #1d4ed8;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -889,7 +889,7 @@ export const DraftClaimsPage: React.FC = () => {
           transition: all 0.15s ease;
         }
         .pfe-workflow-open:hover {
-          background: #1e40af;
+          background: #1d4ed8;
         }
         .pfe-workflow-card.done .pfe-workflow-open {
           background: #16a34a;
@@ -914,7 +914,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #ffffff;
           color: #334155;
           border: 1px solid #cbd5e1;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 700;
           cursor: pointer;
@@ -949,7 +949,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #16a34a;
           color: #ffffff;
           border: none;
-          border-radius: 7px;
+          border-radius: 8px;
           font-size: 12.5px;
           font-weight: 700;
           cursor: pointer;
@@ -1057,7 +1057,7 @@ export const DraftClaimsPage: React.FC = () => {
           padding: 8px 14px;
           background: #f1f5f9;
           border: 1px solid #e2e8f0;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 12.5px;
           font-weight: 600;
@@ -1068,7 +1068,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #0f2b5c;
           color: #ffffff;
           border: none;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 12.5px;
           font-weight: 700;
@@ -1082,7 +1082,7 @@ export const DraftClaimsPage: React.FC = () => {
           background: #16a34a;
           color: #ffffff;
           border: none;
-          border-radius: 6px;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 12.5px;
           font-weight: 700;
@@ -1254,7 +1254,7 @@ export const DraftClaimsPage: React.FC = () => {
               <div className="pfe-pane-header">
                 <div>
                   <h2>{selectedClaim.title || t('drafts.untitled')}</h2>
-                  <span className="pfe-ref-pill">REF-ID: {selectedClaim.id}</span>
+                  {selectedClaim.reference && <span className="pfe-ref-pill">{selectedClaim.reference}</span>}
                 </div>
                 <div className="pfe-header-actions">
                   {isSelectedClaimReady ? (

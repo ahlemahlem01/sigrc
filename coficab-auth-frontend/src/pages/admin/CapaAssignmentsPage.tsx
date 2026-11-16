@@ -9,6 +9,7 @@ import { ListSkeleton } from '../../components/TableSkeleton';
 import { CapaErrorBanner, CapaKpiStrip, CapaPageHeader, capaBtnPrimary, capaBtnSecondary } from '../../components/capa/CapaAdminUi';
 import { bulkAssignPlans, getUsersForAssignment } from '../../services/actionPlanService';
 import { loadCapaDataset, type PlanRow } from './capaAnalytics';
+import { pn } from '../../utils/person';
 
 const NAVY = '#000168';
 const BAD = '#dc2626';
@@ -210,7 +211,7 @@ export default function CapaAssignmentsPage() {
                           {p.process && <div className="text-[11px] text-slate-500">{p.process}</div>}
                         </td>
                         <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{t(`planPage.type.${TYPE_KEY[p.type] ?? p.type}`, { defaultValue: p.type })}</td>
-                        <td className="px-4 py-3 text-slate-700">{p.assignedToName || <span className="text-slate-400">{t('capaAssignments.nobody')}</span>}</td>
+                        <td className="px-4 py-3 text-slate-700">{pn(p.assignedToName) || <span className="text-slate-400">{t('capaAssignments.nobody')}</span>}</td>
                         <td className="px-4 py-3 text-right tabular-nums whitespace-nowrap" style={{ color: late ? BAD : undefined }}>{fmtDate(p.deadline)}</td>
                         <td className="px-4 py-3 text-right tabular-nums">{Math.round(p.progress)} %</td>
                         <td className="px-4 py-3 text-right whitespace-nowrap">

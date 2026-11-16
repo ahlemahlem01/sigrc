@@ -1,8 +1,10 @@
-﻿using Coficab.Auth.API.Models;
+using Coficab.Auth.API.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using OpenIddict.Validation.AspNetCore;
+using Coficab.Auth.API.Data;
+using Coficab.Auth.API.Services;
 
 namespace Coficab.Auth.API.Controllers;
 
@@ -13,13 +15,16 @@ public class UserController : ControllerBase
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly AppDbContext _db;
 
     public UserController(
         UserManager<ApplicationUser> userManager,
-        RoleManager<IdentityRole> roleManager)
+        RoleManager<IdentityRole> roleManager,
+        AppDbContext db)
     {
         _userManager = userManager;
         _roleManager = roleManager;
+        _db = db;
     }
 
     // GET api/users — admin only
@@ -120,6 +125,17 @@ public class UserController : ControllerBase
         var user = await _userManager.FindByIdAsync(id);
         if (user == null)
             return NotFound(new { message = "User not found" });
+
+        // the same protections as the super administrator route: not oneself, not a super administrator, not a person who appears in the history
+        var roles = await _userManager.GetRolesAsync(user);
+        var superadmins = roles.Contains("superadmin") ? (await _userManager.GetUsersInRoleAsync("superadmin")).Count : 0;
+        var history = await AccountDeletionRules.HistoryCountAsync(_db, user.Id, HttpContext.RequestAborted);
+        var caller = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? string.Empty;
+        var reason = AccountDeletionRules.Check(user.Id, caller, roles.ToList(), superadmins, callerIsSuperadmin: User.IsInRole("superadmin"), history);
+        if (reason == AccountDeletionRules.HasHistory)
+            return Conflict(new { code = reason, references = history, message = AccountDeletionRules.Message(reason, history) });
+        if (reason != null)
+            return BadRequest(new { message = AccountDeletionRules.Message(reason, history) });
 
         var result = await _userManager.DeleteAsync(user);
         if (!result.Succeeded)

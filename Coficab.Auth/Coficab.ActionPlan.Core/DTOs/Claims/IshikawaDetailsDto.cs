@@ -5,6 +5,10 @@ public class IshikawaCauseDto
     public Guid Id { get; set; }
     public string Text { get; set; } = string.Empty;
     public bool IsRootCause { get; set; }
+    /// <summary>The analyst's estimate for the prospective Pareto (1 to 10 each); null until the cause is scored.</summary>
+    public int? RiskSeverity { get; set; }
+    public int? RiskOccurrence { get; set; }
+    public int? RiskDetection { get; set; }
 }
 
 public class IshikawaCategoryDto

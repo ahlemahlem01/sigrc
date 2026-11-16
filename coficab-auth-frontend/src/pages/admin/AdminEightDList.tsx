@@ -15,6 +15,7 @@ import { ClaimsHistoryRow, ClaimsHistoryStats } from '../../types/qualityAnalysi
 import { getEightDStatusMeta } from '../../utils/Claimutils';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import { pn } from '../../utils/person';
 
 const PAGE_SIZE = 12;
 const btnPrimary =
@@ -24,7 +25,7 @@ const btnSecondary =
 
 function champion(row: ClaimsHistoryRow): string {
   const name = row.championName || '';
-  if (name && !/^[0-9a-f-]{8,}$/i.test(name)) return name;
+  if (name && !/^[0-9a-f-]{8,}$/i.test(name)) return pn(name);
   return '—';
 }
 

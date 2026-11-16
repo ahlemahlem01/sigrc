@@ -509,7 +509,7 @@ const EightDPage: React.FC = () => {
         .e8d-wrap { max-width: 1120px; margin: 0 auto; }
         .e8d-wrap.wide { max-width: min(1320px, 100%); }
         .e8d-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; margin-bottom: 14px; }
-        .e8d-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d6dbe6; background: #fff; font-family: inherit; color: #0f172a; }
+        .e8d-btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 12px; font-size: 13px; font-weight: 650; cursor: pointer; border: 1px solid #d6dbe6; background: #fff; font-family: inherit; color: #0f172a; }
         .e8d-btn:disabled { opacity: .55; cursor: not-allowed; }
         .e8d-btn.primary { background: ${NAVY}; color: #fff; border-color: ${NAVY}; }
         .e8d-btn.ok { background: #047857; color: #fff; border-color: #047857; }

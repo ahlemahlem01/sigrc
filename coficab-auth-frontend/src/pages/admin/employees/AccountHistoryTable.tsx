@@ -36,7 +36,7 @@ const resolveDisplayName = (value?: string) => {
 const EVENT_STYLES: Record<AccountEventType, { bg: string; color: string; icon: string; desc: string }> = {
   creation:     { bg: '#f0fdf4', color: '#15803d', icon: 'ti-user-plus',  desc: 'accountHistory.descCreation' },
   assignment:   { bg: '#dbeafe', color: '#1d4ed8', icon: 'ti-user-check', desc: 'accountHistory.descAssignment' },
-  modification: { bg: '#eff6ff', color: '#1e40af', icon: 'ti-pencil',     desc: 'accountHistory.descModification' },
+  modification: { bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-pencil',     desc: 'accountHistory.descModification' },
   lock:         { bg: '#fff7ed', color: '#c2410c', icon: 'ti-lock',       desc: 'accountHistory.descLock' },
   unlock:       { bg: '#f0fdf4', color: '#15803d', icon: 'ti-lock-open',  desc: 'accountHistory.descUnlock' },
   role_change:  { bg: '#f5f3ff', color: '#6d28d9', icon: 'ti-shield',     desc: 'accountHistory.descRoleChange' },

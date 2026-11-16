@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { pn } from '../../utils/person';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -31,7 +32,7 @@ const Sidebar = () => {
 
       {/* User info */}
       <div className="p-4 border-b border-gray-700">
-        <p className="text-sm font-medium">{user?.name || user?.name}</p>
+        <p className="text-sm font-medium">{pn(user?.name)}</p>
         <p className="text-xs text-gray-400 capitalize">{user?.department || 'No department'}</p>
         <p className="text-xs text-gray-500 mt-1">
           {hasRole('admin') || hasRole('superadmin') ? '👑 Admin' : '👤 User'}

@@ -35,7 +35,10 @@ public class GetIshikawaByClaimIdQueryHandler : IRequestHandler<GetIshikawaByCla
                 {
                     Id = c.Id,
                     Text = c.CauseDescription,
-                    IsRootCause = c.IsRootCause
+                    IsRootCause = c.IsRootCause,
+                    RiskSeverity = c.RiskSeverity,
+                    RiskOccurrence = c.RiskOccurrence,
+                    RiskDetection = c.RiskDetection,
                 }).ToList()
             })
             .ToList();

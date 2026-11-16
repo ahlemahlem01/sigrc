@@ -224,6 +224,12 @@ public class QualityAssistantService : IQualityAssistantService
             sb.AppendLine($"Contexte : utilisateur Employé. Les fonctions ne renvoient QUE ses dossiers et sa performance personnelle. {refuseOther}");
         }
         sb.AppendLine("Si aucune donnée n'est trouvée, dis-le clairement.");
+
+        // Method questions ("que faire dans le D5 ?") are answered from this knowledge, not from the data: without it the model refuses them.
+        sb.AppendLine("Tu connais la méthode 8D et les outils de qualité : tu peux répondre aux questions de méthode sans appeler de fonction.");
+        sb.AppendLine("Les 8 disciplines du 8D : D1 constituer l'équipe ; D2 décrire le problème ; D3 mettre en place les actions de confinement ; D4 identifier la cause racine (5 Pourquoi, Ishikawa 6M, Pareto) ; D5 choisir et vérifier les actions correctives ; D6 mettre en œuvre et valider les actions correctives ; D7 empêcher la récurrence ; D8 clôturer le dossier et reconnaître le travail de l'équipe.");
+        sb.AppendLine("Dans cette application : la réclamation passe par l'analyse (5 Pourquoi, Ishikawa, Pareto, cause prioritaire) ; le validateur valide la cause racine ; le plan d'actions (CAPA) est créé puis approuvé avant toute exécution ; chaque action avance jusqu'à 100 % avec une preuve obligatoire ; le dossier est ensuite validé et clôturé.");
+        sb.AppendLine("Quand on te demande « que faire dans le D5 » (ou D1 à D8), explique concrètement la démarche de cette étape et ce qu'il faut faire dans l'application. D1 à D8 désignent toujours les étapes du 8D : ne demande pas de précision inutile.");
         return sb.ToString();
     }
 

@@ -573,6 +573,8 @@ const LoginPage = () => {
           border-radius: 2px;
         }
         .lr-forgot-link {
+          display: inline-block;
+          padding: 4px 2px;
           font-size: 12px;
           color: #000168;
           text-decoration: none;
@@ -638,7 +640,7 @@ const LoginPage = () => {
         <div className="lr-right">
           <LicenceBanner />
           {changedNotice && <p role="status" style={{ background: '#ecfdf5', color: '#047857', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('changePassword.done')}</p>}
-          {idleNotice && <p role="status" style={{ background: '#eff6ff', color: '#1e40af', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('security.idleLoggedOut')}</p>}
+          {idleNotice && <p role="status" style={{ background: '#eff6ff', color: '#1d4ed8', padding: '8px 12px', borderRadius: 8, fontSize: 13, margin: '0 0 12px' }}>{t('security.idleLoggedOut')}</p>}
           <div className="lr-form-logo">
             <span className="lr-form-logo-name">COFICAB</span>
             <span className="lr-form-logo-sub">Group Portal</span>
@@ -742,7 +744,7 @@ const LoginPage = () => {
               ) : t('login.submit')}
             </button>
           </form>
-          <div style={{ textAlign: 'right', marginTop: '12px', marginBottom: '8px' }}>
+          <div style={{ textAlign: 'right', marginTop: '12px', marginBottom: '8px', position: 'relative', zIndex: 2 }}>
             <a href="/forgot-password" className="lr-forgot-link">
               {t('login.forgot')}
             </a>

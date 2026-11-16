@@ -9,6 +9,7 @@ import {
 } from '../../services/actionPlanService';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 // ── Inline Icons ──
 const IconArrowLeft = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>;
@@ -202,7 +203,7 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
         .aps-back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--white); color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; font-family: var(--font-body); margin-bottom: 4px; }
         .aps-back:hover { color: var(--navy); border-color: #93c5fd; background: var(--navy-light); }
         .aps-title { font-family: var(--font-head); font-size: 22px; font-weight: 700; color: var(--navy); margin: 0; line-height: 1.2; }
-        .aps-id { font-size: 11px; color: var(--subtle); font-family: monospace; }
+        .aps-id { font-size: 11px; color: var(--subtle); font-family: var(--font-mono); }
         .aps-status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: -0.01em; text-transform: none; width: fit-content; }
         .aps-status-pill::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
 
@@ -454,7 +455,7 @@ const currentUserId = (user as any)?.sub || (user as any)?.id;
                 </div>
                 <div className="aps-info-row">
                   <span>{t('planView.createdBy')}</span>
-                  <span>{plan.createdBy || '—'}</span>
+                  <span>{pn(plan.createdBy) || '—'}</span>
                 </div>
                 <div className="aps-info-row">
                   <span>{t('planView.creationDate')}</span>

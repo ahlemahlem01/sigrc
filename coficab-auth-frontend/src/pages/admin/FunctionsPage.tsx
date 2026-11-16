@@ -3,6 +3,8 @@ import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useAuth } from '../../context/AuthContext';
+import { pn } from '../../utils/person';
+import FilterSelect from '../../components/FilterSelect';
 
 type Fn = {
   id: string; code: string; description: string; hierarchicalLink: string | null; functionalLink: string | null;
@@ -148,8 +150,8 @@ export default function FunctionsPage() {
     <div style={{ padding: 24, maxWidth: 1200 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
         <div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#000168', margin: '0 0 4px' }}>{t('functions.title')}</h1>
-          <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 18px', maxWidth: 640 }}>{t('functions.subtitle')}</p>
+          <h1 style={{ fontSize: 24, fontWeight: 800, color: '#000168', margin: '0 0 6px' }}>{t('functions.title')}</h1>
+          <p style={{ color: '#64748b', fontSize: 13.5, lineHeight: 1.55, margin: '0 0 20px', maxWidth: 680 }}>{t('functions.subtitle')}</p>
         </div>
         {!form && <button type="button" style={btn} onClick={() => setForm(emptyForm())}>{t('functions.add')}</button>}
       </div>
@@ -199,47 +201,53 @@ export default function FunctionsPage() {
 
       <section style={card}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-          <label style={{ fontSize: 13 }}>{t('functions.department')}{' '}
-            <select style={input} value={deptFilter} onChange={(e) => setDeptFilter(e.target.value)}>
-              <option value="">{t('functions.allDepartments')}</option>
-              {departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
-            </select>
-          </label>
-          <span style={{ fontSize: 12, color: '#64748b' }}>{t('functions.count', { count: functions.length })}</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: '#334155' }}>{t('functions.department')}</span>
+          <div style={{ width: 240 }}>
+            <FilterSelect value={deptFilter} onChange={setDeptFilter} allLabel={t('functions.allDepartments')} options={departments.map((d) => ({ value: d.id, label: d.name }))} />
+          </div>
+          <span className="fn-count">{t('functions.count', { count: functions.length })}</span>
         </div>
 
         {functions.length === 0 ? (
           <p style={{ fontSize: 13, color: '#64748b' }}>{t('functions.empty')}</p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
+            <table className="fn-table">
               <thead>
-                <tr style={{ textAlign: 'left', color: '#64748b' }}>
-                  <th style={{ padding: '6px 4px' }}>{t('functions.code')}</th><th>{t('functions.description')}</th><th>{t('functions.department')}</th>
+                <tr>
+                  <th>{t('functions.code')}</th><th>{t('functions.description')}</th><th>{t('functions.department')}</th>
                   <th>{t('functions.hierarchical')}</th><th>{t('functions.functional')}</th><th>{t('functions.rights')}</th><th>{t('functions.jobDescription')}</th><th>{t('functions.holders')}</th><th />
                 </tr>
               </thead>
               <tbody>
                 {functions.map((f) => (
                   <Fragment key={f.id}>
-                    <tr style={{ borderTop: '1px solid #e2e8f0', verticalAlign: 'top' }}>
-                      <td style={{ padding: '8px 4px', fontWeight: 700 }}>{f.code}</td>
-                      <td>{f.description}</td>
-                      <td>{f.departmentName}</td>
-                      <td>{f.hierarchicalLink || '—'}</td>
-                      <td>{f.functionalLink || '—'}</td>
-                      <td style={{ maxWidth: 200 }}>{f.permissions.length ? f.permissions.map(permLabel).join(' · ') : '—'}</td>
+                    <tr className="fn-row">
+                      <td><span className="fn-code">{f.code}</span></td>
+                      <td className="fn-desc">{f.description}</td>
+                      <td><span className="fn-dept">{f.departmentName}</span></td>
+                      <td>{f.hierarchicalLink ? <span className="fn-link">{f.hierarchicalLink}</span> : <span className="fn-none">—</span>}</td>
+                      <td>{f.functionalLink ? <span className="fn-link">{f.functionalLink}</span> : <span className="fn-none">—</span>}</td>
                       <td>
-                        {f.hasJobDescription && <button type="button" style={{ ...small, marginRight: 6 }} onClick={() => void download(f)} title={f.jobDescriptionFileName ?? ''}>{t('functions.download')}</button>}
-                        <label style={{ ...small, display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
-                          {f.hasJobDescription ? t('functions.replace') : t('functions.upload')}
-                          <input type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }} onChange={(e) => { void upload(f.id, e.target.files?.[0]); e.target.value = ''; }} />
-                        </label>
+                        {f.permissions.length
+                          ? <div className="fn-rights">{f.permissions.map((c) => <span key={c} className="fn-right">{permLabel(c)}</span>)}</div>
+                          : <span className="fn-none">—</span>}
                       </td>
-                      <td><button type="button" style={small} onClick={() => void toggleHolders(f.id)}>{f.holders} · {openId === f.id ? t('functions.close') : t('functions.manage')}</button></td>
-                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
-                        <button type="button" style={{ ...small, marginRight: 6 }} onClick={() => setForm({ id: f.id, code: f.code, description: f.description, departmentId: f.departmentId, hierarchicalLink: f.hierarchicalLink ?? '', functionalLink: f.functionalLink ?? '', permissions: f.permissions })}>{t('common.edit')}</button>
-                        <button type="button" style={small} onClick={() => void archive(f.id)}>{t('functions.archive')}</button>
+                      <td>
+                        <div className="fn-actions fn-start">
+                          {f.hasJobDescription && <button type="button" style={small} className="fn-btn" onClick={() => void download(f)} title={f.jobDescriptionFileName ?? ''}>{t('functions.download')}</button>}
+                          <label style={small} className="fn-btn fn-file">
+                            {f.hasJobDescription ? t('functions.replace') : t('functions.upload')}
+                            <input type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }} onChange={(e) => { void upload(f.id, e.target.files?.[0]); e.target.value = ''; }} />
+                          </label>
+                        </div>
+                      </td>
+                      <td><button type="button" style={small} className="fn-btn" onClick={() => void toggleHolders(f.id)}>{f.holders} · {openId === f.id ? t('functions.close') : t('functions.manage')}</button></td>
+                      <td>
+                        <div className="fn-actions">
+                        <button type="button" style={small} className="fn-btn" onClick={() => setForm({ id: f.id, code: f.code, description: f.description, departmentId: f.departmentId, hierarchicalLink: f.hierarchicalLink ?? '', functionalLink: f.functionalLink ?? '', permissions: f.permissions })}>{t('common.edit')}</button>
+                        <button type="button" style={small} className="fn-btn" onClick={() => void archive(f.id)}>{t('functions.archive')}</button>
+                        </div>
                       </td>
                     </tr>
                     {openId === f.id && (
@@ -248,7 +256,7 @@ export default function FunctionsPage() {
                           {holders.length === 0 && <p style={{ margin: '0 0 8px', fontSize: 13, color: '#64748b' }}>{t('functions.noHolder')}</p>}
                           {holders.map((h) => (
                             <div key={h.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '4px 0', flexWrap: 'wrap' }}>
-                              <strong style={{ minWidth: 180 }}>{h.userName}</strong>
+                              <strong style={{ minWidth: 180 }}>{pn(h.userName)}</strong>
                               <select aria-label={t('functions.status')} style={input} value={h.status} onChange={(e) => void setStatus(h, e.target.value)}>
                                 {STATUSES.map((s) => <option key={s} value={s}>{t(`functions.statuses.${s}`)}</option>)}
                               </select>
@@ -275,6 +283,27 @@ export default function FunctionsPage() {
           </div>
         )}
       </section>
+      <style>{`
+        .fn-count { font-size: 12px; font-weight: 600; color: #475569; background: #f1f5f9; border-radius: 999px; padding: 3px 10px; }
+        .fn-table { width: 100%; font-size: 13px; border-collapse: separate; border-spacing: 0; }
+        .fn-table th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #64748b; padding: 10px 12px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .fn-table th:first-child { border-top-left-radius: 10px; }
+        .fn-table th:last-child { border-top-right-radius: 10px; }
+        .fn-table td { padding: 14px 12px; vertical-align: middle; border-bottom: 1px solid #eef2f7; }
+        .fn-row:hover td { background: #fafbff; }
+        .fn-code { display: inline-block; font-weight: 800; font-size: 12px; color: #000168; background: #eef0ff; border-radius: 6px; padding: 4px 8px; white-space: nowrap; }
+        .fn-desc { font-weight: 600; color: #1e293b; min-width: 130px; }
+        .fn-dept { display: inline-block; font-size: 12px; font-weight: 600; color: #0f766e; background: #ecfdf5; border-radius: 999px; padding: 3px 10px; white-space: nowrap; }
+        .fn-link { display: inline-block; font-size: 12px; font-weight: 600; color: #475569; border: 1px solid #e2e8f0; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+        .fn-none { color: #cbd5e1; }
+        .fn-rights { display: flex; flex-wrap: wrap; gap: 4px; min-width: 190px; max-width: 280px; }
+        .fn-right { font-size: 11.5px; color: #334155; background: #f1f5f9; border-radius: 6px; padding: 2px 8px; line-height: 1.5; }
+        .fn-actions { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: nowrap; }
+        .fn-start { justify-content: flex-start; }
+        .fn-btn { white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; height: 30px; box-sizing: border-box; transition: background .15s, border-color .15s; }
+        .fn-btn:hover { background: #f1f3fb; border-color: #000168; }
+        .fn-file { cursor: pointer; }
+      `}</style>
     </div>
   );
 }

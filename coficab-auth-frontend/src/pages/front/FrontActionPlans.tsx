@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { useReferenceLists } from '../../hooks/useReferenceLists';
 import { DEFAULT_DOMAIN, domainLabel, domainOf } from '../../utils/planDomain';
+import { pn } from '../../utils/person';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COFICAB = '#000168';
@@ -310,7 +311,7 @@ function userLabel(users: User[], id?: string | null): string {
   if (!id) return i18n.t('claimDetail.unassigned');
   const u = users.find((x) => String(x.id) === String(id)) as any;
   if (!u) return i18n.t('claimSidebar.assigned');
-  return u.fullName || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || i18n.t('claimSidebar.assigned');
+  return pn(u.fullName || u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim(), u.id) || u.email || i18n.t('claimSidebar.assigned');
 }
 
 // ── Plan row (liste simple) ───────────────────────────────────────────────────

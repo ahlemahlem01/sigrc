@@ -10,6 +10,7 @@ import { normaliseTimelineEvent } from '../../services/timelineService';
 import { ACTION_PLAN_API_URL as API_BASE } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
+import { pn } from '../../utils/person';
 
 interface Props {
   employee: UserDto;
@@ -457,7 +458,7 @@ export default function EmployeeAdminView({ employee, onBack }: Props) {
             </div>
             <div className="ad-mbody">
               <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
-                {t('employeesAdmin.colEmployee')} : <strong>{employee.fullName}</strong>
+                {t('employeesAdmin.colEmployee')} : <strong>{pn(employee.fullName)}</strong>
               </p>
               <div className="ad-fg">
                 <label className="ad-lbl">{t('employeeAdminView.badgeType')}</label>
