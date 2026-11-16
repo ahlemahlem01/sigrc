@@ -27,7 +27,7 @@ import type { Claim } from '../../types/qualityAnalysis';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { defectLabel } from '../../utils/defectLabel';
-import { pn } from '../../utils/person';
+import { allPeople, pn } from '../../utils/person';
 
 type ViewMode = 'month' | 'week' | 'day';
 type AudienceMode = 'all' | 'users' | 'departments';
@@ -455,6 +455,13 @@ export default function CapaCalendarPage() {
       addPeople(profiles);
     } catch {
       /* ignore */
+    }
+
+    // 4) The people directory, open to every signed-in user: the only source an employee can read (the three above are admin-only)
+    if (peopleById.size === 0) {
+      for (const p of allPeople()) {
+        if (!peopleById.has(p.userId)) peopleById.set(p.userId, { id: p.userId, fullName: p.name, roles: [] });
+      }
     }
 
     // Departments — load independently so a users failure does not wipe depts

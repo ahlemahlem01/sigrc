@@ -4732,6 +4732,7 @@
     "adminUpdated": "Amministratore aggiornato.",
     "adminDeleted": "Amministratore eliminato.",
     "deleteFailed": "Errore durante l’eliminazione.",
+    "deleteHasHistory": "Questo account compare in reclami, piani o azioni: bloccalo invece di eliminarlo, per mantenere lo storico.",
     "passwordReset": "Password reimpostata.",
     "resetFailed": "Errore durante la reimpostazione.",
     "unlocked": "Account sbloccato.",
@@ -6016,6 +6017,7 @@
     "evCompletion": "Completamento"
   },
   "historyImport": {
+    "demo": {"prefix": "Dati dimostrativi", "base": "set iniziale", "cable": "difetti dei cavi", "cableVaried": "difetti dei cavi vari", "catalog": "catalogo di 25 tipi"},
     "title": "Importazione dei dossier storici",
     "lead": "Aggiungi i reclami già chiusi e le loro cause da un file Excel o CSV. Alimentano il Pareto e le analisi. L’inserimento manuale resta sempre possibile.",
     "step1": "Scarica il modello",

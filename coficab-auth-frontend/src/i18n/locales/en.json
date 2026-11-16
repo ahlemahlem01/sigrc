@@ -4732,6 +4732,7 @@
     "adminUpdated": "Admin updated.",
     "adminDeleted": "Admin deleted.",
     "deleteFailed": "Error while deleting.",
+    "deleteHasHistory": "This account appears in claims, plans or actions: lock it instead of deleting it, to keep the history.",
     "passwordReset": "Password reset.",
     "resetFailed": "Error while resetting.",
     "unlocked": "Account unlocked.",
@@ -6016,6 +6017,7 @@
     "evCompletion": "Completion"
   },
   "historyImport": {
+    "demo": {"prefix": "Demonstration data", "base": "initial set", "cable": "cable defects", "cableVaried": "varied cable defects", "catalog": "catalogue of 25 types"},
     "title": "Import of historical dossiers",
     "lead": "Add already closed claims and their causes from an Excel or CSV file. They feed the Pareto and the analyses. Manual entry is always possible.",
     "step1": "Download the template",

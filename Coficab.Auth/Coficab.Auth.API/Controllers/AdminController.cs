@@ -662,16 +662,14 @@ public class AdminController : ControllerBase
         var user = await _userManager.FindByIdAsync(id);
         if (user == null) return NotFound();
 
-        if (user.Id == CurrentUserId)
-            return BadRequest("You cannot delete your own account.");
-
         var userRoles = await _userManager.GetRolesAsync(user);
-        if (userRoles.Contains("superadmin"))
-        {
-            var superadminCount = (await _userManager.GetUsersInRoleAsync("superadmin")).Count;
-            if (superadminCount <= 1)
-                return BadRequest("Cannot delete the last superadmin account.");
-        }
+        var superadminCount = userRoles.Contains("superadmin") ? (await _userManager.GetUsersInRoleAsync("superadmin")).Count : 0;
+        var history = await AccountDeletionRules.HistoryCountAsync(_db, user.Id, HttpContext.RequestAborted);
+        var reason = AccountDeletionRules.Check(user.Id, CurrentUserId ?? string.Empty, userRoles.ToList(), superadminCount, callerIsSuperadmin: true, history);
+        if (reason == AccountDeletionRules.HasHistory)
+            return Conflict(new { code = reason, references = history, message = AccountDeletionRules.Message(reason, history) });
+        if (reason != null)
+            return BadRequest(AccountDeletionRules.Message(reason, history));
 
         var email = user.Email!;
         await _userManager.DeleteAsync(user);

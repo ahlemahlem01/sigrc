@@ -235,8 +235,9 @@ export default function AdminDashboard() {
       await deleteUser(accessToken!, id);
       setFeedback(t('usersAdmin.adminDeleted'));
       loadData();
-    } catch {
-      setFeedback(t('usersAdmin.deleteFailed'));
+    } catch (e: any) {
+      // an account that appears in claims, plans or actions is locked, not deleted: the server says so with a 409
+      setFeedback(e?.response?.status === 409 ? t('usersAdmin.deleteHasHistory') : t('usersAdmin.deleteFailed'));
     }
   };
 

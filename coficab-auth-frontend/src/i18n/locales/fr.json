@@ -4732,6 +4732,7 @@
     "adminUpdated": "Admin mis à jour.",
     "adminDeleted": "Admin supprimé.",
     "deleteFailed": "Erreur lors de la suppression.",
+    "deleteHasHistory": "Ce compte apparaît dans des réclamations, des plans ou des actions : verrouillez-le au lieu de le supprimer, pour garder l'historique.",
     "passwordReset": "Mot de passe réinitialisé.",
     "resetFailed": "Erreur lors de la réinitialisation.",
     "unlocked": "Compte déverrouillé.",
@@ -6016,6 +6017,7 @@
     "evCompletion": "Complétion"
   },
   "historyImport": {
+    "demo": {"prefix": "Données de démonstration", "base": "jeu initial", "cable": "défauts câble", "cableVaried": "défauts câble variés", "catalog": "catalogue de 25 types"},
     "title": "Import des dossiers historiques",
     "lead": "Ajoutez les réclamations déjà clôturées et leurs causes à partir d’un fichier Excel ou CSV. Elles alimentent le Pareto et les analyses. La saisie manuelle reste toujours possible.",
     "step1": "Télécharger le modèle",

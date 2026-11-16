@@ -10,6 +10,7 @@ import {
   historyImportService,
 } from '../../services/historyImportService';
 import { defectLabel } from '../../utils/defectLabel';
+import { batchLabel } from '../../utils/batchLabel';
 
 const NAVY = '#000168';
 
@@ -250,7 +251,7 @@ const HistoryImportPage: React.FC = () => {
             <tbody>
               {batches.map((b) => (
                 <tr key={b.id}>
-                  <td>{b.fileName}</td>
+                  <td title={b.fileName}>{batchLabel(b.fileName, t)}</td>
                   <td>{fmt(b.createdAt)}</td>
                   <td>{b.claimCount}</td>
                   <td>{b.causeCount}</td>

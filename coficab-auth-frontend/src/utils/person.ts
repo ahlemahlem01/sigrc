@@ -31,6 +31,11 @@ export function setPeopleDirectory(list: PersonEntry[]) {
   }
 }
 
+/** Everyone in the directory (name and department code, no e-mail): what an employee can be offered as a colleague to pick. */
+export function allPeople(): PersonEntry[] {
+  return Array.from(byId.values());
+}
+
 /** The short code of a person's department (QA, PROD, LOG...), from the id when known, else from the name; '' when unknown. */
 export function departmentCodeOf(name?: string | null, userId?: string | null): string {
   if (userId) {

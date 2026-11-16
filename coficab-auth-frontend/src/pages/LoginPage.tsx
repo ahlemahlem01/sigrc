@@ -573,6 +573,8 @@ const LoginPage = () => {
           border-radius: 2px;
         }
         .lr-forgot-link {
+          display: inline-block;
+          padding: 4px 2px;
           font-size: 12px;
           color: #000168;
           text-decoration: none;
@@ -742,7 +744,7 @@ const LoginPage = () => {
               ) : t('login.submit')}
             </button>
           </form>
-          <div style={{ textAlign: 'right', marginTop: '12px', marginBottom: '8px' }}>
+          <div style={{ textAlign: 'right', marginTop: '12px', marginBottom: '8px', position: 'relative', zIndex: 2 }}>
             <a href="/forgot-password" className="lr-forgot-link">
               {t('login.forgot')}
             </a>
