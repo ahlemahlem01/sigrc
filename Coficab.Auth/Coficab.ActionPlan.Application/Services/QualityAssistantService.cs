@@ -442,10 +442,12 @@ public class QualityAssistantService : IQualityAssistantService
             }
             else if (st is "LATE" or "OVERDUE" or "EN_RETARD" or "RETARD")
             {
-                // late = open and past its deadline (same rule as the dashboard)
+                // late = open and past its deadline, as on the dashboard of the scope: the administrator's dashboard counts the claims
+                // waiting for validation, the employee's does not (the employee has nothing left to do on them)
                 var lateBefore = DateTime.UtcNow.Date;
+                var countPendingValidation = isAdmin;
                 query = query.Where(c => c.Deadline != null && c.Deadline.Value.Date < lateBefore
-                    && c.StatusCode.ToUpper() != "PENDING_VALIDATION"
+                    && (countPendingValidation || c.StatusCode.ToUpper() != "PENDING_VALIDATION")
                     && c.StatusCode.ToUpper() != "CLOTUREE" && c.StatusCode.ToUpper() != "CLOSED"
                     && c.StatusCode.ToUpper() != "CLOTURE" && c.StatusCode.ToUpper() != "VALIDATED"
                     && c.StatusCode.ToUpper() != "ARCHIVED" && c.StatusCode.ToUpper() != "DRAFT"
@@ -471,10 +473,12 @@ public class QualityAssistantService : IQualityAssistantService
         var statusAndDeadline = await scopedQuery.Select(c => new { c.StatusCode, c.Deadline }).ToListAsync(ct);
         var todayUtc = DateTime.UtcNow.Date;
         var openCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode));
-        var overdueCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode) && !string.Equals(c.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase) && ClaimDeadlines.IsLate(c.Deadline, todayUtc));
+        var overdueCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode) && (isAdmin || !string.Equals(c.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase)) && ClaimDeadlines.IsLate(c.Deadline, todayUtc));
         var noDeadlineCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode) && ClaimDeadlines.HasNoDeadline(c.Deadline));
-        var items = await query
-            .OrderByDescending(c => c.CreatedAt)
+        var lateList = !string.IsNullOrWhiteSpace(status) && status.Trim().ToUpperInvariant() is "LATE" or "OVERDUE" or "EN_RETARD" or "RETARD";
+        // a list of late claims starts with the most overdue ones; any other list with the most recent
+        var ordered = lateList ? query.OrderBy(c => c.Deadline) : query.OrderByDescending(c => c.CreatedAt);
+        var items = await ordered
             .Take(40)
             .Select(c => new
             {
@@ -907,14 +911,14 @@ public class QualityAssistantService : IQualityAssistantService
             sb.Append("Réclamations ouvertes : ").Append(o.GetProperty("openCount").GetInt32()).Append('\n');
             sb.Append("Réclamations en retard : ").Append(o.GetProperty("overdueCount").GetInt32()).Append('\n');
             sb.Append("Réclamations ouvertes sans échéance : ").Append(o.GetProperty("noDeadlineCount").GetInt32()).Append('\n');
-            foreach (var c in lateDoc.RootElement.GetProperty("claims").EnumerateArray())
+            foreach (var c in lateDoc.RootElement.GetProperty("claims").EnumerateArray().Take(5))
             {
                 var title = c.GetProperty("title").GetString();
                 var client = c.GetProperty("clientId").GetString();
                 var deadline = c.TryGetProperty("deadline", out var d) && d.ValueKind == JsonValueKind.String && DateTime.TryParse(d.GetString(), out var dt)
                     ? dt.ToString("dd/MM/yyyy")
                     : "non renseignée";
-                sb.Append("- En retard : ").Append(title).Append(" (client ").Append(client).Append(", échéance ").Append(deadline).Append(")\n");
+                sb.Append("- Parmi les plus en retard : ").Append(title).Append(" (client ").Append(client).Append(", échéance ").Append(deadline).Append(")\n");
             }
             return sb.ToString();
         }

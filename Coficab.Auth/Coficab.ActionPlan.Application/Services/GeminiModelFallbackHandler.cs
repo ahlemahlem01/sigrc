@@ -16,6 +16,14 @@ public sealed class GeminiModelFallbackHandler : DelegatingHandler
 {
     private static readonly Regex ModelInPath = new(@"/models/(?<model>[^/:]+):generateContent", RegexOptions.Compiled);
 
+    // A model that was just overloaded or silent is tried last for a few minutes, so the next requests (the assistant makes several per answer)
+    // do not each wait for it again. Shared by every request of the process.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> CoolingUntil = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly TimeSpan Cooldown = TimeSpan.FromMinutes(3);
+
+    /// <summary>Forgets which models were recently busy (tests start from a clean state).</summary>
+    public static void ResetCooldown() => CoolingUntil.Clear();
+
     private readonly IConfiguration _configuration;
     private readonly ILogger<GeminiModelFallbackHandler> _logger;
 
@@ -36,6 +44,10 @@ public sealed class GeminiModelFallbackHandler : DelegatingHandler
         var models = new List<string> { primary };
         foreach (var name in (_configuration["Gemini:FallbackModels"] ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
             if (!models.Contains(name, StringComparer.OrdinalIgnoreCase)) models.Add(name);
+
+        // models that failed a moment ago go to the end of the chain: still tried if nothing else answers
+        var now = DateTime.UtcNow;
+        models = models.OrderBy(m => CoolingUntil.TryGetValue(m, out var until) && until > now ? 1 : 0).ToList();
 
         // the body is read once so that it can be sent again to another model
         byte[]? body = request.Content is null ? null : await request.Content.ReadAsByteArrayAsync(cancellationToken);
@@ -64,7 +76,12 @@ public sealed class GeminiModelFallbackHandler : DelegatingHandler
                 last = new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);   // no answer in time: the model counts as overloaded
             }
 
-            if (last.StatusCode != HttpStatusCode.TooManyRequests && last.StatusCode != HttpStatusCode.ServiceUnavailable) return last;
+            if (last.StatusCode != HttpStatusCode.TooManyRequests && last.StatusCode != HttpStatusCode.ServiceUnavailable)
+            {
+                CoolingUntil.TryRemove(models[i], out _);
+                return last;
+            }
+            CoolingUntil[models[i]] = DateTime.UtcNow + Cooldown;
             if (clock.Elapsed > chainLimit) break;
 
             if (i < models.Count - 1)
