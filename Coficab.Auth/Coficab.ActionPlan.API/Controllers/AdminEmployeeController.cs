@@ -451,6 +451,9 @@ public class AdminEmployeeController : ControllerBase
                 allowed = DocumentStorage.AllowedExtensions.OrderBy(e => e),
             });
 
+        if (!await DocumentStorage.ContentMatchesExtensionAsync(file, HttpContext.RequestAborted))
+            return BadRequest(new { error = "Le contenu du fichier ne correspond pas à son format." });
+
         var storedPath = await DocumentStorage.SaveAsync(_environment, file, userId.Trim(), HttpContext.RequestAborted);
 
         var dto = new UploadDocumentDto

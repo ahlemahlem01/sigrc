@@ -122,6 +122,8 @@ public class PlanActionController : ControllerBase
         if (file.Length > MaxProofBytes) return BadRequest(new { error = "Fichier trop volumineux (10 Mo maximum)." });
         if (!Services.DocumentStorage.IsAllowed(file.FileName)) return BadRequest(new { error = "Format refusé : PDF, image, Office ou texte uniquement." });
 
+        if (!await Services.DocumentStorage.ContentMatchesExtensionAsync(file, ct)) return BadRequest(new { error = "Le contenu du fichier ne correspond pas à son format." });
+
         var stored = await Services.DocumentStorage.SaveAsync(env, file, userId, ct);
         var doc = new Core.Entities.ActionDocument
         {

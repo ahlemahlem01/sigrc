@@ -204,6 +204,9 @@ public class FunctionsController : ControllerBase
         if (!JobDescriptionExtensions.Contains(Path.GetExtension(file.FileName).ToLowerInvariant()))
             return BadRequest(new { message = "La description de poste doit être un fichier PDF ou Word.", allowed = JobDescriptionExtensions });
 
+        if (!await DocumentStorage.ContentMatchesExtensionAsync(file, ct))
+            return BadRequest(new { message = "Le contenu du fichier ne correspond pas à son format." });
+
         function.JobDescriptionFilePath = await DocumentStorage.SaveAsync(_env, file, CurrentUserId(), ct);
         function.JobDescriptionFileName = Path.GetFileName(file.FileName);
         function.UpdatedAt = DateTime.UtcNow;
