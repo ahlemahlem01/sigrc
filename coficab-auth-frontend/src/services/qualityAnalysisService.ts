@@ -216,7 +216,7 @@ export const qualityAnalysisService = {
   ): Promise<{ query: string; claims: Claim[]; actionPlans: Array<{ entityId: string; title?: string; score: number }> }> => {
     const response = await api.get('/semantic-search', {
       ...getAuthConfig(token),
-      params: { q: query, top },
+      params: { q: query, top } as Record<string, unknown>,
       timeout: 20000,
     });
     const data = response.data || {};
