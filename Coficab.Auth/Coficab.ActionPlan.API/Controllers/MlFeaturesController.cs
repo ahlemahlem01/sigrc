@@ -198,9 +198,12 @@ public class MlFeaturesController : ControllerBase
     private async Task<bool> CanReadDatasetsAsync(IAuthorizationService authorization, IConfiguration configuration)
         => (await authorization.AuthorizeAsync(User, "AdminOnly")).Succeeded || HasValidDatasetKey(configuration["MlFeatures:DatasetApiKey"]);
 
+    /// <summary>A key shorter than this is treated as not configured (only an administrator token then opens the datasets).</summary>
+    public const int MinDatasetKeyLength = 16;
+
     private bool HasValidDatasetKey(string? expected)
     {
-        if (string.IsNullOrEmpty(expected))
+        if (string.IsNullOrEmpty(expected) || expected.Length < MinDatasetKeyLength)
             return false;
 
         var provided = Request.Headers["X-Dataset-Key"].ToString();
