@@ -14,7 +14,7 @@ public sealed record ClaimEstimateContext(
 /// <summary>An answer of the machine-learning model. Only returned when the model passed its validation gate.</summary>
 public sealed record DelayModelEstimate(double DaysP50, double DaysP80, int? TrainRows);
 
-/// <summary>Asks the ML service for a delay. Never throws: null means "no usable answer", and the percentiles are kept.</summary>
+/// : null means "no usable answer", and the percentiles are kept.
 public interface IDelayModelClient
 {
     Task<DelayModelEstimate?> TryEstimateAsync(string? defectType, string? severity, ClaimEstimateContext context, CancellationToken cancellationToken = default);

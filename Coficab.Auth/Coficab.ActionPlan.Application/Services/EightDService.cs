@@ -204,7 +204,7 @@ public class EightDService : IEightDService
                     userId,
                     DateTime.UtcNow), ct);
             }
-            catch { /* domain events best-effort */ }
+            catch { /*  si la notification ou l’événement échoue, la validation reste valide*/ }
         }
 
         var recipient = dossier.SubmittedById ?? dossier.CreatedBy ?? claim.CreatedById;

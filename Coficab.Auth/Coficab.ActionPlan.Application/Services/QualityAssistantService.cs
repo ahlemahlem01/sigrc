@@ -64,7 +64,10 @@ public class QualityAssistantService : IQualityAssistantService
             throw new InvalidOperationException("La clé d'API Gemini n'est pas configurée.");
 
         var systemInstruction = BuildSystemInstruction(isAdmin, language);
-        var contents = BuildInitialContents(history, message.Trim());
+        var userMessage = message.Trim();
+        if (AsksAboutClaims(message))
+            userMessage += await ClaimsSnapshotAsync(userId, isAdmin, cancellationToken);
+        var contents = BuildInitialContents(history, userMessage);
         var tools = BuildToolsPayload();
 
         var httpClient = _httpClientFactory.CreateClient();
@@ -81,9 +84,12 @@ public class QualityAssistantService : IQualityAssistantService
                 },
                 ["contents"] = contents,
                 ["tools"] = tools,
+                // first round of a question about claims: the data must be read, never answered from the conversation
                 ["toolConfig"] = new
                 {
-                    functionCallingConfig = new { mode = "AUTO" }
+                    functionCallingConfig = round == 0 && AsksAboutClaims(message)
+                        ? new { mode = "ANY", allowedFunctionNames = new[] { "get_claims" } }
+                        : new { mode = "AUTO", allowedFunctionNames = (string[]?)null }
                 },
                 ["generationConfig"] = new
                 {
@@ -215,6 +221,7 @@ public class QualityAssistantService : IQualityAssistantService
         sb.AppendLine(replyLang);
         sb.AppendLine("Utilise les fonctions disponibles pour obtenir des données réelles avant de répondre aux questions factuelles.");
         sb.AppendLine("Ne invente jamais de chiffres : base-toi uniquement sur les résultats des fonctions.");
+        sb.AppendLine("Réclamation, claim et dossier qualité désignent la même chose (get_claims) ; un plan d'actions ou CAPA se lit avec get_capa. À CHAQUE question sur les réclamations (nombre, liste, retard), appelle get_claims, même si la conversation contient déjà une réponse sur le sujet : les données peuvent avoir changé et tu ne réponds jamais de mémoire. Pour « combien », recopie openCount (ouvertes) ou overdueCount (en retard) sans recompter et sans utiliser matchingListCount ; une réclamation en attente de validation n'est jamais comptée en retard. Écris toujours les dates au format JJ/MM/AAAA (par exemple 20/11/2026), jamais au format technique 2026-11-20T00:00:00Z.");
         if (isAdmin)
         {
             sb.AppendLine("Contexte : utilisateur Admin / SuperAdmin. Les fonctions renvoient les données de toute l'organisation.");
@@ -286,7 +293,7 @@ public class QualityAssistantService : IQualityAssistantService
                     {
                         name = "get_claims",
                         description =
-                            "Récupère les réclamations (claims) filtrées par client, statut et période. Pour un employé : uniquement ses claims assignés ou créés.",
+                            "À utiliser pour TOUTE question sur les réclamations (claims, dossiers qualité) : nombre, liste, retards. Renvoie openCount (en cours), overdueCount (en retard) et noDeadlineCount : recopie ces nombres, ne les recompte pas. Pour les plans d'actions, utiliser get_capa. Pour un employé : uniquement les claims qui lui sont assignés (comme son tableau de bord).",
                         parameters = new
                         {
                             type = "OBJECT",
@@ -300,12 +307,12 @@ public class QualityAssistantService : IQualityAssistantService
                                 ["status"] = new
                                 {
                                     type = "STRING",
-                                    description = "Code statut exact (OUVERTE, ASSIGNED, EN_ANALYSE, PENDING_VALIDATION, VALIDATED, REJECTED, CLOTUREE, DRAFT), ou OPEN pour toutes les réclamations non clôturées. Optionnel."
+                                    description = "Code statut exact (OUVERTE, ASSIGNED, EN_ANALYSE, PENDING_VALIDATION, VALIDATED, REJECTED, CLOTUREE, DRAFT), OPEN pour toutes les réclamations en cours, ou LATE pour celles dont l'échéance est dépassée. Optionnel."
                                 },
                                 ["periodDays"] = new
                                 {
                                     type = "INTEGER",
-                                    description = "Nombre de jours en arrière à partir d'aujourd'hui. Optionnel."
+                                    description = "Nombre de jours en arrière, uniquement si l'utilisateur demande explicitement une période (ex. « ce mois-ci »). Ne jamais le renseigner pour compter les réclamations ouvertes ou en retard."
                                 }
                             }
                         }
@@ -314,7 +321,7 @@ public class QualityAssistantService : IQualityAssistantService
                     {
                         name = "get_capa",
                         description =
-                            "Récupère les plans d'actions / CAPA filtrés par statut et retard. Pour un employé : uniquement ses plans assignés ou dont il est propriétaire.",
+                            "À utiliser UNIQUEMENT pour les plans d'actions / CAPA (jamais pour les réclamations), filtrés par statut et retard. Pour un employé : uniquement ses plans assignés ou dont il est propriétaire.",
                         parameters = new
                         {
                             type = "OBJECT",
@@ -407,9 +414,10 @@ public class QualityAssistantService : IQualityAssistantService
         if (!isAdmin)
         {
             var uid = userId.Trim().ToLowerInvariant();
+            // Same scope as the employee dashboard: claims assigned to the user, not the ones they created themselves.
             query = query.Where(c =>
-                (c.AssignedToId != null && c.AssignedToId.ToLower() == uid)
-                || (c.CreatedById != null && c.CreatedById.ToLower() == uid));
+                c.AssignedToId != null && c.AssignedToId.ToLower() == uid
+                && (c.CreatedById == null || c.CreatedById.ToLower() != uid));
         }
 
         if (!string.IsNullOrWhiteSpace(clientId))
@@ -418,13 +426,30 @@ public class QualityAssistantService : IQualityAssistantService
             query = query.Where(c => c.ClientId.ToLower().Contains(client));
         }
 
+        // counts below ignore the status and period filters: "how many open / late" is a current state, whatever list was asked for
+        var scopedQuery = query;
+
         if (!string.IsNullOrWhiteSpace(status))
         {
             var st = status.Trim().ToUpperInvariant();
             if (st is "OPEN" or "OUVERT" or "OUVERTES" or "EN_COURS" or "ACTIVE" or "NOT_CLOSED")
             {
-                // "open" is not a stored code: it means every claim that is neither closed nor a draft
-                query = query.Where(c => c.StatusCode.ToUpper() != "CLOTUREE" && c.StatusCode.ToUpper() != "DRAFT");
+                // "open" is not a stored code: it is the same rule as the dashboard (not closed, validated, archived or draft)
+                query = query.Where(c => c.StatusCode.ToUpper() != "CLOTUREE" && c.StatusCode.ToUpper() != "CLOSED"
+                    && c.StatusCode.ToUpper() != "CLOTURE" && c.StatusCode.ToUpper() != "VALIDATED"
+                    && c.StatusCode.ToUpper() != "ARCHIVED" && c.StatusCode.ToUpper() != "DRAFT"
+                    && c.StatusCode.ToUpper() != "BROUILLON");
+            }
+            else if (st is "LATE" or "OVERDUE" or "EN_RETARD" or "RETARD")
+            {
+                // late = open and past its deadline (same rule as the dashboard)
+                var lateBefore = DateTime.UtcNow.Date;
+                query = query.Where(c => c.Deadline != null && c.Deadline.Value.Date < lateBefore
+                    && c.StatusCode.ToUpper() != "PENDING_VALIDATION"
+                    && c.StatusCode.ToUpper() != "CLOTUREE" && c.StatusCode.ToUpper() != "CLOSED"
+                    && c.StatusCode.ToUpper() != "CLOTURE" && c.StatusCode.ToUpper() != "VALIDATED"
+                    && c.StatusCode.ToUpper() != "ARCHIVED" && c.StatusCode.ToUpper() != "DRAFT"
+                    && c.StatusCode.ToUpper() != "BROUILLON");
             }
             else
             {
@@ -433,13 +458,21 @@ public class QualityAssistantService : IQualityAssistantService
             }
         }
 
-        if (periodDays is > 0)
+        var stateFilter = !string.IsNullOrWhiteSpace(status) && status.Trim().ToUpperInvariant() is "OPEN" or "OUVERT" or "OUVERTES" or "EN_COURS" or "ACTIVE" or "NOT_CLOSED" or "LATE" or "OVERDUE" or "EN_RETARD" or "RETARD";
+        // open / late are current states: a period would silently hide older claims that are still open
+        if (periodDays is > 0 && !stateFilter)
         {
             var since = DateTime.UtcNow.AddDays(-periodDays.Value);
             query = query.Where(c => c.CreatedAt >= since || c.DetectionDate >= since);
         }
 
         var total = await query.CountAsync(ct);
+        // counts over all the matching claims, computed here so the model never has to count or compare dates itself
+        var statusAndDeadline = await scopedQuery.Select(c => new { c.StatusCode, c.Deadline }).ToListAsync(ct);
+        var todayUtc = DateTime.UtcNow.Date;
+        var openCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode));
+        var overdueCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode) && !string.Equals(c.StatusCode, "PENDING_VALIDATION", StringComparison.OrdinalIgnoreCase) && ClaimDeadlines.IsLate(c.Deadline, todayUtc));
+        var noDeadlineCount = statusAndDeadline.Count(c => ClaimStatusRules.IsOpen(c.StatusCode) && ClaimDeadlines.HasNoDeadline(c.Deadline));
         var items = await query
             .OrderByDescending(c => c.CreatedAt)
             .Take(40)
@@ -461,7 +494,10 @@ public class QualityAssistantService : IQualityAssistantService
         return new
         {
             scope = isAdmin ? "organization" : "employee",
-            total,                  // all the matching claims; "claims" lists the 40 most recent only
+            matchingListCount = total, // size of the list asked for (NOT the number of open claims: use openCount); "claims" lists the 40 most recent only
+            openCount,              // among them: still in progress (not closed, validated, archived or draft)
+            overdueCount,           // among the open ones: deadline before today
+            noDeadlineCount,        // among the open ones: no deadline set (never counted as late)
             count = items.Count,
             claims = items,
         };
@@ -691,14 +727,10 @@ public class QualityAssistantService : IQualityAssistantService
             .Select(p => new { p.Status, p.Deadline })
             .ToListAsync(ct);
 
-        static bool IsClosed(string status) =>
-            string.Equals(status, "CLOTUREE", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "CLOSED", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "CLOTURE", StringComparison.OrdinalIgnoreCase);
+        // same rules as the dashboard, so the assistant and the screen give the same figures
+        static bool IsClosed(string status) => ClaimStatusRules.IsClosed(status);
 
-        static bool IsDraft(string status) =>
-            string.Equals(status, "DRAFT", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(status, "BROUILLON", StringComparison.OrdinalIgnoreCase);
+        static bool IsDraft(string status) => ClaimStatusRules.IsDraft(status);
 
         static bool IsCritical(string severity) =>
             string.Equals(severity, "CRITICAL", StringComparison.OrdinalIgnoreCase)
@@ -848,8 +880,57 @@ public class QualityAssistantService : IQualityAssistantService
     private static string CleanReply(string text)
     {
         var cleaned = text.Trim().Replace("**", "").Replace("__", "");
+        // the model sometimes copies the JSON escapes of the tool results ("\u00E9"): turn them back into characters
+        cleaned = System.Text.RegularExpressions.Regex.Replace(
+            cleaned,
+            @"\\u([0-9a-fA-F]{4})",
+            m => ((char)Convert.ToInt32(m.Groups[1].Value, 16)).ToString());
         return cleaned;
     }
+
+    /// <summary>
+    /// Fresh claim figures read by the server and attached to the question, so the answer never depends on
+    /// the model choosing to call a function (or reusing an older answer from the conversation).
+    /// </summary>
+    private async Task<string> ClaimsSnapshotAsync(string userId, bool isAdmin, CancellationToken ct)
+    {
+        try
+        {
+            using var openArgs = JsonDocument.Parse("{\"status\":\"OPEN\"}");
+            using var lateArgs = JsonDocument.Parse("{\"status\":\"LATE\"}");
+            using var openDoc = JsonDocument.Parse(JsonSerializer.Serialize(await GetClaimsAsync(openArgs.RootElement, userId, isAdmin, ct)));
+            using var lateDoc = JsonDocument.Parse(JsonSerializer.Serialize(await GetClaimsAsync(lateArgs.RootElement, userId, isAdmin, ct)));
+            var o = openDoc.RootElement;
+            var sb = new System.Text.StringBuilder();
+            sb.Append("\n\n[Chiffres lus à l'instant dans la base, fiables et plus récents que la conversation : réponds uniquement à partir d'eux, en peu de mots, ")
+              .Append("sans recopier ce bloc ni parler de sa structure.]\n");
+            sb.Append("Réclamations ouvertes : ").Append(o.GetProperty("openCount").GetInt32()).Append('\n');
+            sb.Append("Réclamations en retard : ").Append(o.GetProperty("overdueCount").GetInt32()).Append('\n');
+            sb.Append("Réclamations ouvertes sans échéance : ").Append(o.GetProperty("noDeadlineCount").GetInt32()).Append('\n');
+            foreach (var c in lateDoc.RootElement.GetProperty("claims").EnumerateArray())
+            {
+                var title = c.GetProperty("title").GetString();
+                var client = c.GetProperty("clientId").GetString();
+                var deadline = c.TryGetProperty("deadline", out var d) && d.ValueKind == JsonValueKind.String && DateTime.TryParse(d.GetString(), out var dt)
+                    ? dt.ToString("dd/MM/yyyy")
+                    : "non renseignée";
+                sb.Append("- En retard : ").Append(title).Append(" (client ").Append(client).Append(", échéance ").Append(deadline).Append(")\n");
+            }
+            return sb.ToString();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Claim snapshot for the assistant failed");
+            return string.Empty;
+        }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex ClaimQuestion = new(
+        @"r[ée]clamation|claim|dossier|retard|ouvert|late|overdue|open|ritard|reclam",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static bool AsksAboutClaims(string message) =>
+        ClaimQuestion.IsMatch(message) && !System.Text.RegularExpressions.Regex.IsMatch(message, @"(capa|plan)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     private static string Truncate(string value, int max) =>
         value.Length <= max ? value : value[..max] + "…";
