@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -67,5 +68,19 @@ public class AccessControlTests : IClassFixture<ActionPlanApiFactory>
         var response = await ClientAs(TestAuthHandler.Anonymous, ActionPlanApiFactory.DatasetApiKey)
             .GetAsync("/api/ml-features/training-dataset");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task TrainingDataset_ShortConfiguredKey_IsIgnored()
+    {
+        const string shortKey = "short";
+        var client = _factory.WithWebHostBuilder(b => b.ConfigureAppConfiguration((_, cfg) =>
+                cfg.AddInMemoryCollection(new Dictionary<string, string?> { ["MlFeatures:DatasetApiKey"] = shortKey })))
+            .CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Add(TestAuthHandler.RoleHeader, TestAuthHandler.Anonymous);
+        client.DefaultRequestHeaders.Add("X-Dataset-Key", shortKey);
+
+        var response = await client.GetAsync("/api/ml-features/training-dataset");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

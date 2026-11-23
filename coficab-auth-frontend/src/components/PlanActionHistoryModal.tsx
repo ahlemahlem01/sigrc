@@ -9,6 +9,7 @@ import {
 import { AUTH_API_URL as AUTH_API } from '../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../i18n';
+import { pn } from '../utils/person';
 
 type TabKey = 'assignments' | 'progress';
 
@@ -289,9 +290,9 @@ export const PlanActionHistoryModal: React.FC<PlanActionHistoryModalProps> = ({
               <ul className="pah-list">
                 {assignments.map((h) => {
                   const typeLabel = ACTION_TYPE_LABEL[h.actionType] ? t(ACTION_TYPE_LABEL[h.actionType]) : h.actionType || t('actionHistory.change');
-                  const from = resolveName(h.oldAssignedToId, h.oldAssignedToName, names);
-                  const to = resolveName(h.newAssignedToId, h.newAssignedToName, names);
-                  const actor = resolveName(h.changedBy || h.createdBy, h.changedByName, names);
+                  const from = pn(resolveName(h.oldAssignedToId, h.oldAssignedToName, names));
+                  const to = pn(resolveName(h.newAssignedToId, h.newAssignedToName, names));
+                  const actor = pn(resolveName(h.changedBy || h.createdBy, h.changedByName, names));
                   return (
                     <li key={h.id || `${h.createdAt}-${h.actionType}`} className="pah-item">
                       <div className="pah-item-top">

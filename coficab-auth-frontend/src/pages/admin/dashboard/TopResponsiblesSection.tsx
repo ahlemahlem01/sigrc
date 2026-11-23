@@ -5,6 +5,7 @@ import UserAvatar from '../../../components/UserAvatar';
 import type { ResponsibleItem } from '../../../types/dashboardSummary';
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
+import { formatDecimal } from '../../../utils/formatNumber';
 
 type Tab = 'claims' | 'actions';
 
@@ -93,7 +94,7 @@ export default function TopResponsiblesSection({ claims = [], actions: actionsPr
                       {t('adminDashboard.topResponsibles.closedOf', { closed: r.closed, total: r.total })}
                     </span>
                     <span className="text-[11px] font-bold tabular-nums" style={{ color: accent }}>
-                      {r.closureRate.toFixed(1)} %
+                      {formatDecimal(r.closureRate)} %
                     </span>
                   </div>
                   <div className="h-2 rounded-full overflow-hidden" style={{ background: COFICAB.soft }}>

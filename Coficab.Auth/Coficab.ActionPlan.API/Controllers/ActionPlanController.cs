@@ -877,6 +877,8 @@ public class ActionPlanController : ControllerBase
 
         if (string.IsNullOrEmpty(userId))
             return Unauthorized();
+        if (await Services.PlanApprovalGate.PlanIsBlockedAsync(_db, planId, HttpContext.RequestAborted))
+            return Conflict(Services.PlanApprovalGate.Refusal);
 
         try
         {

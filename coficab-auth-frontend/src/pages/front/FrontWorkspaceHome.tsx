@@ -24,6 +24,7 @@ import BadgeEmblem from '../../components/BadgeEmblem';
 import { BADGE_DEFINITIONS } from '../../utils/badges';
 import './FrontWorkspaceHome.styles.css';
 import { defectLabel } from '../../utils/defectLabel';
+import { formatDecimal } from '../../utils/formatNumber';
 
 /** Notifications that tell the employee about a decision taken on one of their files. */
 const DECISION_TYPES = new Set([
@@ -396,7 +397,7 @@ export default function FrontWorkspaceHome() {
         title: `${defectLabel(alert.defectType)} / ${alert.productionLine}`,
         action: t('employeeWorkspace.todoMetaActiveAlert', {
           status: alertStatusLabel(alert.status, t),
-          z: Number(alert.zScore ?? 0).toFixed(1),
+          z: formatDecimal(Number(alert.zScore ?? 0)),
         }),
         due: '',
         days: 0,

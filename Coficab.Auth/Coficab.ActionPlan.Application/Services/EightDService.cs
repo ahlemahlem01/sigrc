@@ -204,7 +204,7 @@ public class EightDService : IEightDService
                     userId,
                     DateTime.UtcNow), ct);
             }
-            catch { /* domain events best-effort */ }
+            catch { /*  si la notification ou l’événement échoue, la validation reste valide*/ }
         }
 
         var recipient = dossier.SubmittedById ?? dossier.CreatedBy ?? claim.CreatedById;
@@ -464,6 +464,16 @@ public class EightDService : IEightDService
     }
 
     // ─── Version history ─────────────────────────────────────────────────────────────
+
+    public async Task RecordAmendmentAsync(Guid claimId, string userId, string what, CancellationToken ct = default)
+    {
+        var dossier = await _db.EightDDossiers.FirstOrDefaultAsync(d => d.ClaimId == claimId, ct);
+        var claim = await _db.Claims.IgnoreQueryFilters().FirstOrDefaultAsync(c => c.Id == claimId, ct);
+        if (dossier == null || claim == null) return;
+        var state = await MapAsync(dossier, claim, ct);
+        await EnsureBaselineAsync(dossier, state, ct);
+        await RecordVersionAsync(dossier, state, EightDVersionEvents.Amended, userId, what, ct);
+    }
 
     /// <summary>
     /// Appends a snapshot of the dossier. A "saved" version is only written when something changed; submission and validation

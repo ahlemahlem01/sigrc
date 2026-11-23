@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+import '@fortawesome/fontawesome-free/css/solid.min.css';
 
 /** A figure that counts up from 0 the first time it scrolls into view. */
 function CountUp({ to, prefix = '', suffix = '' }: { to: number; prefix?: string; suffix?: string }) {
@@ -149,7 +151,6 @@ export default function FrontLandingPge() {
       
       {/* CONFIGURATION DES POLICES ET DES ANIMATIONS */}
       <style>{`
-        @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
 
         .font-inter {
           font-family: 'Inter', sans-serif;

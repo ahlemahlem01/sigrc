@@ -7,6 +7,7 @@ import ConfirmDialog from './ConfirmDialog';
 import ReportEditDialog from './reports/ReportEditDialog';
 import ReportDraftDialog from './reports/ReportDraftDialog';
 import { capaBtnPrimary, capaBtnSecondary } from './capa/CapaAdminUi';
+import { pn } from '../utils/person';
 
 type SavedRow = {
   id: string; kind: string; title: string; itemCount: number; createdByName?: string | null; createdAt: string;
@@ -249,7 +250,7 @@ export default function SavedReportsBar({ kind, snapshot, hasReport, defaultTitl
                   {r.isArchived && <span className="ml-2 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 align-middle">{t('reportHistory.archivedBadge')}</span>}
                 </div>
                 <div className="text-[11px] text-slate-500">
-                  {new Date(r.createdAt).toLocaleString(i18n.language)}{` · ${r.createdByName || t('savedReports.auto')}`} · {t('savedReports.items', { count: r.itemCount })}
+                  {new Date(r.createdAt).toLocaleString(i18n.language)}{` · ${pn(r.createdByName) || t('savedReports.auto')}`} · {t('savedReports.items', { count: r.itemCount })}
                   {(r.version ?? 1) > 1 && ` · ${t('reportEdit.edited', { n: r.version, date: r.updatedAt ? new Date(r.updatedAt).toLocaleString(i18n.language) : '' })}`}
                   {r.isArchived && r.archivedAt && ` · ${t('reportHistory.archivedOn', { date: new Date(r.archivedAt).toLocaleDateString(i18n.language) })}`}
                 </div>

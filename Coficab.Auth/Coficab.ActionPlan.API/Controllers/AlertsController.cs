@@ -389,6 +389,7 @@ public class AlertsController : ControllerBase
 
     [HttpPost("{id:guid}/attachments")]
     [RequestSizeLimit(8_000_000)]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> AddAttachment(Guid id, IFormFile file, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrEmpty(UserId)) return Unauthorized();

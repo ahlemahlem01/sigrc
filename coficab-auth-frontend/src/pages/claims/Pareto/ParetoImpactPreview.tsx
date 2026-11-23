@@ -107,7 +107,7 @@ export const ParetoImpactPreview: React.FC<ParetoImpactPreviewProps> = ({
           gap: 6px;
           font-size: 11px;
           font-weight: 700;
-          color: #1e40af;
+          color: #1d4ed8;
           text-transform: uppercase;
           letter-spacing: 0.04em;
           margin-bottom: 8px;

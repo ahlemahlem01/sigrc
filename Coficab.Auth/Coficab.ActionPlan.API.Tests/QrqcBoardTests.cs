@@ -204,7 +204,7 @@ public class QrqcBoardTests : IClassFixture<ActionPlanApiFactory>
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         var csv = System.Text.Encoding.UTF8.GetString(await response.Content.ReadAsByteArrayAsync()).TrimStart('﻿');
         var lines = csv.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
-        Assert.StartsWith("QMART;QMNUM;QMTXT;QMDAT;ARBPL;CHARG;PRIOK;", lines[0]);
+        Assert.StartsWith("Type;QMNUM;QMTXT;Date;Ligne;Lot;Priorité;", lines[0]);
         var mine = lines.First(l => l.Contains(";" + line + ";"));
         Assert.StartsWith("Q3;", mine);
         Assert.Contains(";1;", mine);                 // CRITICAL → SAP priority 1

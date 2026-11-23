@@ -108,6 +108,7 @@ public class PlanActionController : ControllerBase
     /// <summary>Attaches a proof (photo, report, office file) to a sub-action. Whoever can work on the plan can add one; the file is private and only served by the download route.</summary>
     [HttpPost("{id:guid}/documents")]
     [Consumes("multipart/form-data")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> UploadProof(Guid id, IFormFile file, [FromServices] IWebHostEnvironment env, CancellationToken ct)
     {
         var userId = CurrentUserId();
@@ -120,6 +121,8 @@ public class PlanActionController : ControllerBase
         if (file is not { Length: > 0 }) return BadRequest(new { error = "Fichier requis." });
         if (file.Length > MaxProofBytes) return BadRequest(new { error = "Fichier trop volumineux (10 Mo maximum)." });
         if (!Services.DocumentStorage.IsAllowed(file.FileName)) return BadRequest(new { error = "Format refusé : PDF, image, Office ou texte uniquement." });
+
+        if (!await Services.DocumentStorage.ContentMatchesExtensionAsync(file, ct)) return BadRequest(new { error = "Le contenu du fichier ne correspond pas à son format." });
 
         var stored = await Services.DocumentStorage.SaveAsync(env, file, userId, ct);
         var doc = new Core.Entities.ActionDocument
@@ -317,6 +320,13 @@ public class PlanActionController : ControllerBase
     public async Task<IActionResult> UpdateProgress(Guid id, [FromBody] UpdateProgressDto dto)
     {
         var userId = CurrentUserId() ?? "system";
+        if (await Services.PlanApprovalGate.ActionIsBlockedAsync(_db, id, HttpContext.RequestAborted))
+            return Conflict(Services.PlanApprovalGate.Refusal);
+
+        // an action is only finished (100 %) with a proof attached: a photo, a report
+        if (dto.Progress == 100
+            && !await _db.ActionDocuments.AsNoTracking().AnyAsync(d => d.PlanActionId == id && !d.IsArchived, HttpContext.RequestAborted))
+            return Conflict(new { code = "proofRequired", error = "Joignez une preuve (photo, rapport) avant de passer à 100 %." });
 
         try
         {

@@ -6,6 +6,8 @@ import { ACTION_PLAN_API_URL } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import SegmentedToggle from '../../components/SegmentedToggle';
 import { CapaPageHeader } from '../../components/capa/CapaAdminUi';
+import NotificationWatchCard from '../../components/NotificationWatchCard';
+import { normalizeRoles } from '../../utils/roles';
 
 /** title = i18n key */
 const MODELS = [
@@ -45,7 +47,7 @@ function Row({ title, help, children }: { title: string; help: string; children:
 /** The personal choices of the signed-in user (theme, default formats) and the import templates. */
 export default function PreferencesPage() {
   const { t } = useTranslation();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
   const prefs = usePreferences();
   const [note, setNote] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -138,6 +140,8 @@ export default function PreferencesPage() {
           </Row>
         </div>
       </section>
+
+      {normalizeRoles(user as never).includes('superadmin') && <NotificationWatchCard />}
 
       <section className={card}>
         <h2 className="text-sm font-semibold text-slate-800">{t('preferences.templates')}</h2>

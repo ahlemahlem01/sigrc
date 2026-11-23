@@ -52,7 +52,7 @@ public class QrqcLogicTests
         var csv = QrqcSapExport.Csv(new[] { (IReadOnlyList<string?>)new string?[] { "Q3", "R1", "Coupure; gaine \"ext\"", "20261104", null, "L1", "2", "x", "", null, "OSNO", "OUVERTE", "1", "5" } });
         var lines = csv.TrimEnd().Split("\r\n");
         Assert.Equal(2, lines.Length);
-        Assert.StartsWith("QMART;QMNUM;QMTXT;", lines[0]);
+        Assert.StartsWith("Type;QMNUM;QMTXT;", lines[0]);
         Assert.Contains("\"Coupure; gaine \"\"ext\"\"\"", lines[1]);
     }
 }

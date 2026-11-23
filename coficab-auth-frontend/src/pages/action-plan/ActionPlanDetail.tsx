@@ -11,6 +11,7 @@ import { PlanActionHistoryModal } from '../../components/PlanActionHistoryModal'
 import { AUTH_API_URL } from '../../config/apiEnv';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 // ── Inline Icons ──
 const IconArrowLeft = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>;
 const IconCheck = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
@@ -393,7 +394,7 @@ export default function ActionPlanDetail() {
             </div>
             <div className="apd-summary-item">
               <span className="apd-summary-label">{t('planView.assignedBy')}</span>
-              <span className="apd-summary-value">{plan.createdByName || plan.createdBy || '—'}</span>
+              <span className="apd-summary-value">{pn(plan.createdByName) || plan.createdBy || '—'}</span>
             </div>
             <div className="apd-summary-item">
               <span className="apd-summary-label">{t('planView.createdOn')}</span>
@@ -500,7 +501,7 @@ export default function ActionPlanDetail() {
                 </div>
                 <div className="apd-info-row">
                   <span>{t('planView.assignedBy')}</span>
-                  <span>{plan.createdByName || plan.createdBy || '—'}</span>
+                  <span>{pn(plan.createdByName) || plan.createdBy || '—'}</span>
                 </div>
                 <div className="apd-info-row">
                   <span>{t('planView.creationDate')}</span>

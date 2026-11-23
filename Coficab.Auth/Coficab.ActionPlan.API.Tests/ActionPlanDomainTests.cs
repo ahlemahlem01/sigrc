@@ -138,8 +138,11 @@ public class ActionPlanDomainTests : IClassFixture<ActionPlanApiFactory>
             return form;
         }
 
-        var ok = await user.PostAsync($"/api/planaction/{actionId}/documents", File("preuve.png", new byte[] { 1, 2, 3, 4 }, "image/png"));
+        var png = new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3, 4 };
+        var ok = await user.PostAsync($"/api/planaction/{actionId}/documents", File("preuve.png", png, "image/png"));
         Assert.Equal(HttpStatusCode.OK, ok.StatusCode);
+        // a file whose content is not a PNG is refused even with a .png name
+        Assert.Equal(HttpStatusCode.BadRequest, (await user.PostAsync($"/api/planaction/{actionId}/documents", File("faux.png", new byte[] { 1, 2, 3, 4 }, "image/png"))).StatusCode);
         var docId = (await ok.Content.ReadFromJsonAsync<JsonElement>(JsonOpts)).GetProperty("id").GetGuid();
 
         Assert.Equal(HttpStatusCode.BadRequest, (await user.PostAsync($"/api/planaction/{actionId}/documents", File("virus.html", new byte[] { 1 }, "text/html"))).StatusCode);
@@ -168,7 +171,7 @@ public class ActionPlanDomainTests : IClassFixture<ActionPlanApiFactory>
 
         var file = await user.GetAsync($"/api/planaction/documents/{docId}/file");
         Assert.Equal(HttpStatusCode.OK, file.StatusCode);
-        Assert.Equal(new byte[] { 1, 2, 3, 4 }, await file.Content.ReadAsByteArrayAsync());
+        Assert.Equal(png, await file.Content.ReadAsByteArrayAsync());
     }
 
     [Fact]

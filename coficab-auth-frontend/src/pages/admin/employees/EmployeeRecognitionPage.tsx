@@ -12,6 +12,7 @@ import { BADGE_DEFINITIONS } from '../../../utils/badges';
 import UserAvatar from '../../../components/UserAvatar';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../../i18n';
+import { pn } from '../../../utils/person';
 
 const unwrap = (raw: any): any[] => {
   if (Array.isArray(raw)) return raw;
@@ -279,7 +280,7 @@ export default function EmployeeRecognitionPage() {
     <div className="rec-wrap">
       <div className="rec-head">
         <div>
-          <div className="rec-title">{t('employeeFile.recognition')}</div>
+          <h1 className="rec-title">{t('employeeFile.recognition')}</h1>
           <div className="rec-sub">
             {t('recognition.subtitle', { month: MONTH_LABEL })}
           </div>
@@ -373,7 +374,7 @@ export default function EmployeeRecognitionPage() {
                               radius="lg"
                             />
                           </div>
-                          <div className="rec-podium-name">{emp.fullName}</div>
+                          <div className="rec-podium-name">{pn(emp.fullName)}</div>
                           <div className="rec-podium-email">{emp.email}</div>
                           <div className="rec-podium-score">
                             <span className="rec-podium-score-val">{emp.score}</span>
@@ -464,7 +465,7 @@ export default function EmployeeRecognitionPage() {
                           radius="lg"
                         />
                         <div className="rec-feed-main">
-                          <div className="rec-person-name">{r.fullName}</div>
+                          <div className="rec-person-name">{pn(r.fullName)}</div>
                           <div className="rec-watch-context">{r.context}</div>
                           <div className="rec-watch-tags">
                             <span className={`rec-tag${r.overdueCount > 0 ? ' rec-tag-bad' : ' rec-tag-ok'}`}>
@@ -533,7 +534,7 @@ export default function EmployeeRecognitionPage() {
                 >
                   <option value="" disabled>{t('myActionPlans.select')}</option>
                   {profiles.map((p) => (
-                    <option key={p.id} value={p.id}>{p.fullName}</option>
+                    <option key={p.id} value={p.id}>{pn(p.fullName)}</option>
                   ))}
                 </select>
               </label>

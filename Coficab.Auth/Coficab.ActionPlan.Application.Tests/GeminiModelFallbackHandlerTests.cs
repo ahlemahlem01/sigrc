@@ -23,6 +23,12 @@ public class GeminiModelFallbackHandlerTests
 
     private static HttpClient Client(HttpMessageHandler inner, string? fallback = "model-b,model-c", string? attemptTimeout = null)
     {
+        GeminiModelFallbackHandler.ResetCooldown();
+        return ClientKeepingCooldown(inner, fallback, attemptTimeout);
+    }
+
+    private static HttpClient ClientKeepingCooldown(HttpMessageHandler inner, string? fallback = "model-b,model-c", string? attemptTimeout = null)
+    {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Gemini:FallbackModels"] = fallback,
@@ -48,6 +54,19 @@ public class GeminiModelFallbackHandlerTests
         Assert.Contains("/models/model-b:", inner.Seen[1].Url);
         Assert.Contains("/models/model-c:", inner.Seen[2].Url);
         Assert.All(inner.Seen, s => Assert.Equal("{\"contents\":[]}", s.Body));
+    }
+
+    [Fact]
+    public async Task AModelThatJustFailed_IsTriedLastOnTheNextRequests()
+    {
+        var first = new Scripted(HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, (await Generate(Client(first))).StatusCode);   // model-a busy, model-b answers
+
+        var next = new Scripted(HttpStatusCode.OK);
+        Assert.Equal(HttpStatusCode.OK, (await Generate(ClientKeepingCooldown(next))).StatusCode);
+        Assert.Single(next.Seen);
+        Assert.Contains("/models/model-b:", next.Seen[0].Url);   // the busy model-a is not asked first again
+        GeminiModelFallbackHandler.ResetCooldown();
     }
 
     [Fact]

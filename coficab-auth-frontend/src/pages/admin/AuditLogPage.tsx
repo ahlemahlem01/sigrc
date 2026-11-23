@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
 import { withScope } from '../../services/organizationScopeStore';
 import { defectLabel } from '../../utils/defectLabel';
+import { pn } from '../../utils/person';
+import FilterSelect from '../../components/FilterSelect';
 
 /** Page unique de traçabilité : comptes + workflow (CAPA, claims, RH, orgs…). */
 const PAGE_SIZE = 25;
@@ -120,6 +122,13 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   UNLOCK:         { label: 'audit.action.UNLOCK',    bg: '#f0fdf4', color: '#15803d', icon: 'ti-lock-open' },
   RESET_PASSWORD: { label: 'audit.action.RESET_PASSWORD',         bg: '#fefce8', color: '#a16207', icon: 'ti-key' },
   LOGIN:          { label: 'audit.action.LOGIN',         bg: '#f5f3ff', color: '#6d28d9', icon: 'ti-login' },
+  LOGIN_FAILED: { label: 'audit.action.LOGIN_FAILED', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-login' },
+  CAPTCHA_FAILED: { label: 'audit.action.CAPTCHA_FAILED', bg: '#fff7ed', color: '#c2410c', icon: 'ti-shield-x' },
+  PASSWORD_CHANGED: { label: 'audit.action.PASSWORD_CHANGED', bg: '#fefce8', color: '#a16207', icon: 'ti-key' },
+  PASSWORD_RESET_REQUESTED: { label: 'audit.action.PASSWORD_RESET_REQUESTED', bg: '#fefce8', color: '#a16207', icon: 'ti-mail' },
+  claim_validation_approved: { label: 'audit.action.claim_validation_approved', bg: '#f0fdf4', color: '#15803d', icon: 'ti-shield-check' },
+  claim_validation_returned: { label: 'audit.action.claim_validation_returned', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-arrow-back-up' },
+  fivewhy_returned: { label: 'audit.action.fivewhy_returned', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-arrow-back-up' },
   created:            { label: 'audit.action.created',          bg: '#f0fdf4', color: '#15803d', icon: 'ti-file-plus' },
   status_changed:     { label: 'audit.action.status_changed',     bg: '#fffbeb', color: '#b45309', icon: 'ti-arrows-exchange' },
   fields_updated:     { label: 'audit.action.fields_updated',    bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-pencil' },
@@ -143,6 +152,15 @@ const ACTION_META: Record<string, { label: string; bg: string; color: string; ic
   claim_assigned:      { label: 'audit.action.claim_assigned',          bg: '#f5f3ff', color: '#7c3aed', icon: 'ti-user-plus' },
   claim_unassigned:    { label: 'audit.action.claim_unassigned',        bg: '#fef2f2', color: '#b91c1c', icon: 'ti-user-minus' },
   claim_deadline_set:  { label: 'audit.action.claim_deadline_set',      bg: '#fff7ed', color: '#c2410c', icon: 'ti-calendar-event' },
+  claim_deadline_changed: { label: 'audit.action.claim_deadline_changed', bg: '#fff7ed', color: '#c2410c', icon: 'ti-calendar-event' },
+  claim_creation_edited: { label: 'audit.action.claim_creation_edited', bg: '#fff1f2', color: '#e11d48', icon: 'ti-pencil' },
+  claim_creation_validated: { label: 'audit.action.claim_creation_validated', bg: '#f0fdf4', color: '#15803d', icon: 'ti-shield-check' },
+  plan_approved: { label: 'audit.action.plan_approved', bg: '#f0fdf4', color: '#15803d', icon: 'ti-circle-check' },
+  plan_returned: { label: 'audit.action.plan_returned', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-arrow-back-up' },
+  plan_resubmitted: { label: 'audit.action.plan_resubmitted', bg: '#eff6ff', color: '#1d4ed8', icon: 'ti-send' },
+  validation_reminder: { label: 'audit.action.validation_reminder', bg: '#fffbeb', color: '#b45309', icon: 'ti-bell-ringing' },
+  validated_analysis_amended: { label: 'audit.action.validated_analysis_amended', bg: '#fff7ed', color: '#c2410c', icon: 'ti-lock-open' },
+  ishikawa_risk_scored: { label: 'audit.action.ishikawa_risk_scored', bg: '#fff1f2', color: '#be123c', icon: 'ti-git-fork' },
   claim_deadline_extended: { label: 'audit.action.claim_deadline_extended', bg: '#fef2f2', color: '#b91c1c', icon: 'ti-calendar-plus' },
   deadline_extended:   { label: 'audit.action.deadline_extended',       bg: '#fef2f2', color: '#b91c1c', icon: 'ti-calendar-plus' },
   claim_archived:      { label: 'audit.action.claim_archived',          bg: '#fff7ed', color: '#c2410c', icon: 'ti-archive' },
@@ -193,7 +211,7 @@ const MUTATION_ACTIONS = new Set([
   'claim_created', 'claim_updated', 'document_added', 'document_removed', 'document_uploaded',
   'ishikawa_cause_added', 'ishikawa_cause_archived', 'fivewhy_saved',
   'subaction_validated', 'subaction_rejected', 'subaction_warning', 'warning_sent', 'resubmitted',
-  'claim_deadline_set', 'claim_deadline_extended', 'deadline_extended', 'claim_archived', 'claim_restored', 'claim_imported', 'claim_import_archived', 'ishikawa_updated', 'fivewhy_rejected', 'fivewhy_validated',
+  'claim_deadline_set', 'claim_deadline_changed', 'claim_creation_edited', 'claim_creation_validated', 'ishikawa_risk_scored', 'validated_analysis_amended', 'validation_reminder', 'plan_approved', 'plan_returned', 'plan_resubmitted', 'claim_deadline_extended', 'deadline_extended', 'claim_archived', 'claim_restored', 'claim_imported', 'claim_import_archived', 'ishikawa_updated', 'fivewhy_rejected', 'fivewhy_validated',
   'eightd_validated', 'eightd_rejected',
 ]);
 const ASSIGNMENT_ACTIONS = new Set(['assigned', 'unassigned', 'reassigned', 'claim_assigned', 'claim_unassigned']);
@@ -223,7 +241,7 @@ const moduleMeta = (mod: ModuleKey) => {
 
 /** Actor sentinels stay stable for filtering; only their display is translated. */
 const actorDisplay = (name: string) =>
-  name === ACTOR_SYSTEM ? i18n.t('audit.system') : name === ACTOR_UNKNOWN ? i18n.t('audit.unknown') : name;
+  name === ACTOR_SYSTEM ? i18n.t('audit.system') : name === ACTOR_UNKNOWN ? i18n.t('audit.unknown') : pn(name);
 
 const normAction = (a: string) => String(a || '').trim().toUpperCase();
 const isLoginAction = (a: string) => normAction(a) === 'LOGIN';
@@ -323,14 +341,14 @@ function resolveActorLabel(raw: string | null | undefined, index: UserIndex): st
   if (index.byEmail[lower]) return one(index.byEmail[lower]);
 
   if (value.includes('@')) return emailLocalPart(value) || value;
-  if (isUuid(value)) return `${value.slice(0, 8)}…`;
+  if (isUuid(value) || /^[0-9a-f]{8}…?$/i.test(value)) return ACTOR_UNKNOWN;
   return index.canon[lower] ?? value;
 }
 
 function actorFilterLabel(name: string): string {
   if (name === ACTOR_SYSTEM) return i18n.t('audit.systemFilter');
   if (name === ACTOR_UNKNOWN) return i18n.t('audit.unknownFilter');
-  return name;
+  return pn(name);
 }
 
 function mapIam(log: AuthAuditLog, users: UserIndex): UnifiedEvent {
@@ -1033,7 +1051,7 @@ export default function AuditLogPage() {
         .aul-pagination { display:flex; align-items:center; justify-content:space-between; padding:12px 16px; border-top:1px solid #f0f2f8; }
         .aul-pg-info { font-size:12px; color:#64748b; }
         .aul-pg-btns { display:flex; gap:4px; }
-        .aul-pg-btn { padding:5px 12px; border-radius:6px; border:1px solid #e4e8f2; background:#f8f9fc; font-size:12px; font-weight:500; color:#374151; cursor:pointer; font-family:inherit; }
+        .aul-pg-btn { padding:5px 12px; border-radius:8px; border:1px solid #e4e8f2; background:#f8f9fc; font-size:12px; font-weight:500; color:#374151; cursor:pointer; font-family:inherit; }
         .aul-pg-btn:hover:not(:disabled) { border-color:#000168; color:#000168; }
         .aul-pg-btn:disabled { opacity:.4; cursor:not-allowed; }
         .aul-pg-btn.active { background:#000168; color:#fff; border-color:#000168; }
@@ -1120,68 +1138,51 @@ export default function AuditLogPage() {
       </div>
 
       <div className="aul-filters">
-        <select
-          className="aul-sel"
+        <FilterSelect
           value={filterSource}
-          onChange={(e) => { setFilterSource(e.target.value as SourceKey); setFilterAction(''); bumpPage(); }}
-        >
-          <option value="">{t('audit.allSources')}</option>
-          <option value="iam">{t('audit.sourceAccounts')}</option>
-          <option value="workflow">{t('audit.workflow')}</option>
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterSource(v as SourceKey); setFilterAction(''); bumpPage(); }}
+          allLabel={t('audit.allSources')}
+          options={[{ value: 'iam', label: t('audit.sourceAccounts') }, { value: 'workflow', label: t('audit.workflow') }]}
+        />
+        <FilterSelect
           value={filterModule}
-          onChange={(e) => { setFilterModule(e.target.value); setFilterAction(''); bumpPage(); }}
-        >
-          <option value="">{t('audit.allModules')}</option>
-          {moduleOptions.map((key) => (
-            <option key={key} value={key}>{moduleMeta(key).label}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterModule(v); setFilterAction(''); bumpPage(); }}
+          allLabel={t('audit.allModules')}
+          options={moduleOptions.map((key) => ({ value: key, label: moduleMeta(key).label }))}
+        />
+        <FilterSelect
           value={filterAction}
-          onChange={(e) => { setFilterAction(e.target.value); bumpPage(); }}
-        >
-          <option value="">{t('audit.allActions')}</option>
-          {actionOptions.map((key) => (
-            <option key={key} value={key}>{actionMeta(key).label}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterAction(v); bumpPage(); }}
+          allLabel={t('audit.allActions')}
+          options={actionOptions.map((key) => ({ value: key, label: actionMeta(key).label }))}
+          searchable
+        />
+        <FilterSelect
           value={filterActor}
-          onChange={(e) => { setFilterActor(e.target.value); bumpPage(); }}
+          onChange={(v) => { setFilterActor(v); bumpPage(); }}
           title={t('audit.actorHint')}
-        >
-          <option value="">{t('audit.allActors')}</option>
-          {actorOptions.map((name) => (
-            <option key={name} value={name}>{actorFilterLabel(name)}</option>
-          ))}
-        </select>
-        <select
-          className="aul-sel"
+          allLabel={t('audit.allActors')}
+          options={actorOptions.map((name) => ({ value: name, label: actorFilterLabel(name) }))}
+          searchable
+        />
+        <FilterSelect
           value={filterSeverity}
-          onChange={(e) => { setFilterSeverity(e.target.value as SeverityKey); bumpPage(); }}
-        >
-          <option value="">{t('audit.allSeverities')}</option>
-          <option value="security">{t('audit.kpi.security.label')}</option>
-          <option value="mutation">{t('audit.kpi.mutations.label')}</option>
-          <option value="assignment">{t('audit.kpi.assign.label')}</option>
-          <option value="activity">{t('audit.activity')}</option>
-        </select>
-        <select
-          className="aul-sel"
+          onChange={(v) => { setFilterSeverity(v as SeverityKey); bumpPage(); }}
+          allLabel={t('audit.allSeverities')}
+          options={[
+            { value: 'security', label: t('audit.kpi.security.label') },
+            { value: 'mutation', label: t('audit.kpi.mutations.label') },
+            { value: 'assignment', label: t('audit.kpi.assign.label') },
+            { value: 'activity', label: t('audit.activity') },
+          ]}
+        />
+        <FilterSelect
           value={filterDept}
-          onChange={(e) => { setFilterDept(e.target.value); bumpPage(); }}
+          onChange={(v) => { setFilterDept(v); bumpPage(); }}
           disabled={deptOptions.length === 0}
-        >
-          <option value="">{t('audit.allDepartments')}</option>
-          {deptOptions.map((d) => (
-            <option key={d.id} value={d.id}>{d.name}</option>
-          ))}
-        </select>
+          allLabel={t('audit.allDepartments')}
+          options={deptOptions.map((d) => ({ value: d.id, label: d.name }))}
+        />
         <input
           type="date"
           className="aul-date"

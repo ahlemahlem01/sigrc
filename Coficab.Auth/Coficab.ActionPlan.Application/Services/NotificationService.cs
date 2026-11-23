@@ -97,14 +97,20 @@ public class NotificationService : INotificationService
         string? excludeUserId = null)
     {
         var department = departmentId ?? (claimId.HasValue ? await ClaimDepartmentAsync(claimId.Value) : null);
-        var recipients = await ValidatorIdsAsync(department, permission);
+        var recipients = (await ValidatorIdsAsync(department, permission))
+            .Where(id => string.IsNullOrWhiteSpace(excludeUserId) || !string.Equals(id, excludeUserId, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        // last resort: nobody else can decide (no administrator in the department, or the only one is the submitter)
+        if (recipients.Count == 0)
+        {
+            recipients = (await _userRepo.GetUserIdsByRoleAsync("superadmin"))
+                .Where(id => string.IsNullOrWhiteSpace(excludeUserId) || !string.Equals(id, excludeUserId, StringComparison.OrdinalIgnoreCase))
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        }
 
         foreach (var id in recipients)
-        {
-            if (!string.IsNullOrWhiteSpace(excludeUserId) && string.Equals(id, excludeUserId, StringComparison.OrdinalIgnoreCase))
-                continue;
             await NotifyAsync(id, type, title, message, actionPlanId, linkPath, claimId);
-        }
     }
 
     /// <summary>Department of a claim: the one of the person in charge, or failing that of the person who raised it.</summary>
@@ -124,10 +130,17 @@ public class NotificationService : INotificationService
 
     private async Task<List<string>> ValidatorIdsAsync(Guid? department, string? permission)
     {
-        var superadmins = await _userRepo.GetUserIdsByRoleAsync("superadmin");
         var admins = (await _userRepo.GetUserIdsByRoleAsync("admin")).Concat(await _userRepo.GetUserIdsByRoleAsync("ADMIN_QUALITY")).ToList();
 
-        var ids = new List<string>(superadmins);
+        // a superadmin is told only about the departments they chose to follow (the last resort is handled by the caller)
+        var ids = new List<string>();
+        if (department != null)
+        {
+            var superadmins = new HashSet<string>(await _userRepo.GetUserIdsByRoleAsync("superadmin"), StringComparer.OrdinalIgnoreCase);
+            var watchers = await _context.SuperadminDepartmentWatches.AsNoTracking()
+                .Where(w => w.DepartmentId == department).Select(w => w.UserId).ToListAsync();
+            ids.AddRange(watchers.Where(superadmins.Contains));
+        }
         if (department == null)
         {
             ids.AddRange(admins);   // department unknown: nobody must be left without the request

@@ -1,0 +1,8 @@
+<Project>
+  <!-- Security: transitive packages with known advisories, pinned to the patched versions for every project
+       (System.Security.Cryptography.Pkcs: GHSA-846f-f764-76mx, .Xml: GHSA-cvvh-rhrc-wg4q). -->
+  <ItemGroup>
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
+    <PackageReference Include="System.Security.Cryptography.Xml" Version="9.0.21" />
+  </ItemGroup>
+</Project>

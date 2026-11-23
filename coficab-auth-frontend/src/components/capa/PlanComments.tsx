@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import ConfirmDialog from '../ConfirmDialog';
 import { addPlanComment, archivePlanComment, editPlanComment, getPlanComments, PlanComment } from '../../services/actionPlanService';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 const MAX = 2000;
 const POLL_MS = 20000;
@@ -141,7 +142,7 @@ export default function PlanComments({ token, planId }: { token: string; planId:
         .pc-compose { margin-top: 12px; }
         .pc-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 6px; }
         .pc-hint { font-size: 11px; color: #94a3b8; }
-        .pc-btn { background: #000168; color: #fff; border: 0; border-radius: 9px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
+        .pc-btn { background: #000168; color: #fff; border: 0; border-radius: 8px; padding: 7px 16px; font-size: 13px; font-weight: 700; cursor: pointer; }
         .pc-btn:disabled { opacity: .45; cursor: default; }
         .pc-btn.sec { background: #fff; color: #334155; border: 1px solid #cbd5e1; }
         .pc-empty { font-size: 13px; color: #94a3b8; margin: 4px 0 0; }
@@ -162,7 +163,7 @@ export default function PlanComments({ token, planId }: { token: string; planId:
             <div className={`pc-avatar ${c.authorRole}`} aria-hidden>{initials(c.authorName)}</div>
             <div className="pc-bubble">
               <div className="pc-meta">
-                <strong>{c.authorName}</strong>
+                <strong>{pn(c.authorName)}</strong>
                 {c.authorRole === 'admin' && <span className="pc-role">{t('planComments.admin')}</span>}
                 <span title={new Date(c.createdAt).toLocaleString(dateLocale())}>{when(c.createdAt, t)}</span>
                 {c.editedAt && <span>· {t('planComments.edited')}</span>}

@@ -59,7 +59,7 @@
   border-radius: 12px;
   border: 1px solid #dbeafe;
   background: linear-gradient(180deg, #f8fbff 0%, #eff6ff 100%);
-  color: #1e3a8a;
+  color: #000168;
 }
 
 .pareto-ai-banner > svg {
@@ -72,7 +72,7 @@
   display: block;
   font-size: 13px;
   font-weight: 700;
-  color: #1e40af;
+  color: #1d4ed8;
   margin-bottom: 4px;
 }
 

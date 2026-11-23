@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getPlanTimeline, PlanTimelineEvent } from '../../services/actionPlanService';
 import { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 
 const TONE: Record<string, string> = {
   subaction_description: '#4338ca', subaction_deadline_extended: '#b45309', subaction_proof: '#0f766e', subaction_completed: '#059669', subaction_validated: '#047857', subaction_rejected: '#b91c1c',
@@ -37,7 +38,7 @@ export default function PlanTimeline({ token, planId, refreshKey = 0 }: { token:
               {e.note ? <span className="text-slate-600"> · {e.note}</span> : null}
             </div>
             <div className="text-[11px] text-slate-500">
-              {e.changedByName || e.changedBy || '—'} · {new Date(e.createdAt).toLocaleString(dateLocale(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              {pn(e.changedByName) || e.changedBy || '—'} · {new Date(e.createdAt).toLocaleString(dateLocale(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
         </li>

@@ -16,6 +16,7 @@ import type { OverviewAging, OverviewData, OverviewMetric, RankedItem } from '..
 import DashInfoTip from './DashInfoTip';
 import { CLAIMS_ACCENT, COFICAB, PLANS_ACCENT } from './dashPalette';
 import { defectLabel } from '../../../utils/defectLabel';
+import { pn } from '../../../utils/person';
 
 type Tone = 'green' | 'orange' | 'red' | 'neutral';
 type Period = '30' | '90' | '365';
@@ -537,7 +538,7 @@ export default function OverviewPage() {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold truncate" style={{ color: COFICAB.ink }}>{c.title}</div>
                         <div className="text-[11px] truncate" style={{ color: COFICAB.muted }}>
-                          {c.clientId} · {c.responsibleName || <b style={{ color: COFICAB.warn }}>{t('claimDetail.unassigned')}</b>}
+                          {c.clientId} · {pn(c.responsibleName) || <b style={{ color: COFICAB.warn }}>{t('claimDetail.unassigned')}</b>}
                         </div>
                       </div>
                       <span className="shrink-0 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: chip.bg, color: chip.fg }}>{severityLabel(c.severity)}</span>

@@ -36,4 +36,11 @@ public class ActionPlan : BaseEntity
     public ICollection<ActionPlanHistory> History { get; set; } = [];
     public virtual ICollection<UserActionPlanAssignment> UserAssignments { get; set; } = []; // keep only if you need multi-assignment elsewhere
     public int Progress { get; set; } = 0;
+
+    /// <summary>Approval of the plan before its execution (plans built from a 5 Why). Approved for every other plan.</summary>
+    public PlanApprovalStatus ApprovalStatus { get; set; } = PlanApprovalStatus.Approved;
+    public string? ApprovalDecidedById { get; set; }
+    public DateTime? ApprovalDecidedAt { get; set; }
+    /// <summary>The reason given when the plan was returned.</summary>
+    public string? ApprovalComment { get; set; }
 }

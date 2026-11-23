@@ -1,5 +1,9 @@
 
 
+:root {
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 body {
     margin: 0 !important;
   padding: 0 !important;

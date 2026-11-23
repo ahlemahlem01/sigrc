@@ -10,6 +10,7 @@ import {
 import type { CompetencyScores, EmployeePerformanceRow } from '../../../services/employeePerformanceService';
 import { COFICAB } from '../dashboard/dashPalette';
 import { useTranslation } from 'react-i18next';
+import { pn } from '../../../utils/person';
 
 /** Labels are shown as-is except 'deadlines', which is translated. */
 const AXES: { key: keyof CompetencyScores; label: string }[] = [
@@ -51,7 +52,7 @@ export default function ComparisonRadar({ employees, height = 300 }: Props) {
                 borderStyle: i === 0 ? 'solid' : 'dashed',
               }}
             />
-            <span className="cmp-radar-legend-name">{emp.fullName}</span>
+            <span className="cmp-radar-legend-name">{pn(emp.fullName)}</span>
           </div>
         ))}
       </div>

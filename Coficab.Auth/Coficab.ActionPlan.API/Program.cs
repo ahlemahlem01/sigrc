@@ -12,14 +12,14 @@ using Coficab.ActionPlan.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
 using System.Net.Http;
+using System.Threading.RateLimiting;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCoficabSerilog("coficab-actionplan");
 
-// Primary SQL Server connection comes from User Secrets (ConnectionStrings:DefaultConnection).
-// Tests use the in-memory provider and do not need this value.
+
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -31,7 +31,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
         builder.Configuration["ConnectionStrings:ActionPlanDb"] = defaultConnection;
 }
 
-// ✅ Infrastructure et Application
+//  Infrastructure et Application
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddApplication();
 
@@ -58,6 +58,7 @@ builder.Services.AddHttpClient("AuthApi")
         return handler;
     });
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<Coficab.ActionPlan.Application.QualityAnalyses.Services.IDelayModelClient, Coficab.ActionPlan.API.Services.MlDelayModelClient>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IBadgeService, BadgeService>();
 builder.Services.AddScoped<IDocumentService, DocumentService>();
@@ -105,10 +106,10 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-// ✅ Définir le scheme par défaut
+//  Définir le scheme par défaut
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 
-// ✅ Authorization
+//  Authorization
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
@@ -126,8 +127,25 @@ builder.Services.AddAuthorization(options =>
         }));
 });
 
-// ✅ CORS — SignalR requires AllowCredentials
-// Cors:AllowedOrigins: array, or one comma-separated value (e.g. an environment variable).
+//  Rate limits: per signed-in user (else per address) on the costly endpoints (assistant, uploads, image analysis)
+builder.Services.AddRateLimiter(limiter =>
+{
+    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    void PerUser(string policy, string key, int permits) =>
+        limiter.AddPolicy(policy, http => RateLimitPartition.GetFixedWindowLimiter(
+            http.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue(key, permits),
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+    PerUser("assistant", "RateLimiting:AssistantPerMinute", 20);
+    PerUser("upload", "RateLimiting:UploadPerMinute", 30);
+});
+
+//  CORS — SignalR requires AllowCredentials
+
 var allowedOrigins = ReadAllowedOrigins(builder.Configuration);
 builder.Services.AddCors(options =>
 {
@@ -141,7 +159,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ✅ Controllers & String Enum Serializer
+//  Controllers and String Enum Serializer
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -181,8 +199,7 @@ builder.Services.AddScoped<INotificationBroadcaster, NotificationBroadcaster>();
 
 var app = builder.Build();
 
-// Tables are created by EF migrations (dotnet ef database update), never by raw SQL at startup.
-// Embeddings are stored as JSON text and ranked in memory.
+
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
@@ -191,10 +208,17 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
     app.UseDeveloperExceptionPage();
 }
 
-// 📸 Activation de l'accès aux fichiers statiques (images, avatars dans wwwroot)
+//  Activation de l'accès aux fichiers statiques (images, avatars dans wwwroot)
+app.Use(async (context, next) =>
+{
+    // nothing served by the API (files, JSON) may be re-interpreted as another type by the browser
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    await next();
+});
+
 app.UseStaticFiles();
 
-// ✅ SignalR WebSocket token injection
+//  SignalR 
 app.Use(async (context, next) =>
 {
     var accessToken = context.Request.Query["access_token"];
@@ -209,15 +233,16 @@ app.Use(async (context, next) =>
 app.UseCoficabRequestLogging();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.LatencyMiddleware>();
 
-// ✅ Native CORS Policy (Handles preflight OPTIONS automatically)
+//  Native CORS Policy 
 app.UseCors("CoficabFrontend");
 
 app.UseAuthentication();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.ValidationExceptionMiddleware>();
 
-// ✅ SignalR hub
+//  SignalR hub
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.MapControllers();

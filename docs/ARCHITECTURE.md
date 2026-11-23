@@ -106,8 +106,9 @@ réclamation corrigée par l'opérateur ──▶ export_corrections.py ──�
   (`holdout`) prend de la valeur avec le nombre de corrections.
 - **Mise en service.** `best.pt` est remplacé (l'ancien est conservé dans `backups/`), puis `POST /reload` recharge le modèle sans arrêter le service. Si le service ne peut pas
   charger les nouveaux poids, les anciens sont remis. `CV_RELOAD_TOKEN` (en-tête `X-Reload-Token`) protège cet appel si on le définit.
-- **Lancer.** `python auto_retrain.py` (ou `--dry-run` pour tout mesurer sans rien remplacer). À planifier par exemple chaque mois, ou quand `dataset_auto/` contient 100 corrections validées.
-- **Réserve.** Les corrections ne passent pas encore par une validation de l'ingénieur qualité avant d'entrer dans l'entraînement : une correction faite trop vite devient un exemple.
+- **Lancer.** `python auto_retrain.py` (ou `--dry-run` pour tout mesurer sans rien remplacer).
+- **Déclenchement automatique.** `retrain_if_due.py` est lancé par une tâche planifiée (`scripts/schedule-retrain.ps1 on` : chaque dimanche à 02:00). Il compte les photos validées par l'ingénieur qualité et ne démarre `auto_retrain.py` que s'il y a au moins 20 nouvelles photos validées et 7 jours depuis le dernier réentraînement (premier passage : 10 photos). Il ne démarre pas non plus s'il reste moins de 3 Go de disque ou si un réentraînement tourne déjà. Chaque contrôle est écrit dans `logs/retrain_history.log` ; l'état est dans `logs/retrain_state.json`. Les garde-fous de la décision (strictement meilleur, aucune classe qui s'effondre) sont ceux de `auto_retrain.py` : l'automatisation ne les contourne pas.
+- **Validation par l'ingénieur qualité.** Seules les photos validées par l'ingénieur qualité entrent dans l'entraînement (écran de revue : validées, rejetées, en attente ; l'ingénieur peut corriger le code retenu).
 
 ## Recherche de cas similaires par l'image (CBIR)
 

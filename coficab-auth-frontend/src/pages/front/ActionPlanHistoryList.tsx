@@ -8,6 +8,7 @@ import './ActionPlanHistoryList.styles.css';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n';
 import { withScope } from '../../services/organizationScopeStore';
+import { pn } from '../../utils/person';
 
 interface FieldChange {
   field: string;
@@ -172,9 +173,9 @@ function EventRow({
 
         {(type === 'assigned' || type === 'unassigned') && (
           <div className="aph-delta">
-            {item.oldAssignedToName && <span className="aph-pill old">{item.oldAssignedToName}</span>}
+            {item.oldAssignedToName && <span className="aph-pill old">{pn(item.oldAssignedToName)}</span>}
             {item.oldAssignedToName && item.newAssignedToName && <span className="aph-arrow">→</span>}
-            {item.newAssignedToName && <span className="aph-pill new">{item.newAssignedToName}</span>}
+            {item.newAssignedToName && <span className="aph-pill new">{pn(item.newAssignedToName)}</span>}
           </div>
         )}
 

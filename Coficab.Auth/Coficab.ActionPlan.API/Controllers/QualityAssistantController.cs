@@ -36,6 +36,7 @@ public class QualityAssistantController : ControllerBase
     /// Le scope est dérivé du rôle JWT : employé = données personnelles, admin = organisation.
     /// </summary>
     [HttpPost("chat")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("assistant")]
     public async Task<IActionResult> Chat(
         [FromBody] ChatRequest request,
         CancellationToken cancellationToken)

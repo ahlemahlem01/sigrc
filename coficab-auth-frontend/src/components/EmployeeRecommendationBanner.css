@@ -100,7 +100,7 @@
   flex-shrink: 0;
   padding: 0.35rem 0.7rem;
   border: 1px solid #000168;
-  border-radius: 6px;
+  border-radius: 8px;
   background: #000168;
   color: #fff;
   font-size: 0.75rem;
@@ -191,7 +191,7 @@
   flex-shrink: 0;
   width: 4.2rem;
   height: 1.55rem;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 @keyframes erb-shimmer {

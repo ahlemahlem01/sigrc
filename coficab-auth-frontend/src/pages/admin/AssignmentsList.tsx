@@ -5,6 +5,7 @@ import { getUsers } from '../../services/adminService';
 import TableSkeleton from '../../components/TableSkeleton';
 import { useTranslation } from 'react-i18next';
 import i18n, { dateLocale } from '../../i18n';
+import { pn } from '../../utils/person';
 const unwrapList = (raw: any): any[] => {
   if (Array.isArray(raw)) return raw;
   if (Array.isArray(raw?.['$values'])) return raw['$values'];
@@ -257,7 +258,6 @@ const loadEmployeeNames = async () => {
     <>
       <style>{
         `
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         :root {
           --navy: #000168; --navy-mid: #00009e; --navy-light: #eef2ff;
@@ -298,7 +298,7 @@ const loadEmployeeNames = async () => {
         .asl-perm { display: inline-flex; align-items: center; gap: 4px; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; margin: 1px; }
         .perm-on { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
         .perm-off { background: #f8fafc; color: #94a3b8; border: 1px solid var(--border); }
-        .asl-uid { font-family: monospace; font-size: 10px; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
+        .asl-uid { font-family: var(--font-mono); font-size: 10px; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: inline-block; }
         .asl-ab { display: inline-flex; align-items: center; gap: 3px; padding: 5px 8px; border-radius: 6px; font-size: 10px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: #f8f9fc; color: var(--muted); transition: color .15s, border-color .15s; font-family: var(--font-body); }
         .asl-ab:hover { color: #b91c1c; border-color: #fca5a5; }
         .asl-empty { padding: 48px 24px; text-align: center; color: var(--muted); }
@@ -344,7 +344,7 @@ const loadEmployeeNames = async () => {
         <div className="asl-header">
           <div>
             <div className="asl-eyebrow">{t('createPlan.eyebrow')}</div>
-            <div className="asl-title">{t('assignmentsList.title')}</div>
+            <h1 className="asl-title">{t('assignmentsList.title')}</h1>
             <div className="asl-sub">{t('assignmentsList.subtitle')}</div>
           </div>
           <div className="asl-actions">
@@ -454,7 +454,7 @@ const loadEmployeeNames = async () => {
                         </span>
                         {a.updatedBy && (
                           <span style={{ fontSize: 10, color: 'var(--subtle)' }}>
-                            {t('assignmentsMap.assignedBy', { name: employeeNames[a.updatedBy] || a.updatedBy })}
+                            {t('assignmentsMap.assignedBy', { name: pn(employeeNames[a.updatedBy] || a.updatedBy) })}
                           </span>
                         )}
                       </div>

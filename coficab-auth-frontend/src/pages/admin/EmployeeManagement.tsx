@@ -356,6 +356,9 @@ function groupPermissions(rows: { name?: string; displayName?: string; appId?: s
   return result;
 }
 
+/** A person who left the company: the profile is kept, with the status archived. */
+const isArchivedProfile = (p: { status?: unknown }) => String(p?.status ?? '').toLowerCase() === 'archived';
+
 // ─── Create User Modal ────────────────────────────────────────────────────────
 function CreateUserModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const { t } = useTranslation();
@@ -620,7 +623,7 @@ export default function EmployeeManagement() {
   const [docOpeningId, setDocOpeningId] = useState<string | null>(null);
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState('');
-  const [activityFilter, setActivityFilter] = useState<'all' | ActivityStatus>('all');
+  const [activityFilter, setActivityFilter] = useState<'all' | 'Archived' | ActivityStatus>('all');
   const [showCreate, setShowCreate] = useState(false);
   const [unlockingId, setUnlockingId] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -742,9 +745,9 @@ export default function EmployeeManagement() {
   const q = search.toLowerCase();
   const visibleProfiles = lockedOnly ? profiles.filter((p) => p.isLockedOut) : profiles;
   const filteredProfiles = visibleProfiles
-    .filter((p) =>
-      activityFilter === 'all' || normalizeActivityStatus(p.activityStatus) === activityFilter,
-    )
+    .filter((p) => (activityFilter === 'Archived'
+      ? isArchivedProfile(p)
+      : !isArchivedProfile(p) && (activityFilter === 'all' || normalizeActivityStatus(p.activityStatus) === activityFilter)))
     .filter((p) =>
       [p.name, p.fullName, p.email, p.department, p.role, p.managerName, p.phone, p.telephone, p.poste, p.equipe, p.ligneProduction, p.organizationName].some(
         (v) => v?.toLowerCase?.().includes(q) ?? String(v ?? '').toLowerCase().includes(q),
@@ -902,13 +905,14 @@ export default function EmployeeManagement() {
     setDrawerOpen(true);
   };
 
-  const activeCount = profiles.filter((p) => !p.isLockedOut).length;
-  const lockedCount = profiles.filter((p) => p.isLockedOut).length;
+  // people who left the company (status archived) are kept but are not part of the working figures
+  const livingProfiles = profiles.filter((p) => !isArchivedProfile(p));
+  const activeCount = livingProfiles.filter((p) => !p.isLockedOut).length;
+  const lockedCount = livingProfiles.filter((p) => p.isLockedOut).length;
 
   return (
     <>
       <style>{`
-        @import url('https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.9.0/dist/tabler-icons.min.css');
 
         .em-wrap { padding: 20px 24px 28px; font-family: 'Inter', sans-serif; max-width: 1280px; }
 
@@ -1164,14 +1168,14 @@ export default function EmployeeManagement() {
         .em-btn-danger:hover { background: #fecaca; }
         .em-btn-danger:disabled { opacity: .6; cursor: not-allowed; }
         .em-btn-sm {
-          height: 30px; padding: 0 10px; border-radius: 7px;
+          height: 30px; padding: 0 10px; border-radius: 8px;
           font-size: 11.5px; font-weight: 600; gap: 5px;
           white-space: nowrap; line-height: 1;
         }
         .em-btn-sm i { font-size: 13px; }
         .em-btn-icon {
           width: 30px; min-width: 30px; height: 30px; padding: 0;
-          justify-content: center; border-radius: 7px;
+          justify-content: center; border-radius: 8px;
         }
         .em-btn-icon i { font-size: 14px; margin: 0; }
         .em-btn-view { background: #000168; color: #fff; border-color: #000168; }
@@ -1310,9 +1314,9 @@ export default function EmployeeManagement() {
       <div className="em-wrap">
         <div className="em-head">
           <div>
-            <div className="em-head-title">
+            <h1 className="em-head-title">
               {lockedOnly ? t('employeesAdmin.titleLocked') : t('employeesAdmin.title')}
-            </div>
+            </h1>
             <div className="em-head-sub">
               {lockedOnly
                 ? t('employeesAdmin.subtitleLocked')
@@ -1322,7 +1326,7 @@ export default function EmployeeManagement() {
           {!lockedOnly && (
             <div className="em-kpis">
               <div className="em-kpi">
-                <div className="em-kpi-val">{profiles.length}</div>
+                <div className="em-kpi-val">{livingProfiles.length}</div>
                 <div className="em-kpi-lbl">{t('closedArchive.total')}</div>
               </div>
               <div className="em-kpi">
@@ -1396,12 +1400,13 @@ export default function EmployeeManagement() {
             <select
               className="em-filter-select"
               value={activityFilter}
-              onChange={(e) => setActivityFilter(e.target.value as 'all' | ActivityStatus)}
+              onChange={(e) => setActivityFilter(e.target.value as 'all' | 'Archived' | ActivityStatus)}
               aria-label={t('employeesAdmin.filterActivity')}
             >
               {ACTIVITY_STATUS_OPTIONS.map((opt) => (
                 <option key={opt.value} value={opt.value}>{opt.label}</option>
               ))}
+              <option value="Archived">{t('employeesAdmin.archivedFilter')}</option>
             </select>
           )}
 
@@ -1602,11 +1607,11 @@ export default function EmployeeManagement() {
                             </div>
                             <div className="em-list-status">
                               <span
-                                className={`em-act act-${activityStatusClass(p.activityStatus)}`}
+                                className={`em-act act-${isArchivedProfile(p) ? 'inactive' : activityStatusClass(p.activityStatus)}`}
                                 title={t('employeesAdmin.activityStatus')}
                               >
                                 <span className="em-act-dot" aria-hidden />
-                                {activityStatusLabel(p.activityStatus)}
+                                {isArchivedProfile(p) ? t('employeesAdmin.archivedPill') : activityStatusLabel(p.activityStatus)}
                               </span>
                             </div>
                             <div className="em-actions">

@@ -51,7 +51,7 @@ export default function ReportHistorySection({
         .hrh-actions { display: flex; flex-wrap: wrap; gap: 6px; }
         .hrh-btn {
           display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 10px;
-          border-radius: 7px; border: 1px solid ${LINE}; background: #fff; color: ${NAVY};
+          border-radius: 8px; border: 1px solid ${LINE}; background: #fff; color: ${NAVY};
           font: inherit; font-size: 12px; font-weight: 600; cursor: pointer;
         }
         .hrh-btn:hover { background: #eef2ff; }

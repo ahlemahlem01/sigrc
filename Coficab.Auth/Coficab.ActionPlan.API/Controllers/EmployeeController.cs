@@ -150,6 +150,7 @@ public class EmployeeController : ControllerBase
 
     // ─── 1c. Upload de l'Avatar ─────────────────────────────────────────────────
     [HttpPost("profile/avatar")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
         try
@@ -168,6 +169,9 @@ public class EmployeeController : ControllerBase
 
             if (file.Length > 5 * 1024 * 1024)
                 return BadRequest(new { error = "La taille du fichier dépasse 5 Mo." });
+
+            if (!await Services.DocumentStorage.ContentMatchesExtensionAsync(file))
+                return BadRequest(new { error = "Le contenu du fichier ne correspond pas à son format." });
 
             var webRoot = _environment.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
             var uploadsFolder = Path.Combine(webRoot, "uploads", "avatars");

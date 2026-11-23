@@ -10,6 +10,7 @@ import { fixMojibake } from '../../utils/textEncoding';
 import { exportCapaPdf } from '../../utils/capaPdfExport';
 import { CapaPageHeader } from '../../components/capa/CapaAdminUi';
 import { ListSkeleton } from '../../components/TableSkeleton';
+import { pn } from '../../utils/person';
 
 const COFICAB = '#000168';
 const PAGE_SIZE = 8;
@@ -424,7 +425,7 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus, do
                         </span>
                       </td>
                       <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{g.plan.process}</td>
-                      <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{g.plan.assignedToName || g.plan.ownerName || <span className="text-slate-400">Non assigné</span>}</td>
+                      <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{pn(g.plan.assignedToName) || g.plan.ownerName || <span className="text-slate-400">Non assigné</span>}</td>
                       <td className="px-4 py-3">
                         <span className="inline-flex min-w-[28px] justify-center px-2 py-0.5 rounded-full text-xs font-semibold tabular-nums bg-slate-100 text-slate-700">{g.actions.length}</span>
                       </td>
@@ -474,7 +475,7 @@ export default function AdminCapaAssociatedActions({ embedded = false, focus, do
                               {g.actions.map((a) => (
                                 <tr key={a.id} className="border-t border-slate-100">
                                   <td className="px-3 py-2 font-medium text-slate-900 max-w-[240px] truncate">{fixMojibake(a.title)}</td>
-                                  <td className="px-3 py-2 text-slate-600">{a.assignedToName || t('dashboard.unassigned')}</td>
+                                  <td className="px-3 py-2 text-slate-600">{pn(a.assignedToName) || t('dashboard.unassigned')}</td>
                                   <td className="px-3 py-2 whitespace-nowrap text-slate-600">{formatDate(a.deadline)}</td>
                                   <td className="px-3 py-2 w-36">
                                     <div className="h-1.5 rounded-full bg-slate-100 overflow-hidden">

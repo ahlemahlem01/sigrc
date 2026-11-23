@@ -43,7 +43,7 @@ const EightDEmployeeGuidePage: React.FC = () => {
         .eg-extra li { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; }
         .eg-extra b { display: block; font-size: 12px; color: ${NAVY}; margin-bottom: 2px; }
         .eg-extra span { font-size: 13px; color: #475569; line-height: 1.4; }
-        .eg-ex { margin: 8px 0 0; padding: 8px 10px; background: #eff6ff; border-radius: 8px; font-size: 13px; color: #1e3a8a; line-height: 1.45; }
+        .eg-ex { margin: 8px 0 0; padding: 8px 10px; background: #eff6ff; border-radius: 8px; font-size: 13px; color: #000168; line-height: 1.45; }
       `}</style>
 
       {claimId ? (

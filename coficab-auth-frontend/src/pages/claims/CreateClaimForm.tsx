@@ -37,7 +37,9 @@ import { defectLabel, defectValueFromInput } from '../../utils/defectLabel';
 import { appendCvProposal, CvProposal } from '../../utils/cvPayload';
 import { computePpm, formatPpm } from '../../utils/Ppm';
 import { CameraCaptureModal } from '../../components/CameraCaptureModal';
+import { ClaimCreationSheet } from '../../components/ClaimCreationSheet';
 import { applySimilarCase, SimilarCase } from '../../utils/similarCase';
+import SimilarValueHint from '../../components/SimilarValueHint';
 
 interface CreateClaimFormProps {
   onSuccess?: () => void; // called after a successful create (e.g. when rendered inside a modal); falls back to navigation + reload when absent
@@ -52,6 +54,7 @@ export const CreateClaimForm: React.FC<CreateClaimFormProps> = ({ onSuccess }) =
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [loading, setLoading] = useState<boolean>(false);
+  const [sheetClaimId, setSheetClaimId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [assignableUsers, setAssignableUsers] = useState<
@@ -294,6 +297,16 @@ const handleSaveDraft = async () => {
   await submitClaim('DRAFT');
 };
 
+const finishCreation = (statusCode: 'DRAFT' | 'OUVERTE') => {
+  if (onSuccess) {
+    onSuccess();
+  } else if (statusCode === 'DRAFT') {
+    navigate('/pages/front/quality-analyses/drafts', { replace: true });
+  } else {
+    navigate('/pages/front/quality-analyses', { replace: true });
+  }
+};
+
 const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
   if (currentStep < 3) {
     nextStep();
@@ -349,14 +362,13 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
       payload.append('AssignedToName', label);
     }
 
-    await qualityAnalysisService.createClaim(payload, accessToken);
+    const created = await qualityAnalysisService.createClaim(payload, accessToken);
 
-    if (onSuccess) {
-      onSuccess();
-    } else if (statusCode === 'DRAFT') {
-      navigate('/pages/front/quality-analyses/drafts', { replace: true });
+    // a declared claim (not a draft) opens its creation sheet: the creator confirms or corrects it, and chooses the estimated date
+    if (statusCode !== 'DRAFT' && created?.id) {
+      setSheetClaimId(created.id);
     } else {
-      navigate('/pages/front/quality-analyses', { replace: true });
+      finishCreation(statusCode);
     }
   } catch (err: any) {
     const message =
@@ -389,6 +401,10 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         <span>{t('createClaim.authenticating')}</span>
       </div>
     );
+  }
+
+  if (sheetClaimId) {
+    return <ClaimCreationSheet claimId={sheetClaimId} origin="create" onClose={() => finishCreation('OUVERTE')} />;
   }
 
   const sevStyle = getSeverityBadgeClass(formData.severity);
@@ -656,7 +672,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         @media (max-width: 640px) { .pfe-sim-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pfe-sim-card { min-height: 44px; } }
         .pfe-file-actions { display: flex; align-items: center; gap: 8px; }
         .pfe-replace-btn { position: relative; display: inline-flex; align-items: center; gap: 6px; height: 34px; padding: 0 12px; border: 1px solid #cbd5e1;
-          border-radius: 8px; background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+          border-radius: 8px; background: #fff; color: #000168; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .pfe-replace-btn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
         .pfe-cv-card {
           margin-top: 10px;
@@ -665,7 +681,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           background: #eff6ff;
           border-radius: 8px;
         }
-        .pfe-cv-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #1e3a8a; }
+        .pfe-cv-head { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: #000168; }
         .pfe-cv-conf { font-weight: 700; color: #15803d; }
         .pfe-cv-conf.low { color: #b45309; }
         .pfe-cv-code { margin: 6px 0; font-size: 15px; font-weight: 800; color: #0f172a; }
@@ -674,7 +690,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
         .pfe-cv-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
         .pfe-cv-btn, .pfe-cv-select {
           height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid #93c5fd;
-          background: #fff; color: #1e3a8a; font-size: 12.5px; font-weight: 600; cursor: pointer;
+          background: #fff; color: #000168; font-size: 12.5px; font-weight: 600; cursor: pointer;
         }
         .pfe-cv-btn.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
         .pfe-file-card {
@@ -732,7 +748,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           padding: 9px 16px;
           background: #ffffff;
           border: 1px solid #cbd5e1;
-          border-radius: 7px;
+          border-radius: 8px;
           color: #334155;
           font-size: 12.5px;
           font-weight: 600;
@@ -750,7 +766,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
           padding: 9px 18px;
           background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
           border: none;
-          border-radius: 7px;
+          border-radius: 8px;
           color: #ffffff;
           font-size: 12.5px;
           font-weight: 700;
@@ -1200,6 +1216,7 @@ const submitClaim = async (statusCode: 'DRAFT' | 'OUVERTE') => {
                             placeholder={t('createClaim.examplePrefix', { value: 'STELLANTIS-01' })}
                           />
                         </div>
+                        <SimilarValueHint field="client" value={formData.clientId} token={accessToken} onPick={(v) => setFormData((prev) => ({ ...prev, clientId: v }))} />
                       </div>
 
                       <div className="pfe-field">

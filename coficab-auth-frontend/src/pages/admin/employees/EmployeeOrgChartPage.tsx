@@ -33,6 +33,7 @@ import {
 import { inferWorkFieldsFromDepartment, phoneFromId } from '../../../utils/employeeWorkFields';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../i18n';
+import { pn } from '../../../utils/person';
 
 const NAVY = '#000168';
 const LINE = '#e4e8f2';
@@ -156,7 +157,7 @@ function EmployeeNode({ data }: NodeProps) {
         radius="lg"
       />
       <div className="org-emp-body">
-        <div className="org-emp-name">{e.fullName}</div>
+        <div className="org-emp-name">{pn(e.fullName)}</div>
         <div className="org-emp-poste">{e.poste || '—'}</div>
         <div className="org-emp-equipe">{e.equipe || '—'}</div>
       </div>
@@ -601,7 +602,7 @@ function OrgChartCanvas({
               radius="lg"
             />
             <div style={{ minWidth: 0 }}>
-              <div className="org-pop-name">{selected.fullName}</div>
+              <div className="org-pop-name">{pn(selected.fullName)}</div>
               <div className="org-pop-dept">
                 {selected.department || '—'} · {selected.poste}
               </div>
@@ -965,7 +966,7 @@ export default function EmployeeOrgChartPage() {
         .org-pop-actions { display: flex; gap: 8px; margin-top: 12px; }
         .org-pop-btn {
           display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 10px;
-          border-radius: 7px; font: inherit; font-size: 12px; font-weight: 600;
+          border-radius: 8px; font: inherit; font-size: 12px; font-weight: 600;
           border: 1px solid transparent; cursor: pointer; background: ${NAVY}; color: #fff;
         }
         .org-pop-btn:hover { background: #00009e; }

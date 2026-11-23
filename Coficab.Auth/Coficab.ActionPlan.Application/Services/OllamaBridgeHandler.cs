@@ -48,15 +48,13 @@ public sealed class OllamaBridgeHandler : DelegatingHandler
         var geminiKey = System.Web.HttpUtility.ParseQueryString(uri.Query)["key"];
         var canFallBack = !string.IsNullOrWhiteSpace(geminiKey) && geminiKey != PlaceholderKey;
 
-        // The 5 Why coach must stay strict about people being blamed instead of the system: it stays on Gemini (when a key is set)
-        // unless Llm:CoachProvider is "ollama".
+        
         var coach = request.Headers.TryGetValues(PurposeHeader, out var purpose) && purpose.Contains("coach");
         if (coach) request.Headers.Remove(PurposeHeader);
         if (coach && canFallBack && !string.Equals(_configuration["Llm:CoachProvider"], "ollama", StringComparison.OrdinalIgnoreCase))
             return await base.SendAsync(request, cancellationToken);
 
-        // A 3-billion-parameter vision model answers "no defect" on most real photos: with a Gemini key, photos stay on Gemini
-        // unless Llm:VisionProvider is set to "ollama" (the text and the assistant still use Ollama).
+        
         if (op == "generateContent" && canFallBack && !string.Equals(_configuration["Llm:VisionProvider"], "ollama", StringComparison.OrdinalIgnoreCase)
             && (body.Contains("\"inline_data\"") || body.Contains("\"inlineData\"")))
             return await base.SendAsync(request, cancellationToken);

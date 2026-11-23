@@ -494,7 +494,7 @@ html, body, #root {
 
           padding: 10px 28px;
 
-          border-radius: 7px;
+          border-radius: 8px;
 
           font-family: Inter, sans-serif;
 

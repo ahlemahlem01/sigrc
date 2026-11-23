@@ -157,6 +157,10 @@ export interface IshikawaCauseInput {
 
 export interface IshikawaCauseRead {
   id: string;
+  /** Prospective Pareto: the analyst's own scores (1 to 10); null until the cause is scored. */
+  riskSeverity?: number | null;
+  riskOccurrence?: number | null;
+  riskDetection?: number | null;
   category: IshikawaCategory | string;
   causeDescription: string;
   isRootCause: boolean;
@@ -271,6 +275,8 @@ export interface ClaimsHistoryRow {
   eightDClosedAt?: string | null;
   ishikawaId?: string | null;
   ishikawaStatus?: string | null;
+  ishikawaCauseCount?: number;
+  paretoScoredCount?: number;
   capaId?: string | null;
   capaTitle?: string | null;
   capaStatus?: string | null;
@@ -351,4 +357,44 @@ export interface ClaimsHistoryQuery {
   scope?: string;
   /** noFiveWhy | eightD | noCapa | capaLate */
   focus?: string;
+}
+/** One line of the trace shown on the creation sheet (who did what, with old → new values in `detail`). */
+export interface ClaimSheetEvent {
+  actionType: string;
+  actorName: string;
+  detail?: string | null;
+  createdAt: string;
+}
+
+/** The creation sheet of a claim. Only the creator edits it, and only before confirming. */
+export interface ClaimCreationSheet {
+  claimId: string;
+  creatorId: string;
+  creatorName: string;
+  isCreator: boolean;
+  validated: boolean;
+  validatedAt?: string | null;
+  validatedByName?: string | null;
+  canEdit: boolean;
+  suggestedDeadline?: string | null;
+  deadline?: string | null;
+  assigneeName?: string | null;
+  history: ClaimSheetEvent[];
+}
+
+export interface ValidateClaimCreationPayload {
+  changes?: {
+    title?: string;
+    clientId?: string;
+    defectType?: string;
+    lotNumber?: string;
+    serialNumber?: string;
+    description?: string;
+    severity?: string;
+    producedQuantity?: number;
+    defectiveQuantity?: number;
+  };
+  /** yyyy-mm-dd; absent = the creator did not touch the date (the suggested one is used). */
+  deadline?: string;
+  deadlineReason?: string;
 }

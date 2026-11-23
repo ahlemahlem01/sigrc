@@ -26,7 +26,7 @@
   font-size: 12.5px;
   font-weight: 600;
   padding: 6px 12px;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
 }
 
@@ -86,7 +86,7 @@
   background: #fff;
   color: #0f2b5c;
   padding: 7px 12px;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 12.5px;
   font-weight: 600;
   border: 1px solid #e2e8f0;
@@ -474,7 +474,7 @@
 }
 
 .alerts-claims-link:hover {
-  color: #1e40af;
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
@@ -731,14 +731,14 @@
   background: #0f2b5c;
   color: #fff;
   padding: 8px 14px;
-  border-radius: 7px;
+  border-radius: 8px;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .alerts-btn-primary:hover {
-  background: #1e3a8a;
+  background: #000168;
 }
 
 .alerts-btn-primary:disabled {
@@ -1490,7 +1490,7 @@
 }
 
 .alerts-extras-toggle:hover {
-  color: #1e40af;
+  color: #1d4ed8;
   text-decoration: underline;
 }
 
