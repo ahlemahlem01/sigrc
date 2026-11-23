@@ -1,17 +1,31 @@
 # HTTPS certificates are obtained and renewed automatically (Let's Encrypt) for the VM's DNS name.
 # Ports 80, 443, 8443 and 8444 must be open in the Azure network security group.
 
+# Security headers for every site below.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+}
+
 # Auth API: this address is also the token issuer.
 {$PUBLIC_HOST} {
+	import security_headers
 	reverse_proxy auth-api:5119
 }
 
 # Action Plan API (it shares the network of the Auth API container) and its SignalR hub.
 {$PUBLIC_HOST}:8443 {
+	import security_headers
 	reverse_proxy auth-api:5129
 }
 
 # ML service (called directly by the browser).
 {$PUBLIC_HOST}:8444 {
+	import security_headers
 	reverse_proxy ml-service:8001
 }

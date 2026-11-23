@@ -108,6 +108,7 @@ public class PlanActionController : ControllerBase
     /// <summary>Attaches a proof (photo, report, office file) to a sub-action. Whoever can work on the plan can add one; the file is private and only served by the download route.</summary>
     [HttpPost("{id:guid}/documents")]
     [Consumes("multipart/form-data")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> UploadProof(Guid id, IFormFile file, [FromServices] IWebHostEnvironment env, CancellationToken ct)
     {
         var userId = CurrentUserId();

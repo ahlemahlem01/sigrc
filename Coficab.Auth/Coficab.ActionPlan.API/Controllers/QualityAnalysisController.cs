@@ -359,6 +359,7 @@ public class QualityAnalysisController : ControllerBase
     /// </summary>
     [HttpPost("claims/cv-suggestion")]
     [Consumes("multipart/form-data")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> SuggestDefectFromImage(IFormFile image, CancellationToken cancellationToken)
     {
         if (image is not { Length: > 0 }) return Ok(new { available = false, reason = "noImage" });

@@ -12,6 +12,7 @@ using Coficab.ActionPlan.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using OpenIddict.Validation.AspNetCore;
 using System.Net.Http;
+using System.Threading.RateLimiting;
 using System.Security.Claims;
 using System.Text.Json.Serialization;
 
@@ -127,6 +128,23 @@ builder.Services.AddAuthorization(options =>
         }));
 });
 
+//  Rate limits: per signed-in user (else per address) on the costly endpoints (assistant, uploads, image analysis)
+builder.Services.AddRateLimiter(limiter =>
+{
+    limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    void PerUser(string policy, string key, int permits) =>
+        limiter.AddPolicy(policy, http => RateLimitPartition.GetFixedWindowLimiter(
+            http.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = builder.Configuration.GetValue(key, permits),
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            }));
+    PerUser("assistant", "RateLimiting:AssistantPerMinute", 20);
+    PerUser("upload", "RateLimiting:UploadPerMinute", 30);
+});
+
 // ✅ CORS — SignalR requires AllowCredentials
 // Cors:AllowedOrigins: array, or one comma-separated value (e.g. an environment variable).
 var allowedOrigins = ReadAllowedOrigins(builder.Configuration);
@@ -193,6 +211,13 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 }
 
 // 📸 Activation de l'accès aux fichiers statiques (images, avatars dans wwwroot)
+app.Use(async (context, next) =>
+{
+    // nothing served by the API (files, JSON) may be re-interpreted as another type by the browser
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    await next();
+});
+
 app.UseStaticFiles();
 
 // ✅ SignalR WebSocket token injection
@@ -216,6 +241,7 @@ app.UseCors("CoficabFrontend");
 app.UseAuthentication();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.PasswordChangeRequiredMiddleware>();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.ValidationExceptionMiddleware>();
 
 // ✅ SignalR hub

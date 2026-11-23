@@ -150,6 +150,7 @@ public class EmployeeController : ControllerBase
 
     // ─── 1c. Upload de l'Avatar ─────────────────────────────────────────────────
     [HttpPost("profile/avatar")]
+    [Microsoft.AspNetCore.RateLimiting.EnableRateLimiting("upload")]
     public async Task<IActionResult> UploadAvatar(IFormFile file)
     {
         try
