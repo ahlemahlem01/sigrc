@@ -19,8 +19,7 @@ using System.Text.Json.Serialization;
 var builder = WebApplication.CreateBuilder(args);
 builder.AddCoficabSerilog("coficab-actionplan");
 
-// Primary SQL Server connection comes from User Secrets (ConnectionStrings:DefaultConnection).
-// Tests use the in-memory provider and do not need this value.
+
 if (!builder.Environment.IsEnvironment("Testing"))
 {
     var defaultConnection = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -32,7 +31,7 @@ if (!builder.Environment.IsEnvironment("Testing"))
         builder.Configuration["ConnectionStrings:ActionPlanDb"] = defaultConnection;
 }
 
-// ✅ Infrastructure et Application
+//  Infrastructure et Application
 builder.Services.AddInfrastructure(builder.Configuration, builder.Environment);
 builder.Services.AddApplication();
 
@@ -107,10 +106,10 @@ builder.Services.AddOpenIddict()
         options.UseAspNetCore();
     });
 
-// ✅ Définir le scheme par défaut
+//  Définir le scheme par défaut
 builder.Services.AddAuthentication(OpenIddictValidationAspNetCoreDefaults.AuthenticationScheme);
 
-// ✅ Authorization
+//  Authorization
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy =>
@@ -145,8 +144,8 @@ builder.Services.AddRateLimiter(limiter =>
     PerUser("upload", "RateLimiting:UploadPerMinute", 30);
 });
 
-// ✅ CORS — SignalR requires AllowCredentials
-// Cors:AllowedOrigins: array, or one comma-separated value (e.g. an environment variable).
+//  CORS — SignalR requires AllowCredentials
+
 var allowedOrigins = ReadAllowedOrigins(builder.Configuration);
 builder.Services.AddCors(options =>
 {
@@ -160,7 +159,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// ✅ Controllers & String Enum Serializer
+//  Controllers and String Enum Serializer
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -200,8 +199,7 @@ builder.Services.AddScoped<INotificationBroadcaster, NotificationBroadcaster>();
 
 var app = builder.Build();
 
-// Tables are created by EF migrations (dotnet ef database update), never by raw SQL at startup.
-// Embeddings are stored as JSON text and ranked in memory.
+
 
 if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
 {
@@ -210,7 +208,7 @@ if (app.Environment.IsDevelopment() || app.Environment.IsEnvironment("Testing"))
     app.UseDeveloperExceptionPage();
 }
 
-// 📸 Activation de l'accès aux fichiers statiques (images, avatars dans wwwroot)
+//  Activation de l'accès aux fichiers statiques (images, avatars dans wwwroot)
 app.Use(async (context, next) =>
 {
     // nothing served by the API (files, JSON) may be re-interpreted as another type by the browser
@@ -220,7 +218,7 @@ app.Use(async (context, next) =>
 
 app.UseStaticFiles();
 
-// ✅ SignalR WebSocket token injection
+//  SignalR 
 app.Use(async (context, next) =>
 {
     var accessToken = context.Request.Query["access_token"];
@@ -235,7 +233,7 @@ app.Use(async (context, next) =>
 app.UseCoficabRequestLogging();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.LatencyMiddleware>();
 
-// ✅ Native CORS Policy (Handles preflight OPTIONS automatically)
+//  Native CORS Policy 
 app.UseCors("CoficabFrontend");
 
 app.UseAuthentication();
@@ -244,7 +242,7 @@ app.UseAuthorization();
 app.UseRateLimiter();
 app.UseMiddleware<Coficab.ActionPlan.API.Services.ValidationExceptionMiddleware>();
 
-// ✅ SignalR hub
+//  SignalR hub
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.MapControllers();
