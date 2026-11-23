@@ -4,7 +4,9 @@ namespace Coficab.ActionPlan.API.Services;
 
 /// <summary>
 /// Turns a failed FluentValidation check into HTTP 400 with the same shape the screens already read:
-/// { message, errors: [{ field, message }] }. Anything else is left to the normal error handling.
+/// { message, errors: [{ field, message }] }. A request the browser gave up on (tab closed, page left, connection lost) is not a
+/// server error: it ends quietly with 499, so that it is neither logged as a failure nor counted as a 500.
+/// Anything else is left to the normal error handling.
 /// </summary>
 public class ValidationExceptionMiddleware
 {
@@ -17,6 +19,11 @@ public class ValidationExceptionMiddleware
         try
         {
             await _next(context);
+        }
+        catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)
+        {
+            if (!context.Response.HasStarted)
+                context.Response.StatusCode = 499;   // "client closed request": nobody is left to read an answer
         }
         catch (ValidationException ex) when (!context.Response.HasStarted)
         {
